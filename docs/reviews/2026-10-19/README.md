@@ -1,10 +1,10 @@
 # Component, flow and template design review
 
-Reviewed on 19 October 2026. The exhaustive baseline is version 0.3.4; the initial remediation is version 0.3.5, followed by the documented 0.3.6–0.3.11 corrections below. Campaign's existing logo, icons, purple accent and login composition remain the brand reference. English LTR is the required layout.
+Reviewed on 19 October 2026. The exhaustive baseline is version 0.3.4; the initial remediation is version 0.3.5, followed by the documented 0.3.6–0.3.14 corrections below. Campaign's existing logo, icons, purple accent and login composition remain the brand reference. English LTR is the required layout.
 
-The subsequent [Campaign dark-mode repair](campaign-dark.md) passes a clean complete shared gate: 58 native checks, 511 examples and 166 Playwright cases on 0.3.11. Its actual installed public sign-in retains the exact light brand region and measured dark text contrast. Authenticated native error/interaction acceptance is tracked separately; earlier release qualifications below remain historical evidence.
+The subsequent [Campaign dark-mode repair](campaign-dark.md) covers actual sign-in, badges and 58 guarded synthetic native interaction checks, followed by the user's full Overview on the matched 0.3.14 shared/native color repair. The [Discover navigation, capture and replay comparison](discover-navigation-capture-replay.md) records direct task names, clearer flow boundaries and actual screenshots against official Otterly and Umami UI references. [Release validation](../../VALIDATION.md) records each package's complete or focused gate separately; earlier release qualifications below remain historical evidence.
 
-The [scoped shared UI integration checkpoint](../../CAMPAIGN-DISCOVER-COMPLETION.md) is now accepted for Campaign on 0.3.9 and Discover on the qualified 0.3.10 prerelease. Final [native calendar and Boards captures](consumer-screens.md) retain actual consumer markup, measured text enlargement and regression results. Shared browser host-resource failures and their passing isolated rechecks remain explicit in [validation](../../VALIDATION.md#independent-report-names-0310); this is not a clean monolithic shared browser pass, live-provider acceptance or complete competitor-feature parity.
+The earlier [scoped shared UI integration checkpoint](../../CAMPAIGN-DISCOVER-COMPLETION.md) was accepted for Campaign on 0.3.9 and Discover on the qualified 0.3.10 prerelease. Final [native calendar and Boards captures](consumer-screens.md) retain actual consumer markup, measured text enlargement and regression results. Historical 0.3.10 browser host-resource failures and their passing isolated rechecks remain explicit in [validation](../../VALIDATION.md#independent-report-names-0310); that release has no clean monolithic browser pass. These bounded UI checks do not establish live-provider acceptance or complete competitor-feature parity.
 
 The system's strongest quality is its truthful state handling. It distinguishes a measured zero from missing data, a draft from applied scope, accepted work from delivery, and an uncertain outcome from a failed request. The largest design weaknesses were inconsistent theme surfaces, cramped results, and catalogue previews that did not faithfully show the shipped components. Those are more consequential than adding visual decoration.
 
@@ -27,6 +27,7 @@ The visual comparison reports pair matching ten98 functions with actual product 
 - [Template and workspace comparisons](visual-templates.md)
 - [Actual Campaign and Discover consumer screens](consumer-screens.md)
 - [Campaign dark-mode repair and actual baseline](campaign-dark.md)
+- [Discover navigation, capture setup and replay follow-up](discover-navigation-capture-replay.md)
 - [Approval and recipient-review reference follow-up](visual-confirmations.md)
 - [Saved keywords into rank tracking](saved-keywords-rank.md)
 

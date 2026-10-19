@@ -49,6 +49,15 @@ async function colors(page: Page) {
       surface: color(root.getPropertyValue('--t98-surface')),
       disabledRole: color(root.getPropertyValue('--t98-disabled-surface')),
       scheme: root.colorScheme,
+      compatibility: Object.fromEntries(['search-key', 'tab-count', 'active-tab-count', 'integration-initial', 'native-count', 'native-avatar'].map(id => {
+        const element = style(`#${id}`);
+        return [id, { text: color(element.color), fill: color(element.backgroundColor) }];
+      })),
+      tag: {
+        text: color(style('#subtle-tag').color),
+        fill: color(style('#subtle-tag').backgroundColor),
+        border: color(style('#subtle-tag').borderColor),
+      },
       error: {
         text: color(style('.form-error').color),
         fill: color(style('.form-error').backgroundColor),
@@ -104,6 +113,16 @@ for (const [theme, system, expected] of [
     expect(error.fill.slice(0, 3)).toEqual(expected === 'dark' ? [73, 42, 42] : [253, 240, 245]);
     expect(error.border.slice(0, 3)).toEqual(expected === 'dark' ? [255, 163, 153] : [242, 212, 224]);
     expect(contrast(error.text, error.fill), 'form error text').toBeGreaterThanOrEqual(4.5);
+    expect(rendered.tag.fill.slice(0, 3)).toEqual(expected === 'dark' ? [29, 41, 56] : [249, 247, 253]);
+    expect(rendered.tag.border.slice(0, 3)).toEqual(expected === 'dark' ? [52, 66, 88] : [240, 236, 247]);
+    expect(rendered.tag.text.slice(0, 3)).toEqual(expected === 'dark' ? [173, 185, 202] : [105, 99, 116]);
+    expect(contrast(rendered.tag.text, rendered.tag.fill), 'subtle tag text').toBeGreaterThanOrEqual(4.5);
+    for (const [id, lightFill] of Object.entries({ 'search-key': [248, 247, 251], 'tab-count': [244, 238, 249], 'active-tab-count': [244, 238, 249], 'integration-initial': [241, 237, 252], 'native-count': [244, 238, 249], 'native-avatar': [239, 225, 212] })) {
+      const item = rendered.compatibility[id], accent = id === 'active-tab-count' || id === 'integration-initial';
+      expect(item.fill.slice(0, 3), `${id} fill`).toEqual(expected === 'dark' ? (['search-key', 'native-count', 'native-avatar'].includes(id) ? [29, 41, 56] : [53, 42, 84]) : lightFill);
+      expect(item.text.slice(0, 3), `${id} text`).toEqual(expected === 'dark' ? (accent ? [194, 182, 255] : [173, 185, 202]) : (accent ? [89, 67, 206] : [105, 99, 116]));
+      expect(contrast(item.text, item.fill), `${id} text contrast`).toBeGreaterThanOrEqual(4.5);
+    }
     expect(rendered.surface.slice(0, 3)).toEqual(surface);
     expect(rendered.disabled.slice(0, 3)).toEqual(disabled);
     expect(rendered.disabled).toEqual(rendered.disabledRole);
@@ -162,6 +181,13 @@ test('restoring the old fills reproduces dark surface, action and navigation con
   expect(old.disabled).not.toEqual(old.disabledRole);
   expect(contrast(old.workspaceText, old.workspace)).toBeLessThan(4.5);
   expect(contrast(old.avatarText, old.avatar)).toBeLessThan(4.5);
+  expect(old.tag.fill.slice(0, 3)).toEqual([249, 247, 253]);
+  expect(contrast(old.tag.text, old.tag.fill), 'subtle tag old fill').toBeLessThan(4.5);
+  for (const [id, fill] of Object.entries({ 'search-key': [248, 247, 251], 'tab-count': [244, 238, 249], 'active-tab-count': [244, 238, 249], 'integration-initial': [241, 237, 252], 'native-count': [244, 238, 249], 'native-avatar': [239, 225, 212] })) {
+    const item = old.compatibility[id];
+    expect(item.fill.slice(0, 3), `${id} old fill`).toEqual(fill);
+    expect(contrast(item.text, item.fill), `${id} old fill contrast`).toBeLessThan(4.5);
+  }
   for (const id of ['nav-selected', 'nav-count', 'danger']) {
     const action = old.actions[id];
     expect(contrast(action.text, composite(action.fill, old.canvas)), `${id} old fill`).toBeLessThan(4.5);

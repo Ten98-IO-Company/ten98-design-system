@@ -4,6 +4,8 @@
 
 Version 0.3.11 pairs the compatibility authentication story and form-error colors using the existing theme roles. Keep the package styles before native overrides, then remove fixed native fills or foregrounds that split these pairs. Badge state classes similarly own their foreground and surface together; native color-only overrides must not replace one half. Preserve Campaign's existing mark, icons, light palette and split layout. Check actual installed login, modal errors and badges in both themes at desktop and 320px.
 
+Version 0.3.13 also pairs noninteractive tags, shortcut hints, native tab counts and default integration initials. Version 0.3.14 completes the shared count/avatar backgrounds. Campaign adopts those backgrounds together with its native semantic dark count/avatar foregrounds; either half alone is insufficient. Keep shared fills as the owner and inspect consumer-specific foreground/background pairs together. These patches change no public API or token palette.
+
 `light-dark()` follows the used `color-scheme`. Supply `data-theme="light"`, `"dark"` or `"system"` at the app's theme boundary; the library's explicit system contract follows the operating-system preference. A consumer supplying its own dark roles must supply the matching color scheme. Do not infer theme controls or saved-preference behavior from a CSS probe. See the [native screenshot baseline and repair](reviews/2026-10-19/campaign-dark.md).
 
 ## Controlled saved-record pickers

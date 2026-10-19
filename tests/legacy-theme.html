@@ -15,7 +15,7 @@
     // Negative control: restore only the reported legacy fills.
     if (options.get('baseline') === '1') {
       const baseline = document.createElement('style');
-      baseline.textContent = '.topbar{background:#ffffffd9}.field input:disabled{background:#faf7fd}.workspace-switch{background:#faf9fd}.workspace-avatar{background:#e8e1fa;color:var(--color-text-muted)}.button:not(.primary):hover:not(:disabled),.btn:not(.primary):hover:not(:disabled){background:#f7f6fc}.button.danger,.btn.danger{background:#fff3f5}.nav-item:hover{background:#f7f5fd}.nav-item.selected{background:#eeebfc}.nav-count{background:#e9e3fc}.auth-story{background:#eee9fa}';
+      baseline.textContent = '.topbar{background:#ffffffd9}.field input:disabled{background:#faf7fd}.workspace-switch{background:#faf9fd}.workspace-avatar{background:#e8e1fa;color:var(--color-text-muted)}.button:not(.primary):hover:not(:disabled),.btn:not(.primary):hover:not(:disabled){background:#f7f6fc}.button.danger,.btn.danger{background:#fff3f5}.nav-item:hover{background:#f7f5fd}.nav-item.selected{background:#eeebfc}.nav-count{background:#e9e3fc}.auth-story{background:#eee9fa}.subtle-tag{background:#f9f7fd}.search kbd{background:#f8f7fb}.tabs :is(button,a)>span{background:#f4eef9}.integration-settings-icon{background:#f1edfc}.count{background:#f4eef9}.avatar{background:#efe1d4}';
       document.head.append(baseline);
     }
   </script>
@@ -24,10 +24,14 @@
   <section class="workspace-main" aria-label="Synthetic workspace">
     <header class="topbar">
       <div class="breadcrumb"><button type="button" class="icon-button mobile-menu" aria-label="Open navigation" aria-expanded="false"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z"/></svg></button><span class="project-dot" aria-hidden="true"></span><span id="topbar-project">Brand launch</span><span class="crumb-slash">/</span><strong id="topbar-context">Calendar</strong></div>
-      <div class="topbar-tools"><span class="avatar mini" aria-label="Swarm QA">SQ</span></div>
+      <div class="topbar-tools"><div class="search"><kbd id="search-key">⌘ K</kbd></div><span id="native-avatar" class="avatar mini" aria-label="Swarm QA">SQ</span></div>
     </header>
     <main class="content">
       <h1>Synthetic settings</h1>
+      <span id="subtle-tag" class="subtle-tag">App administrator</span>
+      <span id="native-count" class="count">3 campaigns</span>
+      <div class="tabs" aria-label="Synthetic campaign filters"><button type="button">Draft <span id="tab-count">3</span></button><button type="button" class="active">Active <span id="active-tab-count">1</span></button></div>
+      <span id="integration-initial" class="integration-settings-icon">Z</span>
       <div class="workspace-switch">
         <span class="workspace-avatar" aria-hidden="true">TS</span>
         <div><label for="workspace-choice">Workspace</label><select id="workspace-choice"><option value="studio">ten98 studio</option><option value="research">Research team</option></select><small>Owner workspace</small></div>
