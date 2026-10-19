@@ -31,8 +31,8 @@
     "devCIRun": "39326005411",
     "devCIConclusion": "success",
     "mainCIRun": "39327691205",
-    "mainCIStatusAtCheck": "in_progress",
-    "mainCIConclusionAtCheck": null,
+    "mainCIStatusAtCheck": "completed",
+    "mainCIConclusionAtCheck": "success",
     "deploymentReport": "App owner reports preview.8 live, web/worker healthy and HTTP checks 200; root did not repeat the operational deployment check",
     "uiFixtureDoesNotEstablishDeployment": true
   },
