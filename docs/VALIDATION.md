@@ -8,6 +8,8 @@ Twelve added browser cases cover explicit themes overriding the operating system
 
 The immutable 0.3.2 archive SHA256 is `A49025981CFF0E1BD4DD936A90B644B437B8120852CA9D012B0D12BD14F45069`. All 30 emitted JavaScript/declaration files are byte-identical to 0.3.1. The inspected package includes the MIT license, current version and corrected compatibility CSS. Both active app owners received this exact archive and hash for adoption.
 
+The source catalogue's setup guide now includes the required browser gate and the full existing-app stylesheet order. Its focused desktop/narrow Playwright cases caught and fixed literal newline escapes in the command snippet, then passed with real multiline values. This catalogue-only follow-up leaves the released archive unchanged.
+
 ## Actual text enlargement: 0.3.1
 
 The complete `npm run check:all` gate passes: 55 native tests, 505 strict public TSX examples and 92 Playwright cases. The stronger text test snapshots every computed font size and numeric line height before doubling them, includes isolated app-preview documents, verifies visible headings at exactly 2× and restores styles between hash-route cases. It checks all 73 component state pages at 320px, all 28 flows at desktop and 320px, open modal controls, typed confirmation and focus return. It is text enlargement rather than full page zoom; horizontal reflow is tested, with no blanket certification of all possible clipping or overlap.

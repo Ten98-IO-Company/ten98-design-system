@@ -144,7 +144,7 @@ test('flow discovery, copyable source and reference decisions are connected', as
   await expect(page.locator('.reference-code code')).toContainText("from '@ten98/ui'");
 });
 
-test('navigation restores focus and keeps scrollbar tracks hidden', async ({ page }, info) => {
+test('navigation restores focus, hides scrollbar tracks and gives current setup commands', async ({ page }, info) => {
   await page.goto('/#components');
   if (info.project.name === 'narrow-dark') {
     const trigger = page.getByRole('button', { name: 'Open navigation', exact: true });
@@ -159,6 +159,10 @@ test('navigation restores focus and keeps scrollbar tracks hidden', async ({ pag
   await page.keyboard.press('Escape');
   await expect(search).toBeFocused();
   expect(await page.locator('.catalog-sidebar > nav').evaluate(element => getComputedStyle(element).scrollbarWidth)).toBe('none');
+  await page.goto('/#getting-started');
+  await expect(page.getByRole('heading', { name: 'Copy a component. Keep the system.' })).toBeVisible();
+  await expect(page.getByLabel('Build the library', { exact: true })).toHaveText('npm install\nnpx playwright install chromium\nnpm run check:all\nnpm pack');
+  await expect(page.getByLabel('Existing application stylesheet', { exact: true })).toHaveText("@import '@ten98/ui/app-tokens.css';\n@import '@ten98/ui/app.css';\n@import '@ten98/ui/product.css';\n/* App-specific overrides follow. */");
 });
 
 test('templates retain layout at 200 percent text zoom', async ({ page }, info) => {
