@@ -262,6 +262,19 @@ test('disabled values use their semantic text role despite a legacy muted overri
   expect(contrast(inherited.disabledText, inherited.disabled)).toBeLessThan(4.5);
 });
 
+test('padded panels keep headers aligned with their controls without changing plain panels', async ({ page }, info) => {
+  await page.goto(`/tests/legacy-theme.html?theme=${info.project.name === 'narrow-dark' ? 'dark' : 'light'}`);
+  for (const width of [1440, 320]) {
+    await page.setViewportSize({ width, height: 1000 });
+    const layout = await page.locator('#padded-panel').evaluate(panel => {
+      const heading = panel.querySelector('.panel-heading')!, field = panel.querySelector('.field')!;
+      return { headerPadding: getComputedStyle(heading).padding, aligned: Math.abs(heading.getBoundingClientRect().left - field.getBoundingClientRect().left) < 1, contained: panel.scrollWidth <= panel.clientWidth + 1, rowGap: getComputedStyle(panel.querySelector('.form-grid')!).rowGap, fieldMargins: [...panel.querySelectorAll('.form-grid>.field')].map(element => getComputedStyle(element).marginTop) };
+    });
+    expect(layout).toEqual({ headerPadding: '0px 0px 20px', aligned: true, contained: true, rowGap: '18px', fieldMargins: ['0px', '0px'] });
+    expect(await page.locator('#plain-panel>.panel-heading').evaluate(element => parseFloat(getComputedStyle(element).paddingLeft))).toBeGreaterThan(0);
+  }
+});
+
 test('light geometry and authentication brand styling match the legacy baseline', async ({ page }) => {
   const appearance = async (baseline: boolean) => {
     await page.goto(`/tests/legacy-theme.html?theme=light${baseline ? '&baseline=1' : ''}`);

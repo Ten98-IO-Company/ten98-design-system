@@ -1,5 +1,15 @@
 # Release validation
 
+## Canonical authentication and settings composition: 0.3.15
+
+AuthLayout keeps its six-prop API and now uses Campaign's established split story/form composition. The Brand & login reference and component catalogue reuse it. Canonical brand/auth CSS has one source, expanded into the existing standalone and compatibility stylesheets. Generic mobile guidance stays visible; only marked Campaign decoration collapses. Padded-panel headers and form grids also lose compounded insets/margins while retaining row spacing. Public declarations, token palette and dependencies are unchanged.
+
+Build, **58/58 native checks** and **511 standalone strict TSX examples** pass. The complete frozen runtime/style Playwright gate passes **172/172 in 3.2 minutes**, one worker, zero retries and no host failures. A final screenshot review found missing spaces in the copied story when mobile line breaks hide; the catalogue-only text correction and direct headline containment assertion pass **4/4 affected checks in 7.9 seconds**. Campaign's native source already contained those spaces. No runtime/style change followed the full gate.
+
+Five final actual catalogue captures were individually inspected against Campaign's original login reference. Both themes, desktop/narrow, standalone styling, native validation/FormData, generic mobile recovery guidance, setup/busy/error states and native light geometry are covered. See the [auth review](reviews/2026-10-20/auth-layout.md). These local UI checks do not establish either app's authentication backend or completion of the separate [58-scene Campaign baseline audit](reviews/2026-10-20/campaign-screen-audit.md).
+
+Immutable archive SHA256 `C690CD081EE82ECE3802388994E746DCC198FF309ECB3B8668FF60A324C7CA77`: **359,944 bytes / 90 entries / 30 modules-declarations / 48 Markdown files / MIT / no images**. All modules and CSS match the final build. Only `workspace.js` changes among JavaScript modules; public declarations and token files remain byte-identical to 0.3.14. Styles change only in app.css, workspace.css, styles.css and the new canonical auth.css. The archive retains packaging-time documentation; later app acceptance is recorded without repacking it.
+
 ## Matched Overview count/avatar roles: 0.3.14
 
 Campaign's exact current Overview screen exposed a broader native paint batch, beyond the previously checked sign-in/dialog fixtures. The app owner froze a complete native legend, channel, row, budget, date, upcoming, activity and footer repair. Native count/avatar foregrounds now preserve their light literals while selecting semantic dark muted text. The matching shared backgrounds must ship with that native change: `.count` and `.avatar` retain their original light colors and select the existing dark subtle surface. No foreground, border, geometry, token palette, JavaScript, declaration, dependency or API changes in the shared patch.

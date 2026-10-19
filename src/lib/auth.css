@@ -1,0 +1,81 @@
+/* Canonical Campaign brand and authentication presentation; MIT, see THIRD_PARTY_NOTICES.md. */
+.t98-auth-layout{color:var(--color-text,var(--t98-text));font-family:var(--t98-font)}
+.t98-auth-layout,.t98-auth-layout *{box-sizing:border-box}
+:where(.t98-auth-layout) :is(h1,h2,h3,p){margin:0}
+:where(.t98-auth-layout) p{line-height:1.65}
+.t98-auth-layout svg{flex-shrink:0}
+.t98-auth-layout .brand{text-decoration:none}
+.t98-auth-layout .eyebrow{font-weight:700}
+.t98-auth-layout :is(.auth-story,.auth-form){min-width:0}
+.t98-auth-layout :is(.auth-story-title,.t98-auth-title){font-family:'Aptos Display','Segoe UI',sans-serif;font-weight:750}
+.t98-auth-layout .t98-auth-title{line-height:normal}
+.t98-auth-layout .t98-auth-title+.t98-auth-fields{margin-top:32px}
+.t98-auth-layout .t98-auth-brand{margin-bottom:24px}
+.t98-auth-layout:not(.auth-split){grid-template-columns:1fr}
+.brand-dot{color:var(--color-accent,var(--t98-accent))}
+.brand{display:flex;align-items:center;gap:10px;color:var(--color-text,var(--t98-text));padding:0 12px 30px}
+.brand-mark{width:37px;height:37px;display:inline-flex;align-items:center;justify-content:center;background:var(--color-accent,var(--t98-accent));border-radius:11px;color:var(--color-on-accent,var(--t98-on-accent));font-family:'Aptos Display','Segoe UI',sans-serif;font-size:21px;font-weight:800;letter-spacing:-1.3px;flex-shrink:0}
+.brand>span:last-child{display:flex;flex-direction:column;gap:0}
+.brand strong{font-family:'Aptos Display','Segoe UI',sans-serif;font-size:25px;line-height:1.15;font-weight:800;letter-spacing:-1.2px}
+.brand small{font-size:10px;letter-spacing:2.6px;font-weight:650;color:var(--color-text-muted,var(--t98-muted));margin-top:3px}
+.auth-shell{display:grid;grid-template-columns:1fr 1fr;min-height:100dvh;background:var(--color-surface,var(--t98-surface))}
+.auth-story{background:light-dark(#eee9fa,var(--color-surface-subtle,var(--t98-subtle)));padding:40px 50px;display:flex;flex-direction:column;justify-content:space-between;isolation:isolate;position:relative;overflow:hidden}
+.auth-story>.brand{padding:0}
+.auth-story>div:not(.auth-orbit){padding:60px 0}
+.auth-story .eyebrow{color:light-dark(#766088,var(--color-text-muted,var(--t98-muted)));font-size:11px;letter-spacing:2px;margin-bottom:25px}
+.auth-story :is(h1,.auth-story-title){font-size:clamp(40px,5vw,76px);line-height:1.1;letter-spacing:-4px;font-weight:750;color:light-dark(#785793,var(--color-text,var(--t98-text)))}
+.auth-story :is(h1,.auth-story-title) em{color:light-dark(#745c89,var(--color-accent,var(--t98-accent)));font-style:normal}
+.auth-story p:not(.auth-story-title){font-size:13px;color:light-dark(#736180,var(--color-text-muted,var(--t98-muted)));margin-top:30px;line-height:1.9}
+.auth-channels{display:flex;gap:22px;margin-top:38px;color:var(--color-text-muted,var(--t98-muted));font-size:12px}
+.auth-channels span{display:flex;align-items:center;gap:8px}
+.auth-channels svg{width:17px;height:17px}
+.auth-story>small{font-size:12px;color:light-dark(#71637a,var(--color-text-muted,var(--t98-muted)))}
+.auth-orbit{position:absolute;height:550px;width:550px;right:-240px;bottom:-310px;border:90px solid light-dark(#e4daf3,var(--color-surface-raised,var(--t98-surface-raised)));border-radius:50%;z-index:-1}
+.auth-form{display:flex;align-items:center;justify-content:center;padding:45px}
+.auth-form-inner{width:100%;max-width:360px}
+.auth-form .eyebrow{font-size:10px;margin-bottom:15px;color:var(--color-text-muted,var(--t98-muted))}
+.auth-form h2,.auth-form .t98-auth-title{font-size:27px;letter-spacing:-1px;color:var(--color-text-muted,var(--t98-muted))}
+.auth-form h2+p,.auth-form .t98-auth-title+p{font-size:13px;color:var(--color-text-muted,var(--t98-muted));margin-top:10px;margin-bottom:32px}
+.auth-form .field{margin-bottom:20px}
+.auth-form .field input{height:43px}
+.auth-form :is(.button,.btn){min-height:43px;margin-top:5px}
+.checkbox-label{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--color-text-muted,var(--t98-muted));margin:20px 0}
+.checkbox-label input{accent-color:var(--color-accent,var(--t98-accent));width:14px;height:14px}
+.auth-footnote{font-size:11px;color:var(--color-text-muted,var(--t98-muted));display:flex;align-items:center;justify-content:center;gap:6px;margin-top:25px}
+.or-divider{display:flex;align-items:center;gap:12px;color:var(--color-text-muted,var(--t98-muted));font-size:11px;margin:25px 0 18px}
+.or-divider:before,.or-divider:after{content:'';height:1px;flex:1;background:#f0e7f7}
+@media(max-width:1200px){
+.auth-story{padding:35px}
+.auth-form{padding:35px}
+.auth-story :is(h1,.auth-story-title){letter-spacing:-2.5px}
+.brand{padding-left:8px}
+}
+@media(max-width:960px){
+.auth-shell{grid-template-columns:.9fr 1.1fr}
+.auth-story{padding:30px}
+.auth-story :is(h1,.auth-story-title){font-size:45px}
+.auth-channels{flex-wrap:wrap;gap:13px}
+.auth-story p:not(.auth-story-title){font-size:13px}
+.auth-form{padding:30px}
+}
+@media(max-width:760px){
+.auth-shell{grid-template-columns:1fr}
+.auth-story{padding:25px 25px 30px}
+.auth-story>.brand{gap:8px}
+.auth-story .brand-mark{height:31px;width:31px;font-size:18px;border-radius:9px}
+.auth-story .brand strong{font-size:22px}
+.auth-story .brand small{font-size:8px;letter-spacing:2px}
+.auth-story>div:not(.auth-orbit){padding:35px 0 0}
+.auth-story :is(h1,.auth-story-title){font-size:42px;letter-spacing:-1.5px;line-height:1.12}
+.auth-story :is(h1,.auth-story-title) br{display:none}
+.auth-story :is(h1,.auth-story-title) br:after{content:' '}
+.auth-story .eyebrow{font-size:9px;letter-spacing:1.5px;margin-bottom:13px}
+.auth-story :is(h1,.auth-story-title) em{display:block}
+.auth-story:not(.t98-auth-aside) p:not(.auth-story-title),.auth-story:not(.t98-auth-aside)>small,.auth-story .auth-story-summary,.auth-story>.auth-story-footnote,.auth-channels{display:none}
+.auth-orbit{width:300px;height:300px;border-width:50px;right:-130px;bottom:-220px}
+.auth-form{padding:35px 25px 45px}
+.auth-form h2,.auth-form .t98-auth-title{font-size:25px}
+.auth-form h2+p,.auth-form .t98-auth-title+p{font-size:13px;margin-bottom:25px}
+.auth-form .eyebrow{font-size:9px}
+.auth-form-inner{max-width:420px}
+}

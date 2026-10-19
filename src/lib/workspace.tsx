@@ -72,7 +72,7 @@ export function useToast(): ToastApi { const context = useContext(ToastContext);
 
 /** Branded authentication presentation; authentication and recovery remain application-owned. */
 export function AuthLayout({ brand, title, description, aside, children, footer }: { brand: ReactNode; title: string; description?: string; aside?: ReactNode; children: ReactNode; footer?: ReactNode }) {
-  return <div className={`t98-auth-layout ${aside ? 't98-auth-layout--split' : ''}`}>{aside && <aside className="t98-auth-aside"><div>{brand}</div><div>{aside}</div></aside>}<section className="t98-auth-main"><div className="t98-auth-form">{!aside && <div className="t98-auth-brand">{brand}</div>}<h1>{title}</h1>{description && <p>{description}</p>}<div className="t98-auth-fields">{children}</div>{footer && <footer>{footer}</footer>}</div></section></div>;
+  return <div className={`t98-auth-layout auth-shell ${aside ? 'auth-split' : ''}`}>{aside && <aside className="auth-story t98-auth-aside">{brand}{aside}<div className="auth-orbit" aria-hidden="true"/></aside>}<section className="auth-form"><div className="auth-form-inner">{!aside && <div className="t98-auth-brand">{brand}</div>}<h1 className="t98-auth-title">{title}</h1>{description && <p>{description}</p>}<div className="t98-auth-fields">{children}</div>{footer && <footer className="auth-footnote">{footer}</footer>}</div></section></div>;
 }
 
 export interface Permission { id: string; label: string; description?: string }

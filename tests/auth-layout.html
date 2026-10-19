@@ -1,0 +1,22 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Standalone auth layout</title><div id="root"></div>
+<script type="module">
+import React, { useState } from 'react';
+import { createRoot } from 'react-dom/client';
+import { AuthLayout, Button, Field, Input } from '../src/lib';
+import { AppBrand } from '../src/lib/app';
+// Exercise the public main stylesheet without app.css or app-tokens.css.
+import '../dist/styles.css';
+const e = React.createElement, params = new URLSearchParams(location.search);
+document.documentElement.dataset.theme = params.get('theme') === 'dark' ? 'dark' : 'light';
+function Fixture() {
+  const [message, setMessage] = useState('');
+  return e(AuthLayout, { brand: e(AppBrand, { product: 'Campaign' }), title: 'Sign in', description: 'Use your account to access your workspaces.',
+    aside: params.has('single') ? undefined : e(React.Fragment, null, e('div', null, e('p', { className: 'auth-story-title' }, 'Plan. Publish. Measure.'), e('p', null, 'Consumer instructions must remain visible.')), e('small', null, e('a', { href: '#recovery' }, 'Recover access'))),
+    footer: 'Authentication remains application-owned.' },
+    e('form', { onSubmit: event => { event.preventDefault(); setMessage('Form validated: ' + [...new FormData(event.currentTarget).keys()].join(', ') + '. No authentication request sent.'); } },
+      e(Field, { label: 'Email address', htmlFor: 'email' }, e(Input, { id: 'email', name: 'email', type: 'email', autoComplete: 'username', required: true })),
+      e(Field, { label: 'Password', htmlFor: 'password' }, e(Input, { id: 'password', name: 'password', type: 'password', autoComplete: 'current-password', required: true })),
+      e(Button, { type: 'submit' }, 'Sign in'), message && e('p', { role: 'status' }, message)));
+}
+createRoot(document.getElementById('root')).render(e(Fixture));
+</script>

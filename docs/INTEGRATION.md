@@ -1,5 +1,11 @@
 # Campaign and Discover integration
 
+## One authentication presentation
+
+Version 0.3.15 makes the main `AuthLayout` use the established Campaign login composition. Its six props and public export stay unchanged. The Brand & login reference and component catalogue call that same wrapper and reuse the same story content. Canonical brand/auth CSS lives in one source and is included in both stylesheet entry points; standalone consumers need only `styles.css`. Native authentication controllers and Discover's local layout remain app-owned.
+
+Generic aside instructions and recovery links remain visible on narrow screens. Only Campaign's explicitly marked decorative story summary/footnote collapse with its existing mobile presentation. Do not hide required guidance inside decorative content. A padded `.settings-panel` also owns the inset of its direct `.panel-heading`; avoid adding a second header inset in a native override. Its `.form-grid` gap owns spacing between direct `.field` children, preventing the old extra top margin from staggering dates in Calendar and Account reports.
+
 ## Authentication and validation theme ownership
 
 Version 0.3.11 pairs the compatibility authentication story and form-error colors using the existing theme roles. Keep the package styles before native overrides, then remove fixed native fills or foregrounds that split these pairs. Badge state classes similarly own their foreground and surface together; native color-only overrides must not replace one half. Preserve Campaign's existing mark, icons, light palette and split layout. Check actual installed login, modal errors and badges in both themes at desktop and 320px.

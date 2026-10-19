@@ -7,6 +7,7 @@ import {
 } from '../lib/index.js';
 import { tsx, type ComponentEntry, type ComponentProp } from './model.js';
 import { AppBrand } from '../lib/app.js';
+import { campaignStory, campaignStoryCode } from './BrandReference.js';
 
 const prop = (name: string, type: string, description: string, required = false, defaultValue?: string): ComponentProp => ({ name, type, description, required, defaultValue });
 const surfaceTokens = ['--t98-surface', '--t98-text', '--t98-muted', '--t98-border', '--t98-radius', '--t98-font'];
@@ -142,9 +143,9 @@ const permissionCode = (disabled = false, empty = false) => tsx(['PermissionMatr
 
 function AuthDemo({ split = false, error = false }: { split?: boolean; error?: boolean }) {
   const id = useId(); const [message, setMessage] = useState(error ? 'Demo credentials were rejected. Try again.' : '');
-  return <AuthLayout brand={<AppBrand product="Campaign" />} title="Sign in" description="Access your workspace." aside={split ? <div><h2>One workspace.</h2><p>Manage your connected tools.</p></div> : undefined} footer="Layout demonstration. Preserve the app’s existing authentication flow."><form style={{ display: 'grid', gap: 16 }} onSubmit={event => { event.preventDefault(); setMessage('Demo form validated. No authentication request was sent.'); }}><Field htmlFor={`${id}-email`} label="Email"><Input type="email" name="email" autoComplete="username" required /></Field><Field htmlFor={`${id}-password`} label="Password"><Input type="password" name="password" autoComplete="current-password" required /></Field>{message && <Alert tone={message.startsWith('Demo credentials') ? 'danger' : 'info'} title={message} />}<Button type="submit">Sign in to demo</Button></form></AuthLayout>;
+  return <AuthLayout brand={<AppBrand product="Campaign" />} title="Sign in" description="Access your workspace." aside={split ? campaignStory : undefined} footer="Layout demonstration. Preserve the app’s existing authentication flow."><form style={{ display: 'grid', gap: 16 }} onSubmit={event => { event.preventDefault(); setMessage('Demo form validated. No authentication request was sent.'); }}><Field htmlFor={`${id}-email`} label="Email"><Input type="email" name="email" autoComplete="username" required /></Field><Field htmlFor={`${id}-password`} label="Password"><Input type="password" name="password" autoComplete="current-password" required /></Field>{message && <Alert tone={message.startsWith('Demo credentials') ? 'danger' : 'info'} title={message} />}<Button type="submit">Sign in to demo</Button></form></AuthLayout>;
 }
-const authCode = (split = false, error = false) => withAppBrand(tsx(['AuthLayout', 'Field', 'Input', 'Button', 'Alert'], `<AuthLayout brand={<AppBrand product="Campaign" />} title="Sign in" description="Access your workspace."${split ? ' aside={<div><h2>One workspace.</h2><p>Manage your connected tools.</p></div>}' : ''}
+const authCode = (split = false, error = false) => withAppBrand(tsx(['AuthLayout', 'Field', 'Input', 'Button', 'Alert'], `<AuthLayout brand={<AppBrand product="Campaign" />} title="Sign in" description="Access your workspace."${split ? ` aside={${campaignStoryCode}}` : ''}
   footer="Layout demonstration. Preserve the app’s existing authentication flow.">
   <form style={{ display: 'grid', gap: 16 }} onSubmit={event => {
     event.preventDefault();
@@ -155,10 +156,10 @@ const authCode = (split = false, error = false) => withAppBrand(tsx(['AuthLayout
     {message && <Alert tone={message.startsWith('Demo credentials') ? 'danger' : 'info'} title={message} />}
     <Button type="submit">Sign in to demo</Button>
   </form>
-</AuthLayout>`, `const id = useId();\nconst [message, setMessage] = useState('${error ? 'Demo credentials were rejected. Try again.' : ''}');`, ['useId', 'useState']));
+</AuthLayout>`, `const id = useId();\nconst [message, setMessage] = useState('${error ? 'Demo credentials were rejected. Try again.' : ''}');`, ['useId', 'useState']), split ? 'AppBrand, AppIcon' : 'AppBrand');
 
-function withAppBrand(code: string) {
-  return code.replace("'use client';", "'use client';\n\nimport { AppBrand } from '@ten98/ui/app';\n// Load @ten98/ui/app-tokens.css and @ten98/ui/app.css once in your app entry.");
+function withAppBrand(code: string, imports = 'AppBrand') {
+  return code.replace("'use client';", `'use client';\n\nimport { ${imports} } from '@ten98/ui/app';\n// Load @ten98/ui/styles.css once at the application root.`);
 }
 
 function ShellDemo({ header = true }: { header?: boolean }) {
@@ -315,9 +316,9 @@ export const patternEntries: ComponentEntry[] = [
     ],
   },
   {
-    name: 'AuthLayout', category: 'Layout', description: 'Branded authentication presentation with optional explanatory side panel.', usage: 'Compose real native forms inside children. Authentication, validation, submission, recovery and redirect behavior remain app-owned. A side panel changes layout to split columns; it stacks above the form below 600px. No login, error, loading or disabled props are built in.',
-    props: [prop('brand', 'ReactNode', 'Brand content shown in the aside or above the form.', true), prop('title', 'string', 'Authentication-page h1.', true), prop('description', 'string', 'Optional supporting copy.'), prop('aside', 'ReactNode', 'Optional content enabling the split layout.'), prop('children', 'ReactNode', 'Consumer-owned form and feedback.', true), prop('footer', 'ReactNode', 'Optional legal, recovery or supporting content.')], tokens: ['--t98-surface', '--t98-text', '--t98-font', '--t98-radius-lg', '--t98-accent-soft', '--t98-accent', '--t98-heading', '--t98-muted'], accessibility: ['Layout includes an h1; native form validation, labels and autocomplete are shown in the complete example.', 'Associate errors with their relevant controls in real app forms.'], related: ['Field', 'Input', 'Alert', 'Button'], example: authCode(true),
-    states: [{ name: 'Single panel / native validation', description: 'Submit the demo form empty to inspect native required-field validation. Filling it only updates a demo message.', preview: <AuthDemo />, code: authCode() }, { name: 'Split / responsive', description: 'The aside and form become one column below 600px.', preview: <AuthDemo split />, code: authCode(true) }, { name: 'App-owned error composition', description: 'Alert represents an app-provided rejection; this synthetic demo does not call an authentication service.', preview: <AuthDemo error />, code: authCode(false, true) }],
+    name: 'AuthLayout', category: 'Layout', description: 'Branded authentication presentation with optional explanatory side panel.', usage: 'Compose real native forms inside children. Authentication, validation, submission, recovery and redirect behavior remain app-owned. Reuse AppBrand and the Campaign login presentation. A side panel stacks above the form below 760px. Load styles.css once; no compatibility stylesheet is required. No login, error, loading or disabled props are built in.',
+    props: [prop('brand', 'ReactNode', 'Brand content shown in the aside or above the form.', true), prop('title', 'string', 'Authentication-page h1.', true), prop('description', 'string', 'Optional supporting copy.'), prop('aside', 'ReactNode', 'Optional content enabling the split layout.'), prop('children', 'ReactNode', 'Consumer-owned form and feedback.', true), prop('footer', 'ReactNode', 'Optional legal, recovery or supporting content.')], tokens: ['--t98-surface', '--t98-subtle', '--t98-surface-raised', '--t98-text', '--t98-font', '--t98-accent', '--t98-muted'], accessibility: ['Layout includes an h1; native form validation, labels and autocomplete are shown in the complete example.', 'Associate errors with their relevant controls in real app forms.'], related: ['Field', 'Input', 'Alert', 'Button'], example: authCode(true),
+    states: [{ name: 'Single panel / native validation', description: 'Submit the demo form empty to inspect native required-field validation. Filling it only updates a demo message.', preview: <AuthDemo />, code: authCode() }, { name: 'Split / responsive', description: 'The familiar Campaign story and form become one column below 760px.', preview: <AuthDemo split />, code: authCode(true) }, { name: 'App-owned error composition', description: 'Alert represents an app-provided rejection; this synthetic demo does not call an authentication service.', preview: <AuthDemo error />, code: authCode(false, true) }],
   },
   {
     name: 'PermissionMatrix', category: 'Controls', description: 'A controlled role-by-permission table with native checkboxes.', usage: 'The app owns grants, persistence, inherited permissions and authorization. value maps exact role strings to allowed permission IDs. onChange reports intent; update value to reflect it. Unknown role entries behave as unchecked. The matrix cannot secure a server operation and has no per-cell disabled or loading API.',

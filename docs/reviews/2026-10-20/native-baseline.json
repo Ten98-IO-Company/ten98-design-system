@@ -1,0 +1,2366 @@
+{
+  "schemaVersion": 1,
+  "reviewDate": "2026-10-20",
+  "timezone": "Asia/Dubai",
+  "evidenceKind": "synthetic-native-route-before-baseline",
+  "packageBaseline": "0.3.14",
+  "candidateBoundary": "0.3.15 AuthLayout is a separate candidate; no after acceptance is inferred here.",
+  "routeCount": 29,
+  "captureCount": 58,
+  "allCapturesVisuallyInspected": true,
+  "status": "Captured both; child/after pending",
+  "fileSemantics": "file is the original capture basename; publicImage identifies the byte-identical published subset. Other originals remain private.",
+  "excludedClaims": [
+    "Populated/editor/child-state acceptance",
+    "Narrow and doubled-text acceptance for these scenes",
+    "Authenticated live provider or database acceptance",
+    "Competitor functional, accessibility or dark-theme parity"
+  ],
+  "batches": [
+    {
+      "batch": 1,
+      "started": "2026-10-19T20:30:11.323Z",
+      "finished": "2026-10-19T20:30:26.627Z",
+      "routeCount": 6,
+      "captureCount": 12,
+      "pageErrors": 0,
+      "blockedRequests": 0,
+      "apiErrors": 2,
+      "assertionsFailed": 0,
+      "sourcePins": {
+        "src/main.tsx": "E6604D33AE65DEBAEEAB84AD618A5B0F58A2B577527029AC3B5A6C47B81E1FCE",
+        "src/styles.css": "C8EE83F8FB2D83EC4036A1B6D206AECE4795669F4E10D57662CE8998E2BF9E7F",
+        "src/post-composer.css": "3A9F8F49EF8D39390AD47421D3460B685D039A2392D4593D253DF67EB7EDCF37",
+        "public/theme.js": "3098822AAC72C10905652A433DB9F384CB153E3DC46BB546C111C937679A5BD3",
+        "package.json": "41AB83101FB2FF17957B06121884D1614BC4307A85DDFE14340E834B05ECC5C5",
+        "package-lock.json": "E3F7C8717D79E92B3484A32D32D314EE9B666ABF27F4230A6576531BAFCB3EF8"
+      },
+      "servedPins": {
+        "index.html": "BD3148C47614C273AD92313355FB4C16A17DE7B90214E0DA53A2AC3994EC6F4A",
+        "theme.js": "3098822AAC72C10905652A433DB9F384CB153E3DC46BB546C111C937679A5BD3"
+      },
+      "servedFilesStable": true,
+      "probeSHA256": "9E07EA33A609A11CF1F41D56ABD43A64C0BFCCF1DDA21E566D1E81AB5B989D9B",
+      "manifestSHA256": "42ADD215622459DAFB171387656AC7AC4965192298FB2589CC0BAA01E0EFFFA6"
+    },
+    {
+      "batch": 2,
+      "started": "2026-10-19T20:36:15.985Z",
+      "finished": "2026-10-19T20:36:31.045Z",
+      "routeCount": 6,
+      "captureCount": 12,
+      "pageErrors": 0,
+      "blockedRequests": 0,
+      "apiErrors": 0,
+      "assertionsFailed": 0,
+      "sourcePins": {
+        "src/main.tsx": "E6604D33AE65DEBAEEAB84AD618A5B0F58A2B577527029AC3B5A6C47B81E1FCE",
+        "src/styles.css": "6384B2AD0A1E23121E0D65CB688800125117C22AB0387CB15524459FF397778E",
+        "src/post-composer.css": "3A9F8F49EF8D39390AD47421D3460B685D039A2392D4593D253DF67EB7EDCF37",
+        "public/theme.js": "3098822AAC72C10905652A433DB9F384CB153E3DC46BB546C111C937679A5BD3",
+        "package.json": "41AB83101FB2FF17957B06121884D1614BC4307A85DDFE14340E834B05ECC5C5",
+        "package-lock.json": "E3F7C8717D79E92B3484A32D32D314EE9B666ABF27F4230A6576531BAFCB3EF8"
+      },
+      "servedPins": {
+        "index.html": "BD3148C47614C273AD92313355FB4C16A17DE7B90214E0DA53A2AC3994EC6F4A",
+        "theme.js": "3098822AAC72C10905652A433DB9F384CB153E3DC46BB546C111C937679A5BD3"
+      },
+      "servedFilesStable": true,
+      "probeSHA256": "9E07EA33A609A11CF1F41D56ABD43A64C0BFCCF1DDA21E566D1E81AB5B989D9B",
+      "manifestSHA256": "42ADD215622459DAFB171387656AC7AC4965192298FB2589CC0BAA01E0EFFFA6"
+    },
+    {
+      "batch": 3,
+      "started": "2026-10-19T20:36:31.598Z",
+      "finished": "2026-10-19T20:36:47.607Z",
+      "routeCount": 6,
+      "captureCount": 12,
+      "pageErrors": 0,
+      "blockedRequests": 0,
+      "apiErrors": 0,
+      "assertionsFailed": 0,
+      "sourcePins": {
+        "src/main.tsx": "E6604D33AE65DEBAEEAB84AD618A5B0F58A2B577527029AC3B5A6C47B81E1FCE",
+        "src/styles.css": "6384B2AD0A1E23121E0D65CB688800125117C22AB0387CB15524459FF397778E",
+        "src/post-composer.css": "3A9F8F49EF8D39390AD47421D3460B685D039A2392D4593D253DF67EB7EDCF37",
+        "public/theme.js": "3098822AAC72C10905652A433DB9F384CB153E3DC46BB546C111C937679A5BD3",
+        "package.json": "41AB83101FB2FF17957B06121884D1614BC4307A85DDFE14340E834B05ECC5C5",
+        "package-lock.json": "E3F7C8717D79E92B3484A32D32D314EE9B666ABF27F4230A6576531BAFCB3EF8"
+      },
+      "servedPins": {
+        "index.html": "BD3148C47614C273AD92313355FB4C16A17DE7B90214E0DA53A2AC3994EC6F4A",
+        "theme.js": "3098822AAC72C10905652A433DB9F384CB153E3DC46BB546C111C937679A5BD3"
+      },
+      "servedFilesStable": true,
+      "probeSHA256": "9E07EA33A609A11CF1F41D56ABD43A64C0BFCCF1DDA21E566D1E81AB5B989D9B",
+      "manifestSHA256": "42ADD215622459DAFB171387656AC7AC4965192298FB2589CC0BAA01E0EFFFA6"
+    },
+    {
+      "batch": 4,
+      "started": "2026-10-19T20:36:48.131Z",
+      "finished": "2026-10-19T20:37:04.029Z",
+      "routeCount": 6,
+      "captureCount": 12,
+      "pageErrors": 0,
+      "blockedRequests": 0,
+      "apiErrors": 0,
+      "assertionsFailed": 0,
+      "sourcePins": {
+        "src/main.tsx": "E6604D33AE65DEBAEEAB84AD618A5B0F58A2B577527029AC3B5A6C47B81E1FCE",
+        "src/styles.css": "6384B2AD0A1E23121E0D65CB688800125117C22AB0387CB15524459FF397778E",
+        "src/post-composer.css": "3A9F8F49EF8D39390AD47421D3460B685D039A2392D4593D253DF67EB7EDCF37",
+        "public/theme.js": "3098822AAC72C10905652A433DB9F384CB153E3DC46BB546C111C937679A5BD3",
+        "package.json": "41AB83101FB2FF17957B06121884D1614BC4307A85DDFE14340E834B05ECC5C5",
+        "package-lock.json": "E3F7C8717D79E92B3484A32D32D314EE9B666ABF27F4230A6576531BAFCB3EF8"
+      },
+      "servedPins": {
+        "index.html": "BD3148C47614C273AD92313355FB4C16A17DE7B90214E0DA53A2AC3994EC6F4A",
+        "theme.js": "3098822AAC72C10905652A433DB9F384CB153E3DC46BB546C111C937679A5BD3"
+      },
+      "servedFilesStable": true,
+      "probeSHA256": "9E07EA33A609A11CF1F41D56ABD43A64C0BFCCF1DDA21E566D1E81AB5B989D9B",
+      "manifestSHA256": "42ADD215622459DAFB171387656AC7AC4965192298FB2589CC0BAA01E0EFFFA6"
+    },
+    {
+      "batch": 5,
+      "started": "2026-10-19T20:37:04.510Z",
+      "finished": "2026-10-19T20:37:17.859Z",
+      "routeCount": 5,
+      "captureCount": 10,
+      "pageErrors": 0,
+      "blockedRequests": 0,
+      "apiErrors": 0,
+      "assertionsFailed": 0,
+      "sourcePins": {
+        "src/main.tsx": "E6604D33AE65DEBAEEAB84AD618A5B0F58A2B577527029AC3B5A6C47B81E1FCE",
+        "src/styles.css": "6384B2AD0A1E23121E0D65CB688800125117C22AB0387CB15524459FF397778E",
+        "src/post-composer.css": "3A9F8F49EF8D39390AD47421D3460B685D039A2392D4593D253DF67EB7EDCF37",
+        "public/theme.js": "3098822AAC72C10905652A433DB9F384CB153E3DC46BB546C111C937679A5BD3",
+        "package.json": "41AB83101FB2FF17957B06121884D1614BC4307A85DDFE14340E834B05ECC5C5",
+        "package-lock.json": "E3F7C8717D79E92B3484A32D32D314EE9B666ABF27F4230A6576531BAFCB3EF8"
+      },
+      "servedPins": {
+        "index.html": "BD3148C47614C273AD92313355FB4C16A17DE7B90214E0DA53A2AC3994EC6F4A",
+        "theme.js": "3098822AAC72C10905652A433DB9F384CB153E3DC46BB546C111C937679A5BD3"
+      },
+      "servedFilesStable": true,
+      "probeSHA256": "9E07EA33A609A11CF1F41D56ABD43A64C0BFCCF1DDA21E566D1E81AB5B989D9B",
+      "manifestSHA256": "42ADD215622459DAFB171387656AC7AC4965192298FB2589CC0BAA01E0EFFFA6"
+    }
+  ],
+  "captures": [
+    {
+      "batch": 1,
+      "id": "overview",
+      "view": "overview",
+      "section": null,
+      "theme": "light",
+      "file": "overview-light-1440.png",
+      "sha256": "ECE388A3F32E14CDC909D9A3AA23A8B71AD5A53E71ABAB83530D76368518D08D",
+      "publicImage": "images/campaign-baseline/overview-light-1440.png",
+      "routeAssertions": {
+        "exactViewProjectSection": true,
+        "selectedSection": null
+      },
+      "width": 1440,
+      "documentWidth": 1440,
+      "containmentPass": true,
+      "nativeTheme": {
+        "theme": "light",
+        "preference": "light",
+        "colorScheme": "light",
+        "usedColorScheme": "light"
+      },
+      "themePass": true,
+      "counts": {
+        "total": 122,
+        "enabled": 122,
+        "disabled": 0,
+        "failures": 2,
+        "unsupported": 4
+      },
+      "contrastFindings": [
+        {
+          "kind": "direct-text",
+          "disabled": false,
+          "threshold": 4.5,
+          "ratio": 4.476574521766303,
+          "count": 2
+        }
+      ],
+      "baselineStatus": "fail"
+    },
+    {
+      "batch": 1,
+      "id": "campaigns",
+      "view": "campaigns",
+      "section": null,
+      "theme": "light",
+      "file": "campaigns-light-1440.png",
+      "sha256": "5F8F909152E0C76A241561565998D0E33D09F4B478D56764D0315162BE615BC0",
+      "publicImage": null,
+      "routeAssertions": {
+        "exactViewProjectSection": true,
+        "selectedSection": null
+      },
+      "width": 1440,
+      "documentWidth": 1440,
+      "containmentPass": true,
+      "nativeTheme": {
+        "theme": "light",
+        "preference": "light",
+        "colorScheme": "light",
+        "usedColorScheme": "light"
+      },
+      "themePass": true,
+      "counts": {
+        "total": 69,
+        "enabled": 69,
+        "disabled": 0,
+        "failures": 2,
+        "unsupported": 4
+      },
+      "contrastFindings": [
+        {
+          "kind": "direct-text",
+          "disabled": false,
+          "threshold": 4.5,
+          "ratio": 4.476574521766303,
+          "count": 2
+        }
+      ],
+      "baselineStatus": "fail"
+    },
+    {
+      "batch": 1,
+      "id": "publishing-posts",
+      "view": "publishing",
+      "section": "posts",
+      "theme": "light",
+      "file": "publishing-posts-light-1440.png",
+      "sha256": "82B4CE3CB84A43668CA9BB751573A0E8F3422EDB3B1EA651C4DF83F4EBD733B6",
+      "publicImage": null,
+      "routeAssertions": {
+        "exactViewProjectSection": true,
+        "selectedSection": true
+      },
+      "width": 1440,
+      "documentWidth": 1440,
+      "containmentPass": true,
+      "nativeTheme": {
+        "theme": "light",
+        "preference": "light",
+        "colorScheme": "light",
+        "usedColorScheme": "light"
+      },
+      "themePass": true,
+      "counts": {
+        "total": 94,
+        "enabled": 94,
+        "disabled": 0,
+        "failures": 2,
+        "unsupported": 4
+      },
+      "contrastFindings": [
+        {
+          "kind": "direct-text",
+          "disabled": false,
+          "threshold": 4.5,
+          "ratio": 4.476574521766303,
+          "count": 2
+        }
+      ],
+      "baselineStatus": "fail"
+    },
+    {
+      "batch": 1,
+      "id": "publishing-library",
+      "view": "publishing",
+      "section": "library",
+      "theme": "light",
+      "file": "publishing-library-light-1440.png",
+      "sha256": "25E42B867F405BD1C8FE7B6CED384A9F7FEB9C9B2760BB4B4F3C6DFF395BA0DA",
+      "publicImage": null,
+      "routeAssertions": {
+        "exactViewProjectSection": true,
+        "selectedSection": true
+      },
+      "width": 1440,
+      "documentWidth": 1440,
+      "containmentPass": true,
+      "nativeTheme": {
+        "theme": "light",
+        "preference": "light",
+        "colorScheme": "light",
+        "usedColorScheme": "light"
+      },
+      "themePass": true,
+      "counts": {
+        "total": 65,
+        "enabled": 65,
+        "disabled": 0,
+        "failures": 2,
+        "unsupported": 4
+      },
+      "contrastFindings": [
+        {
+          "kind": "direct-text",
+          "disabled": false,
+          "threshold": 4.5,
+          "ratio": 4.476574521766303,
+          "count": 2
+        }
+      ],
+      "baselineStatus": "fail"
+    },
+    {
+      "batch": 1,
+      "id": "publishing-queues",
+      "view": "publishing",
+      "section": "queues",
+      "theme": "light",
+      "file": "publishing-queues-light-1440.png",
+      "sha256": "549C8E0D4A2F38E28B97D8A3BBBF9FF34E21971FFFC75892C0572AFBE96BF282",
+      "publicImage": null,
+      "routeAssertions": {
+        "exactViewProjectSection": true,
+        "selectedSection": true
+      },
+      "width": 1440,
+      "documentWidth": 1440,
+      "containmentPass": true,
+      "nativeTheme": {
+        "theme": "light",
+        "preference": "light",
+        "colorScheme": "light",
+        "usedColorScheme": "light"
+      },
+      "themePass": true,
+      "counts": {
+        "total": 59,
+        "enabled": 59,
+        "disabled": 0,
+        "failures": 2,
+        "unsupported": 4
+      },
+      "contrastFindings": [
+        {
+          "kind": "direct-text",
+          "disabled": false,
+          "threshold": 4.5,
+          "ratio": 4.476574521766303,
+          "count": 2
+        }
+      ],
+      "baselineStatus": "fail"
+    },
+    {
+      "batch": 1,
+      "id": "publishing-recycling",
+      "view": "publishing",
+      "section": "recycling",
+      "theme": "light",
+      "file": "publishing-recycling-light-1440.png",
+      "sha256": "1469AF326ADCAA1602EF0ECA6C7734A455F6840C7563BCE4154A3AE879158E50",
+      "publicImage": null,
+      "routeAssertions": {
+        "exactViewProjectSection": true,
+        "selectedSection": true
+      },
+      "width": 1440,
+      "documentWidth": 1440,
+      "containmentPass": true,
+      "nativeTheme": {
+        "theme": "light",
+        "preference": "light",
+        "colorScheme": "light",
+        "usedColorScheme": "light"
+      },
+      "themePass": true,
+      "counts": {
+        "total": 55,
+        "enabled": 55,
+        "disabled": 0,
+        "failures": 2,
+        "unsupported": 4
+      },
+      "contrastFindings": [
+        {
+          "kind": "direct-text",
+          "disabled": false,
+          "threshold": 4.5,
+          "ratio": 4.476574521766303,
+          "count": 2
+        }
+      ],
+      "baselineStatus": "fail"
+    },
+    {
+      "batch": 1,
+      "id": "overview",
+      "view": "overview",
+      "section": null,
+      "theme": "dark",
+      "file": "overview-dark-1440.png",
+      "sha256": "4CAB0764C7FCA941DAA7D85EFB2D25A004A0FC098A4F98557B3A8E7AE569E365",
+      "publicImage": "images/campaign-baseline/overview-dark-1440.png",
+      "routeAssertions": {
+        "exactViewProjectSection": true,
+        "selectedSection": null
+      },
+      "width": 1440,
+      "documentWidth": 1440,
+      "containmentPass": true,
+      "nativeTheme": {
+        "theme": "dark",
+        "preference": "dark",
+        "colorScheme": "dark",
+        "usedColorScheme": "dark"
+      },
+      "themePass": true,
+      "counts": {
+        "total": 122,
+        "enabled": 122,
+        "disabled": 0,
+        "failures": 0,
+        "unsupported": 4
+      },
+      "contrastFindings": [],
+      "baselineStatus": "manual-review"
+    },
+    {
+      "batch": 1,
+      "id": "campaigns",
+      "view": "campaigns",
+      "section": null,
+      "theme": "dark",
+      "file": "campaigns-dark-1440.png",
+      "sha256": "E5F7F43E8C8BBFDBBDA1D69606D25A50861C493A6607568B005238EB873B4F13",
+      "publicImage": null,
+      "routeAssertions": {
+        "exactViewProjectSection": true,
+        "selectedSection": null
+      },
+      "width": 1440,
+      "documentWidth": 1440,
+      "containmentPass": true,
+      "nativeTheme": {
+        "theme": "dark",
+        "preference": "dark",
+        "colorScheme": "dark",
+        "usedColorScheme": "dark"
+      },
+      "themePass": true,
+      "counts": {
+        "total": 69,
+        "enabled": 69,
+        "disabled": 0,
+        "failures": 0,
+        "unsupported": 4
+      },
+      "contrastFindings": [],
+      "baselineStatus": "manual-review"
+    },
+    {
+      "batch": 1,
+      "id": "publishing-posts",
+      "view": "publishing",
+      "section": "posts",
+      "theme": "dark",
+      "file": "publishing-posts-dark-1440.png",
+      "sha256": "7B3AC8DED15274E521B2E3AA3767C10B8EDE037C2EB85EB53AEA44DDFDEB2868",
+      "publicImage": "images/campaign-baseline/publishing-posts-dark-1440.png",
+      "routeAssertions": {
+        "exactViewProjectSection": true,
+        "selectedSection": true
+      },
+      "width": 1440,
+      "documentWidth": 1440,
+      "containmentPass": true,
+      "nativeTheme": {
+        "theme": "dark",
+        "preference": "dark",
+        "colorScheme": "dark",
+        "usedColorScheme": "dark"
+      },
+      "themePass": true,
+      "counts": {
+        "total": 94,
+        "enabled": 94,
+        "disabled": 0,
+        "failures": 10,
+        "unsupported": 4
+      },
+      "contrastFindings": [
+        {
+          "kind": "direct-text",
+          "disabled": false,
+          "threshold": 4.5,
+          "ratio": 2.855728399291948,
+          "count": 5
+        },
+        {
+          "kind": "direct-text",
+          "disabled": false,
+          "threshold": 4.5,
+          "ratio": 2.8482667157165613,
+          "count": 5
+        }
+      ],
+      "baselineStatus": "fail"
+    },
+    {
+      "batch": 1,
+      "id": "publishing-library",
+      "view": "publishing",
+      "section": "library",
+      "theme": "dark",
+      "file": "publishing-library-dark-1440.png",
+      "sha256": "AED827ABD5747765D48B4FF002B3E978F02E46790968E6C5A20668BA842C7E5A",
+      "publicImage": null,
+      "routeAssertions": {
+        "exactViewProjectSection": true,
+        "selectedSection": true
+      },
+      "width": 1440,
+      "documentWidth": 1440,
+      "containmentPass": true,
+      "nativeTheme": {
+        "theme": "dark",
+        "preference": "dark",
+        "colorScheme": "dark",
+        "usedColorScheme": "dark"
+      },
+      "themePass": true,
+      "counts": {
+        "total": 65,
+        "enabled": 65,
+        "disabled": 0,
+        "failures": 0,
+        "unsupported": 4
+      },
+      "contrastFindings": [],
+      "baselineStatus": "manual-review"
+    },
+    {
+      "batch": 1,
+      "id": "publishing-queues",
+      "view": "publishing",
+      "section": "queues",
+      "theme": "dark",
+      "file": "publishing-queues-dark-1440.png",
+      "sha256": "E4C92C2D271DF50CCC064B7A0391EF480AB3BCFF5F8B9A8ED0D0CCE8C0B281CF",
+      "publicImage": null,
+      "routeAssertions": {
+        "exactViewProjectSection": true,
+        "selectedSection": true
+      },
+      "width": 1440,
+      "documentWidth": 1440,
+      "containmentPass": true,
+      "nativeTheme": {
+        "theme": "dark",
+        "preference": "dark",
+        "colorScheme": "dark",
+        "usedColorScheme": "dark"
+      },
+      "themePass": true,
+      "counts": {
+        "total": 59,
+        "enabled": 59,
+        "disabled": 0,
+        "failures": 0,
+        "unsupported": 4
+      },
+      "contrastFindings": [],
+      "baselineStatus": "manual-review"
+    },
+    {
+      "batch": 1,
+      "id": "publishing-recycling",
+      "view": "publishing",
+      "section": "recycling",
+      "theme": "dark",
+      "file": "publishing-recycling-dark-1440.png",
+      "sha256": "7CA96C99B94BA1065A20C3CDC6E8878EB59457863AE055A18A2CB487474FFFAF",
+      "publicImage": null,
+      "routeAssertions": {
+        "exactViewProjectSection": true,
+        "selectedSection": true
+      },
+      "width": 1440,
+      "documentWidth": 1440,
+      "containmentPass": true,
+      "nativeTheme": {
+        "theme": "dark",
+        "preference": "dark",
+        "colorScheme": "dark",
+        "usedColorScheme": "dark"
+      },
+      "themePass": true,
+      "counts": {
+        "total": 55,
+        "enabled": 55,
+        "disabled": 0,
+        "failures": 0,
+        "unsupported": 4
+      },
+      "contrastFindings": [],
+      "baselineStatus": "manual-review"
+    },
+    {
+      "batch": 2,
+      "id": "publishing-destinations",
+      "view": "publishing",
+      "section": "destinations",
+      "theme": "light",
+      "file": "publishing-destinations-light-1440.png",
+      "sha256": "AB202A13E2800CCA254CC43283D7ACECC15E00C14F035C7D2035571EC065FBBC",
+      "publicImage": null,
+      "routeAssertions": {
+        "exactViewProjectSection": true,
+        "selectedSection": true
+      },
+      "width": 1440,
+      "documentWidth": 1440,
+      "containmentPass": true,
+      "nativeTheme": {
+        "theme": "light",
+        "preference": "light",
+        "colorScheme": "light",
+        "usedColorScheme": "light"
+      },
+      "themePass": true,
+      "counts": {
+        "total": 55,
+        "enabled": 55,
+        "disabled": 0,
+        "failures": 2,
+        "unsupported": 4
+      },
+      "contrastFindings": [
+        {
+          "kind": "direct-text",
+          "disabled": false,
+          "threshold": 4.5,
+          "ratio": 4.476574521766303,
+          "count": 2
+        }
+      ],
+      "baselineStatus": "fail"
+    },
+    {
+      "batch": 2,
+      "id": "approvals",
+      "view": "approvals",
+      "section": null,
+      "theme": "light",
+      "file": "approvals-light-1440.png",
+      "sha256": "C28A4CD721491432926D14794E2CB62157AF8E24ABBF116495F5054DC722FD6F",
+      "publicImage": null,
+      "routeAssertions": {
+        "exactViewProjectSection": true,
+        "selectedSection": null
+      },
+      "width": 1440,
+      "documentWidth": 1440,
+      "containmentPass": true,
+      "nativeTheme": {
+        "theme": "light",
+        "preference": "light",
+        "colorScheme": "light",
+        "usedColorScheme": "light"
+      },
+      "themePass": true,
+      "counts": {
+        "total": 181,
+        "enabled": 181,
+        "disabled": 0,
+        "failures": 2,
+        "unsupported": 3
+      },
+      "contrastFindings": [
+        {
+          "kind": "direct-text",
+          "disabled": false,
+          "threshold": 4.5,
+          "ratio": 4.476574521766303,
+          "count": 2
+        }
+      ],
+      "baselineStatus": "fail"
+    },
+    {
+      "batch": 2,
+      "id": "calendar",
+      "view": "calendar",
+      "section": null,
+      "theme": "light",
+      "file": "calendar-light-1440.png",
+      "sha256": "C2EA6B7C45ED39B3D55543B96A329CE41E22AB7707113503ACD172999A81A939",
+      "publicImage": "images/campaign-baseline/calendar-light-1440.png",
+      "routeAssertions": {
+        "exactViewProjectSection": true,
+        "selectedSection": null
+      },
+      "width": 1440,
+      "documentWidth": 1440,
+      "containmentPass": true,
+      "nativeTheme": {
+        "theme": "light",
+        "preference": "light",
+        "colorScheme": "light",
+        "usedColorScheme": "light"
+      },
+      "themePass": true,
+      "counts": {
+        "total": 111,
+        "enabled": 111,
+        "disabled": 0,
+        "failures": 2,
+        "unsupported": 3
+      },
+      "contrastFindings": [
+        {
+          "kind": "direct-text",
+          "disabled": false,
+          "threshold": 4.5,
+          "ratio": 4.476574521766303,
+          "count": 2
+        }
+      ],
+      "baselineStatus": "fail"
+    },
+    {
+      "batch": 2,
+      "id": "ads-campaigns",
+      "view": "ads",
+      "section": "campaigns",
+      "theme": "light",
+      "file": "ads-campaigns-light-1440.png",
+      "sha256": "11CBC9D0431992B34661488FCD32305020DE2B06E7B50E5D646DC98458F6EC37",
+      "publicImage": null,
+      "routeAssertions": {
+        "exactViewProjectSection": true,
+        "selectedSection": true
+      },
+      "width": 1440,
+      "documentWidth": 1440,
+      "containmentPass": true,
+      "nativeTheme": {
+        "theme": "light",
+        "preference": "light",
+        "colorScheme": "light",
+        "usedColorScheme": "light"
+      },
+      "themePass": true,
+      "counts": {
+        "total": 59,
+        "enabled": 59,
+        "disabled": 0,
+        "failures": 2,
+        "unsupported": 4
+      },
+      "contrastFindings": [
+        {
+          "kind": "direct-text",
+          "disabled": false,
+          "threshold": 4.5,
+          "ratio": 4.476574521766303,
+          "count": 2
+        }
+      ],
+      "baselineStatus": "fail"
+    },
+    {
+      "batch": 2,
+      "id": "ads-search",
+      "view": "ads",
+      "section": "search",
+      "theme": "light",
+      "file": "ads-search-light-1440.png",
+      "sha256": "EA7A5516008AE401B7FAC435706EA41D1FD8459BC9193752A479940B846568F6",
+      "publicImage": null,
+      "routeAssertions": {
+        "exactViewProjectSection": true,
+        "selectedSection": true
+      },
+      "width": 1440,
+      "documentWidth": 1440,
+      "containmentPass": true,
+      "nativeTheme": {
+        "theme": "light",
+        "preference": "light",
+        "colorScheme": "light",
+        "usedColorScheme": "light"
+      },
+      "themePass": true,
+      "counts": {
+        "total": 60,
+        "enabled": 58,
+        "disabled": 2,
+        "failures": 2,
+        "unsupported": 3
+      },
+      "contrastFindings": [
+        {
+          "kind": "direct-text",
+          "disabled": false,
+          "threshold": 4.5,
+          "ratio": 4.476574521766303,
+          "count": 2
+        }
+      ],
+      "baselineStatus": "fail"
+    },
+    {
+      "batch": 2,
+      "id": "ads-shopping",
+      "view": "ads",
+      "section": "shopping",
+      "theme": "light",
+      "file": "ads-shopping-light-1440.png",
+      "sha256": "E4BBF3190C8D13CB7B1E0B3F87A6764787EFCD0677D4BB0F9824223411C1A5EC",
+      "publicImage": null,
+      "routeAssertions": {
+        "exactViewProjectSection": true,
+        "selectedSection": true
+      },
+      "width": 1440,
+      "documentWidth": 1440,
+      "containmentPass": true,
+      "nativeTheme": {
+        "theme": "light",
+        "preference": "light",
+        "colorScheme": "light",
+        "usedColorScheme": "light"
+      },
+      "themePass": true,
+      "counts": {
+        "total": 57,
+        "enabled": 57,
+        "disabled": 0,
+        "failures": 2,
+        "unsupported": 3
+      },
+      "contrastFindings": [
+        {
+          "kind": "direct-text",
+          "disabled": false,
+          "threshold": 4.5,
+          "ratio": 4.476574521766303,
+          "count": 2
+        }
+      ],
+      "baselineStatus": "fail"
+    },
+    {
+      "batch": 2,
+      "id": "publishing-destinations",
+      "view": "publishing",
+      "section": "destinations",
+      "theme": "dark",
+      "file": "publishing-destinations-dark-1440.png",
+      "sha256": "26B51597CF1E70DD77F9D2378217DEB0241F28FC13039F513F4AA382AF3F5650",
+      "publicImage": null,
+      "routeAssertions": {
+        "exactViewProjectSection": true,
+        "selectedSection": true
+      },
+      "width": 1440,
+      "documentWidth": 1440,
+      "containmentPass": true,
+      "nativeTheme": {
+        "theme": "dark",
+        "preference": "dark",
+        "colorScheme": "dark",
+        "usedColorScheme": "dark"
+      },
+      "themePass": true,
+      "counts": {
+        "total": 55,
+        "enabled": 55,
+        "disabled": 0,
+        "failures": 0,
+        "unsupported": 4
+      },
+      "contrastFindings": [],
+      "baselineStatus": "manual-review"
+    },
+    {
+      "batch": 2,
+      "id": "approvals",
+      "view": "approvals",
+      "section": null,
+      "theme": "dark",
+      "file": "approvals-dark-1440.png",
+      "sha256": "CEE4511ED352F92B545CAD13B445A0A1996CC6C42E242F1E3B3C55982256B0C3",
+      "publicImage": null,
+      "routeAssertions": {
+        "exactViewProjectSection": true,
+        "selectedSection": null
+      },
+      "width": 1440,
+      "documentWidth": 1440,
+      "containmentPass": true,
+      "nativeTheme": {
+        "theme": "dark",
+        "preference": "dark",
+        "colorScheme": "dark",
+        "usedColorScheme": "dark"
+      },
+      "themePass": true,
+      "counts": {
+        "total": 181,
+        "enabled": 181,
+        "disabled": 0,
+        "failures": 0,
+        "unsupported": 3
+      },
+      "contrastFindings": [],
+      "baselineStatus": "manual-review"
+    },
+    {
+      "batch": 2,
+      "id": "calendar",
+      "view": "calendar",
+      "section": null,
+      "theme": "dark",
+      "file": "calendar-dark-1440.png",
+      "sha256": "D5F8578F0A502FE9291BDC10B854DD27E680FF8BF49ADA3ADEC256CC2E0BF9C7",
+      "publicImage": null,
+      "routeAssertions": {
+        "exactViewProjectSection": true,
+        "selectedSection": null
+      },
+      "width": 1440,
+      "documentWidth": 1440,
+      "containmentPass": true,
+      "nativeTheme": {
+        "theme": "dark",
+        "preference": "dark",
+        "colorScheme": "dark",
+        "usedColorScheme": "dark"
+      },
+      "themePass": true,
+      "counts": {
+        "total": 111,
+        "enabled": 111,
+        "disabled": 0,
+        "failures": 0,
+        "unsupported": 3
+      },
+      "contrastFindings": [],
+      "baselineStatus": "manual-review"
+    },
+    {
+      "batch": 2,
+      "id": "ads-campaigns",
+      "view": "ads",
+      "section": "campaigns",
+      "theme": "dark",
+      "file": "ads-campaigns-dark-1440.png",
+      "sha256": "9E55CFCB059DC09B24A295B5AC6E1265CFFB4D1775C7886B7B28401388B93166",
+      "publicImage": null,
+      "routeAssertions": {
+        "exactViewProjectSection": true,
+        "selectedSection": true
+      },
+      "width": 1440,
+      "documentWidth": 1440,
+      "containmentPass": true,
+      "nativeTheme": {
+        "theme": "dark",
+        "preference": "dark",
+        "colorScheme": "dark",
+        "usedColorScheme": "dark"
+      },
+      "themePass": true,
+      "counts": {
+        "total": 59,
+        "enabled": 59,
+        "disabled": 0,
+        "failures": 0,
+        "unsupported": 4
+      },
+      "contrastFindings": [],
+      "baselineStatus": "manual-review"
+    },
+    {
+      "batch": 2,
+      "id": "ads-search",
+      "view": "ads",
+      "section": "search",
+      "theme": "dark",
+      "file": "ads-search-dark-1440.png",
+      "sha256": "82EFAAAA004B71685FD8111D7B67377398D1EFE1D11AE431E23A95E755DBA275",
+      "publicImage": null,
+      "routeAssertions": {
+        "exactViewProjectSection": true,
+        "selectedSection": true
+      },
+      "width": 1440,
+      "documentWidth": 1440,
+      "containmentPass": true,
+      "nativeTheme": {
+        "theme": "dark",
+        "preference": "dark",
+        "colorScheme": "dark",
+        "usedColorScheme": "dark"
+      },
+      "themePass": true,
+      "counts": {
+        "total": 60,
+        "enabled": 58,
+        "disabled": 2,
+        "failures": 0,
+        "unsupported": 3
+      },
+      "contrastFindings": [],
+      "baselineStatus": "manual-review"
+    },
+    {
+      "batch": 2,
+      "id": "ads-shopping",
+      "view": "ads",
+      "section": "shopping",
+      "theme": "dark",
+      "file": "ads-shopping-dark-1440.png",
+      "sha256": "45DB2F6EBDE21554C66815E1229A3B49148EA6CF332B3BB66EF4EAEDF9D4623C",
+      "publicImage": null,
+      "routeAssertions": {
+        "exactViewProjectSection": true,
+        "selectedSection": true
+      },
+      "width": 1440,
+      "documentWidth": 1440,
+      "containmentPass": true,
+      "nativeTheme": {
+        "theme": "dark",
+        "preference": "dark",
+        "colorScheme": "dark",
+        "usedColorScheme": "dark"
+      },
+      "themePass": true,
+      "counts": {
+        "total": 57,
+        "enabled": 57,
+        "disabled": 0,
+        "failures": 0,
+        "unsupported": 3
+      },
+      "contrastFindings": [],
+      "baselineStatus": "manual-review"
+    },
+    {
+      "batch": 3,
+      "id": "ads-microsoft",
+      "view": "ads",
+      "section": "microsoft",
+      "theme": "light",
+      "file": "ads-microsoft-light-1440.png",
+      "sha256": "0F400CE2B4F2EC02F2ECEABBA74F3DEFF6E0E85BFB33508A0D10E66967434117",
+      "publicImage": null,
+      "routeAssertions": {
+        "exactViewProjectSection": true,
+        "selectedSection": true
+      },
+      "width": 1440,
+      "documentWidth": 1440,
+      "containmentPass": true,
+      "nativeTheme": {
+        "theme": "light",
+        "preference": "light",
+        "colorScheme": "light",
+        "usedColorScheme": "light"
+      },
+      "themePass": true,
+      "counts": {
+        "total": 57,
+        "enabled": 57,
+        "disabled": 0,
+        "failures": 2,
+        "unsupported": 3
+      },
+      "contrastFindings": [
+        {
+          "kind": "direct-text",
+          "disabled": false,
+          "threshold": 4.5,
+          "ratio": 4.476574521766303,
+          "count": 2
+        }
+      ],
+      "baselineStatus": "fail"
+    },
+    {
+      "batch": 3,
+      "id": "ads-leads",
+      "view": "ads",
+      "section": "leads",
+      "theme": "light",
+      "file": "ads-leads-light-1440.png",
+      "sha256": "433B0761A4ABB12EF6F8D7940658B10ED90D0F7B210F724428ED35760F1A66EC",
+      "publicImage": null,
+      "routeAssertions": {
+        "exactViewProjectSection": true,
+        "selectedSection": true
+      },
+      "width": 1440,
+      "documentWidth": 1440,
+      "containmentPass": true,
+      "nativeTheme": {
+        "theme": "light",
+        "preference": "light",
+        "colorScheme": "light",
+        "usedColorScheme": "light"
+      },
+      "themePass": true,
+      "counts": {
+        "total": 54,
+        "enabled": 54,
+        "disabled": 0,
+        "failures": 2,
+        "unsupported": 3
+      },
+      "contrastFindings": [
+        {
+          "kind": "direct-text",
+          "disabled": false,
+          "threshold": 4.5,
+          "ratio": 4.476574521766303,
+          "count": 2
+        }
+      ],
+      "baselineStatus": "fail"
+    },
+    {
+      "batch": 3,
+      "id": "ads-events",
+      "view": "ads",
+      "section": "events",
+      "theme": "light",
+      "file": "ads-events-light-1440.png",
+      "sha256": "F235A15F3AAEF00DD808DBE3FD2BD236D0C2F416CDAA6D8B5D1A43D4F10DC80E",
+      "publicImage": null,
+      "routeAssertions": {
+        "exactViewProjectSection": true,
+        "selectedSection": true
+      },
+      "width": 1440,
+      "documentWidth": 1440,
+      "containmentPass": true,
+      "nativeTheme": {
+        "theme": "light",
+        "preference": "light",
+        "colorScheme": "light",
+        "usedColorScheme": "light"
+      },
+      "themePass": true,
+      "counts": {
+        "total": 55,
+        "enabled": 55,
+        "disabled": 0,
+        "failures": 2,
+        "unsupported": 3
+      },
+      "contrastFindings": [
+        {
+          "kind": "direct-text",
+          "disabled": false,
+          "threshold": 4.5,
+          "ratio": 4.476574521766303,
+          "count": 2
+        }
+      ],
+      "baselineStatus": "fail"
+    },
+    {
+      "batch": 3,
+      "id": "ads-measurement",
+      "view": "ads",
+      "section": "measurement",
+      "theme": "light",
+      "file": "ads-measurement-light-1440.png",
+      "sha256": "FB4D2E9505E83FCE2ECCF2D8A96454991579CBBF3423ED393C40CD5E4FA2EEED",
+      "publicImage": null,
+      "routeAssertions": {
+        "exactViewProjectSection": true,
+        "selectedSection": true
+      },
+      "width": 1440,
+      "documentWidth": 1440,
+      "containmentPass": true,
+      "nativeTheme": {
+        "theme": "light",
+        "preference": "light",
+        "colorScheme": "light",
+        "usedColorScheme": "light"
+      },
+      "themePass": true,
+      "counts": {
+        "total": 55,
+        "enabled": 55,
+        "disabled": 0,
+        "failures": 2,
+        "unsupported": 3
+      },
+      "contrastFindings": [
+        {
+          "kind": "direct-text",
+          "disabled": false,
+          "threshold": 4.5,
+          "ratio": 4.476574521766303,
+          "count": 2
+        }
+      ],
+      "baselineStatus": "fail"
+    },
+    {
+      "batch": 3,
+      "id": "ooh",
+      "view": "ooh",
+      "section": null,
+      "theme": "light",
+      "file": "ooh-light-1440.png",
+      "sha256": "DF3B2F6230F6C1127CC04CC26F53FB3597FC1FFDAEAE19F9670DF4E73ABD325E",
+      "publicImage": null,
+      "routeAssertions": {
+        "exactViewProjectSection": true,
+        "selectedSection": null
+      },
+      "width": 1440,
+      "documentWidth": 1440,
+      "containmentPass": true,
+      "nativeTheme": {
+        "theme": "light",
+        "preference": "light",
+        "colorScheme": "light",
+        "usedColorScheme": "light"
+      },
+      "themePass": true,
+      "counts": {
+        "total": 134,
+        "enabled": 133,
+        "disabled": 1,
+        "failures": 2,
+        "unsupported": 4
+      },
+      "contrastFindings": [
+        {
+          "kind": "direct-text",
+          "disabled": false,
+          "threshold": 4.5,
+          "ratio": 4.476574521766303,
+          "count": 2
+        }
+      ],
+      "baselineStatus": "fail"
+    },
+    {
+      "batch": 3,
+      "id": "direct-campaigns",
+      "view": "direct",
+      "section": "campaigns",
+      "theme": "light",
+      "file": "direct-campaigns-light-1440.png",
+      "sha256": "21EF0C76AA5E0DBA329F1C822FBD710C68AD9CF1B46924F5B9DD928474B5B279",
+      "publicImage": null,
+      "routeAssertions": {
+        "exactViewProjectSection": true,
+        "selectedSection": true
+      },
+      "width": 1440,
+      "documentWidth": 1440,
+      "containmentPass": true,
+      "nativeTheme": {
+        "theme": "light",
+        "preference": "light",
+        "colorScheme": "light",
+        "usedColorScheme": "light"
+      },
+      "themePass": true,
+      "counts": {
+        "total": 88,
+        "enabled": 87,
+        "disabled": 1,
+        "failures": 2,
+        "unsupported": 3
+      },
+      "contrastFindings": [
+        {
+          "kind": "direct-text",
+          "disabled": false,
+          "threshold": 4.5,
+          "ratio": 4.476574521766303,
+          "count": 2
+        }
+      ],
+      "baselineStatus": "fail"
+    },
+    {
+      "batch": 3,
+      "id": "ads-microsoft",
+      "view": "ads",
+      "section": "microsoft",
+      "theme": "dark",
+      "file": "ads-microsoft-dark-1440.png",
+      "sha256": "C3CFA3960773DCCE7602D304F79DE8E1060C7F895F7603C664C145744B2D1D3E",
+      "publicImage": null,
+      "routeAssertions": {
+        "exactViewProjectSection": true,
+        "selectedSection": true
+      },
+      "width": 1440,
+      "documentWidth": 1440,
+      "containmentPass": true,
+      "nativeTheme": {
+        "theme": "dark",
+        "preference": "dark",
+        "colorScheme": "dark",
+        "usedColorScheme": "dark"
+      },
+      "themePass": true,
+      "counts": {
+        "total": 57,
+        "enabled": 57,
+        "disabled": 0,
+        "failures": 0,
+        "unsupported": 3
+      },
+      "contrastFindings": [],
+      "baselineStatus": "manual-review"
+    },
+    {
+      "batch": 3,
+      "id": "ads-leads",
+      "view": "ads",
+      "section": "leads",
+      "theme": "dark",
+      "file": "ads-leads-dark-1440.png",
+      "sha256": "3EA2575BE506FB734C668ADD381CA25A3924DBF551399B9A90FEDA1B0195A441",
+      "publicImage": null,
+      "routeAssertions": {
+        "exactViewProjectSection": true,
+        "selectedSection": true
+      },
+      "width": 1440,
+      "documentWidth": 1440,
+      "containmentPass": true,
+      "nativeTheme": {
+        "theme": "dark",
+        "preference": "dark",
+        "colorScheme": "dark",
+        "usedColorScheme": "dark"
+      },
+      "themePass": true,
+      "counts": {
+        "total": 54,
+        "enabled": 54,
+        "disabled": 0,
+        "failures": 0,
+        "unsupported": 3
+      },
+      "contrastFindings": [],
+      "baselineStatus": "manual-review"
+    },
+    {
+      "batch": 3,
+      "id": "ads-events",
+      "view": "ads",
+      "section": "events",
+      "theme": "dark",
+      "file": "ads-events-dark-1440.png",
+      "sha256": "FBA3180C18283D3DB445A5485585C0B34A7FA66CD5161FBD6EB131F153646044",
+      "publicImage": null,
+      "routeAssertions": {
+        "exactViewProjectSection": true,
+        "selectedSection": true
+      },
+      "width": 1440,
+      "documentWidth": 1440,
+      "containmentPass": true,
+      "nativeTheme": {
+        "theme": "dark",
+        "preference": "dark",
+        "colorScheme": "dark",
+        "usedColorScheme": "dark"
+      },
+      "themePass": true,
+      "counts": {
+        "total": 55,
+        "enabled": 55,
+        "disabled": 0,
+        "failures": 0,
+        "unsupported": 3
+      },
+      "contrastFindings": [],
+      "baselineStatus": "manual-review"
+    },
+    {
+      "batch": 3,
+      "id": "ads-measurement",
+      "view": "ads",
+      "section": "measurement",
+      "theme": "dark",
+      "file": "ads-measurement-dark-1440.png",
+      "sha256": "F4204FD36D87A39E5900F88DA6E8F46FCF47670A850C41EEB61CF79478B547C2",
+      "publicImage": null,
+      "routeAssertions": {
+        "exactViewProjectSection": true,
+        "selectedSection": true
+      },
+      "width": 1440,
+      "documentWidth": 1440,
+      "containmentPass": true,
+      "nativeTheme": {
+        "theme": "dark",
+        "preference": "dark",
+        "colorScheme": "dark",
+        "usedColorScheme": "dark"
+      },
+      "themePass": true,
+      "counts": {
+        "total": 55,
+        "enabled": 55,
+        "disabled": 0,
+        "failures": 0,
+        "unsupported": 3
+      },
+      "contrastFindings": [],
+      "baselineStatus": "manual-review"
+    },
+    {
+      "batch": 3,
+      "id": "ooh",
+      "view": "ooh",
+      "section": null,
+      "theme": "dark",
+      "file": "ooh-dark-1440.png",
+      "sha256": "D6294E6B2503524EB6569D1A614A8C34D7F411A6987883573CBA0AA74A96EBE1",
+      "publicImage": "images/campaign-baseline/ooh-dark-1440.png",
+      "routeAssertions": {
+        "exactViewProjectSection": true,
+        "selectedSection": null
+      },
+      "width": 1440,
+      "documentWidth": 1440,
+      "containmentPass": true,
+      "nativeTheme": {
+        "theme": "dark",
+        "preference": "dark",
+        "colorScheme": "dark",
+        "usedColorScheme": "dark"
+      },
+      "themePass": true,
+      "counts": {
+        "total": 134,
+        "enabled": 133,
+        "disabled": 1,
+        "failures": 2,
+        "unsupported": 4
+      },
+      "contrastFindings": [
+        {
+          "kind": "direct-text",
+          "disabled": false,
+          "threshold": 4.5,
+          "ratio": 1.09364888858341,
+          "count": 2
+        }
+      ],
+      "baselineStatus": "fail"
+    },
+    {
+      "batch": 3,
+      "id": "direct-campaigns",
+      "view": "direct",
+      "section": "campaigns",
+      "theme": "dark",
+      "file": "direct-campaigns-dark-1440.png",
+      "sha256": "C371A92F3FD6531F168BE3A95BCE10E3D22856FF7F412C21467ACF622797BC40",
+      "publicImage": "images/campaign-baseline/direct-campaigns-dark-1440.png",
+      "routeAssertions": {
+        "exactViewProjectSection": true,
+        "selectedSection": true
+      },
+      "width": 1440,
+      "documentWidth": 1440,
+      "containmentPass": true,
+      "nativeTheme": {
+        "theme": "dark",
+        "preference": "dark",
+        "colorScheme": "dark",
+        "usedColorScheme": "dark"
+      },
+      "themePass": true,
+      "counts": {
+        "total": 88,
+        "enabled": 87,
+        "disabled": 1,
+        "failures": 0,
+        "unsupported": 3
+      },
+      "contrastFindings": [],
+      "baselineStatus": "manual-review"
+    },
+    {
+      "batch": 4,
+      "id": "direct-templates",
+      "view": "direct",
+      "section": "templates",
+      "theme": "light",
+      "file": "direct-templates-light-1440.png",
+      "sha256": "1579BF05ABF73998144427636223D56BA231A634C7B56D88A8FAA6AA2399A2B6",
+      "publicImage": null,
+      "routeAssertions": {
+        "exactViewProjectSection": true,
+        "selectedSection": true
+      },
+      "width": 1440,
+      "documentWidth": 1440,
+      "containmentPass": true,
+      "nativeTheme": {
+        "theme": "light",
+        "preference": "light",
+        "colorScheme": "light",
+        "usedColorScheme": "light"
+      },
+      "themePass": true,
+      "counts": {
+        "total": 49,
+        "enabled": 49,
+        "disabled": 0,
+        "failures": 2,
+        "unsupported": 3
+      },
+      "contrastFindings": [
+        {
+          "kind": "direct-text",
+          "disabled": false,
+          "threshold": 4.5,
+          "ratio": 4.476574521766303,
+          "count": 2
+        }
+      ],
+      "baselineStatus": "fail"
+    },
+    {
+      "batch": 4,
+      "id": "direct-contacts",
+      "view": "direct",
+      "section": "contacts",
+      "theme": "light",
+      "file": "direct-contacts-light-1440.png",
+      "sha256": "77E2EFDFC64D6E4F85069C7BCD1D2B886C87B1405745CCCA5813621533746C94",
+      "publicImage": null,
+      "routeAssertions": {
+        "exactViewProjectSection": true,
+        "selectedSection": true
+      },
+      "width": 1440,
+      "documentWidth": 1440,
+      "containmentPass": true,
+      "nativeTheme": {
+        "theme": "light",
+        "preference": "light",
+        "colorScheme": "light",
+        "usedColorScheme": "light"
+      },
+      "themePass": true,
+      "counts": {
+        "total": 78,
+        "enabled": 78,
+        "disabled": 0,
+        "failures": 2,
+        "unsupported": 3
+      },
+      "contrastFindings": [
+        {
+          "kind": "direct-text",
+          "disabled": false,
+          "threshold": 4.5,
+          "ratio": 4.476574521766303,
+          "count": 2
+        }
+      ],
+      "baselineStatus": "fail"
+    },
+    {
+      "batch": 4,
+      "id": "inbox",
+      "view": "inbox",
+      "section": null,
+      "theme": "light",
+      "file": "inbox-light-1440.png",
+      "sha256": "42397AF5DD0B5463A6778571E415529DF5466411FA8A506C0BB22283261AF7AE",
+      "publicImage": null,
+      "routeAssertions": {
+        "exactViewProjectSection": true,
+        "selectedSection": null
+      },
+      "width": 1440,
+      "documentWidth": 1440,
+      "containmentPass": true,
+      "nativeTheme": {
+        "theme": "light",
+        "preference": "light",
+        "colorScheme": "light",
+        "usedColorScheme": "light"
+      },
+      "themePass": true,
+      "counts": {
+        "total": 70,
+        "enabled": 68,
+        "disabled": 2,
+        "failures": 2,
+        "unsupported": 3
+      },
+      "contrastFindings": [
+        {
+          "kind": "direct-text",
+          "disabled": false,
+          "threshold": 4.5,
+          "ratio": 4.476574521766303,
+          "count": 2
+        }
+      ],
+      "baselineStatus": "fail"
+    },
+    {
+      "batch": 4,
+      "id": "links",
+      "view": "links",
+      "section": null,
+      "theme": "light",
+      "file": "links-light-1440.png",
+      "sha256": "2683670FEF151819F41137BBEDC050B6E0DD746644107D78A86DD6A44ABE4A32",
+      "publicImage": null,
+      "routeAssertions": {
+        "exactViewProjectSection": true,
+        "selectedSection": null
+      },
+      "width": 1440,
+      "documentWidth": 1440,
+      "containmentPass": true,
+      "nativeTheme": {
+        "theme": "light",
+        "preference": "light",
+        "colorScheme": "light",
+        "usedColorScheme": "light"
+      },
+      "themePass": true,
+      "counts": {
+        "total": 92,
+        "enabled": 92,
+        "disabled": 0,
+        "failures": 2,
+        "unsupported": 3
+      },
+      "contrastFindings": [
+        {
+          "kind": "direct-text",
+          "disabled": false,
+          "threshold": 4.5,
+          "ratio": 4.476574521766303,
+          "count": 2
+        }
+      ],
+      "baselineStatus": "fail"
+    },
+    {
+      "batch": 4,
+      "id": "assets",
+      "view": "assets",
+      "section": null,
+      "theme": "light",
+      "file": "assets-light-1440.png",
+      "sha256": "1E69A7E047026B9C762846809452AFBE62454604F08DA572875280DA9042458A",
+      "publicImage": null,
+      "routeAssertions": {
+        "exactViewProjectSection": true,
+        "selectedSection": null
+      },
+      "width": 1440,
+      "documentWidth": 1440,
+      "containmentPass": true,
+      "nativeTheme": {
+        "theme": "light",
+        "preference": "light",
+        "colorScheme": "light",
+        "usedColorScheme": "light"
+      },
+      "themePass": true,
+      "counts": {
+        "total": 67,
+        "enabled": 66,
+        "disabled": 1,
+        "failures": 2,
+        "unsupported": 4
+      },
+      "contrastFindings": [
+        {
+          "kind": "direct-text",
+          "disabled": false,
+          "threshold": 4.5,
+          "ratio": 4.476574521766303,
+          "count": 2
+        }
+      ],
+      "baselineStatus": "fail"
+    },
+    {
+      "batch": 4,
+      "id": "providers",
+      "view": "providers",
+      "section": null,
+      "theme": "light",
+      "file": "providers-light-1440.png",
+      "sha256": "2F29D7FA939F680D0084B8DFDB1731660485A03F054AA2A162A85AFD38362AAF",
+      "publicImage": "images/campaign-baseline/providers-light-1440.png",
+      "routeAssertions": {
+        "exactViewProjectSection": true,
+        "selectedSection": null
+      },
+      "width": 1440,
+      "documentWidth": 1440,
+      "containmentPass": true,
+      "nativeTheme": {
+        "theme": "light",
+        "preference": "light",
+        "colorScheme": "light",
+        "usedColorScheme": "light"
+      },
+      "themePass": true,
+      "counts": {
+        "total": 56,
+        "enabled": 56,
+        "disabled": 0,
+        "failures": 2,
+        "unsupported": 4
+      },
+      "contrastFindings": [
+        {
+          "kind": "direct-text",
+          "disabled": false,
+          "threshold": 4.5,
+          "ratio": 4.476574521766303,
+          "count": 2
+        }
+      ],
+      "baselineStatus": "fail"
+    },
+    {
+      "batch": 4,
+      "id": "direct-templates",
+      "view": "direct",
+      "section": "templates",
+      "theme": "dark",
+      "file": "direct-templates-dark-1440.png",
+      "sha256": "E45AE6CD94D47E158949C8B9CC1F51F9675C44BE92BC94A79CBDEAB9BCDE50D4",
+      "publicImage": null,
+      "routeAssertions": {
+        "exactViewProjectSection": true,
+        "selectedSection": true
+      },
+      "width": 1440,
+      "documentWidth": 1440,
+      "containmentPass": true,
+      "nativeTheme": {
+        "theme": "dark",
+        "preference": "dark",
+        "colorScheme": "dark",
+        "usedColorScheme": "dark"
+      },
+      "themePass": true,
+      "counts": {
+        "total": 49,
+        "enabled": 49,
+        "disabled": 0,
+        "failures": 0,
+        "unsupported": 3
+      },
+      "contrastFindings": [],
+      "baselineStatus": "manual-review"
+    },
+    {
+      "batch": 4,
+      "id": "direct-contacts",
+      "view": "direct",
+      "section": "contacts",
+      "theme": "dark",
+      "file": "direct-contacts-dark-1440.png",
+      "sha256": "6BDB6B02C6C4B9E962B87C669913627704D0E2430A6DE67063B9AF8407042B4E",
+      "publicImage": null,
+      "routeAssertions": {
+        "exactViewProjectSection": true,
+        "selectedSection": true
+      },
+      "width": 1440,
+      "documentWidth": 1440,
+      "containmentPass": true,
+      "nativeTheme": {
+        "theme": "dark",
+        "preference": "dark",
+        "colorScheme": "dark",
+        "usedColorScheme": "dark"
+      },
+      "themePass": true,
+      "counts": {
+        "total": 78,
+        "enabled": 78,
+        "disabled": 0,
+        "failures": 0,
+        "unsupported": 3
+      },
+      "contrastFindings": [],
+      "baselineStatus": "manual-review"
+    },
+    {
+      "batch": 4,
+      "id": "inbox",
+      "view": "inbox",
+      "section": null,
+      "theme": "dark",
+      "file": "inbox-dark-1440.png",
+      "sha256": "D5423E49A8D086CC378EC7F7052E0DD10F36AD8839C8FACB5AE9134A3D48D2C3",
+      "publicImage": null,
+      "routeAssertions": {
+        "exactViewProjectSection": true,
+        "selectedSection": null
+      },
+      "width": 1440,
+      "documentWidth": 1440,
+      "containmentPass": true,
+      "nativeTheme": {
+        "theme": "dark",
+        "preference": "dark",
+        "colorScheme": "dark",
+        "usedColorScheme": "dark"
+      },
+      "themePass": true,
+      "counts": {
+        "total": 70,
+        "enabled": 68,
+        "disabled": 2,
+        "failures": 0,
+        "unsupported": 3
+      },
+      "contrastFindings": [],
+      "baselineStatus": "manual-review"
+    },
+    {
+      "batch": 4,
+      "id": "links",
+      "view": "links",
+      "section": null,
+      "theme": "dark",
+      "file": "links-dark-1440.png",
+      "sha256": "4C4C51A5DAD11EC343B028F7536161CD9C67BEA49BCE162284697A782DB43529",
+      "publicImage": null,
+      "routeAssertions": {
+        "exactViewProjectSection": true,
+        "selectedSection": null
+      },
+      "width": 1440,
+      "documentWidth": 1440,
+      "containmentPass": true,
+      "nativeTheme": {
+        "theme": "dark",
+        "preference": "dark",
+        "colorScheme": "dark",
+        "usedColorScheme": "dark"
+      },
+      "themePass": true,
+      "counts": {
+        "total": 92,
+        "enabled": 92,
+        "disabled": 0,
+        "failures": 0,
+        "unsupported": 3
+      },
+      "contrastFindings": [],
+      "baselineStatus": "manual-review"
+    },
+    {
+      "batch": 4,
+      "id": "assets",
+      "view": "assets",
+      "section": null,
+      "theme": "dark",
+      "file": "assets-dark-1440.png",
+      "sha256": "28F45BA27B604424625B51F5D8156D33F7222737F97DACB657ECC0B3EAB9013D",
+      "publicImage": "images/campaign-baseline/assets-dark-1440.png",
+      "routeAssertions": {
+        "exactViewProjectSection": true,
+        "selectedSection": null
+      },
+      "width": 1440,
+      "documentWidth": 1440,
+      "containmentPass": true,
+      "nativeTheme": {
+        "theme": "dark",
+        "preference": "dark",
+        "colorScheme": "dark",
+        "usedColorScheme": "dark"
+      },
+      "themePass": true,
+      "counts": {
+        "total": 67,
+        "enabled": 66,
+        "disabled": 1,
+        "failures": 3,
+        "unsupported": 4
+      },
+      "contrastFindings": [
+        {
+          "kind": "direct-text",
+          "disabled": false,
+          "threshold": 4.5,
+          "ratio": 2.858652646099837,
+          "count": 1
+        },
+        {
+          "kind": "direct-text",
+          "disabled": false,
+          "threshold": 4.5,
+          "ratio": 2.7874549487197564,
+          "count": 1
+        },
+        {
+          "kind": "direct-text",
+          "disabled": false,
+          "threshold": 4.5,
+          "ratio": 2.9195005358797754,
+          "count": 1
+        }
+      ],
+      "baselineStatus": "fail"
+    },
+    {
+      "batch": 4,
+      "id": "providers",
+      "view": "providers",
+      "section": null,
+      "theme": "dark",
+      "file": "providers-dark-1440.png",
+      "sha256": "8DD15DC03BA00F9DD4243831A0D280697CF531654A7C624F4E71AAC9C89E5D8B",
+      "publicImage": null,
+      "routeAssertions": {
+        "exactViewProjectSection": true,
+        "selectedSection": null
+      },
+      "width": 1440,
+      "documentWidth": 1440,
+      "containmentPass": true,
+      "nativeTheme": {
+        "theme": "dark",
+        "preference": "dark",
+        "colorScheme": "dark",
+        "usedColorScheme": "dark"
+      },
+      "themePass": true,
+      "counts": {
+        "total": 56,
+        "enabled": 56,
+        "disabled": 0,
+        "failures": 0,
+        "unsupported": 4
+      },
+      "contrastFindings": [],
+      "baselineStatus": "manual-review"
+    },
+    {
+      "batch": 5,
+      "id": "analytics-summary",
+      "view": "analytics",
+      "section": "summary",
+      "theme": "light",
+      "file": "analytics-summary-light-1440.png",
+      "sha256": "9C16B4EBC75BE550AE41865EF96003FFE417FC536A5F16133B659BB17BF56819",
+      "publicImage": null,
+      "routeAssertions": {
+        "exactViewProjectSection": true,
+        "selectedSection": true
+      },
+      "width": 1440,
+      "documentWidth": 1440,
+      "containmentPass": true,
+      "nativeTheme": {
+        "theme": "light",
+        "preference": "light",
+        "colorScheme": "light",
+        "usedColorScheme": "light"
+      },
+      "themePass": true,
+      "counts": {
+        "total": 109,
+        "enabled": 109,
+        "disabled": 0,
+        "failures": 2,
+        "unsupported": 4
+      },
+      "contrastFindings": [
+        {
+          "kind": "direct-text",
+          "disabled": false,
+          "threshold": 4.5,
+          "ratio": 4.476574521766303,
+          "count": 2
+        }
+      ],
+      "baselineStatus": "fail"
+    },
+    {
+      "batch": 5,
+      "id": "analytics-accounts",
+      "view": "analytics",
+      "section": "accounts",
+      "theme": "light",
+      "file": "analytics-accounts-light-1440.png",
+      "sha256": "5A8CCC47F105FA14CB2960ABDDBAE0C812ECC0626699F5E7507DB782548E083F",
+      "publicImage": null,
+      "routeAssertions": {
+        "exactViewProjectSection": true,
+        "selectedSection": true
+      },
+      "width": 1440,
+      "documentWidth": 1440,
+      "containmentPass": true,
+      "nativeTheme": {
+        "theme": "light",
+        "preference": "light",
+        "colorScheme": "light",
+        "usedColorScheme": "light"
+      },
+      "themePass": true,
+      "counts": {
+        "total": 57,
+        "enabled": 56,
+        "disabled": 1,
+        "failures": 2,
+        "unsupported": 4
+      },
+      "contrastFindings": [
+        {
+          "kind": "direct-text",
+          "disabled": false,
+          "threshold": 4.5,
+          "ratio": 4.476574521766303,
+          "count": 2
+        }
+      ],
+      "baselineStatus": "fail"
+    },
+    {
+      "batch": 5,
+      "id": "draft-content",
+      "view": "draft-content",
+      "section": null,
+      "theme": "light",
+      "file": "draft-content-light-1440.png",
+      "sha256": "7213F4BBA42113CC8935704798BAE582E16407B9C03B0EF0036009C4A26075DF",
+      "publicImage": null,
+      "routeAssertions": {
+        "exactViewProjectSection": true,
+        "selectedSection": null
+      },
+      "width": 1440,
+      "documentWidth": 1440,
+      "containmentPass": true,
+      "nativeTheme": {
+        "theme": "light",
+        "preference": "light",
+        "colorScheme": "light",
+        "usedColorScheme": "light"
+      },
+      "themePass": true,
+      "counts": {
+        "total": 53,
+        "enabled": 51,
+        "disabled": 2,
+        "failures": 2,
+        "unsupported": 3
+      },
+      "contrastFindings": [
+        {
+          "kind": "direct-text",
+          "disabled": false,
+          "threshold": 4.5,
+          "ratio": 4.476574521766303,
+          "count": 2
+        }
+      ],
+      "baselineStatus": "fail"
+    },
+    {
+      "batch": 5,
+      "id": "integrations",
+      "view": "integrations",
+      "section": null,
+      "theme": "light",
+      "file": "integrations-light-1440.png",
+      "sha256": "544605C075C39B328FA2B173C8FCB405772B120A48C6714A66726B4108EF3C26",
+      "publicImage": null,
+      "routeAssertions": {
+        "exactViewProjectSection": true,
+        "selectedSection": null
+      },
+      "width": 1440,
+      "documentWidth": 1440,
+      "containmentPass": true,
+      "nativeTheme": {
+        "theme": "light",
+        "preference": "light",
+        "colorScheme": "light",
+        "usedColorScheme": "light"
+      },
+      "themePass": true,
+      "counts": {
+        "total": 200,
+        "enabled": 200,
+        "disabled": 0,
+        "failures": 2,
+        "unsupported": 3
+      },
+      "contrastFindings": [
+        {
+          "kind": "direct-text",
+          "disabled": false,
+          "threshold": 4.5,
+          "ratio": 4.476574521766303,
+          "count": 2
+        }
+      ],
+      "baselineStatus": "fail"
+    },
+    {
+      "batch": 5,
+      "id": "settings",
+      "view": "settings",
+      "section": null,
+      "theme": "light",
+      "file": "settings-light-1440.png",
+      "sha256": "7E1E1985B6C217B4F5DB89CC20AD5DE55C58D3F40F3924CA13327CFC0F922144",
+      "publicImage": "images/campaign-baseline/settings-light-1440.png",
+      "routeAssertions": {
+        "exactViewProjectSection": true,
+        "selectedSection": null
+      },
+      "width": 1440,
+      "documentWidth": 1440,
+      "containmentPass": true,
+      "nativeTheme": {
+        "theme": "light",
+        "preference": "light",
+        "colorScheme": "light",
+        "usedColorScheme": "light"
+      },
+      "themePass": true,
+      "counts": {
+        "total": 90,
+        "enabled": 90,
+        "disabled": 0,
+        "failures": 2,
+        "unsupported": 3
+      },
+      "contrastFindings": [
+        {
+          "kind": "direct-text",
+          "disabled": false,
+          "threshold": 4.5,
+          "ratio": 4.476574521766303,
+          "count": 2
+        }
+      ],
+      "baselineStatus": "fail"
+    },
+    {
+      "batch": 5,
+      "id": "analytics-summary",
+      "view": "analytics",
+      "section": "summary",
+      "theme": "dark",
+      "file": "analytics-summary-dark-1440.png",
+      "sha256": "18DCF4A1E38C271626D48CE0887A7C5077431CB503CD6C5172E7B9CBF5CB95D9",
+      "publicImage": null,
+      "routeAssertions": {
+        "exactViewProjectSection": true,
+        "selectedSection": true
+      },
+      "width": 1440,
+      "documentWidth": 1440,
+      "containmentPass": true,
+      "nativeTheme": {
+        "theme": "dark",
+        "preference": "dark",
+        "colorScheme": "dark",
+        "usedColorScheme": "dark"
+      },
+      "themePass": true,
+      "counts": {
+        "total": 109,
+        "enabled": 109,
+        "disabled": 0,
+        "failures": 0,
+        "unsupported": 4
+      },
+      "contrastFindings": [],
+      "baselineStatus": "manual-review"
+    },
+    {
+      "batch": 5,
+      "id": "analytics-accounts",
+      "view": "analytics",
+      "section": "accounts",
+      "theme": "dark",
+      "file": "analytics-accounts-dark-1440.png",
+      "sha256": "DD6AFE83B4AFF0B0DA365D6D9263D883D537CB027FDA791F30112826025C04C5",
+      "publicImage": null,
+      "routeAssertions": {
+        "exactViewProjectSection": true,
+        "selectedSection": true
+      },
+      "width": 1440,
+      "documentWidth": 1440,
+      "containmentPass": true,
+      "nativeTheme": {
+        "theme": "dark",
+        "preference": "dark",
+        "colorScheme": "dark",
+        "usedColorScheme": "dark"
+      },
+      "themePass": true,
+      "counts": {
+        "total": 57,
+        "enabled": 56,
+        "disabled": 1,
+        "failures": 0,
+        "unsupported": 4
+      },
+      "contrastFindings": [],
+      "baselineStatus": "manual-review"
+    },
+    {
+      "batch": 5,
+      "id": "draft-content",
+      "view": "draft-content",
+      "section": null,
+      "theme": "dark",
+      "file": "draft-content-dark-1440.png",
+      "sha256": "079E3A2619DA1A80A2B50E233B8AE27F43C614B570B0C2AA5CD736F7C4B0A63D",
+      "publicImage": "images/campaign-baseline/draft-content-dark-1440.png",
+      "routeAssertions": {
+        "exactViewProjectSection": true,
+        "selectedSection": null
+      },
+      "width": 1440,
+      "documentWidth": 1440,
+      "containmentPass": true,
+      "nativeTheme": {
+        "theme": "dark",
+        "preference": "dark",
+        "colorScheme": "dark",
+        "usedColorScheme": "dark"
+      },
+      "themePass": true,
+      "counts": {
+        "total": 53,
+        "enabled": 51,
+        "disabled": 2,
+        "failures": 1,
+        "unsupported": 3
+      },
+      "contrastFindings": [
+        {
+          "kind": "direct-text",
+          "disabled": false,
+          "threshold": 4.5,
+          "ratio": 3.3412076342509898,
+          "count": 1
+        }
+      ],
+      "baselineStatus": "fail"
+    },
+    {
+      "batch": 5,
+      "id": "integrations",
+      "view": "integrations",
+      "section": null,
+      "theme": "dark",
+      "file": "integrations-dark-1440.png",
+      "sha256": "2A9E7A50B7E5CC031DA8755E0A873D8F81E70E6FAA74DEB933DB8A23EBF8D5F2",
+      "publicImage": "images/campaign-baseline/integrations-dark-1440.png",
+      "routeAssertions": {
+        "exactViewProjectSection": true,
+        "selectedSection": null
+      },
+      "width": 1440,
+      "documentWidth": 1440,
+      "containmentPass": true,
+      "nativeTheme": {
+        "theme": "dark",
+        "preference": "dark",
+        "colorScheme": "dark",
+        "usedColorScheme": "dark"
+      },
+      "themePass": true,
+      "counts": {
+        "total": 200,
+        "enabled": 200,
+        "disabled": 0,
+        "failures": 0,
+        "unsupported": 3
+      },
+      "contrastFindings": [],
+      "baselineStatus": "manual-review"
+    },
+    {
+      "batch": 5,
+      "id": "settings",
+      "view": "settings",
+      "section": null,
+      "theme": "dark",
+      "file": "settings-dark-1440.png",
+      "sha256": "B54E88ADEAFA2C6CEA45DFD7EF6E4A489BBDFA22BE322E92EBACBAC8C59DCAD2",
+      "publicImage": null,
+      "routeAssertions": {
+        "exactViewProjectSection": true,
+        "selectedSection": null
+      },
+      "width": 1440,
+      "documentWidth": 1440,
+      "containmentPass": true,
+      "nativeTheme": {
+        "theme": "dark",
+        "preference": "dark",
+        "colorScheme": "dark",
+        "usedColorScheme": "dark"
+      },
+      "themePass": true,
+      "counts": {
+        "total": 90,
+        "enabled": 90,
+        "disabled": 0,
+        "failures": 0,
+        "unsupported": 3
+      },
+      "contrastFindings": [],
+      "baselineStatus": "manual-review"
+    }
+  ],
+  "summary": {
+    "documentContainmentPassed": 58,
+    "nativeThemePassed": 58,
+    "routeAssertionsPassed": 58,
+    "selectedSectionAssertionsPassed": 34,
+    "textSamples": 4702,
+    "contrastFailureSamples": 74,
+    "capturesWithContrastFailures": 33,
+    "unsupportedPaintSamples": 200,
+    "pageErrors": 0,
+    "blockedRequests": 0,
+    "apiErrors": 2,
+    "publicImages": 11
+  }
+}

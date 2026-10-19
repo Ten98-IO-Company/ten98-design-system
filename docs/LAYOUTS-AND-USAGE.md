@@ -24,6 +24,12 @@ Shared controls use `--t98-control-height` as their minimum: 38px comfortable an
 
 Fixed templates define familiar regions and order, rather than clipping text into fixed heights. Shared shell headers retain their normal minimum height and grow when context wraps. Keep the full context, menu and profile controls within the viewport at enlarged text sizes; do not hide content to make a width assertion pass. Application styles must not restore fixed-height or nowrap constraints over this shared behavior.
 
+## Appearance in account settings
+
+Place an **Appearance** select under **Your account**, using **System**, **Light** and **Dark** in that order. Explain that System follows the device preference and state the actual persistence scope. Apply the choice immediately; announce whether it was saved or only applied temporarily when storage is unavailable. Do not add a second save action for an immediate preference.
+
+Use the existing labelled native select/field pattern. The app owns preference storage, boot order and effects; the library does not need another theme controller. The first paint, selected option, semantic roles and used color scheme must agree. Verify System against both operating-system preferences, explicit choices across reload/navigation, keyboard operation, and the storage-denied message. A manually assigned `data-theme` proves CSS only, not a working preference flow.
+
 ## Component hierarchy
 
 ```mermaid
