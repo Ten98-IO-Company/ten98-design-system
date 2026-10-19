@@ -1,0 +1,282 @@
+{
+  "schemaVersion": 1,
+  "reviewDate": "2026-10-20",
+  "timezone": "Asia/Dubai",
+  "evidenceKind": "isolated-native-component-and-actual-controller-candidate",
+  "candidateCommit": "38b3648cf19399f212169a040fdceb032bbea47b",
+  "candidateVersion": "0.1.0-preview.8",
+  "sharedPackage": "@ten98/ui 0.3.10",
+  "sharedArtifact": "ten98-ui-0.3.10.tgz",
+  "status": "Scoped candidate and exact primary UI integration parity accepted; release and deployment pending separate owner proof",
+  "primaryIntegration": {
+    "exactFiles": 27,
+    "driftCount": 0,
+    "result": "accepted by root independent hash check and documentation recheck",
+    "captureHarnessProof": "Original/instrumented/restored hashes match; assertion/capture insertions only",
+    "additionalUIGate": "none from root review"
+  },
+  "releaseBoundary": {
+    "candidateBranch": "dev",
+    "candidatePushed": true,
+    "ciRun": "39326005411",
+    "ciAtOwnerHandoff": "in progress; final result not accepted here",
+    "mainProductionAtOwnerHandoff": "0.1.0-preview.7",
+    "deploymentAcceptance": "pending; no new release claimed deployed"
+  },
+  "sourcePinCount": 27,
+  "exactCurrentSourcePinCount": 27,
+  "sourcePins": {
+    "src/components/AIInsightsView.tsx": "CCCF2C8F43B0A67E9E1FA9582A52B0477E8B0C76E26288B4E62DF5E98034CB9D",
+    "src/components/DomainResearchPanel.tsx": "EE36CD8B2FE128DC63153E45A8BB30DD44B04496AEBF0A50B3AF4D422A792437",
+    "src/components/ExplorerFilters.tsx": "7D8F3298714C8E00213E4BA698C349A3F20AE5AAA404ACF462CD6A3E93F227C4",
+    "src/components/JourneysPanel.tsx": "0C693DA960EDE2C002431022B4A20F1F4F93B40C9B64B61C879A97E14A0F0838",
+    "src/components/PromptDiscoveryPanel.tsx": "1E7EAD067325F0FDEEEF5F9F3F848D2D876AEB896DEEBA7C48807408752A4BC2",
+    "src/components/PromptsPanel.tsx": "2AA1E40070114B0D395B64D8C847DC5348D6E643F1DD19AADAC10ADF8EA4D9EC",
+    "src/components/RetentionReportPanel.tsx": "24E914523D71C1A2AF8962C9CB8931B211D36D8C7EC3FD4571E4CC1E40D12B9A",
+    "src/components/SessionExplorerPanel.tsx": "8F9232E7E3DBB5CF7623C2A789CC4D886AE6B13AF19D441AA9EBA81D58D720D7",
+    "src/routes/index.tsx": "F1DF02B2A2B3FEC9D9980B152DECB7809CCA8CC6BC4253593B8F0BDF73A945D0",
+    "tests/ai-insights-view-browser.mjs": "04DAED85214951A7982B7AF9E815CC3CBEB1F49974C3417986E82811A3B27CCB",
+    "tests/domain-overview-browser.mjs": "E9E473659FE613E5F1DF19CF7DFA80D7455EDB6E42C6E757220D567FA192CCFD",
+    "tests/domain-research-browser.ts": "40D0314DB2A1629EF2536D60594D3979A66983F3A8F68830E05BD778FD27A8A6",
+    "tests/journey-saved-scopes-browser.mjs": "E281478F7D9D020A1F1DCE6BCC9F4B0FD61DB8539A017C031AC21C201BE5E009",
+    "tests/journeys-browser.mjs": "027C1E68BD2AC8B3C6CDA6625DDF960DF4FB9F0DF9E5881820DE7F242E0B280B",
+    "tests/prompt-discovery-browser-fixture.tsx": "3699C53473D917EEEA96C69E422448A34FD97E2423FF86CDF33B677D4BE04972",
+    "tests/prompt-discovery-browser.mjs": "E987978091553607D1A2C07DEA0DC6FF793CE8814013D2CAC21814B648785043",
+    "tests/retention-report-browser.mjs": "C5697E5E601EEAA77ED364DC31E6231609F23AA093BC039B69835FED85E8BD86",
+    "tests/session-explorer-browser.ts": "8FBB2C1A17D86C6A2A98EAE100E096422D9B7111DFD9CD190F9AB7E40502B999",
+    "src/components/SiteAuditPanel.tsx": "2F5265BD2EB153B7A83CD3502840965BFC64ABAA5CEBF8D45875A03AF7787D01",
+    "src/styles.css": "5F737E67AABF257D518EFF65BA0EF699D2C0E281D903C70C4CAAA88443A2A353",
+    "tests/site-audit-ux-browser.mjs": "F58B21B2278B4D2BEA059A0FF2335355E02591AC6FFE2CDC874345B536530318",
+    "tests/research-ui/audit-browser.mjs": "B99315A63D977317A15DD83BB3ABDDE374055F0845BD78EC9600A522C07FE69A",
+    "src/components/AIInsightsPanel.tsx": "5E0C9021E210D26EEE0CD7AF1BCD59510613EBBABA417EC543688536723A42ED",
+    "src/components/PromptExecutionsPanel.tsx": "812CB815654C3AD43265C89CB3D0B26242E2A3417A5DCB7DCD576E8F8FEE7144",
+    "tests/ai-insights-browser-fixture.tsx": "40C73CD5FE28902CA25C179C4099F423849128108E5958524520BB240C82890C",
+    "tests/ai-insights-browser.mjs": "B190FB7FDCA664757A64D94D7DC2442C86BD3A490C7AC5F0CCE81E4652980DD2",
+    "package.json": "838A0441807BEF5CB2C9AE27983DF20475F76A0BD1204B99E7D06517B4B5DD48"
+  },
+  "sourceRecordSHA256": "7DE33380F3D91D88C32CDE5D6257470DE958683B33CC86E90894666510D7E0D6",
+  "checks": {
+    "affectedUX16Suites": {
+      "count": 6,
+      "result": "pass",
+      "scope": "Journeys, steps/search, saved scopes, Session, Retention, Prompts"
+    },
+    "domain": {
+      "seconds": 29.39,
+      "result": "pass",
+      "scope": "Complete suite including disclosure/poll/reconciliation and original recovery cases"
+    },
+    "combined": {
+      "typecheck": "pass",
+      "plan": "pass",
+      "build": "pass",
+      "windowsPassed": 901,
+      "windowsSkipped": 3,
+      "windowsFailed": 0
+    },
+    "siteBaseline": {
+      "seconds": 100.98,
+      "apiRequests": 1152,
+      "result": "historical pass"
+    },
+    "siteFinal": {
+      "seconds": 96.94,
+      "apiRequests": 1150,
+      "contexts": 1,
+      "result": "pass",
+      "retained": "Original cursor/export/expiry/access assertions"
+    },
+    "receiptBaseline": {
+      "seconds": 36.31,
+      "result": "historical pass; did not detect lost applied scope",
+      "externalTraffic": 0
+    },
+    "receiptFinal": {
+      "seconds": 34.47,
+      "result": "pass",
+      "instrumentation": "original restored harness"
+    },
+    "receiptCapture": {
+      "seconds": 36.15,
+      "apiRequests": 325,
+      "contexts": 1,
+      "errors": 0,
+      "externalTraffic": 0,
+      "result": "pass",
+      "instrumentation": "temporary exact-assertion screenshot instrumentation"
+    }
+  },
+  "intendedNegativeControls": [
+    {
+      "control": "advanced-filter focus",
+      "seconds": 5.36,
+      "result": "intended failure"
+    },
+    {
+      "control": "capture action label",
+      "seconds": 11.26,
+      "result": "intended failure"
+    },
+    {
+      "control": "Domain draft disclosure",
+      "seconds": 12.78,
+      "result": "intended failure"
+    },
+    {
+      "control": "Site audit old Action header",
+      "seconds": 3.42,
+      "result": "intended failure: actual 1, expected 0"
+    },
+    {
+      "control": "former production receipt owner",
+      "seconds": 31.15,
+      "result": "intended exact applied Back-query failure versus defaults",
+      "originalGroupsPassed": 11
+    }
+  ],
+  "harness": {
+    "originalSHA256": "B190FB7FDCA664757A64D94D7DC2442C86BD3A490C7AC5F0CCE81E4652980DD2",
+    "temporaryInstrumentedSHA256": "942943FD9DF7B45F68C7D0C7DFFF1EF4E0BD62D45C5F8C5C078EEC1BFF24FA39",
+    "fixtureSHA256": "40C73CD5FE28902CA25C179C4099F423849128108E5958524520BB240C82890C",
+    "originalRestored": true,
+    "all27PinsRestored": true,
+    "historicalFixtureFailure": "Cold router invalid-hook failure retained; fixture-only prebundle-entry repair follows existing native fixtures, assertions unchanged"
+  },
+  "receiptAssertions": [
+    "Applied date/time-zone/model/prompt/tag/drilldown intent retained",
+    "Stale parent analysis absent while receipt is open and during held Back read",
+    "Back re-reads validated current evidence/options; pagination revalidated",
+    "Learned answer expiry and copied-input expiry remain separate",
+    "Revoked/falsely revived evidence fails closed",
+    "Dirty guards and fresh originating-action/heading/error focus preserved",
+    "No quote/start/reconcile/provider mutations accepted"
+  ],
+  "journeysBoundary": {
+    "matchingOriginalPins": 9,
+    "originalPins": 10,
+    "changedRouteHashPrefixes": [
+      "D505",
+      "F1DF"
+    ],
+    "changedRouteScope": "AI receipt owner/import only; Journeys/Retention branches unchanged",
+    "acceptedScope": "Native-component fixture",
+    "currentRouteBrowserAcceptance": false
+  },
+  "visualReview": {
+    "publishedImages": 12,
+    "rootReceiptImagesInspected": 6,
+    "independentSiteJourneysSet": "clear within source-component scope; broader inspected set includes figures not published here",
+    "result": "No observed regression in inspected fictional compositions",
+    "documentationWorker": "Source pins/copy hashes/links only; no additional visual inspection claimed"
+  },
+  "references": {
+    "register": "../2026-10-19/visual-discover.md",
+    "scope": "Scrunch/Otterly/Umami/PostHog support hierarchy only; no navigation, TTL, access or functional parity"
+  },
+  "excludedClaims": [
+    "Release or deployment acceptance",
+    "Current whole-route/hybrid browser acceptance from component fixtures",
+    "Real collector or rrweb recording content/transport acceptance",
+    "SQL/backend, real permissions/role or provider-success acceptance",
+    "Paid operation, charge, quote/start or account/configuration write acceptance",
+    "Vendor functional, TTL/navigation or numeric accessibility parity"
+  ],
+  "images": [
+    {
+      "file": "site-audit-before-1440.png",
+      "publicImage": "images/discover-remaining/site-audit-before-1440.png",
+      "sha256": "7F4E4751E8911F75027E8792BF4CC4DD8F478C179416D8D7F18FAD61D9D8149C",
+      "requestedViewportWidth": 1440,
+      "composition": "Site audit table before/after simplification",
+      "evidence": "Fictional isolated synthetic responses; byte-identical original screenshot"
+    },
+    {
+      "file": "site-audit-before-320.png",
+      "publicImage": "images/discover-remaining/site-audit-before-320.png",
+      "sha256": "78339531EBA2A4FCC99FB58F7F6B3CC29398E47392CB75EDD9238645E68288F5",
+      "requestedViewportWidth": 320,
+      "composition": "Site audit table before/after simplification",
+      "evidence": "Fictional isolated synthetic responses; byte-identical original screenshot"
+    },
+    {
+      "file": "site-audit-after-1440.png",
+      "publicImage": "images/discover-remaining/site-audit-after-1440.png",
+      "sha256": "4FF87E06233C2EB7E5A525D8E542A3FE35D1D8B3D3C7B6F38AC7F53355AFF25D",
+      "requestedViewportWidth": 1440,
+      "composition": "Site audit table before/after simplification",
+      "evidence": "Fictional isolated synthetic responses; byte-identical original screenshot"
+    },
+    {
+      "file": "site-audit-after-320.png",
+      "publicImage": "images/discover-remaining/site-audit-after-320.png",
+      "sha256": "49B6F894061F73F60DE7DE7399AE09D6756DE223C9AB1F6DEA9965186B2CF41A",
+      "requestedViewportWidth": 320,
+      "composition": "Site audit table before/after simplification",
+      "evidence": "Fictional isolated synthetic responses; byte-identical original screenshot"
+    },
+    {
+      "file": "receipt-before-1440.png",
+      "publicImage": "images/discover-remaining/receipt-before-1440.png",
+      "sha256": "B8F9A1DA8D8EC7B905166A27B5E122841BFECDE0BF800724F95E5B1B57233557",
+      "requestedViewportWidth": 1440,
+      "composition": "Repaired candidate analysis/receipt navigation stage; not old-runtime before/after",
+      "evidence": "Fictional isolated synthetic responses; byte-identical original screenshot"
+    },
+    {
+      "file": "receipt-before-320.png",
+      "publicImage": "images/discover-remaining/receipt-before-320.png",
+      "sha256": "6D8B858FDA93F3C1B4B3EBDB3D0BA55DA01147C01A4BF234BFA96FE9F8267812",
+      "requestedViewportWidth": 320,
+      "composition": "Repaired candidate analysis/receipt navigation stage; not old-runtime before/after",
+      "evidence": "Fictional isolated synthetic responses; byte-identical original screenshot"
+    },
+    {
+      "file": "receipt-open-1440.png",
+      "publicImage": "images/discover-remaining/receipt-open-1440.png",
+      "sha256": "0A81FD0A17EAE0F946172EFB4D6F646027FAC2E8ABC49EB05A1BDBF9C54D7DAF",
+      "requestedViewportWidth": 1440,
+      "composition": "Repaired candidate analysis/receipt navigation stage; not old-runtime before/after",
+      "evidence": "Fictional isolated synthetic responses; byte-identical original screenshot"
+    },
+    {
+      "file": "receipt-open-320.png",
+      "publicImage": "images/discover-remaining/receipt-open-320.png",
+      "sha256": "09F8388F8419014285AD739A4D9652928C561AFD70A1CB90971BB039D1DD64BC",
+      "requestedViewportWidth": 320,
+      "composition": "Repaired candidate analysis/receipt navigation stage; not old-runtime before/after",
+      "evidence": "Fictional isolated synthetic responses; byte-identical original screenshot"
+    },
+    {
+      "file": "receipt-returned-1440.png",
+      "publicImage": "images/discover-remaining/receipt-returned-1440.png",
+      "sha256": "4262D7B85922FC1634EC4D14FECE49F012AFBBBD25BB80496DCA74810ACA22DF",
+      "requestedViewportWidth": 1440,
+      "composition": "Repaired candidate analysis/receipt navigation stage; not old-runtime before/after",
+      "evidence": "Fictional isolated synthetic responses; byte-identical original screenshot"
+    },
+    {
+      "file": "receipt-returned-320.png",
+      "publicImage": "images/discover-remaining/receipt-returned-320.png",
+      "sha256": "24411DF05EDDBB2F7677102C4D693C4CF89D9CE11E7B1303F23387A17693CF9F",
+      "requestedViewportWidth": 320,
+      "composition": "Repaired candidate analysis/receipt navigation stage; not old-runtime before/after",
+      "evidence": "Fictional isolated synthetic responses; byte-identical original screenshot"
+    },
+    {
+      "file": "filters-320-dark-collapsed.png",
+      "publicImage": "images/discover-remaining/filters-320-dark-collapsed.png",
+      "sha256": "EDC2A37A7E3901CA6E5A07BA21A4CE061AB3324FA088D02664D7DF7B5A0E2009",
+      "requestedViewportWidth": 320,
+      "composition": "Journeys secondary-filter disclosure; native-component fixture",
+      "evidence": "Fictional isolated synthetic responses; byte-identical original screenshot"
+    },
+    {
+      "file": "filters-320-dark-expanded.png",
+      "publicImage": "images/discover-remaining/filters-320-dark-expanded.png",
+      "sha256": "3F790BCDE4F30152776E8D68D466A1FD402FA9FD354F65709227469ACA96F8DA",
+      "requestedViewportWidth": 320,
+      "composition": "Journeys secondary-filter disclosure; native-component fixture",
+      "evidence": "Fictional isolated synthetic responses; byte-identical original screenshot"
+    }
+  ]
+}
