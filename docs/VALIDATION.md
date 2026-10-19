@@ -8,7 +8,7 @@ The compatibility input uses its semantic disabled-text role even when a consume
 
 The inspected immutable archive SHA256 is `587D396D36E6CD654A6E451F9EB778062267FEC2D96AF90AED6800F1AA8C3B25`. Of 30 emitted JavaScript/declaration files, only `inspection.js` and `inspection.d.ts` differ from 0.3.2. MIT license, version, optional declarations and disabled role CSS are verified. Both active app owners received this exact archive for adoption; prior archives remain unchanged.
 
-Campaign reports verified adoption of that exact archive: sequential offline lock update and clean install, production/type build and 630 passing checks. Its populated disabled field uses the semantic foreground/background in the actual dark app. Consumer calendar/booking browser gates and Discover adoption remain separately tracked in the [completion ledger](CAMPAIGN-DISCOVER-COMPLETION.md); these checkpoints do not alter the released archive.
+Campaign reports verified adoption of that exact archive: sequential offline lock update and clean install, production/type build and 630 passing checks. Its populated disabled field uses the semantic foreground/background in the actual dark app. Discover has reviewed and installed 0.3.3 and accepted the Explorer/Attribution adapters; its replay and full post-adoption gates remain open. Consumer browser evidence is tracked in the [completion ledger](CAMPAIGN-DISCOVER-COMPLETION.md); these checkpoints do not alter the released archive.
 
 ## Existing application dark themes: 0.3.2
 
