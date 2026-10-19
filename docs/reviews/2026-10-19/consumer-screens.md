@@ -1,8 +1,31 @@
 # Campaign and Discover: consumer screen review
 
-Reviewed 19 October 2026. These seven images come from the consumer app source or browser fixtures, rather than the design-system catalogue. They do **not** establish a full authenticated product session, live backend/provider results, publishing, payment or successful recording playback. Campaign captures use **0.3.4**; Discover replay and Explorer use **0.3.3**. The supplied Search Console image does not identify its package version. These are baselines, not evidence that the consumers have adopted or passed acceptance against the current **0.3.5** integration target.
+Reviewed 19 October 2026. These images come from the consumer app source or browser fixtures, rather than the design-system catalogue. They do **not** establish a full authenticated product session, live backend/provider results, publishing, payment or successful recording playback. The seven original baseline images use Campaign **0.3.4**, Discover replay/Explorer **0.3.3**, and an unrecorded package version for Search Console. The current Campaign follow-up below uses **0.3.8**; baseline findings are retained with their original version. Discover's latest acceptance is tracked in the [completion ledger](../../CAMPAIGN-DISCOVER-COMPLETION.md); its images here remain historical until a dated follow-up replaces them.
 
 The official reference images and their provenance are retained in [Campaign C2](visual-campaign.md#c2--planning-and-exact-version-approval), [Campaign C3](visual-campaign.md#c3--paid-campaign-creation) and the [Discover D3/D8/D15 register](visual-discover.md#capture-and-comparison-register). Comparisons below concern visible hierarchy only. Keep existing ten98 branding, exact accounts and values, independent workflow states, source freshness/unknown disclosures and consent boundaries.
+
+## Current Campaign follow-up · 0.3.8
+
+The rebuilt app was captured again in the app owner's disposable local fixture, using fictional accounts and synthetic provider responses. Page requests were restricted to same-origin reads; no provider, article, approval or ad mutation was sent. This is actual consumer markup with the installed package, rather than a catalogue approximation.
+
+| Original 0.3.4 consumer | Rebuilt 0.3.8 consumer |
+| --- | --- |
+| ![Original calendar with pale out-of-month cells and workspace switcher](images/consumer/campaign-calendar-1440-0.3.4.png) | ![Rebuilt dark calendar and themed workspace navigation](images/consumer/campaign-calendar-1440-0.3.8.png) |
+
+The native calendar now uses dark surfaces for out-of-month cells; the shared workspace switcher and selected navigation use their semantic roles. The [320px calendar](images/consumer/campaign-calendar-320-0.3.8.png) retains account-specific dates, `Asia/Dubai` and `GMT+4`. Those two original dark-theme findings are closed by actual-app re-capture.
+
+The [320px doubled-text calendar](images/consumer/campaign-calendar-320-doubled-text-0.3.8.png) fits a 320px document. Computed fonts and numeric line heights were snapshotted before doubling; its heading changes from 22px to 44px, body zoom remains `1`, and no visible content button or input escapes horizontally. The [header crop](images/consumer/campaign-topbar-320-doubled-text-0.3.8.png) measures 72px tall, up from 58px: menu and profile controls remain inside it. This establishes the measured reflow case, not complete accessibility certification, focus-outline containment or native date-picker popup behavior.
+
+Fresh captures also retain the [approval queue](images/consumer/campaign-approvals-320-0.3.8.png) and [paused ad form with the exact synthetic lead-form selection](images/consumer/campaign-ad-form-320-0.3.8.png). The approval preview readability and long queue need separate inspection; a successful calendar check does not close them. The ad image remains a creation form rather than a completed receipt.
+
+### Confirmed native follow-up findings
+
+| Actual consumer evidence | Finding and ownership |
+| --- | --- |
+| [Approval preview crop](images/remediation/native-preview-before.png) | `.post-preview-caption` and `.post-preview-heading strong` inherit `#eaf0f8` on opaque white: **1.146414:1**. Metadata/note inherit `#adb9ca`: **1.986889:1**. The unavailable-media placeholder has a correctly paired **5.500174:1** contrast. Campaign's native `post-composer.css` supplies a white preview surface while inheriting dark-app text; fix the paired roles at this common preview boundary, preserving platform/thread/media rendering. Consumer repair and re-capture remain open. |
+| [Unfocused skip-link leak at doubled text](images/remediation/skip-link-text-before.png) | The white strip belongs to Campaign's native `.skip-link`, not a clipped topbar control. Its fixed `top:-60px` hides a 47px element, but the doubled 65px element leaks 5px into view. Focus correctly moves it to `top:12px`. Campaign owns an intrinsic hide/reveal correction and keyboard recheck; shared header geometry needs no duplicate override. |
+
+The measured preview colors use the actual composed paint stack, without opacity or image ambiguity. These are scoped readability findings, not an app-wide contrast audit. Both native issues have been handed to the Campaign owner; this report does not yet claim their repair.
 
 ## Campaign calendar · desktop · 0.3.4
 
@@ -10,7 +33,7 @@ The official reference images and their provenance are retained in [Campaign C2]
 
 **Strength:** October 2026, date navigation and two account-specific post cards share a clear month grid. The Google Calendar section explicitly says calendar events do not publish social posts. Sprout's historical October 2022 week image provides a useful reference for a compact date/view toolbar and readable post cards.
 
-**Gap / next task:** Pale out-of-month cells dominate the dark calendar, and the workspace switcher is pale with faint text. Both are **open until verified**: Campaign owns the native calendar correction; the workspace switcher belongs to shared `src/lib/app.css` and is being corrected upstream before the 0.3.5 freeze. Re-capture this actual consumer after each correction.
+**Original finding, closed in the 0.3.8 follow-up:** Pale out-of-month cells dominate the dark calendar, and the workspace switcher is pale with faint text. Campaign corrected its native calendar; shared `src/lib/app.css` corrected the switcher. The current actual-consumer captures above verify both.
 
 **Limit:** Two fixture posts do not establish dense-calendar usability, successful scheduling or Google synchronization. Sprout's different period, view and dataset provide no capacity or behavior equivalence.
 
@@ -76,4 +99,4 @@ The official reference images and their provenance are retained in [Campaign C2]
 
 ## Follow-up boundary
 
-The two dark-theme defects above remain open pending corrected consumer captures. Other gaps are concrete next inspection/design tasks, not claims of completed fixes or approved new capabilities. Library validation and consumer acceptance remain separate in the [completion ledger](../../CAMPAIGN-DISCOVER-COMPLETION.md).
+The original calendar/switcher dark-theme findings are closed by the 0.3.8 consumer captures. Other gaps remain concrete inspection/design tasks unless a follow-up explicitly closes them. Library validation and consumer acceptance remain separate in the [completion ledger](../../CAMPAIGN-DISCOVER-COMPLETION.md).

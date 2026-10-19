@@ -1,6 +1,6 @@
 # Component, flow and template design review
 
-Reviewed on 19 October 2026. The baseline is version 0.3.4; the remediation is version 0.3.5. Campaign's existing logo, icons, purple accent and login composition remain the brand reference. English LTR is the required layout.
+Reviewed on 19 October 2026. The exhaustive baseline is version 0.3.4; the initial remediation is version 0.3.5, followed by the documented 0.3.6–0.3.8 consumer corrections below. Campaign's existing logo, icons, purple accent and login composition remain the brand reference. English LTR is the required layout.
 
 The system's strongest quality is its truthful state handling. It distinguishes a measured zero from missing data, a draft from applied scope, accepted work from delivery, and an uncertain outcome from a failed request. The largest design weaknesses were inconsistent theme surfaces, cramped results, and catalogue previews that did not faithfully show the shipped components. Those are more consequential than adding visual decoration.
 
@@ -22,6 +22,7 @@ The visual comparison reports pair matching ten98 functions with actual product 
 - [Discover task comparisons](visual-discover.md)
 - [Template and workspace comparisons](visual-templates.md)
 - [Actual Campaign and Discover consumer screens](consumer-screens.md)
+- [Approval and recipient-review reference follow-up](visual-confirmations.md)
 
 Competitor screenshots are reference evidence for this critique. Their assets, colors and branding are not part of the library. Differences in authorization, pricing, capture coverage, receipt handling and product capabilities remain app-owned decisions.
 
@@ -56,7 +57,7 @@ P1 means a material readability/accessibility defect; P2 means a meaningful beha
 | ![Pale permission cells in dark mode](images/remediation/permissions-before.png) | ![Permission cells use the dark surface role](images/remediation/permissions-after.png) |
 | ![Pale compatibility status fills in dark mode](images/remediation/statuses-before.png) | ![Existing status meanings use themed foreground and surface roles](images/remediation/statuses-after.png) |
 
-Further current captures show [readable send-review headers](images/remediation/send-review-after.png), [OOH names alongside stable inventory IDs](images/remediation/ooh-review-after.png), [compact attribution configuration with full-width results](images/remediation/attribution-after.png), and the [shared dark switcher](images/remediation/workspace-switch-after.png). The switcher image is the shared fixture; the separate consumer report retains the actual app baseline until adoption is verified.
+Further 0.3.5 captures show [readable send-review headers](images/remediation/send-review-after.png), [OOH names alongside stable inventory IDs](images/remediation/ooh-review-after.png), [compact attribution configuration with full-width results](images/remediation/attribution-after.png), and the [shared dark switcher](images/remediation/workspace-switch-after.png). The [actual 0.3.8 consumer follow-up](consumer-screens.md#current-campaign-follow-up--038) now verifies the rebuilt calendar, switcher and navigation beside the original baseline.
 
 ### Consumer-discovered follow-up: 0.3.6
 
@@ -68,7 +69,7 @@ The actual 0.3.6 Campaign re-capture confirmed calendar and workspace-switcher i
 
 ### Actual text reflow follow-up: 0.3.8
 
-The rebuilt 0.3.7 app confirms the chrome fixes and contained calendar controls at 2× text. Its fixed-height nowrap breadcrumb still pushes the profile control beyond a 320px viewport, producing a 382px document. A browser-only diagnostic isolates the shared header constraints: adaptive height and wrapping restore a 320px document with no escaping elements. The 0.3.8 shared patch preserves normal breakpoint heights as minimums, allows full context to wrap, and adds a native old-rule negative control. [The actual before crop](images/remediation/topbar-text-before.png) shows the clipped context/profile region; corrected consumer capture follows adoption. Page-heading geometry and component APIs remain unchanged.
+The rebuilt 0.3.7 app confirms the chrome fixes and contained calendar controls at 2× text. Its fixed-height nowrap breadcrumb still pushes the profile control beyond a 320px viewport, producing a 382px document. A browser-only diagnostic isolates the shared header constraints: adaptive height and wrapping restore a 320px document with no escaping elements. The 0.3.8 shared patch preserves normal breakpoint heights as minimums, allows full context to wrap, and adds a native old-rule negative control. Compare [the actual before crop](images/remediation/topbar-text-before.png) with [the rebuilt 0.3.8 header](images/consumer/campaign-topbar-320-doubled-text-0.3.8.png): the current document measures 320px, header 72px, with menu/profile controls contained. The remaining white strip is a separately confirmed native skip-link leak; [the consumer follow-up](consumer-screens.md#confirmed-native-follow-up-findings) also records a native preview contrast defect pending app repair. Page-heading geometry and component APIs remain unchanged.
 
 ## Evidence and verification
 

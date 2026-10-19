@@ -1,10 +1,16 @@
 # Release validation
 
+## Screenshot comparison navigation
+
+The catalogue flow index, individual Campaign/Discover recipes, cross-product recipes and template guide link to the retained product-UI comparison reports. A focused Playwright check passes ten desktop/320px cases for exact destinations, accessible link names, keyboard focus and page containment, with no page errors. Typecheck and the production catalogue/library build pass. This source-only navigation update changes no library API or immutable 0.3.8 archive.
+
 ## Shared topbar text reflow: 0.3.8
 
 The full `npm run check:all` gate passes: 58 native checks, 510 strict standalone TSX examples and 148 Playwright cases. Coverage remains 73 components, 405 states and 28 flows. Fixed compatibility header heights become matching 69/60/58px minimums; the breadcrumb can shrink and wrap without hiding context. APIs, JavaScript, primary actions and page-heading geometry are unchanged.
 
 Actual Campaign 0.3.7 at 320px and verified 2× text had no escaping content controls, but its breadcrumb/profile region widened the document to 382px. A browser-only adaptive-header diagnostic restored a 320px document with no escaping elements. The shared fixture now includes native menu/context/profile markup. Its new cases preserve normal wide/narrow heights, snapshot all relevant computed fonts and line heights before doubling, verify exact heading enlargement and full horizontal/vertical containment, and retain viewport/scale/body/root zoom at 1. Restoring only fixed mobile height and nowrap constraints reproduces overflow. The focused 16-case gate and full suite pass; independent source/oracle review found no actionable blockers. Final actual-consumer re-capture follows adoption.
+
+The rebuilt Campaign 0.3.8 re-capture subsequently passes at 1440/320px and exact 2× text: document/client width 320px, title 22→44px, body zoom 1 and no horizontally escaping content buttons/inputs. A separate measured header audit verifies growth from 58→72px with menu/profile controls contained. The visible 5px white strip is a native fixed-offset skip-link leak, separate from the shared header; native white preview cards also have unpaired dark text. Both app-owned findings and their repair status are recorded in the [consumer screen review](reviews/2026-10-19/consumer-screens.md).
 
 The Researcher addition now has a bounded primary-source flow proposal and user-review limitations. It introduces no component API, backend, approved feature, popularity ranking or market-share claim. Screenshots remain separate comparative evidence for the implemented Campaign/Discover flows.
 
