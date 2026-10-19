@@ -119,7 +119,7 @@ export function ComparisonMetric({ label, current, baseline, change, className }
     <h3 className="t98-comparison-title">{label}</h3>
     <div className="t98-comparison-values">{([['current', current], ['baseline', baseline]] as const).map(([kind, observation]) => <section className="t98-comparison-observation" aria-label={`${kind === 'current' ? 'Current' : 'Baseline'}: ${observation.label}`} data-observation={kind} key={kind}>
       <h4 className="t98-comparison-label">{observation.label}</h4><p className="t98-comparison-range">{observation.range}</p>
-      <p className="t98-comparison-value">{observation.value === null ? 'Unavailable' : observation.value}</p>
+      <p className="t98-comparison-value" data-unavailable={observation.value === null || undefined}>{observation.value === null ? 'Unavailable' : observation.value}</p>
       <div className="t98-comparison-quality">
         {observation.partial && <Badge tone="warning">Partial</Badge>}{observation.stale && <Badge tone="warning">Stale</Badge>}{observation.updating && <Badge tone="info">Updating</Badge>}
       </div>

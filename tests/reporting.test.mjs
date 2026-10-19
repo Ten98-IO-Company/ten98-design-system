@@ -29,6 +29,13 @@ test('failed report keeps explicitly retained content and leaves sibling widgets
   assert.match(html, /Retained snapshot from original query/); assert.match(html, /42 accepted events/);
   assert.match(html, /Useful sibling/); assert.match(html, /12 accepted events/);
   assert.doesNotMatch(html, /<button|Retrying|All reports failed/);
+  for (const status of ['loading', 'ready', 'empty', 'partial', 'stale', 'error', 'forbidden', 'expired']) {
+    const state = render(ReportPanel, { ...base, title: 'Widget status', status, reason: 'Status reason.' });
+    assert.match(state, new RegExp(`class="t98-report-status" role="${status === 'error' ? 'alert' : 'status'}"`), status);
+    assert.equal([...state.matchAll(/role="alert"/g)].length, status === 'error' ? 1 : 0, status);
+    assert.equal([...state.matchAll(/role="status"/g)].length, status === 'error' ? 0 : 1, status);
+    assert.match(state, /Status reason\./);
+  }
   for (const status of ['error', 'loading', 'forbidden', 'expired', 'empty']) {
     const hidden = render(ReportPanel, { ...base, title: 'Hidden payload', status, retainedContent: status === 'forbidden' || status === 'expired', children: 'Sensitive payload' });
     assert.doesNotMatch(hidden, /Sensitive payload/);

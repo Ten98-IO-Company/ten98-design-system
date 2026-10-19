@@ -46,7 +46,8 @@ test('scanner success does not imply event receipt and event receipt does not im
 test('metric zero, unavailable evidence and consumer-provided comparison remain independent', () => {
   const html = render(ComparisonMetric, { label: 'Visits', current: observation(0, { partial: true, stale: true, source: 'Provider A', sourceStatus: 'Delayed import' }), baseline: observation(null, { unavailableReason: 'Outside retained interval.' }), change: { label: 'Change', value: null, reason: 'Baseline unavailable.' } });
   assert.match(html, /class="t98-comparison-value">0</);
-  assert.match(html, /class="t98-comparison-value">Unavailable</);
+  assert.match(html, /class="t98-comparison-value" data-unavailable="true">Unavailable</);
+  assert.equal([...html.matchAll(/data-unavailable=/g)].length, 1);
   assert.match(html, /Outside retained interval/);
   assert.match(html, />Partial</);
   assert.match(html, />Stale</);
@@ -55,8 +56,13 @@ test('metric zero, unavailable evidence and consumer-provided comparison remain 
   assert.doesNotMatch(html, /Infinity|NaN|%/);
   const supplied = render(ComparisonMetric, { label: 'Rank', current: observation(2), baseline: observation(0), change: { label: 'Position change', value: 'Consumer supplied: two positions lower', tone: 'warning' } });
   assert.match(supplied, /Consumer supplied: two positions lower/);
+  assert.doesNotMatch(supplied, /data-unavailable=/);
   assert.doesNotMatch(supplied, /Infinity|NaN|%/);
   const omitted = render(ComparisonMetric, { label: 'Visits', current: observation(5), baseline: observation(10) });
   assert.match(omitted, /Comparison not supplied/);
   assert.doesNotMatch(omitted, /50%/);
+  const formatted = render(ComparisonMetric, { label: 'Consumer formatting', current: observation('Unavailable'), baseline: observation('1,000') });
+  assert.match(formatted, /class="t98-comparison-value">Unavailable</);
+  assert.match(formatted, /class="t98-comparison-value">1,000</);
+  assert.doesNotMatch(formatted, /data-unavailable=/);
 });

@@ -1,6 +1,6 @@
 # Component, flow and template design review
 
-Reviewed on 19 October 2026. The exhaustive baseline is version 0.3.4; the initial remediation is version 0.3.5, followed by the documented 0.3.6–0.3.8 consumer corrections below. Campaign's existing logo, icons, purple accent and login composition remain the brand reference. English LTR is the required layout.
+Reviewed on 19 October 2026. The exhaustive baseline is version 0.3.4; the initial remediation is version 0.3.5, followed by the documented 0.3.6–0.3.9 corrections below. Campaign's existing logo, icons, purple accent and login composition remain the brand reference. English LTR is the required layout.
 
 The system's strongest quality is its truthful state handling. It distinguishes a measured zero from missing data, a draft from applied scope, accepted work from delivery, and an uncertain outcome from a failed request. The largest design weaknesses were inconsistent theme surfaces, cramped results, and catalogue previews that did not faithfully show the shipped components. Those are more consequential than adding visual decoration.
 
@@ -69,7 +69,27 @@ The actual 0.3.6 Campaign re-capture confirmed calendar and workspace-switcher i
 
 ### Actual text reflow follow-up: 0.3.8
 
-The rebuilt 0.3.7 app confirms the chrome fixes and contained calendar controls at 2× text. Its fixed-height nowrap breadcrumb still pushes the profile control beyond a 320px viewport, producing a 382px document. A browser-only diagnostic isolates the shared header constraints: adaptive height and wrapping restore a 320px document with no escaping elements. The 0.3.8 shared patch preserves normal breakpoint heights as minimums, allows full context to wrap, and adds a native old-rule negative control. Compare [the actual before crop](images/remediation/topbar-text-before.png) with [the rebuilt 0.3.8 header](images/consumer/campaign-topbar-320-doubled-text-0.3.8.png): the current document measures 320px, header 72px, with menu/profile controls contained. The remaining white strip is a separately confirmed native skip-link leak; [the consumer follow-up](consumer-screens.md#confirmed-native-follow-up-findings) also records a native preview contrast defect pending app repair. Page-heading geometry and component APIs remain unchanged.
+The rebuilt 0.3.7 app confirms the chrome fixes and contained calendar controls at 2× text. Its fixed-height nowrap breadcrumb pushes the profile control beyond a 320px viewport, producing a 382px document. The 0.3.8 shared patch preserves normal breakpoint heights as minimums, allows full context to wrap, and adds an old-rule negative control. Compare [the actual before crop](images/remediation/topbar-text-before.png) with [the repaired header and native skip link](images/remediation/skip-link-text-after.png): document width is 320px and the header grows to 72px with menu/profile controls contained. The [native consumer follow-up](consumer-screens.md#rebuilt-native-acceptance--793-check-campaign-checkpoint) also verifies corrected composer/preview contrast, both actual CSS themes, 2× composer text and keyboard skip navigation against Campaign's rebuilt 793-check checkpoint. Page-heading geometry and component APIs remain unchanged.
+
+### Component-width metric follow-up: 0.3.9
+
+Actual Discover Boards captures revealed oversized unavailable labels in its native Stats helper. A separate shared-component probe reproduced the same readability problem in ComparisonMetric: at a 260px desktop panel, fixed viewport-driven columns leave only 88px for each value. “Unavailable” splits into two fragments normally and five at actual 2× text; even the formatted baseline `1,000` breaks. The text is intact and the document fits, so an overflow-only check misses this defect.
+
+| Shared 0.3.8 at actual 2× text | Corrected 0.3.9 at the same 260px panel width |
+| --- | --- |
+| ![Unavailable and the numeric baseline fragment into narrow vertical columns](images/remediation/comparison-panel-2x-before.png) | ![Component-relative stacking keeps status text and the numeric baseline whole](images/remediation/comparison-panel-2x-after.png) |
+
+Compare the [normal-size before](images/remediation/comparison-panel-before.png) and [after](images/remediation/comparison-panel-after.png) too. These are actual catalogue components constrained to a legitimate panel width, not consumer captures. Columns now respond to available component width and text size. Only a true null gets supporting status typography; numbers and app-supplied strings keep metric typography. Zero, `1,000`, reasons, source context and the public API remain unchanged. The focused light/dark panel/320px browser cases check whole words, exact font doubling, containment and restored-old-rule failures; independent source/oracle review found no actionable blocker. Discover's separate native Stats correction remains app-owned.
+
+### Preserved error announcements: 0.3.9
+
+Discover's retained full Boards test caught a shared regression that the focused retry fixture missed: ReportPanel displayed the rejection reason but announced it as an ordinary status instead of the native error alert. The shared boundary now uses one alert for errors and a polite status for other states. Native checks cover all eight statuses; browser checks transition ready → error → ready while preserving the unaffected sibling and explicitly retained content. Both browser projects reproduce the missing alert before the correction. The original consumer assertion remains required after adoption; the smaller fixture does not replace it.
+
+The new template-reference note also displaced the working preview below the first narrow screen. Moving it after the tabs and preview restores the existing first-screen and keyboard contract without weakening that test.
+
+### Native Settings layout boundary: 0.3.9
+
+An actual Campaign Settings capture widened a 320px document to 752px. Its direct grid column retained an automatic minimum around a correctly configured table scroller. One shared direct-child shrink guard preserves desktop tracks and keeps horizontal scrolling inside the table. The native-markup regression covers normal and actual doubled text, table contents/actions and native form values; restoring the old minimum reproduces overflow at both text sizes. The [frozen consumer recheck](consumer-screens.md#settings-and-exact-price-review--later-frozen-038-fixture) verifies the same guard in Campaign before package adoption. No new layout API is introduced.
 
 ## Evidence and verification
 
