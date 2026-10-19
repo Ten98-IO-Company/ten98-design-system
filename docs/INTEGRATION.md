@@ -1,5 +1,9 @@
 # Campaign and Discover integration
 
+## Shared application theme patch: 0.3.2
+
+Version 0.3.2 makes the established `.topbar` and disabled `.field input` fills follow the existing semantic surface tokens in explicit and system themes. The header retains its translucent treatment. JavaScript, declarations, native field behavior and authentication markup are unchanged. Pin `ten98-ui-0.3.2.tgz` from the [0.3.2 release](https://github.com/Ten98-IO-Company/ten98-design-system/releases/tag/v0.3.2) using the [adoption steps](ADOPTION.md), and retain previous archives. Run the application's dark-theme checks after adoption; app-specific panels and controls remain owned by each app.
+
 ## Text reflow patch: 0.3.1
 
 Version 0.3.1 preserves the 0.3.0 API and lets main-API Button labels wrap within their container at enlarged text sizes. It updates the catalogue's long description/list wrapping and installation snippet presentation. Existing application compatibility selectors remain unchanged. Both apps should pin the same new archive and preserve the earlier 0.3.0 archive. The browser gate now verifies actual computed text doubling, including open dialogs, every component state page and every reference flow.
@@ -23,7 +27,7 @@ Useful first consumers are `AppliedFilters` with optional `removeLabel`, compact
 
 Every C1–C8 and D1–D17 reference flow has a complete local TSX example, research references and acceptance cases in the catalogue. These are synthetic presentation/controller examples; app sessions validate their actual adapters and existing features. Paid/provider operations, billing, database work and deployment remain outside this integration wave.
 
-Campaign and Discover consume `@ten98/ui` through a versioned archive committed at `vendor/ten98-ui-0.2.0.tgz`, with `file:vendor/ten98-ui-0.2.0.tgz` in their dependency manifests. Both applications use the same immutable archive. Their builds require no sibling repository at runtime or during dependency installation.
+Campaign and Discover consume `@ten98/ui` through a versioned archive committed in `vendor`, with a matching `file:vendor/ten98-ui-<version>.tgz` dependency. The initial adoption used 0.2.0. Current app acceptance is recorded in the [completion ledger](CAMPAIGN-DISCOVER-COMPLETION.md). Their builds require no sibling repository at runtime or during dependency installation.
 
 Version 0.2.1 fixes ResourceCard status wrapping at narrow widths without changing its API. Existing 0.2.0 archives remain immutable. Each app session owns adopting the new `vendor/ten98-ui-0.2.1.tgz` archive and regenerating its lockfile before its release.
 
@@ -60,7 +64,7 @@ Keep product-specific layouts and overrides in each application's stylesheet. Ne
 
 ## Updating a consumer
 
-1. Update the library version and run `npm run check` in this repository.
+1. Update the library version and run `npm run check:all` in this repository.
 2. Run `npm pack` and inspect the emitted archive. Keep an already released archive immutable.
 3. Copy the same new archive into each application's `vendor` directory and update the dependency path.
 4. Regenerate the application's lockfile with its existing package manager: npm for Campaign and pnpm for Discover. Commit the manifest, archive and lockfile together.

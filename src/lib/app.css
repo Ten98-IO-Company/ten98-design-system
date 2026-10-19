@@ -75,7 +75,7 @@ fieldset{border:0;margin:0;padding:0;min-width:0}
 .account small{font-size:11px;color:var(--color-text-muted);display:block;overflow:hidden;text-overflow:ellipsis;max-width:115px;margin-top:4px}
 .account .icon-button{width:24px}
 .workspace-main{margin-left:232px;min-width:0;width:calc(100% - 232px)}
-.topbar{height:69px;background:#ffffffd9;backdrop-filter:blur(16px);border-bottom:1px solid var(--color-border);display:flex;align-items:center;justify-content:space-between;padding:0 35px;gap:15px;position:sticky;top:0;z-index:20}
+.topbar{height:69px;background:color-mix(in srgb,var(--color-surface) 85.1%,transparent);backdrop-filter:blur(16px);border-bottom:1px solid var(--color-border);display:flex;align-items:center;justify-content:space-between;padding:0 35px;gap:15px;position:sticky;top:0;z-index:20}
 .breadcrumb{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--color-text-muted);white-space:nowrap}
 .breadcrumb strong{font-size:13px;color:var(--color-text-muted);font-weight:500}
 .crumb-slash{padding:0 7px;color:var(--color-text-muted)}
@@ -154,7 +154,7 @@ td strong{font-weight:550;color:var(--color-text-muted)}
 .field input,.field select,.field textarea{width:100%;background:var(--color-surface);border:1px solid #dfd6eb;border-radius:6px;min-height:var(--control-md);padding:10px 11px;font-size:13px;color:var(--color-text-muted);box-shadow:0 1px 2px #20152e02}
 .field input::placeholder,.field textarea::placeholder{color:var(--color-text-muted)}
 .field textarea{min-height:100px;resize:vertical;line-height:1.65}
-.field input:disabled{background:#faf7fd}
+.field input:disabled{background:var(--color-disabled-surface)}
 .field-help{display:block;color:var(--color-text-muted);font-size:12px;line-height:1.7;margin:-7px 0 17px}
 .form-grid{display:grid;grid-template-columns:1fr 1fr;column-gap:17px}
 .field-label{display:block;font-size:13px;color:var(--color-text-muted);font-weight:550;margin-bottom:11px}

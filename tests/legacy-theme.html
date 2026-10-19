@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Legacy application theme regression</title>
+  <link rel="stylesheet" href="/src/lib/app-tokens.css">
+  <link rel="stylesheet" href="/src/lib/app.css">
+  <link rel="stylesheet" href="/src/lib/product.css">
+  <style>body{font-family:var(--font-sans);color:var(--color-text);background:var(--color-canvas)}</style>
+  <script>
+    const options = new URLSearchParams(location.search);
+    const theme = options.get('theme');
+    if (['light', 'dark', 'system'].includes(theme)) document.documentElement.dataset.theme = theme;
+    // Negative control: restore only the two reported legacy fills.
+    if (options.get('baseline') === '1') {
+      const baseline = document.createElement('style');
+      baseline.textContent = '.topbar{background:#ffffffd9}.field input:disabled{background:#faf7fd}';
+      document.head.append(baseline);
+    }
+  </script>
+</head>
+<body>
+  <section class="workspace-main" aria-label="Synthetic workspace">
+    <header class="topbar">
+      <div class="breadcrumb"><span>Workspace</span><span class="crumb-slash">/</span><strong>Draft</strong></div>
+    </header>
+    <main class="content">
+      <h1>Synthetic settings</h1>
+      <form class="settings-panel" aria-label="Synthetic settings">
+        <label class="field"><span>Editable name</span><input id="editable" value="Synthetic draft"></label>
+        <label class="field"><span>Disabled name</span><input id="disabled" value="Synthetic disabled value" disabled></label>
+        <label class="field"><span>Read-only name</span><input id="readonly" value="Synthetic read-only value" readonly></label>
+      </form>
+    </main>
+  </section>
+  <section class="auth-shell" aria-label="Synthetic authentication layout">
+    <aside class="auth-story">
+      <a class="brand" href="#"><span class="brand-mark" aria-hidden="true">98</span><span><strong>ten98<span class="brand-dot">.</span></strong><small>SYNTHETIC</small></span></a>
+      <div><p class="auth-story-title">A sample <em>workspace.</em></p></div>
+      <small>Synthetic fixture only</small>
+    </aside>
+    <div class="auth-form"><div class="auth-form-inner"><h2>Sample sign in</h2><p>Synthetic layout for visual regression checks.</p></div></div>
+  </section>
+</body>
+</html>

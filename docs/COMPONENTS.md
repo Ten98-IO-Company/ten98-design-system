@@ -1,6 +1,6 @@
 # Component inventory and API
 
-This is the public component inventory for `@ten98/ui` version `0.3.1`. Import React components from `@ten98/ui` and load `@ten98/ui/styles.css` once at the application root. Campaign and Discover also use the application-compatible entry point described below. The emitted TypeScript declarations are the exact API contract.
+This is the public component inventory for `@ten98/ui` version `0.3.2`. Import React components from `@ten98/ui` and load `@ten98/ui/styles.css` once at the application root. Campaign and Discover also use the application-compatible entry point described below. The emitted TypeScript declarations are the exact API contract.
 
 ## Implemented primitives
 

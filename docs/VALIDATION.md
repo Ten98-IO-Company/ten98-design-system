@@ -1,5 +1,13 @@
 # Release validation
 
+## Existing application dark themes: 0.3.2
+
+The full `npm run check:all` gate passes: 55 native tests, 505 strict public TSX examples and 104 Playwright cases. The patch changes two established compatibility fills to existing semantic roles: the translucent topbar uses the surface token, and disabled field inputs use the disabled-surface token. Component APIs, JavaScript, declarations and authentication markup are unchanged.
+
+Twelve added browser cases cover explicit themes overriding the operating system, both system themes, canonical token inheritance, rendered text contrast, native field behavior and light geometry. Restoring only the old fixed light fills reproduces both dark contrast failures. The authentication comparison covers class styling and geometry in a synthetic fixture; complete app screens and product operations remain separate consumer checks. Independent source review found no actionable defect in the scoped patch or checks.
+
+The immutable 0.3.2 archive SHA256 is `A49025981CFF0E1BD4DD936A90B644B437B8120852CA9D012B0D12BD14F45069`. All 30 emitted JavaScript/declaration files are byte-identical to 0.3.1. The inspected package includes the MIT license, current version and corrected compatibility CSS. Both active app owners received this exact archive and hash for adoption.
+
 ## Actual text enlargement: 0.3.1
 
 The complete `npm run check:all` gate passes: 55 native tests, 505 strict public TSX examples and 92 Playwright cases. The stronger text test snapshots every computed font size and numeric line height before doubling them, includes isolated app-preview documents, verifies visible headings at exactly 2× and restores styles between hash-route cases. It checks all 73 component state pages at 320px, all 28 flows at desktop and 320px, open modal controls, typed confirmation and focus return. It is text enlargement rather than full page zoom; horizontal reflow is tested, with no blanket certification of all possible clipping or overlap.
