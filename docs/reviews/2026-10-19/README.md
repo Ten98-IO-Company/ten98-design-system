@@ -2,6 +2,8 @@
 
 Reviewed on 19 October 2026. The exhaustive baseline is version 0.3.4; the initial remediation is version 0.3.5, followed by the documented 0.3.6–0.3.10 corrections below. Campaign's existing logo, icons, purple accent and login composition remain the brand reference. English LTR is the required layout.
 
+The [scoped shared UI integration checkpoint](../../CAMPAIGN-DISCOVER-COMPLETION.md) is now accepted for Campaign on 0.3.9 and Discover on the qualified 0.3.10 prerelease. Final [native calendar and Boards captures](consumer-screens.md) retain actual consumer markup, measured text enlargement and regression results. Shared browser host-resource failures and their passing isolated rechecks remain explicit in [validation](../../VALIDATION.md#independent-report-names-0310); this is not a clean monolithic shared browser pass, live-provider acceptance or complete competitor-feature parity.
+
 The system's strongest quality is its truthful state handling. It distinguishes a measured zero from missing data, a draft from applied scope, accepted work from delivery, and an uncertain outcome from a failed request. The largest design weaknesses were inconsistent theme surfaces, cramped results, and catalogue previews that did not faithfully show the shipped components. Those are more consequential than adding visual decoration.
 
 ## Exhaustive critique

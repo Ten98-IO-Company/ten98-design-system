@@ -1,5 +1,13 @@
 # Campaign and Discover integration
 
+## Report identity and native style boundaries
+
+In 0.3.10, use ReportPanel's optional standard `aria-label` when an existing report has a stable region name and a custom visible heading. Keep the heading in `title`; supply the original app-owned report name once through `aria-label`. Blank labels keep the existing title-based name. This preserves one region without nested wrappers or hidden-label substitutions. The catalogue's “Separate region name” state supplies complete TSX; [validation](VALIDATION.md#independent-report-names-0310) records the qualified browser evidence and consumer acceptance.
+
+Keep legacy action-column widths, cell colors and hover surfaces scoped to native tables. They must not override the shared `.t98-review-table`. A native `td:last-child` action rule compressed Campaign's After column; correct that selector before widening or truncating a shared review. Check the actual composed foreground/background in normal and hover states, and actual doubled text inside the existing local scroller. Preserve the native rules' specificity and behavior for their remaining callers.
+
+When a shared component replaces a native tag, keep the app-owned boundary class, opaque surface and required stretch behavior. Tag-dependent selectors such as direct-child `section` rules may no longer match a shared Card root. Reconcile that boundary once in the app; preserve the shared component's own padding and border rather than adding duplicate card chrome. Run the original native layout and access assertions before closing adoption.
+
 ## Header text reflow: 0.3.8
 
 The compatibility topbar keeps its usual 69px, 60px and 58px breakpoint sizes as minimum heights. Its breadcrumb can shrink and wrap, so enlarged text can increase the header height while keeping context and profile/menu controls visible. No content is truncated or hidden to force a fit. The header remains in layout and sticky behavior is preserved. JavaScript, declarations and APIs are unchanged.
@@ -104,7 +112,7 @@ Keep product-specific layouts and overrides in each application's stylesheet. Ne
 
 1. Update the library version and run `npm run check:all` in this repository.
 2. Run `npm pack` and inspect the emitted archive. Keep an already released archive immutable.
-3. Copy the same new archive into each application's `vendor` directory and update the dependency path.
+3. Copy the new immutable archive into each affected application's `vendor` directory and update the dependency path. An app with no affected consumer may retain its accepted compatible pin; record the reason in the completion ledger.
 4. Regenerate the application's lockfile with its existing package manager: npm for Campaign and pnpm for Discover. Commit the manifest, archive and lockfile together.
 5. Ensure container builds copy `vendor` into the build context before dependency installation. A frozen or clean install must resolve the archive from that checkout alone.
 6. Run each application's required type, test and build checks, then verify its actual navigation, forms, pending states and responsive screens. Library checks alone do not establish consumer correctness.
