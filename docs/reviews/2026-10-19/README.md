@@ -58,6 +58,10 @@ P1 means a material readability/accessibility defect; P2 means a meaningful beha
 
 Further current captures show [readable send-review headers](images/remediation/send-review-after.png), [OOH names alongside stable inventory IDs](images/remediation/ooh-review-after.png), [compact attribution configuration with full-width results](images/remediation/attribution-after.png), and the [shared dark switcher](images/remediation/workspace-switch-after.png). The switcher image is the shared fixture; the separate consumer report retains the actual app baseline until adoption is verified.
 
+### Consumer-discovered follow-up: 0.3.6
+
+Campaign's actual article editor exposed the documented multiline adapter limitation as a consequential mismatch: typing changed the native textarea but did not reach controller review, and asynchronous content did not prefill. The 0.3.6 correction forwards native textarea props with a compatible typed overload, preserves uncontrolled defaults and omits input-only attributes. New controlled/read-only states and an async-prefill/type/review browser fixture cover the shared contract. Actual article-saving acceptance remains with Campaign; 0.3.5 is immutable.
+
 ## Evidence and verification
 
 The detailed reports retain baseline observations, including subsequently corrected findings. A delayed focus probe established that Back already restored focus correctly; opening the hidden detail was the actual gap. The final tests target that behavior. Tests distinguish visible focused sections from their child headings, and they use the real 19-status inventory rather than an invented count.

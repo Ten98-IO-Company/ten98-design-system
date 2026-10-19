@@ -1,5 +1,13 @@
 # Release validation
 
+## Controlled multiline fields: 0.3.6
+
+The complete `npm run check:all` gate passed: 58 native checks, 510 strict standalone TSX examples and 146 Playwright cases. The catalogue has 73 components, 405 states and 28 flows. Literal multiline fields accept native textarea props with correctly typed textarea events; the previous input/dynamic-boolean signature remains available. The input branch is unchanged. Multiline forwarding preserves controlled value/change, read-only state, ID, ARIA and sizing while omitting input-only attributes. Existing uncontrolled drafts and native validation/submission remain intact.
+
+Campaign independently reproduced the failure at the actual native child: typed article HTML changed the DOM but review retained the old controller value, and asynchronous content did not prefill. No article save was sent during the failed check. The shared browser regression holds a synthetic response, verifies the loaded value, edits it, compares exact controller review with native FormData, checks review invalidation and read-only behavior, and preserves uncontrolled user edits after default metadata changes. Required fields are queried by their actual accessible names, including the existing asterisk; component labels were not changed to fit the test. Four focused desktop/narrow cases and the full suite pass. Independent source review and a separate 19-case native library rerun found no blockers. Actual article persistence and final consumer adoption remain app-owned gates.
+
+The inspected immutable archive SHA256 is `3F88760F2A27D46ECFD800C1FA690446155A7A0616D887F54D72EFE2AC16A31F`, with 80 entries and a size of 296,698 bytes. Of 30 emitted JavaScript/declaration files, only `app.js` and `app.d.ts` differ from 0.3.5. Version, MIT license, textarea declaration, documentation inclusion and reference-image exclusion are verified. Earlier archives remain unchanged.
+
 ## Design consistency and visual critique: 0.3.5
 
 The full `npm run check:all` gate passed: 57 native checks, 508 standalone strict TSX examples and 142 Playwright cases. Coverage is 73 components, 403 state specimens and 28 flows. A live-inventory comparison verifies a critique entry for every component and flow; the five templates appear in the component count and their dedicated review. See [the exhaustive critique](reviews/2026-10-19/README.md) for findings, baseline screenshots, remedies and direct product comparisons.

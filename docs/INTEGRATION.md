@@ -1,5 +1,11 @@
 # Campaign and Discover integration
 
+## Controlled multiline correction: 0.3.6
+
+`AppField` now forwards controlled textarea values and native change handlers, read-only state, identity, ARIA descriptions and textarea sizing. An asynchronous response can populate a controlled field, and user edits reach the controller used by review and persistence. Existing uncontrolled `defaultValue` callers retain their native drafts; later default metadata does not overwrite edits. The app still owns review invalidation and saving.
+
+Literal `multiline={true}` accepts `React.TextareaHTMLAttributes<HTMLTextAreaElement>` and infers textarea events. Existing input calls and dynamic boolean calls retain the previous input-attribute signature. Input-only attributes, including a legacy `type="url"` supplied with dynamic multiline, are omitted from the textarea. No input markup, styling, dependencies, routing or persistence changes. Pin the new immutable 0.3.6 archive; 0.3.5 remains unchanged.
+
 ## Design consistency patch: 0.3.5
 
 Compatibility tables, status badges, empty-state tiles and native field borders use existing semantic theme roles. Audience counts adapt to their panel width rather than the viewport. `DetailWorkspace` recovers focus to the visible pane heading only when selection hides or removes its focused control; the app still owns guards and restoration to the originating record. Initial focus and visible app-selected targets are preserved. Existing callback signatures are unchanged.
@@ -59,7 +65,7 @@ Import the application-compatible components from `@ten98/ui/app`. They preserve
 | --- | --- |
 | `AppIcon` | Decorative SVG; `name` and optional `size`. Unknown names use the grid icon. Label the containing control when needed. |
 | `AppBrand` | Product wordmark; `product`, optional `href`, `onClick` and `className`. The default class is `brand`. |
-| `AppField` | Labelled native input; input attributes and optional `multiline`. Multiline preserves the existing uncontrolled textarea contract. |
+| `AppField` | Labelled native input or textarea. Controlled value/change and native uncontrolled defaults are supported; literal multiline accepts textarea attributes. |
 | `AppSelect` | Labelled uncontrolled native select; `label`, `name`, initial `value` and readonly `[value, label]` options. |
 | `AppBadge` | Existing status class and text; `value` and optional application-formatted `label`. |
 | `AppEmpty` | Empty-state presentation; `title`, explanation children, optional `icon` and `action`. |

@@ -46,9 +46,15 @@ export function AppBrand({ product, href, onClick, className = 'brand' }: { prod
   return href ? <a className={className} href={href} onClick={onClick}>{content}</a> : <span className={className} onClick={onClick}>{content}</span>;
 }
 
-/** Compatibility field: native uncontrolled form behavior is intentionally retained. */
-export function AppField({ label, multiline, ...props }: { label: string; multiline?: boolean } & React.InputHTMLAttributes<HTMLInputElement>) {
-  return <label className="field"><span>{label}{props.required && <span className="required"> *</span>}</span>{multiline ? <textarea name={props.name} defaultValue={props.defaultValue as string} placeholder={props.placeholder} required={props.required} maxLength={props.maxLength} disabled={props.disabled}/> : <input {...props}/>}</label>;
+/** Compatibility field: native controlled and uncontrolled form behavior. */
+export function AppField(props: { label: string; multiline: true } & React.TextareaHTMLAttributes<HTMLTextAreaElement>): React.JSX.Element;
+export function AppField(props: { label: string; multiline?: boolean } & React.InputHTMLAttributes<HTMLInputElement>): React.JSX.Element;
+export function AppField({ label, multiline, ...props }: { label: string; multiline?: boolean } & (React.InputHTMLAttributes<HTMLInputElement> | React.TextareaHTMLAttributes<HTMLTextAreaElement>)) {
+  const textareaProps = multiline ? Object.fromEntries(Object.entries(props).filter(([key]) => ![
+    'accept', 'alt', 'capture', 'checked', 'defaultChecked', 'formAction', 'formEncType', 'formMethod', 'formNoValidate', 'formTarget',
+    'height', 'list', 'max', 'min', 'multiple', 'pattern', 'size', 'src', 'step', 'type', 'width',
+  ].includes(key))) as React.TextareaHTMLAttributes<HTMLTextAreaElement> : undefined;
+  return <label className="field"><span>{label}{props.required && <span className="required"> *</span>}</span>{multiline ? <textarea {...textareaProps}/> : <input {...props as React.InputHTMLAttributes<HTMLInputElement>}/>}</label>;
 }
 
 /** Options arrive already formatted by the application's domain vocabulary. */

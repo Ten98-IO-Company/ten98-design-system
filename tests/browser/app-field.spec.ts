@@ -1,0 +1,51 @@
+import { expect, test } from '@playwright/test';
+
+test('async multiline values, typed edits and controller review match the native form', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', error => errors.push(error.message));
+  let respond!: () => void;
+  const heldResponse = new Promise<void>(resolve => { respond = resolve; });
+  await page.route('**/tests/fixture-article', async route => { await heldResponse; await route.fulfill({ json: { body: '<p>Loaded article & context</p>' } }); });
+  await page.goto(`/tests/app-field.html?theme=${test.info().project.name === 'narrow-dark' ? 'dark' : 'light'}`);
+  const field = page.getByRole('textbox', { name: 'Article HTML *', exact: true });
+  await expect(field).toHaveValue('');
+  const requested = page.waitForRequest('**/tests/fixture-article');
+  await page.getByRole('button', { name: 'Load synthetic article', exact: true }).click();
+  await requested;
+  await expect(page.getByRole('button', { name: 'Review exact article', exact: true })).toBeDisabled();
+  respond();
+  await expect(field).toHaveValue('<p>Loaded article & context</p>');
+  await expect(field).toHaveAttribute('id', 'article-html');
+  await expect(field).toHaveAttribute('rows', '5');
+  await expect(field).toHaveAccessibleDescription('Synthetic text only. Review preserves literal HTML; nothing is published.');
+  const edited = '<h2>Edited article & ready</h2>';
+  await field.fill(edited);
+  await page.getByRole('button', { name: 'Review exact article', exact: true }).click();
+  await expect(page.getByLabel('Controller review')).toHaveText(edited);
+  await expect(page.getByLabel('Native form value')).toHaveText(edited);
+  await field.fill('An edit after review');
+  await expect(page.getByLabel('Controller review')).toBeEmpty();
+  await expect(page.getByLabel('Native form value')).toBeEmpty();
+  await page.getByRole('button', { name: 'Lock article', exact: true }).click();
+  await expect(field).not.toBeEditable();
+  await expect(field).toHaveValue('An edit after review');
+  await page.getByRole('button', { name: 'Review exact article', exact: true }).click();
+  await expect(page.getByLabel('Controller review')).toHaveText('An edit after review');
+  await expect(page.getByLabel('Native form value')).toHaveText('An edit after review');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)).toBeTruthy();
+  expect(errors).toEqual([]);
+});
+
+test('uncontrolled multiline drafts, read-only submission and disabled exclusion stay native', async ({ page }) => {
+  await page.goto(`/tests/app-field.html?theme=${test.info().project.name === 'narrow-dark' ? 'dark' : 'light'}`);
+  const message = page.getByRole('textbox', { name: 'Uncontrolled message *', exact: true });
+  await expect(message).toHaveValue('Original uncontrolled draft');
+  await message.fill('User-owned unsaved draft');
+  await page.getByRole('button', { name: 'Update initial metadata', exact: true }).click();
+  await expect(message).toHaveValue('User-owned unsaved draft');
+  await expect(page.getByRole('textbox', { name: 'Read-only message', exact: true })).not.toBeEditable();
+  await expect(page.getByRole('textbox', { name: 'Disabled message', exact: true })).toBeDisabled();
+  expect(await page.locator('#uncontrolled-form').evaluate(form => Object.fromEntries(new FormData(form as HTMLFormElement)))).toEqual({ message: 'User-owned unsaved draft', readonly: 'Approved message' });
+  await message.fill('');
+  expect(await message.evaluate(element => (element as HTMLTextAreaElement).validity.valueMissing)).toBeTruthy();
+});

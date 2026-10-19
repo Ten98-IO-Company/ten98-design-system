@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en" dir="ltr" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Native multiline field regression</title>
+  <link rel="stylesheet" href="/src/lib/app-tokens.css">
+  <link rel="stylesheet" href="/src/lib/app.css">
+  <style>body{font-family:var(--font-sans);color:var(--color-text);background:var(--color-canvas);padding:16px}main,form{display:grid;gap:16px;min-width:0}textarea{max-width:100%}output{overflow-wrap:anywhere}</style>
+  <script>document.documentElement.dataset.theme=new URLSearchParams(location.search).get('theme')==='dark'?'dark':'light';</script>
+</head>
+<body><main id="fixture"></main>
+  <script type="module">
+    import React, { useState } from 'react';
+    import { createRoot } from 'react-dom/client';
+    import { AppField } from '../src/lib/app.tsx';
+    const e = React.createElement;
+    function Fixture() {
+      const [body, setBody] = useState(''), [ready, setReady] = useState(false), [review, setReview] = useState(''), [submitted, setSubmitted] = useState('');
+      const [locked, setLocked] = useState(false), [initial, setInitial] = useState('Original uncontrolled draft');
+      return e(React.Fragment, null,
+        e('h1', null, 'Synthetic article editor'),
+        e('button', { type: 'button', onClick: async () => { setReady(false); setReview(''); const response = await fetch('/tests/fixture-article'); const data = await response.json(); setBody(data.body); setReady(true); } }, 'Load synthetic article'),
+        e('form', { id: 'article-form', onSubmit: event => { event.preventDefault(); setReview(body); setSubmitted(String(new FormData(event.currentTarget).get('bodyHtml'))); } },
+          e(AppField, { label: 'Article HTML', name: 'bodyHtml', id: 'article-html', multiline: true, rows: 5, maxLength: 500000, required: true, readOnly: locked, 'aria-describedby': 'article-help', value: body, onChange: event => { setBody(event.target.value); setReview(''); setSubmitted(''); } }),
+          e('p', { id: 'article-help' }, 'Synthetic text only. Review preserves literal HTML; nothing is published.'),
+          e('button', { type: 'submit', disabled: !ready }, 'Review exact article'),
+          e('button', { type: 'button', onClick: () => setLocked(value => !value) }, locked ? 'Unlock article' : 'Lock article')),
+        e('output', { 'aria-label': 'Controller review' }, review),
+        e('output', { 'aria-label': 'Native form value' }, submitted),
+        e('form', { id: 'uncontrolled-form' },
+          e(AppField, { label: 'Uncontrolled message', name: 'message', multiline: true, defaultValue: initial, required: true, maxLength: 100 }),
+          e(AppField, { label: 'Read-only message', name: 'readonly', multiline: true, defaultValue: 'Approved message', readOnly: true, rows: 2 }),
+          e(AppField, { label: 'Disabled message', name: 'disabled', multiline: true, defaultValue: 'Excluded message', disabled: true }),
+          e('button', { type: 'button', onClick: () => setInitial('Replacement default metadata') }, 'Update initial metadata')));
+    }
+    createRoot(document.getElementById('fixture')).render(e(Fixture));
+  </script>
+</body></html>

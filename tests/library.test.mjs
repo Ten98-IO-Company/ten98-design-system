@@ -24,10 +24,34 @@ test('application fields retain native submission, defaults and constraints', ()
   assert.match(html, /step="any"/);
   assert.match(html, /required=""/);
   const textarea = render(app.AppField, { label: 'Message', multiline: true, name: 'message', defaultValue: 'Saved text', maxLength: 500, required: true });
-  assert.match(textarea, /<textarea[^>]*name="message"[^>]*required=""[^>]*maxLength="500">Saved text<\/textarea>/);
+  const control = textarea.match(/<textarea\b[^>]*>/)?.[0];
+  assert.ok(control);
+  for (const attribute of ['name="message"', 'required=""', 'maxLength="500"']) assert.ok(control.includes(attribute));
+  assert.match(textarea, />Saved text<\/textarea>/);
   const select = render(app.AppSelect, { label: 'Status', name: 'status', value: 'active', options: [['draft', 'Draft'], ['active', 'Active']] });
   assert.match(select, /<select name="status">/);
   assert.match(select, /<option value="active" selected="">Active<\/option>/);
+});
+
+test('application multiline fields forward controlled textarea props and preserve native defaults', () => {
+  const onChange = () => assert.fail('Rendering must not issue an edit.');
+  const field = app.AppField({ label: 'Article HTML', multiline: true, name: 'body', value: '<script>stored text</script>',
+    onChange, readOnly: true, id: 'article-html', 'aria-describedby': 'article-help', 'aria-invalid': true,
+    rows: 6, cols: 40, wrap: 'soft', required: true, form: 'article-form', type: 'url', min: 1, step: 2, checked: true });
+  assert.equal(field.props.children[1].props.onChange, onChange);
+  const html = renderToStaticMarkup(field);
+  const control = html.match(/<textarea\b[^>]*>/)?.[0];
+  assert.ok(control);
+  for (const attribute of ['name="body"', 'readOnly=""', 'id="article-html"', 'aria-describedby="article-help"', 'aria-invalid="true"',
+    'rows="6"', 'cols="40"', 'wrap="soft"', 'required=""', 'form="article-form"']) assert.ok(control.includes(attribute), attribute);
+  assert.match(html, />&lt;script&gt;stored text&lt;\/script&gt;<\/textarea>/);
+  assert.doesNotMatch(control, /\b(?:type|min|step|checked|value)=/);
+  const defaults = render(app.AppField, { label: 'Saved copy', multiline: true, name: 'copy', defaultValue: 'Saved & editable', disabled: true, maxLength: 500 });
+  assert.match(defaults, /<textarea\b[^>]*name="copy"/);
+  assert.match(defaults, /disabled=""/);
+  assert.match(defaults, /maxLength="500"/);
+  assert.match(defaults, />Saved &amp; editable<\/textarea>/);
+  assert.doesNotMatch(defaults, /readOnly=|\bvalue=/);
 });
 
 test('application branding and Campaign inbox retain their pre-adoption markup', () => {

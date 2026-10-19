@@ -38,6 +38,10 @@ For each row: inspect real consumer contract → build or reuse typed presentati
 
 ## Confirmed invariants
 
+The subsequent 0.3.6 shared-field correction passes 58 native checks, 510 strict TSX examples and 146 Playwright cases, with 73 components, 405 states and 28 flows. Both consumers remain on their accepted 0.3.4 checkpoint while awaiting the new immutable archive, avoiding a duplicate 0.3.5 installation. Campaign's actual article editor exposed the controlled-multiline issue; no article save was sent during its failed acceptance check. Version 0.3.6 preserves 0.3.5's fixes and adds native textarea forwarding.
+
+Version 0.3.6 archive: `ten98-ui-0.3.6.tgz`, SHA256 `3F88760F2A27D46ECFD800C1FA690446155A7A0616D887F54D72EFE2AC16A31F`. Its new actual-consumer gates are Campaign's async article prefill/edit/review and both apps' affected native forms/theme checks. The app sessions own sequential installation and their final acceptance records.
+
 Shared 0.3.5 gate: 73 components, 403 state specimens, 28 flows, 508 strict TSX examples, 57 native checks and 142 Playwright cases pass. Immutable archive: `ten98-ui-0.3.5.tgz`, SHA256 `E84AD0F0EF1B27E1494D2191F3097D75EDAD8843A6E2270365355EFC5BD5E2D3`. Consumer adoption of this version is the next acceptance step; it is not implied by the library gate. Actual product-reference and consumer screenshots are retained in the [visual review](reviews/2026-10-19/README.md).
 
 Latest consumer checkpoint: Campaign has completed the frozen C1–C8 integration or explicit native-retention decisions on 0.3.4, with 691 passing checks and a production/type build. Its verification record is `ten98-campaign/docs/verification.md#unreleased-swarm-increment`. Native post composition retains richer platform/media/thread contracts; actual recipient-version review and policy-race checks pass without approval dispatch. The UI gate does not certify sending, paid activation or live providers. Later Campaign feature additions have separate acceptance.
