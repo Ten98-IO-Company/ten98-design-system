@@ -12,7 +12,7 @@ test('analytics results follow configuration at full width, with table scrolling
     const result = preview.getByRole('region', { name: label, exact: true });
     await expect(result).toBeVisible();
     const reportBounds = await result.boundingBox();
-    const templateBounds = await preview.locator('.t98-template').boundingBox();
+    const templateBounds = await preview.locator('.t98-flow-section').first().boundingBox();
     const controlBounds = await preview.getByLabel(lastControl, { exact: true }).boundingBox();
     if (!narrow && flow !== 'discover-ordered-funnel') {
       expect(controlBounds!.width, 'Short report controls keep a compact width').toBeLessThanOrEqual(320);

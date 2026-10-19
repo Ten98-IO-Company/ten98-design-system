@@ -44,7 +44,7 @@ test('every component state page renders without browser errors or page overflow
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.goto(`${prefix}#components`);
-  await expect(page.locator('.reference-component-card')).toHaveCount(73);
+  await expect(page.locator('.reference-component-card')).toHaveCount(74);
   const links = await page.locator('.reference-component-card').evaluateAll(nodes => nodes.map(node => ({ href: node.getAttribute('href')!, name: node.querySelector('h2')!.textContent! })));
   for (const link of links) {
     await test.step(link.name, async () => {
@@ -88,8 +88,22 @@ test('templates, hierarchy and usage rules are keyboard accessible', async ({ pa
   await expect(page.locator('.reference-template-context')).toContainText('Scope → steps → feedback → form + preview → save actions');
   await expect(page.getByRole('heading', { name: 'Overview', exact: true })).toHaveCount(0);
   await expect(page.locator('.reference-preview .t98-template--editor')).toBeVisible();
-  // Browsing must reach the preview without scrolling past five full template cards.
-  await expect(page.locator('.reference-preview')).toBeInViewport({ ratio: .05 });
+  // Reach the complete page heading without scrolling past other full template cards.
+  // A percentage of the entire preview gets smaller as its legitimate content grows.
+  const preview = page.locator('.reference-preview');
+  await expect(preview).toHaveCount(1);
+  const previewTitle = preview.getByRole('heading', { level: 1, name: 'Edit campaign', exact: true });
+  await expect(previewTitle).toBeInViewport({ ratio: 1 });
+  const originalStyle = await preview.getAttribute('style');
+  try {
+    await preview.evaluate(element => (element as HTMLElement).style.marginBlockStart = '1000px');
+    await expect(previewTitle).not.toBeInViewport();
+  } finally {
+    await preview.evaluate((element, style) => {
+      if (style === null) element.removeAttribute('style'); else element.setAttribute('style', style);
+    }, originalStyle);
+  }
+  await expect(previewTitle).toBeInViewport({ ratio: 1 });
   await picker.selectOption('SettingsTemplate');
   await page.locator('.reference-preview').getByRole('link', { name: 'General', exact: true }).click();
   await expect(page).toHaveURL(/#templates$/);
@@ -182,6 +196,7 @@ test('navigation restores focus, hides scrollbar tracks and gives current setup 
   await page.goto('/#getting-started');
   await expect(page.getByRole('heading', { name: 'Copy a component. Keep the system.' })).toBeVisible();
   await expect(page.getByLabel('Build the library', { exact: true })).toHaveText('npm install\nnpx playwright install chromium\nnpm run check:all\nnpm pack');
+  await expect(page.locator('.reference-code code').filter({ hasText: 'export default function ProjectForm' })).toContainText('className="t98-control-stack"');
   await expect(page.getByLabel('Existing application stylesheet', { exact: true })).toHaveText("@import '@ten98/ui/app-tokens.css';\n@import '@ten98/ui/app.css';\n@import '@ten98/ui/product.css';\n/* App-specific overrides follow. */");
 });
 
@@ -192,7 +207,7 @@ test('templates retain layout at 200 percent text zoom', async ({ page }, info) 
   const original = await heading.evaluate(element => parseFloat(getComputedStyle(element).fontSize));
   const restore = await doubleText(page);
   expect(await heading.evaluate(element => parseFloat(getComputedStyle(element).fontSize))).toBeCloseTo(original * 2);
-  await expect(page.getByRole('heading', { name: '5. Application flows' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '5. Full page templates' })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)).toBeTruthy();
   await restore();
 });

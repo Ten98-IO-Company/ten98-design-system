@@ -1,6 +1,6 @@
 {
   "name": "@ten98/ui",
-  "version": "0.3.16",
+  "version": "0.3.17",
   "description": "Shared design tokens, React components and application patterns for the ten98 suite",
   "type": "module",
   "license": "MIT",
@@ -36,10 +36,11 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 5198",
     "typecheck": "tsc --noEmit",
-    "build": "npm run typecheck && node scripts/build.mjs && vite build",
+    "check:architecture": "node node_modules/@ten98/runtime/check.mjs .",
+    "build": "npm run check:architecture && npm run typecheck && node scripts/build.mjs && vite build",
     "build:lib": "node scripts/build.mjs",
     "preview": "vite preview --host 127.0.0.1 --port 5198",
-    "test": "node --test tests/*.test.mjs",
+    "test": "npm run check:architecture && node --test tests/*.test.mjs",
     "check": "npm run build && npm test",
     "prepack": "npm run build:lib",
     "test:browser": "playwright test",
@@ -50,6 +51,7 @@
     "react-dom": "^18.3.0 || ^19.0.0"
   },
   "devDependencies": {
+    "@ten98/runtime": "file:vendor/ten98-runtime-0.1.1.tgz",
     "@playwright/test": "^1.64.1",
     "@types/react": "19.2.2",
     "@types/react-dom": "19.2.2",
@@ -59,7 +61,7 @@
     "vite": "8.3.4"
   },
   "engines": {
-    "node": ">=22.14.0"
+    "node": ">=24.0.0 <25"
   },
   "repository": {
     "type": "git",

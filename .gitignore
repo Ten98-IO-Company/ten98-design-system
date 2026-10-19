@@ -2,6 +2,7 @@ node_modules/
 dist/
 site-dist/
 *.tgz
+!vendor/*.tgz
 .qa/
 .integration/
 .tmp/

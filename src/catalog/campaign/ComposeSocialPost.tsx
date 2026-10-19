@@ -1,7 +1,7 @@
 'use client';
 
 import { useId, useState } from 'react';
-import { Alert, Badge, Button, ContentPreview, DestinationPicker, EditorTemplate, Field, MediaStrip, Tabs, Textarea, type MediaItem } from '../../lib';
+import { Alert, Badge, Button, ContentPreview, DestinationPicker, FlowSection, Field, MediaStrip, Tabs, Textarea, type MediaItem } from '../../lib';
 
 const accounts = [
   { id: 'ig-studio', name: 'Studio Dubai · @studio.demo', provider: 'Instagram', description: 'Project launch · account demo-ig-17' },
@@ -31,11 +31,8 @@ export default function ComposeSocialPost() {
     });
     setValidation(selected.length ? issues : ['Select at least one exact account.']);
   }
-  return <EditorTemplate title="Compose a social post" description="Local reference · synthetic accounts and media. This example saves only while mounted and sends no provider request." scope="Workspace Studio · Project Dubai launch"
-    actions={<Badge tone={validation?.length === 0 ? 'success' : 'neutral'}>{validation?.length === 0 ? 'Local checks passed' : 'Draft'}</Badge>}
-    feedback={<><Alert title="Account copies stay independent">Selecting two Instagram accounts would create two account copies. Empty media explicitly removes inherited media. Local checks do not establish provider eligibility or approval.</Alert>{saved && <p role="status">{saved}</p>}{validation && <Alert title={validation.length ? 'Review the draft' : 'Ready for app-owned preflight'} tone={validation.length ? 'warning' : 'success'}>{validation.length ? <ul>{validation.map(issue => <li key={issue}>{issue}</li>)}</ul> : 'Selected captions and fixture media passed these local checks. Nothing has been scheduled or published.'}</Alert>}</>}
-    preview={<ContentPreview label="Account preview" destination={account.name} provider={account.provider} text={captions[active]} media={<p>{items.length ? items.map(item => `${item.name} (${item.status})`).join(', ') : 'Explicitly no media'}</p>} footer="Approximate layout. The app supplies weighted counts, network options, consent and provider validation." />}
-    footer={<><Button variant="secondary" onClick={() => { setSnapshot({ selected, active, captions, media, policy }); setSaved(`Local draft snapshot saved for ${selected.length} account(s), including incomplete content. No durable storage.`); }}>Save local draft</Button><Button variant="secondary" disabled={!snapshot} onClick={() => { if (!snapshot) return; setSelected(snapshot.selected); setActive(snapshot.active); setCaptions(snapshot.captions); setMedia(snapshot.media); setPolicy(snapshot.policy); setValidation(null); setSaved('Saved local snapshot restored.'); }}>Restore saved local draft</Button><Button onClick={validate}>Validate selected accounts locally</Button></>}>
+  return <FlowSection title="Compose a social post" description="Local reference · synthetic accounts and media. This example saves only while mounted and sends no provider request." scope="Workspace Studio · Project Dubai launch" actions={<Badge tone={validation?.length === 0 ? 'success' : 'neutral'}>{validation?.length === 0 ? 'Local checks passed' : 'Draft'}</Badge>}>
+    <div className="t98-control-stack">{<><Alert title="Account copies stay independent">Selecting two Instagram accounts would create two account copies. Empty media explicitly removes inherited media. Local checks do not establish provider eligibility or approval.</Alert>{saved && <p role="status">{saved}</p>}{validation && <Alert title={validation.length ? 'Review the draft' : 'Ready for app-owned preflight'} tone={validation.length ? 'warning' : 'success'}>{validation.length ? <ul>{validation.map(issue => <li key={issue}>{issue}</li>)}</ul> : 'Selected captions and fixture media passed these local checks. Nothing has been scheduled or published.'}</Alert>}</>}</div>
     <DestinationPicker label="Exact destination accounts" accounts={accounts} selectedIds={selected} onSelectionChange={next => { setSelected(next); if (!next.includes(active) && next[0]) setActive(next[0]); setValidation(null); }} />
     {selected.length > 0 ? <><Tabs label="Edit account copy" value={active} onValueChange={setActive} items={selected.map(value => ({ value, label: accounts.find(item => item.id === value)!.name }))} />
       <Field htmlFor={`${id}-caption`} label={`Caption for ${account.name}`}><Textarea value={captions[active] ?? ''} onChange={event => { setCaptions(current => ({ ...current, [active]: event.target.value })); setValidation(null); }} /></Field>
@@ -45,5 +42,8 @@ export default function ComposeSocialPost() {
         <Button variant="secondary" disabled={!items.length} onClick={() => changeMedia(items.map(item => ({ ...item, status: 'ready', statusLabel: 'Synthetic ready evidence · no upload performed', error: undefined })))}>Simulate ready media evidence</Button>
         <Button variant="ghost" disabled={!items.length} onClick={() => changeMedia(items.map(item => ({ ...item, status: 'error', error: 'Synthetic processing failure. Original and caption are retained.' })))}>Simulate media failure</Button></div>
     </> : <Alert title="No destination selected">Select an account to edit its copy. Previously entered account captions remain in this local draft.</Alert>}
-  </EditorTemplate>;
+
+    <section className="t98-feature-parts" aria-label="Supporting preview">{<ContentPreview label="Account preview" destination={account.name} provider={account.provider} text={captions[active]} media={<p>{items.length ? items.map(item => `${item.name} (${item.status})`).join(', ') : 'Explicitly no media'}</p>} footer="Approximate layout. The app supplies weighted counts, network options, consent and provider validation." />}</section>
+    <div className="t98-form-actions">{<><Button variant="secondary" onClick={() => { setSnapshot({ selected, active, captions, media, policy }); setSaved(`Local draft snapshot saved for ${selected.length} account(s), including incomplete content. No durable storage.`); }}>Save local draft</Button><Button variant="secondary" disabled={!snapshot} onClick={() => { if (!snapshot) return; setSelected(snapshot.selected); setActive(snapshot.active); setCaptions(snapshot.captions); setMedia(snapshot.media); setPolicy(snapshot.policy); setValidation(null); setSaved('Saved local snapshot restored.'); }}>Restore saved local draft</Button><Button onClick={validate}>Validate selected accounts locally</Button></>}</div>
+  </FlowSection>;
 }

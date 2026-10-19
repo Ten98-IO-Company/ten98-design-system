@@ -1,5 +1,13 @@
 # Release validation
 
+## Feature sections and full-page composition: 0.3.17
+
+All 28 catalogue flows now use compact feature sections rather than page templates. Overview, Collection, Detail, Editor and Settings specimens combine multiple features under one page title. The public FlowSection and additive Alert.actions API, shared Card/control/action spacing and token-based surface insets reduce local layout decisions. The [canonical usage guide](LAYOUTS-AND-USAGE.md) defines hierarchy, spacing ownership and a bounded implementation brief. Campaign's branding, authentication composition and existing application controllers are preserved.
+
+Architecture, type, production/library builds, **62/62 native checks** and **515 strict standalone TSX examples** pass. The complete final frozen-source Playwright gate passes **190/190 in 2.9 minutes**, one worker, zero retries. All 130 frozen inputs remain exact. Source conservation checks retain 477 original non-layout component tags and 28 controller regions. All 28 final images are refreshed; independent review of nine final images confirms the bounded filter and unbroken status-label corrections. The [review](reviews/2026-10-20/spacing-layout.md) and [receipt](reviews/2026-10-20/spacing-layout.json) retain earlier test/build differences, 20 public images and modern-browser/synthetic limits.
+
+The test server bundles the actual catalogue and native fixtures to avoid development-module socket exhaustion. Both catalogue builds preserve native modern CSS inheritance, and deliberate fault styles apply after stylesheet parsing. Existing numeric palette/contrast assertions and fault/restoration tests remain intact. The development manifest retains the existing released runtime1.1 stack; server mechanisms remain outside this React presentation library. Primary app acceptance stays on UI16/runtime1.1 until coordinated UI18/runtime1.2 qualification preserves this immutable layout base and passes the matching contract. No consumer-pin waiver or live-provider acceptance is implied.
+
 ## Shared presentation consolidation: 0.3.16
 
 ActivityFeed reuses canonical tone variables, Field/Tooltip reuse the existing ARIA string join, and identical compatibility badge/product declarations share selector groups. Three older recipes use the existing fixed templates. Live template previews and copied TSX share a source. Connect now includes automation, integrations, wiki/docs and research; the current suite has nine apps and Discover keeps its research scope. Public declarations, token palette, dependencies and Campaign branding remain unchanged.

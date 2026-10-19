@@ -1,6 +1,6 @@
 # Component inventory and API
 
-This is the public component inventory for `@ten98/ui` version `0.3.8`. Import React components from `@ten98/ui` and load `@ten98/ui/styles.css` once at the application root. Campaign and Discover also use the application-compatible entry point described below. The emitted TypeScript declarations are the exact API contract.
+This is the public component inventory for `@ten98/ui`. Import React components from `@ten98/ui` and load `@ten98/ui/styles.css` once at the application root. Campaign and Discover also use the application-compatible entry point described below. The installed package’s emitted TypeScript declarations are the exact versioned API contract.
 
 ## Implemented primitives
 
@@ -10,7 +10,7 @@ This is the public component inventory for `@ten98/ui` version `0.3.8`. Import R
 | `Badge` | `tone`, `dot`, children; span attributes | Status text with optional decorative dot. Include meaningful text. |
 | `Avatar` | `name`, `size`; span attributes | Initials with an accessible name; does not fetch images. |
 | `Icon` | `name`, `size`, `title`; SVG attributes | Bundled stroke icons. Decorative by default; use `title` for a meaningful standalone image and label icon-only buttons. |
-| `Card` | `title?`, `description?`, `actions?`, children; div attributes | Panel with optional header and body. Its built-in title is an `h3`; consider the screen's heading hierarchy. |
+| `Card` | `title?`, `description?`, `actions?`, children; div attributes | Panel with optional header and a 16px gap between direct content children. Its built-in title is an `h3`; consider the screen's heading hierarchy. Group buttons in `t98-form-actions`, fields in `t98-form-grid`. |
 | `Input` | Native input attributes and ref | Styled input; choose its native `type`, constraints and controlled/uncontrolled state. |
 | `Textarea` | Native textarea attributes and ref | Resizable multiline input; default four rows. |
 | `Select` | Native select attributes and ref; option children | Browser-native select. Searchable combobox and multiselect behavior are not included. |
@@ -19,7 +19,7 @@ This is the public component inventory for `@ten98/ui` version `0.3.8`. Import R
 | `Switch` | `label`, `checked`, `onCheckedChange`; button attributes | Controlled switch button; the application saves the value. |
 | `Tabs` | `items`, `value`, `onValueChange`, `label?`, `className?` | Controlled tabs and panels with arrow/Home/End navigation. Use route links for navigation between pages. |
 | `Dialog` | `open`, `onOpenChange`, `title`, children; `description?`, `footer?`, `className?`, `closeDisabled?` | Native modal dialog with focus restoration. `closeDisabled` defaults to `false`; when true it disables the close button and suppresses Escape/backdrop close requests. The application handles drafts, submission and confirmation policy. |
-| `Alert` | `title`, `tone`, children; div attributes | Danger uses an alert role; other tones use a status role. |
+| `Alert` | `title`, `tone`, `actions?`, children; div attributes | Danger uses an alert role; other tones use a status role. Inline message semantics are retained; optional recovery actions wrap in a separate row beneath the message. |
 | `Progress` | `value`, `label?`, `className?` | Determinate native progress from 0–100, with out-of-range values clamped. Supply confirmed progress rather than an invented percentage. |
 | `Skeleton` | Div attributes | Decorative placeholder; give the loading region its own status text. |
 | `Separator` | Horizontal-rule attributes | Thematic separation. |
@@ -228,6 +228,7 @@ All 28 additive exports have live props, state specimens, tokens, accessibility 
 | `EvidenceDetail`, `ReportPanel`, `RunCostSummary` | Payload access states, independent widgets and explicit quoted/pending/settled/uncertain accounting. No paid action is generated. |
 | `VisualEvidenceFrame`, `ReplayControls` | Alignment-gated overlay, separately authorized evidence and controlled playback/seek requests. Optional `rankedListLabel` names coordinate groups truthfully; omission preserves the ranked-element defaults. Omit unsupported inactivity skipping; a supplied preference without a callback is read-only. App owns capture and replay engine. |
 | `OverviewTemplate`, `CollectionTemplate`, `DetailTemplate`, `EditorTemplate`, `SettingsTemplate` | Fixed slot order by task. Compose one inside the app's main landmark; preserve native form association. See [layout rules](LAYOUTS-AND-USAGE.md). |
+| `FlowSection` | Smaller feature composition with an h2, optional description/scope/actions and spaced app-owned children. Several feature sections compose a full page template; a flow never mounts a page template. |
 
 The emitted declarations remain the exact prop contract. Existing apps use `product.css` after `app.css`; new screens may load `styles.css`. Long main-API badges wrap within their containing surface.
 

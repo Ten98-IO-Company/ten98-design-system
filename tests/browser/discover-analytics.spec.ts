@@ -39,7 +39,7 @@ test('D1: copying and a detected installation never substitute for an accepted e
 
 test('D2: pending scope is immutable, cancellation keeps draft, and zero survives a failed refresh', async ({ page }) => {
   const preview = await openFlow(page, 'discover-overview-comparison');
-  const scope = preview.locator('.t98-template-scope');
+  const scope = preview.locator('.t98-flow-scope');
   await preview.getByLabel('Start date draft').fill('2026-10-01');
   await preview.getByLabel('Page filter draft').selectOption('/contact');
   await expect(scope).toContainText('2026-10-12 through 2026-10-18');
@@ -151,9 +151,9 @@ test('D5: cohort zero, missing and future differ; branch selection and expiry pr
   await preview.getByLabel('Next local report outcome').selectOption('expired');
   await preview.getByRole('button', { name: 'Apply scope to both local reports', exact: true }).click();
   await preview.getByLabel('Cohort week start draft').fill('2026-10-15');
-  await expect(preview.locator('.t98-template-scope')).toContainText('2026-10-17');
+  await expect(preview.locator('.t98-flow-scope')).toContainText('2026-10-17');
   await preview.getByRole('button', { name: 'Complete local report', exact: true }).click();
-  await expect(preview.locator('.t98-template-scope')).toContainText('2026-10-16');
+  await expect(preview.locator('.t98-flow-scope')).toContainText('2026-10-16');
   await expect(preview.getByLabel('Cohort week start draft')).toHaveValue('2026-10-15');
   await expect(journey.getByRole('img')).toHaveCount(0);
   await expect(journey.getByRole('button')).toHaveCount(0);

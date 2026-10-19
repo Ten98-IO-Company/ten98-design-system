@@ -244,7 +244,7 @@ export const primitiveEntries: ComponentEntry[] = [
   },
   {
     name: 'Card', category: 'Layout', description: 'A surface with an optional title, description, action slot and content.',
-    usage: 'Group related information and controls. Use ResourceCard for the common resource/connection composition. Cards are not interactive by themselves.',
+    usage: 'Group related information and controls on a surface. Card owns a 16px gap between direct content children; put related buttons in t98-form-actions and fields in t98-form-grid. Use FlowSection for a feature boundary without a second surface. Use ResourceCard for resource/connection composition. Cards are not interactive by themselves.',
     props: [
       { name: 'title', type: 'ReactNode', description: 'Optional title rendered inside an h3.' },
       { name: 'description', type: 'ReactNode', description: 'Optional supporting text rendered inside a paragraph.' },
@@ -307,12 +307,14 @@ export const primitiveEntries: ComponentEntry[] = [
     props: [
       { name: 'title', type: 'ReactNode', required: true, description: 'Concise visible title rendered in a paragraph.' },
       { name: 'tone', type: "'neutral' | 'accent' | 'success' | 'warning' | 'danger' | 'info'", defaultValue: "'info'", description: 'Semantic tone. danger supplies role="alert"; other tones supply role="status".' },
+      { name: 'actions', type: 'ReactNode', description: 'Optional wrapping action row below the message, separated by the shared 12px action gap. Keep related buttons here instead of beside inline prose.' },
     ], nativeProps: 'HTMLAttributes<HTMLDivElement> except native title; children form the optional description. Includes className. No dismiss, disabled or loading API; compose those behaviors explicitly.',
     tokens: ['--t98-font', '--t98-radius', ...toneTokens], accessibility: ['Danger uses an assertive alert role; other tones use a polite status role.', 'Use live updates sparingly and avoid repeating the same message unnecessarily.', 'The icon is decorative; readable text explains the condition.'],
     related: ['ToastProvider', 'Badge', 'EmptyState'], example: tsx(['Alert'], '<Alert title="Connection saved" tone="success">New events will appear after the next successful sync.</Alert>'),
     states: [
       ...tones.map(tone => ({ name: `Tone ${tone}`, description: tone === 'danger' ? 'An assertive alert for a failure that needs attention.' : 'A polite status message with supporting text.', preview: <Alert title={tone === 'danger' ? 'Connection failed' : 'Connection status'} tone={tone}>{tone === 'danger' ? 'Check the credentials and try again.' : 'The application supplies this message from its actual connection state.'}</Alert>, code: tsx(['Alert'], `<Alert title="${tone === 'danger' ? 'Connection failed' : 'Connection status'}" tone="${tone}">${tone === 'danger' ? 'Check the credentials and try again.' : 'The application supplies this message from its actual connection state.'}</Alert>`) })),
       { name: 'Title only', description: 'Short status without a description.', preview: <Alert title="Changes saved" tone="success" />, code: tsx(['Alert'], '<Alert title="Changes saved" tone="success" />') },
+      { name: 'Recovery action', description: 'Recovery follows the complete message and wraps without squeezing the text into columns.', preview: <Alert title="Outcome unknown" tone="warning" actions={<><Button variant="secondary">Check outcome</Button><Button variant="ghost">Keep receipt</Button></>}>Keep this receipt while checking the existing operation before trying again.</Alert>, code: tsx(['Alert', 'Button'], '<Alert title="Outcome unknown" tone="warning" actions={<><Button variant="secondary">Check outcome</Button><Button variant="ghost">Keep receipt</Button></>}>Keep this receipt while checking the existing operation before trying again.</Alert>') },
     ],
   },
   {

@@ -11,7 +11,7 @@ export default defineConfig({
   expect: { timeout: 5_000 },
   reporter: [['list'], ['html', { open: 'never' }]],
   use: {
-    baseURL: 'http://127.0.0.1:5198',
+    baseURL: 'http://127.0.0.1:5196',
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },
@@ -20,9 +20,9 @@ export default defineConfig({
     { name: 'narrow-dark', use: { ...devices['Desktop Chrome'], viewport: { width: 320, height: 850 }, colorScheme: 'dark' } },
   ],
   webServer: {
-    command: 'npm run dev',
-    url: 'http://127.0.0.1:5198',
-    reuseExistingServer: !process.env.CI,
+    command: 'node scripts/serve-browser.mjs',
+    url: 'http://127.0.0.1:5196',
+    reuseExistingServer: false,
     timeout: 30_000,
   },
 });

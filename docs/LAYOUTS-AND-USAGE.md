@@ -38,16 +38,37 @@ Use the existing labelled native select/field pattern. The app owns preference s
 flowchart TD
   Tokens[Canonical semantic tokens] --> Controls[Native typed controls]
   Controls --> Patterns[Shared task and state patterns]
-  Patterns --> Templates[Fixed page templates]
-  Templates --> Flows[Application feature flows]
+  Patterns --> Flows[Feature sections]
+  Flows --> Templates[Full page templates]
   Controllers[App routes, data, permissions and controllers] --> Flows
 ```
 
 1. **Tokens:** use semantic CSS variables or typed references. Do not create a product-specific palette or spacing scale.
 2. **Controls:** use `Field` with native `Input`, `Select` or `Textarea`; `Button` for an action, a link for navigation. Use compatibility `App*` exports for established Campaign/Discover markup; do not replace a controlled select with uncontrolled `AppSelect`.
 3. **Patterns:** use applied filters, evidence, reviews, operation receipts, media, audience, inspection and analytics presentation. Preserve explicit state rather than inventing domain rules.
-4. **Templates:** choose by the user’s task. Keep slot order and action placement. A template is not an excuse to change an app’s URL, access or form contract.
-5. **Flows:** the app supplies authoritative outcomes, guards and data. The research and human/coordinator decide UX; existing source supplies compatibility evidence.
+4. **Flows:** smaller feature sections built from controls and patterns. `FlowSection` owns a compact h2, optional applied scope and spaced feature content. It adds no page title, shell, route, form or controller. The app supplies outcomes, guards and data.
+5. **Templates:** full page layouts combining several feature sections and components. Choose by the user’s task and keep slot order and action placement. A template owns one h1 within the app shell. It is not an excuse to change an app’s URL, access or form contract.
+
+Do not mount a page template inside a feature flow. Use a Card when a surface communicates a real grouping; a feature boundary does not require another bordered card. Put draft-dependent actions after their configuration controls. Keep primary results full width after configuration and supporting features after the primary content in source order.
+
+## Spacing ownership
+
+| Relationship | Token | Use |
+| --- | --- | --- |
+| Closely related content | `--t98-space-2` / 8px | Title support, metadata, small item groups |
+| Related actions | `--t98-space-3` / 12px | Wrapping button rows |
+| Controls and content | `--t98-space-4` / 16px | Fields, Card content children, flow body |
+| Separate feature sections | `--t98-space-6` / 24px | Template content and form sections |
+
+The parent owns the gap. Do not add margins to the same boundary. Card owns spacing between its direct content children and uses a 20px (`--t98-space-5`) inset, reduced to 16px (`--t98-space-4`) on narrow screens. Group related buttons with `t98-form-actions` and fields with `t98-form-grid`. Use `t98-control-stack` for related controls and `t98-feature-parts` or `t98-form-stack` for separate subparts. Short report filters use `t98-feature-controls`; results remain full width. These classes use shared tokens and preserve DOM order. Buttons keep intrinsic width unless a specific task requires a full-width action.
+
+An Alert’s explanation remains ordinary inline prose. Its optional `actions` slot places a wrapping row 12px below the explanation. Keep paragraphs and recovery actions stacked; never squeeze them into separate narrow columns. Use h3 for feature subparts beneath FlowSection’s h2.
+
+## Implementation brief for app sessions and workers
+
+Implement the named feature within an existing full-page template using shared components and tokens. Identify its inputs, applied scope, results, actions and supported states before editing. Keep the original application controller and preserve native labels, constraints, permissions, drafts, cancellation, reviews and reconciliation. Remove duplicated page chrome from the feature. Use the spacing rules above; do not invent a local palette, spacing scale or layout framework. Rebuild an inconsistent specimen when simpler composition produces a clearer result, while preserving observable behavior.
+
+Work with bounded file ownership. First identify the concrete source and screenshot defect; then implement the smallest coherent correction. Run architecture, type, native and build checks. Use Playwright for the real interaction, light/dark themes, wide/narrow layouts, enlarged text and recovery, then inspect screenshots. New geometric checks need a deliberately broken layout that fails the same assertion and recovers after restoration. Stop a failing batch, diagnose its cause and retain the original acceptance checks. Synthetic catalogue outcomes do not establish live-service or production acceptance.
 
 ## Shared behavior contracts
 

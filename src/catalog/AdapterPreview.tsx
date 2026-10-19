@@ -25,11 +25,19 @@ export function AdapterPreview({ children, title, theme, density, large = false 
     if (!doc) return;
     doc.documentElement.dataset.theme = theme;
     doc.documentElement.dataset.density = density;
-    const resize = () => setHeight(Math.max(large ? 650 : 100, doc.body.scrollHeight + 4));
-    const observer = new ResizeObserver(resize);
+    let pendingFrame = 0;
+    const resize = () => {
+      pendingFrame = 0;
+      const next = Math.max(large ? 650 : 100, doc.body.scrollHeight + 4);
+      setHeight(current => current === next ? current : next);
+    };
+    const scheduleResize = () => {
+      if (!pendingFrame) pendingFrame = requestAnimationFrame(resize);
+    };
+    const observer = new ResizeObserver(scheduleResize);
     observer.observe(doc.body);
-    resize();
-    return () => observer.disconnect();
+    scheduleResize();
+    return () => { observer.disconnect(); cancelAnimationFrame(pendingFrame); };
   }, [doc, theme, density, large]);
   return <><iframe className="reference-app-frame" title={title} sandbox="allow-same-origin allow-forms" srcDoc={frameSource} onLoad={event => setDoc(event.currentTarget.contentDocument)} style={{ height }}/>{doc && createPortal(<div className="specimen" onClickCapture={event => setMessage(previewLink(event) ?? '')}>{children}{message && <p role="status">{message}</p>}</div>, doc.body)}</>;
 }

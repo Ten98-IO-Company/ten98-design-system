@@ -179,8 +179,8 @@ export function Dialog({ open, onOpenChange, title, description, children, foote
   </dialog>;
 }
 
-export function Alert({ title, tone = 'info', children, className, ...props }: Omit<HTMLAttributes<HTMLDivElement>, 'title'> & { title: ReactNode; tone?: Tone }) {
-  return <div className={cx('t98-alert', `t98-tone--${tone}`, className)} role={tone === 'danger' ? 'alert' : 'status'} {...props}><Icon name={tone === 'success' ? 'check' : tone === 'danger' ? 'shield' : 'bell'} /><div><p className="t98-alert-title">{title}</p>{children && <div className="t98-alert-description">{children}</div>}</div></div>;
+export function Alert({ title, tone = 'info', children, actions, className, ...props }: Omit<HTMLAttributes<HTMLDivElement>, 'title'> & { title: ReactNode; tone?: Tone; actions?: ReactNode }) {
+  return <div className={cx('t98-alert', `t98-tone--${tone}`, className)} role={tone === 'danger' ? 'alert' : 'status'} {...props}><Icon name={tone === 'success' ? 'check' : tone === 'danger' ? 'shield' : 'bell'} /><div className="t98-alert-content"><p className="t98-alert-title">{title}</p>{children && <div className="t98-alert-description">{children}</div>}{actions != null && <div className="t98-form-actions t98-alert-actions">{actions}</div>}</div></div>;
 }
 
 export function Progress({ value, label = 'Progress', className }: { value: number; label?: string; className?: string }) {
