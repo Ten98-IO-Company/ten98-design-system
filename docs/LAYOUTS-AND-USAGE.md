@@ -16,6 +16,10 @@ Compose a template inside the existing `AppShell`. The shell owns one main landm
 
 On narrow screens detail/editor columns stack in source order. List/detail tasks use `DetailWorkspace` so one pane is visible while drafts stay mounted. The app guards selection and restores focus after Back. Tables scroll inside labelled regions; a sidebar hides its scrollbar while remaining scrollable and keyboard reachable. Comfortable density is the default, compact is an explicit preference, and action targets remain usable on touch screens.
 
+Existing-app native forms use `.form-grid` for paired fields: two constrained columns on wider screens, one column at viewport widths of 480px or less. Preserve field order and native date/time types, names, values, constraints and read-only/disabled states. Test actual labels and control bounds at 320px with enlarged text; retain app-specific column overrides when their task requires a different structure.
+
+Shared controls use `--t98-control-height` as their minimum: 38px comfortable and 32px compact. Wrapped text can increase their height. Components explicitly designed for larger targets use `--t98-control-touch`; a narrow viewport alone does not impose 44px on every control. Check actual targets and spacing against [WCAG 2.5.8](https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html); the separate [enhanced criterion](https://www.w3.org/WAI/WCAG22/Understanding/target-size-enhanced.html) uses 44px. Text enlargement checks must verify visible labels actually double, including controls with fixed pixel font sizes.
+
 ## Component hierarchy
 
 ```mermaid

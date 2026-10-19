@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en" dir="ltr" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Native form grid regression fixture</title>
+  <link rel="stylesheet" href="/src/lib/app-tokens.css">
+  <link rel="stylesheet" href="/src/lib/app.css">
+  <link rel="stylesheet" href="/src/lib/product.css">
+  <style>body{font-family:var(--font-sans);color:var(--color-text);background:var(--color-canvas)}</style>
+  <script>
+    document.documentElement.dataset.theme = new URLSearchParams(location.search).get('theme') === 'dark' ? 'dark' : 'light';
+  </script>
+</head>
+<body>
+  <div id="fixture"></div>
+  <script type="module">
+    import React from 'react';
+    import { createRoot } from 'react-dom/client';
+    import { AppField, AppSelect } from '../src/lib/app.tsx';
+    const e = React.createElement;
+    function fields(prefix) {
+      const field = (name, label, props) => e(AppField, { key: name, id: `${prefix}-${name}`, name, label, ...props });
+      return e(React.Fragment, null,
+        e('div', { className: 'form-grid', 'data-pair': 'dates' },
+          field('from', 'From', { type: 'date', defaultValue: '2026-10-01', min: '2026-01-01', max: '2026-12-31', required: true }),
+          field('through', 'Through', { type: 'date', defaultValue: '2026-10-19', min: '2026-01-01', max: '2026-12-31', readOnly: true })),
+        e('div', { className: 'form-grid', 'data-pair': 'times' },
+          field('start', 'Manual event start', { type: 'datetime-local', defaultValue: '2026-10-19T09:30', min: '2026-01-01T00:00', max: '2026-12-31T23:59' }),
+          field('end', 'Manual event end', { type: 'datetime-local', defaultValue: '2026-10-19T10:30', min: '2026-01-01T00:00', max: '2026-12-31T23:59', disabled: true })),
+        e('div', { className: 'form-grid', 'data-pair': 'text' },
+          field('title', 'A descriptive campaign title that wraps at narrow widths', { type: 'text', defaultValue: 'Synthetic campaign' }),
+          e(AppSelect, { label: 'Reporting destination with a deliberately long label', name: 'destination', value: 'google', options: [['google', 'Google reporting destination with a long option'], ['local', 'Local reporting']] })));
+    }
+    function Fixture() {
+      return e(React.Fragment, null,
+        e('section', { className: 'workspace-main', 'aria-label': 'Synthetic workspace' },
+          e('main', { className: 'content' },
+            e('h1', null, 'Reporting dates'),
+            e('section', { className: 'settings-panel panel', 'aria-label': 'Reporting settings' },
+              e('form', { id: 'settings-form' }, fields('settings'))),
+            e('button', { type: 'button', onClick: () => document.getElementById('schedule-dialog').showModal() }, 'Open scheduling dialog'))),
+        e('dialog', { id: 'schedule-dialog', className: 'modal', 'aria-labelledby': 'schedule-title' },
+          e('header', { className: 'modal-heading' }, e('h2', { id: 'schedule-title' }, 'Schedule event')),
+          e('form', { id: 'modal-form', method: 'dialog' }, fields('modal'), e('button', { type: 'submit' }, 'Close dialog'))));
+    }
+    createRoot(document.getElementById('fixture')).render(e(Fixture));
+  </script>
+</body>
+</html>

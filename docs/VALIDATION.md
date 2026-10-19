@@ -1,5 +1,13 @@
 # Release validation
 
+## Native paired-field reflow: 0.3.4
+
+The full `npm run check:all` gate passes: 56 native tests, 507 strict public TSX examples and 118 Playwright cases. The CSS-only patch constrains the shared legacy form tracks and their children, then stacks pairs at viewport widths of 480px or less. JavaScript, declarations, native input markup and field behavior are unchanged.
+
+Ten added browser cases use actual AppField/AppSelect components in a settings panel and native dialog: desktop/320px, light/dark, normal/actual doubled text, and old-rule negative controls. They check visible labels/controls, bounds, narrow stacking, desktop pairing, types, values, constraints, editing, read-only/disabled state and FormData. Restoring the original intrinsic two-column rules reproduces date-grid escape and date-time document overflow. Independent review requested explicit visibility checks; those were added and the focused ten-case gate passed again. Native picker popups, internal segment scrolling and vertical clipping remain outside these geometry checks. Consumer calendar acceptance awaits adoption and its actual-app rerun.
+
+The inspected immutable 0.3.4 archive SHA256 is `E36AB3615FAD0BBEB8CF293A45CAB62CD92C727163B49E11F95E150EA045D2FA`. All 30 JavaScript/declaration files match 0.3.3 byte-for-byte. The package includes the MIT license, correct version and three checked form-grid rules. Both active app owners received this archive and hash for sequential adoption; earlier archives remain unchanged.
+
 ## Consumer capability and disabled values: 0.3.3
 
 `npm run check:all` passes: 56 native tests, 507 strict public TSX examples and 108 Playwright cases. The catalogue now has 402 state specimens across the same 73 components and 28 reference flows. The new replay specimens cover an unsupported inactivity preference and a supported read-only preference. Browser checks verify omitted controls, retained play/seek/speed requests, disabled preferences and existing editable checkbox behavior. The native regression also covers both read-only boolean values and a callback without a preference.

@@ -1,5 +1,9 @@
 # Campaign and Discover integration
 
+## Native form grid patch: 0.3.4
+
+The established `.form-grid` keeps two constrained columns on wider screens and stacks into one column at viewport widths of 480px or less. Direct children can shrink within their tracks, preventing native date and date-time fields from widening the page. Native inputs, labels, values, constraints and form submission remain unchanged. Consumer-specific layouts keep their existing overrides. Adopt the new immutable archive and recheck actual calendar/settings forms before closing the consumer gate.
+
 ## Replay capability and disabled text patch: 0.3.3
 
 `ReplayControls` accepts an optional `skipInactive` preference and callback. Omit the preference when the player does not support it. A supplied boolean without `onSkipInactiveChange` renders a disabled readable preference; supplying both retains the controlled interaction. Existing callers keep their behavior. Native player validation, isolated rendering, payload loading and millisecond/second conversion remain app-owned.

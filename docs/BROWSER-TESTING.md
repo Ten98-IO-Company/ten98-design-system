@@ -14,6 +14,8 @@ The suite tests real rendered React in English, left-to-right: a 1440px desktop 
 
 The legacy theme spec checks the actual compatibility styles in explicit and system light/dark themes, semantic token inheritance, translucent header text, disabled-input contrast and native editable/read-only/disabled behavior. Its negative control restores the two previous fixed light fills and reproduces the dark contrast failures. Authentication class geometry is compared in a synthetic fixture; consuming apps verify their complete login screens separately.
 
+The native form-grid spec mounts actual AppField/AppSelect components in a settings panel and dialog. It verifies visible labels/control bounds, narrow stacking, real text doubling and native values, constraints and FormData. Restoring the original grid rules must reproduce overflow. Browser picker contents and internal date/time segment scrolling are outside this fixture.
+
 Specs live in `tests/browser/`. When running bounded workers concurrently, give each invocation a distinct output folder and disable the shared HTML reporter, for example: `npx playwright test tests/browser/campaign.spec.ts --output=.qa/campaign --reporter=line`. Otherwise one process can delete another's trace artifacts. The final release gate runs the complete suite in one process.
 
 For every new component or flow: add or extend its meaningful browser case, verify the primary interaction and its consequential failure/recovery boundary, then run its owned spec before the full gate. Keep test assertions independent of cosmetic implementation. A browser test with synthetic data does not establish provider acceptance, complete accessibility compliance or real consumer integration; app sessions run their own actual application checks.
