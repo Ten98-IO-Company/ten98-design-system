@@ -1,7 +1,7 @@
 'use client';
 
 import { useId, useState } from 'react';
-import { Alert, Badge, Button, Card, Dialog, Field, Input, Select } from '../../lib';
+import { Alert, Badge, Button, Dialog, Field, Input, Select, SettingsTemplate } from '../../lib';
 
 type Outcome = 'confirmed' | 'error' | 'unknown';
 type Stage = 'draft' | 'pending' | Outcome;
@@ -35,13 +35,13 @@ export default function MutationReview() {
     if (reconciliation === 'not-applied') setStage('error');
   }
 
-  return <div className="t98-settings-fields">
-    <Alert title="Local simulation" tone="info">
+  return <SettingsTemplate title="Connection display name" scope="Workspace: Operations · Project: Internal tools"
+    actions={<Badge tone={stage === 'confirmed' ? 'success' : stage === 'error' ? 'danger' : stage === 'unknown' ? 'warning' : 'neutral'}>{stage === 'error' ? 'Not applied' : stage}</Badge>}
+    feedback={<Alert title="Local simulation" tone="info">
       Rename a synthetic connection. No request is sent. Choose a response, review the change, then simulate its outcome.
-    </Alert>
-    <Card title="Connection display name" description="Workspace: Operations · Project: Internal tools"
-      actions={<Badge tone={stage === 'confirmed' ? 'success' : stage === 'error' ? 'danger' : stage === 'unknown' ? 'warning' : 'neutral'}>{stage === 'error' ? 'Not applied' : stage}</Badge>}>
+    </Alert>}>
       <div className="t98-settings-fields">
+        <h2>Rename connection</h2>
         <p><strong>Resource:</strong> CRM sandbox <code>connect-demo-42</code></p>
         <Field label="New display name" htmlFor={`${id}-name`} description="Your draft is retained if the simulated change fails or the review is closed.">
           <Input value={draft} maxLength={80} disabled={locked} onChange={event => setDraft(event.target.value)} />
@@ -84,7 +84,6 @@ export default function MutationReview() {
           <Button variant="secondary" onClick={() => { setStage('draft'); setSubmitted(''); setReconciled(false); }}>Start another demo</Button>
         </>}
       </div>
-    </Card>
     <Dialog open={review} onOpenChange={setReview} title="Review connection rename"
       description="Confirm this exact resource, scope and change in the local simulation."
       footer={<><Button variant="secondary" autoFocus onClick={() => setReview(false)}>Cancel</Button><Button onClick={confirm}>Confirm rename</Button></>}>
@@ -95,5 +94,5 @@ export default function MutationReview() {
       </dl>
       <p>This demo changes the connection's display name. Closing this review retains your draft.</p>
     </Dialog>
-  </div>;
+  </SettingsTemplate>;
 }

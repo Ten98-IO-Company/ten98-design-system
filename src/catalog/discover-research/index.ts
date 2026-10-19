@@ -1,3 +1,4 @@
+import { publicCode } from '../model.js';
 import type { FlowRecipe } from '../flows';
 import ReportBuilder from './ReportBuilder';
 import MeasurementConfidence from './MeasurementConfidence';
@@ -18,7 +19,6 @@ import searchCode from './SearchPerformance.tsx?raw';
 import promptCode from './PromptComparison.tsx?raw';
 import citationCode from './CitationInvestigation.tsx?raw';
 
-const publicCode = (source: string) => source.replaceAll("'../../lib'", "'@ten98/ui'");
 
 export const discoverResearchFlowRecipes: FlowRecipe[] = [
   { researchId: 'D9', id: 'discover-report-builder', name: 'Build and review report sharing', products: 'Discover', description: 'Configure source-compatible widgets, arrange a local board and review a saved reader revision.', steps: ['Choose source and widget', 'Preview and add', 'Arrange and save revision', 'Review reader scope'], states: ['Empty', 'Unsupported widget/source', 'Unsaved edits', 'Widget error', 'Revision conflict', 'Read only', 'Share expired', 'Share revoked'], ownership: 'Discover owns report persistence, revision conflicts, exports, reader authorization and share issuance/revocation. This local review never creates a public link.', Preview: ReportBuilder, code: publicCode(reportCode), references: [{ label: 'Umami board design', url: 'https://docs.umami.is/docs/design-a-board' }, { label: 'Fathom shared dashboards', url: 'https://usefathom.com/docs/features/shared-dashboards' }], acceptance: ['Compared with Umami picker: retain source/type/preview, use sequential sections and keyboard move actions instead of requiring drag.', 'Compared with Fathom: scope review is explicit; expiry/revocation do not imply a live share or permission grant.', 'At 320px and 200% zoom, field labels and move actions must remain reachable; one widget failure must preserve the other widgets.', 'Conflict or read-only state blocks saving while retaining the local draft; unsaved changes block reader review.'] },

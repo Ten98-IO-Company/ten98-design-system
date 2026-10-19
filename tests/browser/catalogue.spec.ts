@@ -34,6 +34,8 @@ test('original connection, investigation and mutation recovery remain intact', a
   await page.goto('/tests/flow-recipes.html');
   await page.getByRole('button', { name: 'Run checks', exact: true }).click();
   await expect(page.locator('#result')).toHaveText(/^PASS:/, { timeout: 15_000 });
+  const refresh = page.locator('#investigation').getByRole('button', { name: 'Refresh local preview', exact: true });
+  expect(await refresh.evaluate(element => element.getBoundingClientRect().width < element.parentElement!.getBoundingClientRect().width - 1), 'Refresh keeps its content-sized action within the filter row').toBeTruthy();
 });
 
 test('every component state page renders without browser errors or page overflow', async ({ page }, info) => {

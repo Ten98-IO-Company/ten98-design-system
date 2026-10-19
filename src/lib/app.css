@@ -107,8 +107,8 @@ td strong{font-weight:550;color:var(--color-text-muted)}
 .badge i{height:4px;width:4px;border-radius:50%;background:currentColor}
 .badge.active,.badge.live,.badge.published,.badge.approved,.badge.configured{color:var(--color-success);background:var(--color-success-subtle)}
 .badge.draft,.badge.pending,.badge.planned{color:var(--color-text-muted);background:var(--color-surface-subtle)}
-.badge.paused,.badge.scheduled,.badge.booked,.badge.submitted{color:var(--color-warning);background:var(--color-warning-subtle)}
-.badge.failed,.badge.rejected{color:var(--color-danger);background:var(--color-danger-subtle)}
+.badge.paused,.badge.scheduled,.badge.booked,.badge.submitted,.badge.requested{color:var(--color-warning);background:var(--color-warning-subtle)}
+.badge.failed,.badge.rejected,.badge.cancelled{color:var(--color-danger);background:var(--color-danger-subtle)}
 .badge.completed,.badge.resolved{color:var(--color-info);background:var(--color-info-subtle)}
 .badge.not-connected{color:var(--color-text-muted);background:var(--color-surface-subtle)}
 .page-footer{padding:14px 0 23px;display:flex;justify-content:space-between;color:var(--color-text-muted);font-size:11px}
@@ -273,8 +273,6 @@ td{font-size:11px}
 .form-grid{column-gap:12px}
 }
 .field input[type=file]{padding:8px}
-.badge.requested{background:var(--color-warning-subtle);color:var(--color-warning)}
-.badge.cancelled{background:var(--color-danger-subtle);color:var(--color-danger)}
 .integration-settings{max-width:1220px;margin:auto}
 .integration-settings-intro{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:23px 25px}
 .integration-settings-intro p{font-size:12px;color:var(--color-text-muted);margin-top:6px;max-width:790px}

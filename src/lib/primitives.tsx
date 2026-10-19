@@ -123,7 +123,7 @@ export function Field({ label, description, error, htmlFor, children, className,
   const describedBy = [description && `${htmlFor}-description`, error && `${htmlFor}-error`].filter(Boolean).join(' ');
   return <div className={cx('t98-field', className)} {...props}>
     <label className="t98-label" htmlFor={htmlFor}>{label}</label>
-    {Children.map(children, child => isValidElement<DescribedProps>(child) ? cloneElement(child, { id: child.props.id ?? htmlFor, 'aria-describedby': [child.props['aria-describedby'], describedBy].filter(Boolean).join(' ') || undefined, 'aria-invalid': error ? true : child.props['aria-invalid'] }) : child)}
+    {Children.map(children, child => isValidElement<DescribedProps>(child) ? cloneElement(child, { id: child.props.id ?? htmlFor, 'aria-describedby': cx(child.props['aria-describedby'], describedBy) || undefined, 'aria-invalid': error ? true : child.props['aria-invalid'] }) : child)}
     {description && <p className="t98-field-description" id={`${htmlFor}-description`}>{description}</p>}
     {error && <p className="t98-field-error" id={`${htmlFor}-error`} role="alert">{error}</p>}
   </div>;
@@ -197,7 +197,7 @@ export function Separator({ className, ...props }: HTMLAttributes<HTMLHRElement>
 export function Tooltip({ content, children, className }: { content: ReactNode; children: ReactElement<{ 'aria-describedby'?: string }>; className?: string }) {
   const id = useId();
   const [dismissed, setDismissed] = useState(false);
-  return <span className={cx('t98-tooltip', className)} data-dismissed={dismissed || undefined} onMouseEnter={() => setDismissed(false)} onFocus={() => setDismissed(false)} onKeyDown={event => { if (event.key === 'Escape') { setDismissed(true); event.preventDefault(); } }}>{cloneElement(children, { 'aria-describedby': [children.props['aria-describedby'], id].filter(Boolean).join(' ') })}<span role="tooltip" id={id} className="t98-tooltip-content">{content}</span></span>;
+  return <span className={cx('t98-tooltip', className)} data-dismissed={dismissed || undefined} onMouseEnter={() => setDismissed(false)} onFocus={() => setDismissed(false)} onKeyDown={event => { if (event.key === 'Escape') { setDismissed(true); event.preventDefault(); } }}>{cloneElement(children, { 'aria-describedby': cx(children.props['aria-describedby'], id) })}<span role="tooltip" id={id} className="t98-tooltip-content">{content}</span></span>;
 }
 
 export function Breadcrumb({ items, className }: { items: { label: ReactNode; href?: string }[]; className?: string }) {

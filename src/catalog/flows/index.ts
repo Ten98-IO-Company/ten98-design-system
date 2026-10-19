@@ -1,3 +1,4 @@
+import { publicCode } from '../model.js';
 import type { ComponentType } from 'react';
 import ConnectionSetup from './ConnectionSetup';
 import DataInvestigation from './DataInvestigation';
@@ -9,8 +10,6 @@ import { campaignFlowRecipes } from '../campaign';
 import { discoverAnalyticsFlowRecipes } from '../discover-analytics';
 import { discoverResearchFlowRecipes } from '../discover-research';
 
-// Copy the same source rendered by the catalogue, using the public package path.
-const publicCode = (source: string) => source.replaceAll("'../../lib'", "'@ten98/ui'").replaceAll("'../../lib/app'", "'@ten98/ui/app'");
 export interface FlowRecipe { id: string; name: string; description: string; products: string; steps: readonly string[]; states: readonly string[]; ownership: string; Preview: ComponentType; code: string; researchId?: string; references?: readonly { label: string; url: string }[]; acceptance?: readonly string[] }
 export const flowRecipes: FlowRecipe[] = [
   ...campaignFlowRecipes, ...discoverAnalyticsFlowRecipes, ...discoverResearchFlowRecipes,

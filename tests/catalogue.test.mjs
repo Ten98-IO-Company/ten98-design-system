@@ -100,6 +100,22 @@ test('every copyable component, state and guide example compiles as a standalone
   t.diagnostic(`${examples.length} standalone TSX files compile against the public declarations`);
 });
 
+test('copied template states render the same content as their live previews', async () => {
+  const states = componentEntries.filter(entry => entry.name.endsWith('Template')).flatMap(entry => entry.states);
+  const directory = join(scratch, 'template-copies');
+  await mkdir(directory, { recursive: true });
+  for (const [index, state] of states.entries()) await writeFile(join(directory, `state-${index}.tsx`), state.code);
+  const entry = join(directory, 'entry.ts');
+  await writeFile(entry, states.map((_, index) => `export { default as State${index} } from './state-${index}';`).join('\n'));
+  await build({
+    configFile: false, root, logLevel: 'silent',
+    resolve: { alias: { '@ten98/ui': join(root, 'dist/index.js') } },
+    build: { ssr: entry, outDir: directory, emptyOutDir: false, rolldownOptions: { output: { entryFileNames: 'copies.mjs' } } },
+  });
+  const copies = await import(pathToFileURL(join(directory, 'copies.mjs')).href);
+  for (const [index, state] of states.entries()) assert.equal(renderToStaticMarkup(createElement(copies[`State${index}`])), renderToStaticMarkup(state.preview), state.name);
+});
+
 test('flow recipes render and have complete task/state/ownership contracts', () => {
   unique(catalogue.flowRecipes.map(recipe => recipe.id), 'Flow URLs');
   for (const recipe of catalogue.flowRecipes) {

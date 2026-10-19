@@ -1,5 +1,11 @@
 # Campaign and Discover integration
 
+## Reuse existing presentation
+
+Version 0.3.16 consolidates ActivityFeed tone styling, compatibility badge rules and identical domain styles without changing public props, tokens, branding or behavior. Native text and multiline fields should use the existing AppField when it forwards their complete contract. Preserve names, values, handlers, constraints and help; keep a controlled native select when AppSelect does not expose its required callbacks or disabled state.
+
+Use the fixed templates instead of recreating their page framing. The catalogue's live template demonstration and copied TSX now share a source; forms, review state, permissions and recovery remain app-owned. Do not collapse different evidence or uncertain-outcome contracts into a generic renderer merely because their markup looks similar. See the [consolidation review](reviews/2026-10-20/dry-kiss.md).
+
 ## One authentication presentation
 
 Version 0.3.15 makes the main `AuthLayout` use the established Campaign login composition. Its six props and public export stay unchanged. The Brand & login reference and component catalogue call that same wrapper and reuse the same story content. Canonical brand/auth CSS lives in one source and is included in both stylesheet entry points; standalone consumers need only `styles.css`. Native authentication controllers and Discover's local layout remain app-owned.

@@ -33,3 +33,6 @@ export interface ComponentEntry {
 export function tsx(imports: string[], jsx: string, setup = '', reactImports: string[] = [], importPath = '@ten98/ui') {
   return `'use client';\n\n${reactImports.length ? `import { ${reactImports.join(', ')} } from 'react';\n` : ''}import { ${imports.join(', ')} } from '${importPath}';\n\nexport default function Example() {\n${setup ? setup.split('\n').map(line => '  ' + line).join('\n') + '\n' : ''}  return (\n${jsx.split('\n').map(line => '    ' + line).join('\n')}\n  );\n}\n`;
 }
+
+/** Copy the rendered catalogue source using public package imports. */
+export const publicCode = (source: string) => source.replaceAll("'../../lib'", "'@ten98/ui'").replaceAll("'../../lib/app'", "'@ten98/ui/app'").replaceAll("'../lib'", "'@ten98/ui'");

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useId, useState } from 'react';
-import { Alert, Badge, Button, Card, DataTable, DateRangeField, EmptyState, Field, Input, MetricCard, Select, Skeleton, type DataColumn, type DateRange } from '../../lib';
+import { Alert, Badge, Button, Card, DataTable, DateRangeField, EmptyState, Field, Input, MetricCard, OverviewTemplate, Select, Skeleton, type DataColumn, type DateRange } from '../../lib';
 
 const initialRange: DateRange = { start: '2026-10-12', end: '2026-10-18' };
 const scenarios = ['Ready', 'Loading', 'Empty', 'Filtered empty', 'Measured zero', 'Unavailable', 'Partial', 'Stale', 'Error', 'Read only'] as const;
@@ -77,8 +77,12 @@ export default function DataInvestigation() {
     setMessage('');
   }
 
-  return <section aria-label="Data investigation recipe">
-    <Card title="Investigate website traffic" description="Synthetic example · demo.ten98.example · UTC. Four local observations; no live collection or query execution.">
+  return <OverviewTemplate aria-label="Data investigation recipe" title="Investigate website traffic" description="Synthetic example · demo.ten98.example · UTC. Four local observations; no live collection or query execution."
+    scope={<>
+      <p>Applied dates: <strong>{applied.start} to {applied.end}</strong> · UTC</p>
+      <p>Synthetic result as of <time dateTime={updated}>{new Date(updated).toLocaleString('en-GB', { timeZone: 'UTC' })} UTC</time></p>
+    </>}
+    filters={<>
       <Field label="Demo scenario" htmlFor={`${id}-scenario`}>
         <Select value={scenario} disabled={request !== null} onChange={event => changeScenario(event.target.value as Scenario)}>
           {scenarios.map(item => <option key={item}>{item}</option>)}
@@ -87,13 +91,10 @@ export default function DataInvestigation() {
       <DateRangeField label="Draft reporting dates (UTC)" {...draft} onChange={setDraft} disabled={request !== null} />
       {!valid && <p role="status">Choose both dates, with the end on or after the start.</p>}
       <p>{dirty ? 'Draft dates have not been applied.' : 'Draft dates match the applied result.'}</p>
-      <Button disabled={!valid || request !== null} loading={request !== null} onClick={() => {
+      <div><Button disabled={!valid || request !== null} loading={request !== null} onClick={() => {
         setMessage(''); setRequest({ range: { ...draft }, scenario });
-      }}>{scenario === 'Error' || scenario === 'Stale' ? 'Retry local refresh' : 'Refresh local preview'}</Button>
-    </Card>
-
-    <p>Applied dates: <strong>{applied.start} to {applied.end}</strong> · UTC</p>
-    <p>Synthetic result as of <time dateTime={updated}>{new Date(updated).toLocaleString('en-GB', { timeZone: 'UTC' })} UTC</time></p>
+      }}>{scenario === 'Error' || scenario === 'Stale' ? 'Retry local refresh' : 'Refresh local preview'}</Button></div>
+    </>}>
     <Badge tone={scenario === 'Partial' || scenario === 'Stale' ? 'warning' : 'neutral'}>{loading ? 'Loading' : scenario}</Badge>
     {scenario === 'Read only' && <Alert title="Read-only access">You can investigate this report. Editing collection settings requires an administrator. This preview demonstrates access presentation only.</Alert>}
     {scenario === 'Error' && <Alert tone="danger" title="Refresh failed">The last successful result remains below under its original dates. Retry the local refresh or keep inspecting the previous result.</Alert>}
@@ -104,6 +105,7 @@ export default function DataInvestigation() {
     {loading && <div role="status"><p>Refreshing the page breakdown. The applied result below remains the previous result until completion.</p><Skeleton /><Skeleton /></div>}
 
     <div aria-busy={loading || undefined}>
+      <h2>Page breakdown</h2>
       <MetricCard label={resultScenario === 'Partial' ? 'Known page views (partial)' : 'Page views across applied dates'}
         value={!scoped.length ? '—' : !known.length ? 'Unavailable' : total.toLocaleString('en-US')}
         change={!scoped.length ? 'No observations in this result' : resultScenario === 'Measured zero' ? 'Confirmed zero in the synthetic measurement' : 'Page-view events; search below affects rows only'} />
@@ -117,5 +119,5 @@ export default function DataInvestigation() {
         <p>Page views: {selection.views === null ? 'Unavailable — collection returned no reliable count.' : selection.views.toLocaleString('en-US')}</p>
       </Card>}
     </div>
-  </section>;
+  </OverviewTemplate>;
 }

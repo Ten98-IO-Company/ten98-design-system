@@ -9,6 +9,7 @@ import MutationReview from '../src/catalog/flows/MutationReview';
 import '../src/lib/primitives.css';
 import '../src/lib/patterns.css';
 import '../src/lib/workspace.css';
+import '../src/lib/products.css';
 import '../src/lib/tokens.css';
 const components = { connection: ConnectionSetup, investigation: DataInvestigation, mutation: MutationReview };
 const roots = Object.fromEntries(Object.keys(components).map(id => [id, createRoot(document.getElementById(id))]));

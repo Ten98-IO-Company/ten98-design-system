@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useId, useState, type FormEvent } from 'react';
-import { Alert, Badge, Button, CopyButton, Field, Input, ResourceCard, Select, Stepper } from '../../lib';
+import { Alert, Badge, Button, CopyButton, EditorTemplate, Field, Input, ResourceCard, Select, Stepper } from '../../lib';
 
 /** Catalogue recipe: local state only; no authorization, requests or records. */
 export default function ConnectionSetup() {
@@ -36,14 +36,13 @@ export default function ConnectionSetup() {
     setPhase('setup');
   }
 
-  return <section aria-labelledby={`${id}-title`} style={{ display: 'grid', gap: 'var(--t98-space-4)', overflowWrap: 'anywhere' }}>
-    <div>
-      <h2 id={`${id}-title`}>Connection setup</h2>
-      <p>Scope: Catalogue sandbox. This synthetic example stores configuration in this page only.</p>
-    </div>
-    <Stepper steps={['Configure endpoint', 'Simulate verification', 'Observe synthetic event']}
-      current={phase === 'setup' ? 0 : phase === 'confirmed' ? 3 : 1} />
-    <form onSubmit={configure} style={{ display: 'grid', gap: 'var(--t98-space-4)' }}>
+  return <EditorTemplate title="Connection setup"
+    scope={<p>Scope: Catalogue sandbox. This synthetic example stores configuration in this page only.</p>}
+    steps={<Stepper steps={['Configure endpoint', 'Simulate verification', 'Observe synthetic event']}
+      current={phase === 'setup' ? 0 : phase === 'confirmed' ? 3 : 1} />}>
+    <div className="t98-settings-fields">
+    <form onSubmit={configure} className="t98-settings-fields">
+      <h2>Configure endpoint</h2>
       <Field label="Connection name (required)" htmlFor={`${id}-name`} description="Use a meaningful non-blank name. Native browser validation checks this form.">
         <Input name="connectionName" required pattern=".*\S.*" maxLength={80} value={name} disabled={pending}
           placeholder="Example sandbox" onChange={event => { setName(event.target.value); edit(); }} />
@@ -81,5 +80,6 @@ export default function ConnectionSetup() {
     {lastConfirmed && <p>Last confirmed synthetic event: <time dateTime={lastConfirmed.at}>{lastConfirmed.at}</time> for {lastConfirmed.name} ({lastConfirmed.endpoint}).
       {phase !== 'confirmed' && ' This is historical demo evidence, not current verified health.'}
     </p>}
-  </section>;
+    </div>
+  </EditorTemplate>;
 }

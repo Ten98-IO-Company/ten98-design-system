@@ -60,13 +60,15 @@ Use the body, heading and monospace tokens rather than per-screen font stacks. K
 
 Use `Intl.NumberFormat` and `Intl.DateTimeFormat` in the application with an intentional locale, currency and time zone. Preserve machine-readable values for sorting and calculations. Label the reporting time zone when it affects interpretation; a relative timestamp should have access to its absolute value.
 
-For right-to-left applications, set the document's `dir` attribute, prefer logical spacing properties, and test the complete consumer. Directional arrows, charts, code, phone numbers and mixed-language content need explicit review. The component catalogue is not a claim that every domain-specific RTL flow has been validated.
+The current suite uses left-to-right layouts. RTL is outside the requested scope.
 
 Use keyboard navigation, screen-reader checks, zoom, forced colors, reduced motion and narrow screens during acceptance. Automated checks can catch some failures; they do not certify an application as accessible.
 
-## Coverage for all ten tools
+<a id="coverage-for-all-ten-tools"></a>
 
-Connect and the Docmost/wiki app are one app, shown here as “Connect + Wiki” under the existing `ten98-connect` identifier until its final name is decided. Adding the research-focused `ten98-researcher` keeps the suite at ten tools. Its entry records available foundations and pending product decisions, not approved features.
+## Suite coverage
+
+The suite has nine current and planned apps. `ten98-connect` combines automation, integrations, wiki/docs and the research direction previously listed as `ten98-researcher`. Discover retains its existing SEO, AI-search and web-analytics research scope. Connect's research workspace records available foundations and pending product decisions, not approved features.
 
 “Foundation” identifies implemented components and the screens they can compose. These compositions do not imply a separate domain-specific export. “Application owned” identifies behavior that must be implemented by the tool. “Specialized extension” names a future component that needs a concrete product requirement; it is not an implemented feature claim.
 
@@ -75,9 +77,8 @@ Connect and the Docmost/wiki app are one app, shown here as “Connect + Wiki”
 | `ten98-campaign` | Shell, metrics, tables, native date inputs, cards, fields, badges, dialogs and activity for campaign/approval screens | Provider authorization, campaign data, publishing, ad spend, validation and permissions | Publishing calendar, social composer, ad preview, media/DAM editor and inbox |
 | `ten98-discover` | Shell, metrics/sparklines, searchable tables, fields, resource cards and status for analytics/research screens | SEO/AEO/GEO data, analytics attribution, research execution, usage accounting and consent | Query explorer, rank comparison, heatmap, replay and research/report editors |
 | `ten98-auth` | Fields/cards for authentication layouts, tables/badges for team and role views, dialogs and activity | Identity protocols, sessions, credentials, recovery, provisioning and policy enforcement | Policy builder, directory tree, device/session investigation and access graph |
-| `ten98-connect` — Connect + Wiki | Shell/sidebar slot, resource cards for connections and documents, fields, access badges, activity, tables, detail cards and dialogs | Connector runtime, credentials, scheduling, secrets, retries, workflow execution, document storage, collaboration, search, revision integrity and access enforcement | Workflow canvas, node inspector, mapping editor, execution debugger, rich-text editor, document tree behavior, inline comments and version comparison |
+| `ten98-connect` — automation, integrations, wiki/docs and research | Shell/sidebar slot, resource cards for connections and documents, fields, access badges, activity, tables, detail cards and dialogs; existing `EvidenceSummary`, `EvidenceDetail`, `ReportPanel`, `AppliedFilters` and collection/detail layouts for a concrete research task | Connector runtime, credentials, scheduling, secrets, retries, workflow execution, document storage, collaboration, search, revision integrity and access enforcement; research tasks, data contracts, categories and any paid-provider policy await approval | Workflow canvas, node inspector, mapping editor, execution debugger, rich-text editor, document tree behavior, inline comments and version comparison; define a concrete research task before proposing a specialized extension |
 | `ten98-construction` | Shell, resource tables, task/status badges, fields and activity | Project rules, procurement, budget calculations, approvals and field synchronization | Construction schedule, plan viewer, quantity/cost editor and field inspection workflow |
-| `ten98-researcher` — inventory only; composition proposed | Existing `EvidenceSummary`, `EvidenceDetail`, `ReportPanel`, `AppliedFilters` and collection/detail layouts when a concrete task fits | Research tasks, data contracts, categories and any paid-provider policy await approval | Define concrete tasks before proposing a specialized extension |
 | `ten98-property` | Resource tables/cards for portfolios and devices, badges, settings, activity and dialogs | Property records, tenancy rules, device authorization, protocols and automation execution | Floor-plan/device map, building controls, automation editor and maintenance calendar |
 | `ten98-monitor` | Metrics/sparklines, badges, searchable tables, alerts and activity for incidents | Collection, alert evaluation, incident state, fleet actions and retention | Log/trace explorer, topology graph, incident timeline and real-time investigation workspace |
 | `ten98-server` | Resource tables, metrics, badges, configuration fields, dialogs and activity | Hypervisor/container orchestration, remote access, RBAC, task execution and recovery | Resource tree, terminal/console, VM editor, storage/network topology and task console |

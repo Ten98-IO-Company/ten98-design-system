@@ -47,6 +47,29 @@ for (const [theme, system, dark] of [['light', 'dark', false], ['dark', 'light',
   });
 }
 
+test('activity icons use canonical tone colors in light and dark themes', async ({ page }) => {
+  for (const theme of ['light', 'dark']) {
+    await page.goto(`/?theme=${theme}#components/activity-feed?tab=states`);
+    const icons = page.locator('.reference-state').first().locator('.t98-activity-icon');
+    await expect(icons).toHaveCount(5);
+    for (const [index, tone] of ['neutral', 'success', 'warning', 'danger', 'info'].entries()) {
+      const icon = icons.nth(index);
+      const expected = await icon.evaluate((element, tone) => {
+        const probe = document.createElement('span');
+        probe.style.color = `var(--t98-${tone === 'neutral' ? 'muted' : tone})`;
+        probe.style.backgroundColor = `var(--t98-${tone === 'neutral' ? 'subtle' : `${tone}-soft`})`;
+        element.append(probe);
+        const style = getComputedStyle(probe);
+        const colors = { foreground: style.color, background: style.backgroundColor };
+        probe.remove();
+        return colors;
+      }, tone);
+      await expect(icon).toHaveCSS('color', expected.foreground);
+      await expect(icon).toHaveCSS('background-color', expected.background);
+    }
+  }
+});
+
 test('catalogue preserves intrinsic controls and metric hierarchy', async ({ page }) => {
   for (const component of ['button', 'badge']) {
     await page.goto(`/#components/${component}?tab=states`);

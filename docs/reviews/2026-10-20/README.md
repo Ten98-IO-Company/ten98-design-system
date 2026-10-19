@@ -1,5 +1,7 @@
 # UI reviews - 20 October 2026
 
+[DRY/KISS consolidation](dry-kiss.md) records the bounded shared component, flow and template audit, canonical tone reuse, single-source template examples and nine-app scope with research inside Connect. Consumer gates remain separate from catalogue evidence.
+
 [Campaign native route before/after review](campaign-screen-audit.md): 29 routes in light/dark, 58 before captures on shared 0.3.14 and 58 visually reviewed route after captures on released 0.3.15. [Before summary](native-baseline.json) preserves 74 measured failures; [after summary](native-after.json) records zero measured text failures, clear route/theme/containment/error assertions and all 200 unsupported paint records. Eleven byte-identical redacted synthetic figures from each generation are published. Manual review found no observed route-state regression; unsupported paint is not numerically certified. Child/editor/auth/role/additional data acceptance and the subsequent queue error-edge proof remain separate.
 
 [Discover remaining flows](discover-remaining-flows.md) tracks its independent app-owned simplification work.

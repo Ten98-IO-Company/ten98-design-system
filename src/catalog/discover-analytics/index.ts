@@ -1,3 +1,4 @@
+import { publicCode } from '../model.js';
 import type { FlowRecipe } from '../flows';
 import InstallTracker from './InstallTracker';
 import OverviewComparison from './OverviewComparison';
@@ -16,7 +17,6 @@ import attributionCode from './ObservedAttribution.tsx?raw';
 import heatmapCode from './HeatmapInvestigation.tsx?raw';
 import replayCode from './ReplayInvestigation.tsx?raw';
 
-const publicCode = (source: string) => source.replaceAll("'../../lib'", "'@ten98/ui'");
 
 export const discoverAnalyticsFlowRecipes: FlowRecipe[] = [
   { researchId: 'D1', id: 'discover-installation', name: 'Website installation and first accepted event', products: 'Discover', description: 'Retain the app event-only evidence contract; improve copy/deploy guidance and separate any proposed scanner from accepted-event receipts.', steps: ['Choose installation method', 'Copy configuration', 'Deploy outside the example', 'Inspect separate installation and receipt evidence', 'Open scoped report'], states: ['Not checked', 'Waiting for events', 'Synthetic checking', 'Inconclusive check', 'Accepted event', 'Stale receipt', 'Collection disabled', 'Receipt unavailable'], ownership: 'Discover owns authorized origins, consent, deployment, ingestion and actual receipts. A scanner is explicitly synthetic; no scanner exists in the current app.', Preview: InstallTracker, code: publicCode(installationCode), references: [{ label: 'Umami collection', url: 'https://docs.umami.is/docs/collect-data' }, { label: 'Plausible installation checks', url: 'https://plausible.io/docs/troubleshoot-integration' }, { label: 'GA4 DebugView', url: 'https://support.google.com/analytics/answer/7201382' }], acceptance: ['Copy and manual deploy never enable the first report; only accepted-event received does.', 'Synthetic check success still leaves accepted-event receipt waiting.', 'Keyboard can select method, confirm deployment, supply check result and inspect receipt without pointer use.', 'At 320px and 200% zoom, scope and both evidence observations remain readable.', 'Stale/unavailable/disabled receipts retain setup fields and block first-report success.'] },

@@ -1,5 +1,13 @@
 # Release validation
 
+## Shared presentation consolidation: 0.3.16
+
+ActivityFeed reuses canonical tone variables, Field/Tooltip reuse the existing ARIA string join, and identical compatibility badge/product declarations share selector groups. Three older recipes use the existing fixed templates. Live template previews and copied TSX share a source. Connect now includes automation, integrations, wiki/docs and research; the current suite has nine apps and Discover keeps its research scope. Public declarations, token palette, dependencies and Campaign branding remain unchanged.
+
+Build, **59/59 native checks** and **511 strict standalone TSX examples** pass. The full frozen runtime/style browser gate passes **174/174 in 3.3 minutes**, one worker and zero retries. A subsequent catalogue-only refresh-action sizing correction passes **6/6 targeted cases in 19.1 seconds**, followed by eight affected recaptures; no runtime/style changed after the full gate. The [review and evidence](reviews/2026-10-20/dry-kiss.md) record 56 final captures, 16 byte-identical sampled style comparisons, direct before/after review and static/synthetic limits. A second monolithic final-source run is not claimed.
+
+The immutable MIT candidate SHA256 is `09AC02877981C163FBDD61CD5063EA24E61B2A4C2FB92E1808EA88E4CA3FD2EA`: **371,017 bytes / 92 entries / 30 modules-declarations / 50 Markdown files / no images**. All modules and CSS match the tested build. Only patterns.js and primitives.js change among JavaScript files; all declarations, tokens, auth.css, workspace.js/css and compatibility app.js match 0.3.15. Changed CSS is limited to app.css, patterns.css, products.css and styles.css. Earlier artifacts remain unchanged. Consumer acceptance and publication are pending at this checkpoint; the archive retains packaging-time documentation.
+
 ## Canonical authentication and settings composition: 0.3.15
 
 AuthLayout keeps its six-prop API and now uses Campaign's established split story/form composition. The Brand & login reference and component catalogue reuse it. Canonical brand/auth CSS has one source, expanded into the existing standalone and compatibility stylesheets. Generic mobile guidance stays visible; only marked Campaign decoration collapses. Padded-panel headers and form grids also lose compounded insets/margins while retaining row spacing. Public declarations, token palette and dependencies are unchanged.

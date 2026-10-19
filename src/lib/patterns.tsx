@@ -229,7 +229,7 @@ export interface ActivityItem {
 
 export function ActivityFeed({ items }: { items: readonly ActivityItem[] }) {
   return <ol className="t98-activity-feed">{items.map(item => <li key={item.id}>
-    <span className={cx('t98-activity-icon', `t98-activity-${item.tone ?? 'neutral'}`)}><Icon name={item.icon ?? 'activity'} size={15} /></span>
+    <span className={cx('t98-activity-icon', `t98-activity-${item.tone ?? 'neutral'}`, `t98-tone--${item.tone ?? 'neutral'}`)}><Icon name={item.icon ?? 'activity'} size={15} /></span>
     <div className="t98-activity-content"><div className="t98-activity-heading"><strong>{item.title}</strong><span>{item.time}</span></div>
       {item.description && <p>{item.description}</p>}
     </div>

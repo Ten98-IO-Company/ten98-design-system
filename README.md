@@ -17,7 +17,7 @@ npm run dev
 
 Open [the local catalogue](http://127.0.0.1:5198). It is a reference application with illustrative data; its examples do not connect to production services.
 
-Browse all 73 component exports by category, name, use or state. Each component has Overview, Examples, Props, Tokens and States pages, a shareable URL, and complete copyable TSX. The catalogue includes 405 state specimens, all 96 canonical tokens and 85 existing-app aliases. Token values update with appearance and density. Use `Ctrl/Cmd K` to find components, tokens and guides. Sidebar menus scroll with wheel, touch and keyboard without a visible scrollbar. Twenty-eight interactive flow recipes cover C1–C8, D1–D17 and three cross-product tasks. Each includes copyable rendered source; researched flows also provide reference links and acceptance cases. Five fixed templates include hierarchy and behavior rules.
+Browse all 73 component exports by category, name, use or state. Each component has Overview, Examples, Props, Tokens and States pages, a shareable URL, and complete copyable TSX. The catalogue includes 406 state specimens, all 96 canonical tokens and 85 existing-app aliases. Token values update with appearance and density. Use `Ctrl/Cmd K` to find components, tokens and guides. Sidebar menus scroll with wheel, touch and keyboard without a visible scrollbar. Twenty-eight interactive flow recipes cover C1–C8, D1–D17 and three cross-product tasks. Each includes copyable rendered source; researched flows also provide reference links and acceptance cases. Five fixed templates include hierarchy and behavior rules.
 
 The [Brand & login reference](http://127.0.0.1:5198/#brand) uses Campaign's existing 98 mark, wordmark, icon geometry and login composition. The catalogue favicon also comes from Campaign. App adapter previews are isolated so their existing global styles do not alter the documentation interface.
 
@@ -27,14 +27,14 @@ npm run check:all
 npm pack
 ```
 
-`check:all` typechecks the project, emits the library into `dist`, builds the catalogue into `site-dist`, runs the native checks and executes Playwright. See [browser testing](docs/BROWSER-TESTING.md) for development and failure traces. `npm pack` creates `ten98-ui-0.3.15.tgz` for installation in another tool. These checks are development evidence, not an accessibility certification or a guarantee about a consuming application.
+`check:all` typechecks the project, emits the library into `dist`, builds the catalogue into `site-dist`, runs the native checks and executes Playwright. See [browser testing](docs/BROWSER-TESTING.md) for development and failure traces. `npm pack` creates `ten98-ui-0.3.16.tgz` for installation in another tool. These checks are development evidence, not an accessibility certification or a guarantee about a consuming application.
 
 ## Use in an application
 
 After building and packing this repository, copy the archive into the consuming application's `vendor` directory and install it:
 
 ```sh
-npm install ./vendor/ten98-ui-0.3.15.tgz
+npm install ./vendor/ten98-ui-0.3.16.tgz
 ```
 
 Commit the archive and the application's lockfile together. Campaign and Discover initially adopted the same 0.2.0 archive as `file:vendor/ten98-ui-0.2.0.tgz`; their builds do not require a sibling checkout. See [the integration contract](docs/INTEGRATION.md) for the shared application components and update workflow.
@@ -59,10 +59,10 @@ React and React DOM are peer dependencies; the supported range for each is `^18.
 - [Adoption and framework examples](docs/ADOPTION.md): Next.js, TanStack Router, themes, local installation and migration.
 - [Campaign and Discover integration](docs/INTEGRATION.md): shared application exports, stylesheet order, ownership and reproducible updates.
 - [Component inventory and API](docs/COMPONENTS.md): exports, ownership boundaries and intended use.
-- [UX patterns and suite coverage](docs/UX-PATTERNS.md): shared interaction rules and coverage for all ten tools.
+- [UX patterns and suite coverage](docs/UX-PATTERNS.md#suite-coverage): shared interaction rules and the current and planned application matrix.
 - [Decisions and source evidence](docs/DECISIONS.md): the interpretation, audited baseline and maintenance rules.
 - [Bounded swarm workflow](docs/SWARM.md): worker ownership, acceptance gates and stop rules.
-- [Competitive research](docs/research/README.md): the initial ten-tool scope and proposed flow decisions.
+- [Competitive research](docs/research/README.md): suite coverage, source evidence and proposed flow decisions.
 - [Fixed layouts and usage](docs/LAYOUTS-AND-USAGE.md): template selection, hierarchy, slot order and consistent behavior.
 - [Component, flow and template critique](docs/reviews/2026-10-19/README.md): exhaustive review, modern SaaS references and verified remediation.
 - [Campaign and Discover completion](docs/CAMPAIGN-DISCOVER-COMPLETION.md): flow coverage and consumer acceptance.
