@@ -91,5 +91,3 @@ test('templates retain layout at 200 percent text zoom', async ({ page }, info) 
   await expect(page.getByRole('heading', { name: '5. Application flows' })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)).toBeTruthy();
 });
-
-

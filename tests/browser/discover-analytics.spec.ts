@@ -261,5 +261,3 @@ test('D8: explicit load stays paused; keyboard transport exposes gaps and expiry
   await expect(preview.getByRole('button', { name: 'Load recording', exact: true })).toBeDisabled();
   await expect(preview.getByRole('button', { name: 'Save local label', exact: true })).toBeDisabled();
 });
-
-

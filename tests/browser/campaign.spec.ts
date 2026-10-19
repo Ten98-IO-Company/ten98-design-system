@@ -417,4 +417,3 @@ test.describe('Campaign C8 · transactional audience and explicit recipient send
     await expect(preview.getByRole('button', { name: 'Review exact send to 2 recipients', exact: true })).toBeDisabled();
   });
 });
-

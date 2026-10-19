@@ -110,4 +110,3 @@ export const coordinationEntries: ComponentEntry[] = [
     states: ([['Public, private and note', 'default', 'Edit and preview a local public reply; history labels do not change. No provider send runs.'], ['Empty history', 'empty', 'Empty message list is explicit while the app-owned draft remains.'], ['Loading history', 'loading', 'Messages and draft survive an app-supplied refresh state.'], ['Read only', 'readonly', 'Readable history is retained while the composer is hidden.'], ['Failed attachment', 'error', 'An app-supplied error retains history and text.'], ['Reply pending', 'pending', 'A pending receipt prevents the demo from offering another submission.'], ['Unknown send outcome', 'unknown', 'An explicit reconciliation message and disabled demo action distinguish uncertainty from failure.']] as const).map(([name, mode, description]) => ({ name, description, preview: <ConversationDemo mode={mode} />, code: conversationCode(mode) })),
   },
 ];
-
