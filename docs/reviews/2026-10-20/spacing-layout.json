@@ -1116,5 +1116,202 @@
     "Historical official competitor documentation captures, not fresh authenticated product sessions.",
     "No live provider, authentication backend, paid-operation or deployment certification.",
     "Primary app UI16 acceptance is separate; UI17 supplies the immutable layout base for coordinated UI18/runtime1.2 qualification."
-  ]
+  ],
+  "releaseArchive": {
+    "version": "0.3.17",
+    "sha256": "6C2AF5F0E028CAFAEB3DA55DD221BAD27698D4EB946E7C3BA41ACC793ECAA864",
+    "bytes": 380288,
+    "entries": 95,
+    "runtimeStyleFiles": 42,
+    "modulesDeclarations": 32,
+    "css": 10,
+    "markdown": 51,
+    "license": "MIT",
+    "imagesIncluded": 0,
+    "allRuntimeStyleBytesMatchTestedBuild": true,
+    "files": [
+      {
+        "file": "dist/app-tokens.css",
+        "sha256": "0926fbb03501c1007707c9613f9cbffc1762c16826f897a113a38928523cb63d"
+      },
+      {
+        "file": "dist/app.css",
+        "sha256": "0100aa2ceadbd375f42096a5104adf112c023bd452792fe7dfff5fd1f8e7f5db"
+      },
+      {
+        "file": "dist/auth.css",
+        "sha256": "384ecf89b664abeba1fad8097297ac2bf5315974ab1d9b9dbf345bb657994be2"
+      },
+      {
+        "file": "dist/patterns.css",
+        "sha256": "883281b9cfee66a90d977a5f6c0fad5a166661058ef66c0e9051d1237435a095"
+      },
+      {
+        "file": "dist/primitives.css",
+        "sha256": "61bad2f511381025373c6e3d0d6997d18c97a32166dd5b96ea838333ccb375ed"
+      },
+      {
+        "file": "dist/product.css",
+        "sha256": "195e2a81ad3c104004f5878d31bad0bef1aa0496081a483f80d29bbcf91a6d27"
+      },
+      {
+        "file": "dist/products.css",
+        "sha256": "07837715db5dba9b4752709f07c4856959e4927454001d66243fc22f13d827b4"
+      },
+      {
+        "file": "dist/styles.css",
+        "sha256": "f57a2c86a207558922a730508e20c856f1a997f8b85e0e39398625d53746659e"
+      },
+      {
+        "file": "dist/tokens.css",
+        "sha256": "5a0bc34f7282340183e27e2a328515ccf3a9546ccb3d6f64b8c6f594449cd0a3"
+      },
+      {
+        "file": "dist/workspace.css",
+        "sha256": "9326440e09b6611d318b684b14f52b472c3b12b59096ae1f42e77f732ad53010"
+      },
+      {
+        "file": "dist/analytics.js",
+        "sha256": "3610a695234c05d84aa3d4d51475365361ca39c48bd819d97b9b52575a9acb51"
+      },
+      {
+        "file": "dist/app.js",
+        "sha256": "78ba6e4b0baa1ff5c9aa871612a51be1d38d54e6516a5ea278574ec91bde83ce"
+      },
+      {
+        "file": "dist/assets-audience.js",
+        "sha256": "4d61afed306d1f602b667b00ed924fd14825bfee07b3828b616e6f9544f13f00"
+      },
+      {
+        "file": "dist/composition.js",
+        "sha256": "71801f9f7eede28d2db775bea33b268ed99554bf30fff2197aa6f6288b1b5579"
+      },
+      {
+        "file": "dist/coordination.js",
+        "sha256": "f55d17264edbe70d96382c4c6bd9b492777f24b78b15b4a6534464589df1a15b"
+      },
+      {
+        "file": "dist/evidence.js",
+        "sha256": "8858161a94843ebeebdcc68117e2651281bdcbaa2b7bd640cb7267156d371a39"
+      },
+      {
+        "file": "dist/index.js",
+        "sha256": "f1506e4515b9330e13ca1fd7d3ceca1ec418ee092fa8bce68e876fe0014a472f"
+      },
+      {
+        "file": "dist/inspection.js",
+        "sha256": "322ec0792a246bc20772934bd0a46f92105a4e4143ccd4041d2a39c9193c33a0"
+      },
+      {
+        "file": "dist/layout.js",
+        "sha256": "2ec805915a9b32fa362b5b665b83e95e327c62d2d8118bf0534dc215b43d4b3b"
+      },
+      {
+        "file": "dist/measurement.js",
+        "sha256": "7d444e56801346b81a4c3786b169b7f1faa3534948429afb68005b21e499ffbd"
+      },
+      {
+        "file": "dist/patterns.js",
+        "sha256": "2be2786b04bebfb665b7aaaac9b388b21b4f766e58d7e2ca86cb8afc52c39fc9"
+      },
+      {
+        "file": "dist/primitives.js",
+        "sha256": "c84f465fd4d7de25b749ef9c68056b5522c35baa100f7357c5ca1fa131b1a520"
+      },
+      {
+        "file": "dist/reporting.js",
+        "sha256": "ec04e711e0fe0b8c7cd817bfd36eb302dbc3519565bb00a207eeefa66f10446c"
+      },
+      {
+        "file": "dist/templates.js",
+        "sha256": "9da3b8146e241ba8e476b5714acd111a1f348d3aeed77c216d2c08c4dbf78066"
+      },
+      {
+        "file": "dist/tokens.js",
+        "sha256": "12673d0435b00201e1b94a14ae77c3ad1ae1f738375f96ffbdca225347aa622d"
+      },
+      {
+        "file": "dist/workspace.js",
+        "sha256": "3799c9d636f287406a7d8c0740966822cee8297c51d5a79f370b0f490a3122bc"
+      },
+      {
+        "file": "dist/analytics.d.ts",
+        "sha256": "57c0b787b66924ecd5f550653a2d3618ac78b8d0c56f6936236694af30d47505"
+      },
+      {
+        "file": "dist/app.d.ts",
+        "sha256": "7289773dcac6da8c9d857d883a85b09f576005f8f58309c78b4768a8a195eba1"
+      },
+      {
+        "file": "dist/assets-audience.d.ts",
+        "sha256": "b383e6948462f1c4084c0ee787d6cd51c215e91d08baf4a35956cfc945208679"
+      },
+      {
+        "file": "dist/composition.d.ts",
+        "sha256": "b2bd53b5189ad5e57293ce674c8a735534f2f273e8ce23fdcb2c6ce61a76a9aa"
+      },
+      {
+        "file": "dist/coordination.d.ts",
+        "sha256": "18622361b162c8f5301cbfdff9182621d863e23cbaa791a474fe7a27f3cc80a3"
+      },
+      {
+        "file": "dist/evidence.d.ts",
+        "sha256": "7d5862dc7e52e423b7d8857568a596018eb95328df0585133e129ee7494d8178"
+      },
+      {
+        "file": "dist/index.d.ts",
+        "sha256": "f1506e4515b9330e13ca1fd7d3ceca1ec418ee092fa8bce68e876fe0014a472f"
+      },
+      {
+        "file": "dist/inspection.d.ts",
+        "sha256": "554314e68e3f7ff132430d891e39bf817a769168addb43ae5b33c5e58c1b6d47"
+      },
+      {
+        "file": "dist/layout.d.ts",
+        "sha256": "9a22cd3462ebd599481eccac70eb7c1cf1fce0841f3423a63b682787e6b6c854"
+      },
+      {
+        "file": "dist/measurement.d.ts",
+        "sha256": "8dd691fe452c7c72ae059f945b1b10e4991dfe78f6e5039237017832b1903ac8"
+      },
+      {
+        "file": "dist/patterns.d.ts",
+        "sha256": "b7bb17a4e28ad50a45a9b2f69e7550f61eddf776c605af91b01bb4369fb49c72"
+      },
+      {
+        "file": "dist/primitives.d.ts",
+        "sha256": "2a1edeed7ae29608dca30788cd7d2d2da93e40aad238ba457536fc4068ece7a9"
+      },
+      {
+        "file": "dist/reporting.d.ts",
+        "sha256": "1c8efe67e7e574b2bbf39d50f5d818bed0dc8d1286091df17d753b379ceafb69"
+      },
+      {
+        "file": "dist/templates.d.ts",
+        "sha256": "faaea1e2e4d46b2159bd1a7d29abbdfdcbe3f134548ac591755a5d8a2370f004"
+      },
+      {
+        "file": "dist/tokens.d.ts",
+        "sha256": "4c8bb142cc62519e5291c89efcc7a7c46bfdc83d50bbe98abce7ef2ac96629f6"
+      },
+      {
+        "file": "dist/workspace.d.ts",
+        "sha256": "d149d9abb9e646236085ff46005dee378b4d92bc25e6f833b0cf613cebe59e03"
+      }
+    ],
+    "sourceTarget": "20eae97bb535eeabc0a56b5c1787c5c484b74a93",
+    "consumer": {
+      "version": "0.3.17",
+      "offlineInstall": "passed using the host cache",
+      "installedRuntimeStyleFilesExact": 42,
+      "publicImports": "passed",
+      "serverRenderedTemplate": {
+        "pageHeadings": 1,
+        "featureSections": 2,
+        "recoveryActions": true,
+        "escapedText": true
+      },
+      "archiveSha256": "6C2AF5F0E028CAFAEB3DA55DD221BAD27698D4EB946E7C3BA41ACC793ECAA864"
+    }
+  }
 }
