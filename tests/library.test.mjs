@@ -1,0 +1,289 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync, accessSync } from 'node:fs';
+import { createElement as h } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import * as ui from '../dist/index.js';
+import * as app from '../dist/app.js';
+
+const render = (Component, props, children) => renderToStaticMarkup(h(Component, props, children));
+const file = path => new URL(`../${path}`, import.meta.url);
+const cssRules = css => [...css.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/([^{}]+)\{([^{}]*)\}/g)].map(([, selector, body]) => ({
+  selector: selector.trim(),
+  declarations: Object.fromEntries([...body.matchAll(/([\w-]+)\s*:\s*([^;]+);?/g)].map(([, property, value]) => [property, value.trim()])),
+}));
+const selectors = rule => rule.selector.replace(/['"\s]/g, '').split(',');
+
+test('application fields retain native submission, defaults and constraints', () => {
+  const html = render(app.AppField, { label: 'Budget', name: 'budget', type: 'number', defaultValue: 12.5, required: true, min: 0, step: 'any' });
+  assert.match(html, /<label class="field">/);
+  assert.match(html, /name="budget"/);
+  assert.match(html, /type="number"/);
+  assert.match(html, /value="12.5"/);
+  assert.match(html, /min="0"/);
+  assert.match(html, /step="any"/);
+  assert.match(html, /required=""/);
+  const textarea = render(app.AppField, { label: 'Message', multiline: true, name: 'message', defaultValue: 'Saved text', maxLength: 500, required: true });
+  assert.match(textarea, /<textarea[^>]*name="message"[^>]*required=""[^>]*maxLength="500">Saved text<\/textarea>/);
+  const select = render(app.AppSelect, { label: 'Status', name: 'status', value: 'active', options: [['draft', 'Draft'], ['active', 'Active']] });
+  assert.match(select, /<select name="status">/);
+  assert.match(select, /<option value="active" selected="">Active<\/option>/);
+});
+
+test('application branding and Campaign inbox retain their pre-adoption markup', () => {
+  const brand = render(app.AppBrand, { product: 'Discover' });
+  assert.match(brand, /^<span class="brand">/);
+  assert.match(brand, /<small>DISCOVER<\/small>/);
+  assert.doesNotMatch(brand, /href=|role=|tabindex=/i);
+  assert.match(render(app.AppBrand, { product: 'Campaign', href: '/campaigns' }), /^<a class="brand" href="\/campaigns">/);
+  const inbox = render(app.AppIcon, { name: 'inbox' });
+  assert.match(inbox, /d="M4 4h16l2 12v4H2v-4L4 4ZM2 15h6l2 3h4l2-3h6"/);
+  assert.match(inbox, /aria-hidden="true"/);
+  assert.equal(render(app.AppIcon, { name: 'unknown-icon' }), render(app.AppIcon, { name: 'grid' }));
+});
+
+test('SecretField keeps one correctly labelled input and hides its value initially', () => {
+  const html = render(ui.SecretField, { label: 'API key', value: 'example-only' });
+  const inputId = html.match(/<input[^>]*id="([^"]+)"/)?.[1];
+  assert.ok(inputId);
+  assert.ok(html.includes(`for="${inputId}"`));
+  assert.equal([...html.matchAll(/\bid="([^"]+)"/g)].filter(([, id]) => id === inputId).length, 1);
+  assert.match(html, /type="password"/);
+  assert.match(html, /readOnly=""/);
+  assert.match(html, /aria-label="Show API key"/);
+});
+
+test('DateRangeField labels both dates and supplies native range boundaries', () => {
+  const html = render(ui.DateRangeField, { label: 'Reporting period', start: '2026-10-01', end: '2026-10-19', onChange() {} });
+  assert.match(html, /<legend>Reporting period<\/legend>/);
+  assert.equal([...html.matchAll(/type="date"/g)].length, 2);
+  assert.match(html, /max="2026-10-19"/);
+  assert.match(html, /min="2026-10-01"/);
+  assert.equal([...html.matchAll(/<label\b/g)].length, 2);
+});
+
+test('PermissionMatrix handles inherited role names and labels every grant', () => {
+  const props = { roles: ['Viewer', 'constructor', '__proto__'], permissions: [{id:'read',label:'Read projects'}], onChange() {} };
+  const html = render(ui.PermissionMatrix, { ...props, value: { Viewer: ['read'] } });
+  assert.equal([...html.matchAll(/type="checkbox"/g)].length, 3);
+  assert.equal([...html.matchAll(/checked=""/g)].length, 1);
+  for (const role of props.roles) assert.ok(html.includes(`aria-label="Read projects — ${role}"`));
+  assert.match(html, /scope="row"/);
+  const disabled = render(ui.PermissionMatrix, { ...props, value: {}, disabled: true });
+  assert.equal([...disabled.matchAll(/disabled=""/g)].length, 3);
+});
+
+test('ConfirmDialog requires the exact confirmation text before enabling the action', () => {
+  const html = render(ui.ConfirmDialog, { open: true, onOpenChange() {}, title: 'Delete project?', description: 'Review before deleting.', onConfirm() {}, confirmLabel: 'Delete project', confirmationText: 'Autumn campaign', danger: true });
+  const action = html.match(/<button\b[^>]*class="[^"]*t98-button--danger[^"]*"[^>]*>/)?.[0];
+  assert.ok(action);
+  assert.match(action, /disabled=""/);
+  assert.match(html, /Type Autumn campaign to confirm/);
+});
+
+// W3C sRGB relative luminance and contrast ratio; compare thresholds without rounding.
+// https://www.w3.org/TR/WCAG22/#dfn-relative-luminance
+function contrast(foreground, background) {
+  const luminance = hex => {
+    assert.match(hex, /^#(?:[\da-f]{3}|[\da-f]{6})$/i, 'Contrast colors must be opaque sRGB hex values');
+    const expanded = hex.length === 4 ? [...hex.slice(1)].map(digit => digit + digit).join('') : hex.slice(1);
+    const [red, green, blue] = [0, 2, 4].map(offset => {
+      const channel = parseInt(expanded.slice(offset, offset + 2), 16) / 255;
+      return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+    });
+    return 0.2126 * red + 0.7152 * green + 0.0722 * blue;
+  };
+  const a = luminance(foreground);
+  const b = luminance(background);
+  return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+}
+
+test('table operations search visible values, sort naturally and numerically, and preserve input', () => {
+  const rows = Object.freeze([
+    Object.freeze({ id: 'ten', name: 'Project 10', cost: 2 }),
+    Object.freeze({ id: 'two', name: 'project 2', cost: 10 }),
+    Object.freeze({ id: 'blank', name: null, cost: 0 }),
+    Object.freeze({ id: 'tie', name: 'PROJECT 2', cost: 10 }),
+  ]);
+  const columns = [
+    { key: 'name', header: 'Project' },
+    { key: 'cost', header: 'Cost' },
+    { key: 'derived', header: 'Derived', sortValue: row => `${row.id} custom` },
+  ];
+  const ids = result => result.map(row => row.id);
+  assert.deepEqual(ids(ui.filterAndSortRows(rows, columns, '', { key: 'name', direction: 'asc' })), ['blank', 'two', 'tie', 'ten']);
+  assert.deepEqual(ids(ui.filterAndSortRows(rows, columns, '', { key: 'cost', direction: 'desc' })), ['two', 'tie', 'ten', 'blank']);
+  assert.deepEqual(ids(ui.filterAndSortRows(rows, columns, '  PROJECT 2  ')), ['two', 'tie']);
+  assert.deepEqual(ids(ui.filterAndSortRows(rows, columns, 'ten custom')), ['ten']);
+  assert.deepEqual(ui.filterAndSortRows(rows, columns, '', { key: 'missing', direction: 'asc' }), rows);
+  assert.notStrictEqual(ui.filterAndSortRows(rows, columns), rows);
+  assert.deepEqual(ids(rows), ['ten', 'two', 'blank', 'tie']);
+  assert.deepEqual(ui.filterAndSortRows([], columns), []);
+  assert.deepEqual(ui.filterAndSortRows(rows, columns, 'no matching project'), []);
+});
+
+test('Field connects the direct control to its label, help and validation error', () => {
+  const html = render(ui.Field, {
+    label: 'Project name', htmlFor: 'project-name', description: 'Visible to your team.', error: 'Enter a name.',
+  }, h(ui.Input, { 'aria-describedby': 'existing-help' }));
+  const input = html.match(/<input\b[^>]*>/)?.[0];
+  assert.ok(input, 'Field renders its input');
+  assert.match(html, /<label\b[^>]*for="project-name"[^>]*>Project name<\/label>/);
+  assert.match(input, /\bid="project-name"/);
+  assert.match(input, /aria-describedby="existing-help project-name-description project-name-error"/);
+  assert.match(input, /aria-invalid="true"/);
+  assert.match(html, /id="project-name-description"/);
+  assert.match(html, /id="project-name-error"[^>]*role="alert"/);
+  const valid = render(ui.Field, { label: 'Email', htmlFor: 'email' }, h(ui.Input, { id: 'email', type: 'email' }));
+  assert.match(valid, /<input\b[^>]*id="email"/);
+  assert.doesNotMatch(valid, /aria-invalid|aria-describedby/);
+});
+
+test('Button defaults to a non-submit action and disables itself while loading', () => {
+  const busy = render(ui.Button, { loading: true, disabled: false }, 'Save project');
+  assert.match(busy, /^<button\b[^>]*type="button"/);
+  assert.match(busy, /\bdisabled=""/);
+  assert.match(busy, /aria-busy="true"/);
+  assert.match(busy, /Save project/);
+  const submit = render(ui.Button, { type: 'submit' }, 'Submit');
+  assert.match(submit, /type="submit"/);
+  assert.doesNotMatch(submit, /disabled|aria-busy/);
+});
+
+test('Progress clamps out-of-range values and handles nonfinite input', () => {
+  for (const [value, expected] of [[-10, 0], [125, 100], [42.4, 42.4], [NaN, 0], [Infinity, 0], [-Infinity, 0]]) {
+    const html = render(ui.Progress, { value, label: 'Upload' });
+    const progress = html.match(/<progress\b[^>]*>/)?.[0];
+    assert.ok(progress);
+    assert.match(progress, new RegExp(`value="${expected}"`));
+    assert.match(progress, /max="100"/);
+    assert.match(progress, /aria-label="Upload"/);
+    assert.doesNotMatch(html, /NaN|Infinity/);
+  }
+});
+
+test('Avatar preserves Unicode code points in initials and labels empty names', () => {
+  const html = render(ui.Avatar, { name: '𠮷田 Éloïse' });
+  assert.match(html, /aria-label="𠮷田 Éloïse"/);
+  assert.match(html, />𠮷É<\/span>/);
+  assert.match(render(ui.Avatar, { name: '' }), /aria-label="Unknown user"[^>]*>\?<\/span>/);
+});
+
+test('Sparkline handles empty, flat, single and nonfinite series with an accessible summary', () => {
+  for (const values of [[], [5], [5, 5, 5], [NaN, Infinity, -Infinity], [2, NaN, 4]]) {
+    const html = render(ui.Sparkline, { values, label: 'Traffic' });
+    assert.match(html, /role="img"/);
+    assert.match(html, /aria-label="Traffic:/);
+    assert.doesNotMatch(html, /NaN|Infinity/);
+  }
+  assert.match(render(ui.Sparkline, { values: [], label: 'Traffic' }), /Traffic: no data/);
+  assert.match(render(ui.Sparkline, { values: [5], label: 'Traffic' }), /<circle\b/);
+  assert.match(render(ui.Sparkline, { values: [5, 5, 5], label: 'Traffic' }), /<polyline\b/);
+});
+
+test('Sparkline keeps coordinates finite across the finite number range', () => {
+  const html = render(ui.Sparkline, { values: [-Number.MAX_VALUE, 0, Number.MAX_VALUE], label: 'Range' });
+  assert.doesNotMatch(html, /NaN|Infinity/);
+});
+
+test('DataTable renders semantic empty state and safe paging for invalid page sizes', () => {
+  const columns = [{ key: 'name', header: 'Name' }];
+  const props = { columns, caption: 'All resources', rowKey: row => row.id, selectable: true };
+  const empty = render(ui.DataTable, { ...props, rows: [], pageSize: 0 });
+  assert.match(empty, /<table\b/);
+  assert.match(empty, /<caption\b[^>]*>All resources<\/caption>/);
+  assert.match(empty, /scope="col"[^>]*aria-sort="none"/);
+  assert.match(empty, /No records found/);
+  assert.match(empty, /Page 1 of 1/);
+  for (const label of ['Previous page', 'Next page', 'Select all rows on this page']) {
+    const control = empty.match(new RegExp(`<(?:button|input)\\b[^>]*aria-label="${label}"[^>]*>`))?.[0];
+    assert.ok(control, `${label} is named`);
+    assert.match(control, /disabled=""/);
+  }
+  const rows = Array.from({ length: 6 }, (_, index) => ({ id: String(index + 1), name: `Record ${index + 1}` }));
+  for (const pageSize of [0, -1, NaN, Infinity, 0.5]) {
+    const html = render(ui.DataTable, { ...props, rows, pageSize });
+    assert.match(html, /Page 1 of 2/);
+    assert.match(html, /Record 5/);
+    assert.doesNotMatch(html, /Record 6|NaN|Infinity/);
+  }
+  const fractional = render(ui.DataTable, { ...props, rows, pageSize: 2.9 });
+  assert.match(fractional, /Page 1 of 3/);
+  assert.match(fractional, /Record 2/);
+  assert.doesNotMatch(fractional, /Record 3/);
+});
+
+test('the distributable resolves its public exports, client boundaries and combined stylesheet', () => {
+  const manifest = JSON.parse(readFileSync(file('package.json'), 'utf8'));
+  for (const target of Object.values(manifest.exports)) {
+    for (const path of typeof target === 'string' ? [target] : Object.values(target)) accessSync(file(path));
+  }
+  for (const name of ['Button', 'Input', 'Field', 'Dialog', 'Tabs', 'DataTable', 'AppShell', 'Sparkline', 'filterAndSortRows', 'ProductSwitcher', 'DateRangeField', 'CopyButton', 'SecretField', 'ConfirmDialog', 'ToastProvider', 'useToast', 'AuthLayout', 'PermissionMatrix']) {
+    assert.ok(ui[name], `Public export ${name} resolves`);
+  }
+  for (const path of ['dist/primitives.js', 'dist/patterns.js', 'dist/workspace.js']) assert.match(readFileSync(file(path), 'utf8'), /^(['"])use client\1;/);
+  const tokenCss = readFileSync(file('dist/tokens.css'), 'utf8');
+  const styles = readFileSync(file('dist/styles.css'), 'utf8');
+  assert.ok(styles.includes(tokenCss.trim()), 'Combined styles include the theme tokens');
+  assert.match(styles, /\.t98-button\b/);
+  assert.match(styles, /\.t98-data-table\b/);
+  for (const value of Object.values(ui.tokens).flatMap(group => typeof group === 'object' ? Object.values(group) : [group])) {
+    const variable = value.match(/^var\((--[^)]+)\)$/)?.[1];
+    assert.ok(variable, `Token ${value} references a CSS variable`);
+    assert.ok(tokenCss.includes(`${variable}:`), `Token ${variable} is defined in packaged CSS`);
+  }
+});
+
+test('packaged light and dark semantic colors retain required text and control contrast', () => {
+  assert.equal(contrast('#000', '#fff'), 21);
+  assert.equal(contrast('#fff', '#fff'), 1);
+  const rules = cssRules(readFileSync(file('dist/tokens.css'), 'utf8'));
+  const pairs = [
+    ['text', 'surface', 4.5],
+    ...['surface', 'bg', 'subtle'].map(background => ['muted', background, 4.5]),
+    ...['accent', 'accent-hover'].map(background => ['on-accent', background, 4.5]),
+    ...['success', 'warning', 'danger', 'info'].map(tone => [tone, `${tone}-soft`, 4.5]),
+    ['control-border', 'surface', 3],
+  ];
+  for (const theme of ['light', 'dark']) {
+    const palette = rules.find(rule => selectors(rule).includes(`[data-theme=${theme}]`))?.declarations;
+    assert.ok(palette, `${theme} palette is present in the packaged CSS`);
+    for (const [foreground, background, minimum] of pairs) {
+      const ratio = contrast(palette[`--t98-${foreground}`], palette[`--t98-${background}`]);
+      assert.ok(ratio >= minimum, `${theme} ${foreground} on ${background}: ${ratio.toFixed(3)}:1, requires ${minimum}:1`);
+    }
+  }
+});
+
+test('scoped system themes and comfortable density explicitly reset inherited settings', () => {
+  const rules = cssRules(readFileSync(file('src/lib/tokens.css'), 'utf8'));
+  const light = rules.find(rule => selectors(rule).includes('[data-theme=light]'));
+  assert.ok(light);
+  assert.ok(selectors(light).includes('[data-theme=system]'), 'System theme has an explicit light default inside a dark ancestor');
+  assert.equal(light.declarations['color-scheme'], 'light');
+  const base = Object.assign({}, ...rules.filter(rule => selectors(rule).includes(':root')).map(rule => rule.declarations));
+  const comfortable = rules.find(rule => selectors(rule).includes('[data-density=comfortable]'))?.declarations;
+  const compact = rules.find(rule => selectors(rule).includes('[data-density=compact]'))?.declarations;
+  assert.ok(comfortable, 'Comfortable density has its own scoped reset');
+  assert.ok(compact);
+  for (const property of ['--t98-control-height', '--t98-cell-padding']) {
+    assert.ok(base[property], `Default ${property} is defined`);
+    assert.equal(comfortable[property], base[property], `Comfortable density restores ${property}`);
+    assert.notEqual(compact[property], comfortable[property], `Compact ${property} remains distinct`);
+  }
+});
+
+test('standalone components set their font and scope border-box sizing to ten98 classes', () => {
+  const css = ['src/lib/primitives.css', 'src/lib/patterns.css'].map(path => readFileSync(file(path), 'utf8')).join('\n');
+  const rules = cssRules(css);
+  const fontRules = rules.filter(rule => /var\(\s*--t98-font\s*\)/.test(rule.declarations['font-family'] ?? rule.declarations.font ?? ''));
+  for (const name of ['badge', 'avatar', 'card', 'field', 'checkbox-label', 'alert', 'progress-group', 'tooltip', 'breadcrumb', 'accordion', 'button', 'input', 'switch-label', 'dialog', 'tab', 'data-table', 'metric-card', 'page-header', 'empty-state', 'activity-feed', 'resource-card', 'settings-section', 'stepper', 'app-shell']) {
+    assert.ok(fontRules.some(rule => new RegExp(`\\.t98-${name}(?![\\w-])`).test(rule.selector)), `${name} declares the shared font without relying on the host body`);
+  }
+  const sizing = rules.find(rule => rule.declarations['box-sizing'] === 'border-box'
+    && /\[class\^=['"]t98-['"]\]/.test(rule.selector)
+    && /\[class\*=['"] t98-['"]\]/.test(rule.selector));
+  assert.ok(sizing, 'Both first and later ten98 classes receive scoped border-box sizing');
+  assert.match(sizing.selector, /::before/);
+  assert.match(sizing.selector, /::after/);
+});

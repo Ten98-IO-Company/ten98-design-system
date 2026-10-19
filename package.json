@@ -1,0 +1,68 @@
+{
+  "name": "@ten98/ui",
+  "version": "0.2.0",
+  "description": "Shared design tokens, React components and application patterns for the ten98 suite",
+  "type": "module",
+  "license": "MIT",
+  "files": [
+    "dist",
+    "docs",
+    "THIRD_PARTY_NOTICES.md"
+  ],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./styles.css": "./dist/styles.css",
+    "./tokens.css": "./dist/tokens.css",
+    "./tokens": {
+      "types": "./dist/tokens.d.ts",
+      "import": "./dist/tokens.js"
+    },
+    "./app": {
+      "types": "./dist/app.d.ts",
+      "import": "./dist/app.js"
+    },
+    "./app.css": "./dist/app.css",
+    "./app-tokens.css": "./dist/app-tokens.css"
+  },
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 5198",
+    "typecheck": "tsc --noEmit",
+    "build": "npm run typecheck && node scripts/build.mjs && vite build",
+    "build:lib": "node scripts/build.mjs",
+    "preview": "vite preview --host 127.0.0.1 --port 5198",
+    "test": "node --test tests/*.test.mjs",
+    "check": "npm run build && npm test",
+    "prepack": "npm run build:lib"
+  },
+  "peerDependencies": {
+    "react": "^18.3.0 || ^19.0.0",
+    "react-dom": "^18.3.0 || ^19.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.2",
+    "@types/react-dom": "19.2.2",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "typescript": "7.0.2",
+    "vite": "8.3.4"
+  },
+  "engines": {
+    "node": ">=22.14.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Ten98-IO-Company/ten98-design-system.git"
+  },
+  "homepage": "https://github.com/Ten98-IO-Company/ten98-design-system#readme",
+  "bugs": {
+    "url": "https://github.com/Ten98-IO-Company/ten98-design-system/issues"
+  }
+}
