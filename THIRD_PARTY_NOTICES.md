@@ -1,5 +1,9 @@
 # Third-party notices
 
+## Product UI reference captures
+
+Vendor UI screenshots in `docs/reviews/2026-10-19/images/` are attributed comparison evidence. The corresponding reports identify their source pages, capture dates and whether they show a public application or an official captured screen. Vendor names, marks and UI remain their owners' property; the repository's MIT license does not relicense those captures. They are excluded from the installable library archive and are not used as product assets.
+
 ## ten98-campaign / ten98-discover application foundation
 
 The compatibility app styles, SVG markup and semantic tokens are adapted from the shared Campaign/Discover source snapshot inspected on 19 October 2026. Discover retains its original repository copyright name, ten98-monitor. Their original copyrights and MIT license are retained below. Existing application DOM, icon names, native form behavior, and semantic token names are preserved to support migration without replacing application controllers.

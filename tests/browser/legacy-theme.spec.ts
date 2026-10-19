@@ -36,6 +36,12 @@ async function colors(page: Page) {
       disabled: color(disabled.backgroundColor),
       disabledText: color(disabled.webkitTextFillColor),
       disabledOpacity: disabled.opacity,
+      workspace: color(style('.workspace-switch').backgroundColor),
+      workspaceText: color(style('#workspace-choice').color),
+      workspaceMeta: color(style('.workspace-switch small').color),
+      avatar: color(style('.workspace-avatar').backgroundColor),
+      avatarText: color(style('.workspace-avatar').color),
+      subtleRole: color(root.getPropertyValue('--t98-subtle')),
       surface: color(root.getPropertyValue('--t98-surface')),
       disabledRole: color(root.getPropertyValue('--t98-disabled-surface')),
       scheme: root.colorScheme,
@@ -66,6 +72,12 @@ for (const [theme, system, expected] of [
     expect(rendered.readonly).toEqual(rendered.surface);
     expect(contrast(rendered.headerText, composite(rendered.header, rendered.canvas))).toBeGreaterThanOrEqual(4.5);
     expect(contrast(rendered.disabledText, rendered.disabled)).toBeGreaterThanOrEqual(4.5);
+    expect(rendered.workspace).toEqual(rendered.subtleRole);
+    expect(contrast(rendered.workspaceText, rendered.workspace)).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(rendered.workspaceMeta, rendered.workspace)).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(rendered.avatarText, rendered.avatar)).toBeGreaterThanOrEqual(4.5);
+    await page.getByLabel('Workspace', { exact: true }).selectOption('research');
+    await expect(page.locator('#workspace-choice')).toHaveValue('research');
     await expect(page.locator('#disabled')).toBeDisabled();
     await expect(page.locator('#readonly')).not.toBeEditable();
     await page.locator('#editable').fill('Edited synthetic value');
@@ -86,13 +98,15 @@ for (const [theme, system, expected] of [
   });
 }
 
-test('restoring the old fills reproduces both dark contrast failures', async ({ page }) => {
+test('restoring the old fills reproduces dark header, field and workspace contrast failures', async ({ page }) => {
   await page.goto('/tests/legacy-theme.html?theme=dark&baseline=1');
   const old = await colors(page);
   expect(old.header[3]).toBeCloseTo(0.851, 2);
   expect(contrast(old.headerText, composite(old.header, old.canvas))).toBeLessThan(4.5);
   expect(contrast(old.disabledText, old.disabled)).toBeLessThan(4.5);
   expect(old.disabled).not.toEqual(old.disabledRole);
+  expect(contrast(old.workspaceText, old.workspace)).toBeLessThan(4.5);
+  expect(contrast(old.avatarText, old.avatar)).toBeLessThan(4.5);
 });
 
 test('disabled values use their semantic text role despite a legacy muted override', async ({ page }) => {

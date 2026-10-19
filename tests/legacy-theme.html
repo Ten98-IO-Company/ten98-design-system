@@ -12,10 +12,10 @@
     const options = new URLSearchParams(location.search);
     const theme = options.get('theme');
     if (['light', 'dark', 'system'].includes(theme)) document.documentElement.dataset.theme = theme;
-    // Negative control: restore only the two reported legacy fills.
+    // Negative control: restore only the reported legacy fills.
     if (options.get('baseline') === '1') {
       const baseline = document.createElement('style');
-      baseline.textContent = '.topbar{background:#ffffffd9}.field input:disabled{background:#faf7fd}';
+      baseline.textContent = '.topbar{background:#ffffffd9}.field input:disabled{background:#faf7fd}.workspace-switch{background:#faf9fd}.workspace-avatar{background:#e8e1fa;color:var(--color-text-muted)}';
       document.head.append(baseline);
     }
   </script>
@@ -27,6 +27,10 @@
     </header>
     <main class="content">
       <h1>Synthetic settings</h1>
+      <div class="workspace-switch">
+        <span class="workspace-avatar" aria-hidden="true">TS</span>
+        <div><label for="workspace-choice">Workspace</label><select id="workspace-choice"><option value="studio">ten98 studio</option><option value="research">Research team</option></select><small>Owner workspace</small></div>
+      </div>
       <form class="settings-panel" aria-label="Synthetic settings">
         <label class="field"><span>Editable name</span><input id="editable" value="Synthetic draft"></label>
         <label class="field"><span>Disabled name</span><input id="disabled" value="Synthetic disabled value" disabled></label>

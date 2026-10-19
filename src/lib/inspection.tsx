@@ -10,8 +10,10 @@ export interface VisualEvidenceFrameProps {
   context: ReactNode;
   background?: ReactNode;
   overlay?: ReactNode;
-  /** Supply only a separately authorized, keyboard-accessible element/count list. */
+  /** Supply separately authorized accessible evidence and any custom empty state. */
   rankedList?: ReactNode;
+  /** Heading and region-name suffix for custom evidence; defaults to Ranked elements. */
+  rankedListLabel?: string;
   alignment: VisualEvidenceAlignment;
   reason?: ReactNode;
   loading?: boolean;
@@ -32,7 +34,7 @@ const alignmentReasons: Record<VisualEvidenceAlignment, string> = {
 };
 
 /** Presentation only: the app owns capture, access, retention, alignment and rendering. */
-export function VisualEvidenceFrame({ label, context, background, overlay, rankedList, alignment, reason, loading, expired, forbidden, actions, className }: VisualEvidenceFrameProps) {
+export function VisualEvidenceFrame({ label, context, background, overlay, rankedList, rankedListLabel, alignment, reason, loading, expired, forbidden, actions, className }: VisualEvidenceFrameProps) {
   const canShowCapture = !expired && !forbidden;
   const canShowOverlay = canShowCapture && alignment === 'aligned' && background != null;
   return <section className={cx('t98-visual-frame', className)} aria-label={label} aria-busy={loading || undefined} data-alignment={alignment}>
@@ -44,7 +46,7 @@ export function VisualEvidenceFrame({ label, context, background, overlay, ranke
       <div className="t98-visual-background">{background}</div>
       {canShowOverlay && overlay != null && <div className="t98-visual-overlay">{overlay}</div>}
     </div> : <p className="t98-visual-empty">{forbidden ? 'Visual evidence is not authorized.' : expired ? 'Captured page is expired.' : 'No captured background is available.'}</p>}
-    {!forbidden && <section className="t98-visual-ranked" aria-label={`${label} ranked elements`}><h4 className="t98-visual-ranked-title">Ranked elements</h4>
+    {!forbidden && <section className="t98-visual-ranked" aria-label={`${label} ${rankedListLabel ?? 'ranked elements'}`}><h4 className="t98-visual-ranked-title">{rankedListLabel ?? 'Ranked elements'}</h4>
       {rankedList ?? <p className="t98-visual-empty">No authorized ranked element list is available.</p>}
     </section>}
   </section>;

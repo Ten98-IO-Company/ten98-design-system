@@ -15,8 +15,8 @@ const rowSetup = `type Row = { id: string; name: string; visits: number; status:
 const rows: Row[] = [
   { id: 'campaign', name: 'Campaign', visits: 2400, status: 'Active' },
   { id: 'discover', name: 'Discover', visits: 1800, status: 'Active' },
-  { id: 'wiki', name: 'Wiki', visits: 120, status: 'Draft' },
-  { id: 'connect', name: 'Connect', visits: 75, status: 'Draft' },
+  { id: 'researcher', name: 'Researcher', visits: 120, status: 'Draft' },
+  { id: 'connect', name: 'Connect + Wiki', visits: 75, status: 'Draft' },
   { id: 'monitor', name: 'Monitor', visits: 900, status: 'Active' },
   { id: 'auth', name: 'Auth', visits: 650, status: 'Active' },
 ];
@@ -29,8 +29,8 @@ type Row = { id: string; name: string; visits: number; status: string };
 const rows: Row[] = [
   { id: 'campaign', name: 'Campaign', visits: 2400, status: 'Active' },
   { id: 'discover', name: 'Discover', visits: 1800, status: 'Active' },
-  { id: 'wiki', name: 'Wiki', visits: 120, status: 'Draft' },
-  { id: 'connect', name: 'Connect', visits: 75, status: 'Draft' },
+  { id: 'researcher', name: 'Researcher', visits: 120, status: 'Draft' },
+  { id: 'connect', name: 'Connect + Wiki', visits: 75, status: 'Draft' },
   { id: 'monitor', name: 'Monitor', visits: 900, status: 'Active' },
   { id: 'auth', name: 'Auth', visits: 650, status: 'Active' },
 ];

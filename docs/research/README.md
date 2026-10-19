@@ -1,8 +1,10 @@
 # Competitive references and flow decisions
 
-The initial canonical scope is [the ten-tool coverage table](../UX-PATTERNS.md#coverage-for-all-ten-tools), confirmed by the owner. Research began on 19 October 2026 in six parallel same-folder forks. Each owns its report directory and returns evidence, observed flows and recommendations. Reports are research proposals until the human owner and coordinating design-system session decide them.
+The current canonical scope is [the ten-tool coverage table](../UX-PATTERNS.md#coverage-for-all-ten-tools), confirmed by the owner. Connect and the Docmost/wiki app now form one app, displayed as “Connect + Wiki” under `ten98-connect` until its final name is decided. The research-focused `ten98-researcher` keeps the suite at ten tools; its concrete tasks and product scope remain pending.
 
-| Tools | Reports |
+Research began on 19 October 2026 in six parallel same-folder forks for the original suite scope. The original groups and report paths below remain intact: Connect findings and the Wiki findings in Auth / Wiki both inform Connect + Wiki. Reports are research proposals until the human owner and coordinating design-system session decide them.
+
+| Original research group | Reports |
 | --- | --- |
 | Campaign / Discover | [Evidence](campaign-discover/evidence.md) · [Flows](campaign-discover/flows.md) · [Recommendations](campaign-discover/recommendations.md) |
 | Auth / Wiki | [Evidence](auth-wiki/evidence.md) · [Flows](auth-wiki/flows.md) · [Recommendations](auth-wiki/recommendations.md) |
@@ -17,7 +19,9 @@ Campaign's current logo, icons and login remain the visual baseline. Competitors
 
 ## Implementation status
 
-All six report sets are complete, with 18 evidence/flow/recommendation documents. Their source limitations and unaccepted feature suggestions remain recorded in each report. Shared Campaign C1–C8 and Discover D1–D17 presentation components and reference flows are implemented alongside the three cross-product recipes. See the [completion ledger](../CAMPAIGN-DISCOVER-COMPLETION.md) for library checks and separately tracked consumer acceptance. Reference examples do not approve new product capabilities. Specialized editors, canvases and domain features require their actual use case and data contract.
+All six report sets are complete for the original scope, with 18 evidence/flow/recommendation documents. Their source limitations and unaccepted feature suggestions remain recorded in each report. Shared Campaign C1–C8 and Discover D1–D17 presentation components and reference flows are implemented alongside the three cross-product recipes. See the [completion ledger](../CAMPAIGN-DISCOVER-COMPLETION.md) for library checks and separately tracked consumer acceptance. Reference examples do not approve new product capabilities. Specialized editors, canvases and domain features require their actual use case and data contract.
+
+Researcher has an evidence gap pending concrete approved tasks. Existing Discover primary references can be reused where those tasks fit; the original reports do not constitute completed Researcher research or approve its features, categories or paid-provider policy.
 
 
 ## Selected references for the next concrete design
@@ -29,9 +33,9 @@ These are task-specific working references, chosen from the reports for design u
 | Campaign | Buffer/Sprout/Agorapulse for composition/review; native ads tools and Broadsign for operational changes; Bynder/Frontify for assets | Approval invalidation/bypass, account capability, scheduling timezone and media-version policy |
 | Discover | Plausible/Umami for readable reporting; Semrush/Ahrefs/Screaming Frog for research; Profound and citation specialists for AI evidence | Existing query/counting/consent contracts, provenance and paid-request boundaries |
 | Auth | authentik setup, Auth0 login/recovery, JumpCloud lifecycle, Keycloak session scope and Entra evaluation | Workforce/developer audience, authoritative attributes, effective access and revocation guarantees |
-| Connect | Activepieces lifecycle, n8n inspection and Make mapping/recovery | First actual workflow, runtime/version/retry semantics and intended Mindwire/Whispr/Hermes references |
+| Connect + Wiki | Activepieces lifecycle, n8n inspection and Make mapping/recovery; Docmost task structure, Notion search, Confluence comparison/comments, Outline restore and BookStack anchors | Final combined app name, first actual workflow, runtime/version/retry semantics, intended Mindwire/Whispr/Hermes references, permission inheritance, save/publish model and editor revision/anchor contract |
 | Construction | Procore commercial/inspection, Autodesk Build cost review and Fieldwire plans/synchronization | First project/roles, schedule depth and offline conflict guarantees |
-| Wiki | Docmost task structure, Notion search, Confluence comparison/comments, Outline restore and BookStack anchors | Permission inheritance, save/publish model and editor revision/anchor contract |
+| Researcher | Pending concrete tasks and task-specific evidence; reuse Discover primary references only where they fit | Product features, research categories, data contracts and any paid-provider policy |
 | Property | Buildium/AppFolio/DoorLoop records and maintenance; Home Assistant operations, Apple Home scenes and ETS commissioning | Location hierarchy, controller integration versus direct protocols and observed-device acknowledgement |
 | Monitor | Grafana/Sentry investigation, Zabbix problems, PagerDuty/JSM incidents and Fleet device state | Incident transitions, device breadth, independent data/delivery health and scale |
 | Server | Proxmox VM tasks, Portainer/Komodo/Openship deployment and OpenShift/Rancher navigation | Backend capability model, durable task identity, cancellation, recovery and restore consequences |

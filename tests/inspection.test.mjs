@@ -32,6 +32,19 @@ test('expiry hides capture and overlay while revocation hides all supplied evide
   assert.match(revoked, /Access help/);
 });
 
+test('evidence list labels preserve defaults, escape custom text and stay hidden when forbidden', () => {
+  const defaults = render(VisualEvidenceFrame, { ...visual, alignment: 'unknown' });
+  assert.match(defaults, /aria-label="Click evidence ranked elements"/);
+  assert.match(defaults, /<h4 class="t98-visual-ranked-title">Ranked elements<\/h4>/);
+  const props = { ...visual, alignment: 'unknown', rankedListLabel: 'Coordinate groups & depth bands <numeric>' };
+  const custom = render(VisualEvidenceFrame, props);
+  assert.match(custom, /aria-label="Click evidence Coordinate groups &amp; depth bands &lt;numeric&gt;"/);
+  assert.match(custom, /<h4 class="t98-visual-ranked-title">Coordinate groups &amp; depth bands &lt;numeric&gt;<\/h4>/);
+  assert.match(custom, /AUTHORIZED_RANKED_COUNTS/);
+  assert.doesNotMatch(custom, /SPATIAL_OVERLAY|<numeric>/);
+  assert.doesNotMatch(render(VisualEvidenceFrame, { ...props, forbidden: true }), /Coordinate groups|AUTHORIZED_RANKED_COUNTS|t98-visual-ranked/);
+});
+
 test('unloaded and loading timelines disable native playback controls without claiming zero elapsed', () => {
   for (const loading of [false, true]) {
     const html = render(ReplayControls, { ...replay, currentTime: null, duration: null, loading, reason: 'Explicit loading is app owned.' });

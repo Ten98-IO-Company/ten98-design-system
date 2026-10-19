@@ -1,5 +1,17 @@
 # Release validation
 
+## Design consistency and visual critique: 0.3.5
+
+The full `npm run check:all` gate passed: 57 native checks, 508 standalone strict TSX examples and 142 Playwright cases. Coverage is 73 components, 403 state specimens and 28 flows. A live-inventory comparison verifies a critique entry for every component and flow; the five templates appear in the component count and their dedicated review. See [the exhaustive critique](reviews/2026-10-19/README.md) for findings, baseline screenshots, remedies and direct product comparisons.
+
+New browser cases check table-header and all 19 compatibility-status contrasts in light, dark and system themes; intrinsic specimens and metric token typography; audience summaries constrained inside a desktop panel; template route/focus behavior; list/detail focus and retained drafts; and full-width Explorer/funnel/attribution results. Narrow results retain keyboard-scrollable tables. Restoring the pale status fill and fixed four-column panel reproduces their failures. Actual Campaign screenshots also exposed the pale shared workspace switcher: the existing explicit/system matrix now checks its semantic fill, primary/supporting/avatar contrast, native selection and old-fill negative control. The existing actual-text-doubling, native date-field, modal and complete flow gates still pass.
+
+`VisualEvidenceFrame` adds only optional `rankedListLabel`, preserving exact default headings and region names. New numeric-evidence specimens distinguish coordinate groups and cumulative depth bands from DOM elements; unknown alignment prevents an overlay. Native checks verify escaping and access revocation, and four narrow browser cases verify light/dark labels, copied TSX and unchanged default evidence. Independent source review found no actionable defect in this addition.
+
+Independent read-only review approved the semantic mappings, scoped styles, focus guard and test expectations. The focus fallback preserves initial focus, visible desktop/app focus, guarded selection, app restoration and mounted drafts. This is UI regression evidence; actual consumer adoption, arbitrary theme overrides, assistive-technology certification and live-provider acceptance remain separate.
+
+The immutable 0.3.5 archive SHA256 is `E84AD0F0EF1B27E1494D2191F3097D75EDAD8843A6E2270365355EFC5BD5E2D3`. Inspection verifies 80 entries, 30 JavaScript/declaration files, MIT license and 39 Markdown files. Only coordination and inspection modules/declarations differ from 0.3.4; the coordination declaration change documents focus behavior, and inspection adds the optional label. No reference image is included in the 294,657-byte archive. The 94 screenshots remain in the source repository, with attribution and explicit capture limits. All local review links resolve. A fresh context-free overview review found no surviving comprehension blocker after clarifying shipped fixes, proposals and consumer adoption.
+
 ## Native paired-field reflow: 0.3.4
 
 The full `npm run check:all` gate passes: 56 native tests, 507 strict public TSX examples and 118 Playwright cases. The CSS-only patch constrains the shared legacy form tracks and their children, then stacks pairs at viewport widths of 480px or less. JavaScript, declarations, native input markup and field behavior are unchanged.

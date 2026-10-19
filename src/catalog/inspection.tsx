@@ -6,8 +6,8 @@ import { tsx, type ComponentEntry, type ComponentProp } from './model.js';
 const prop = (name: string, type: string, description: string, required = false): ComponentProp => ({ name, type, description, required });
 const surfaceTokens = ['--t98-font', '--t98-text', '--t98-muted', '--t98-surface', '--t98-subtle', '--t98-border', '--t98-radius', '--t98-space-2', '--t98-space-3', '--t98-space-4'];
 const controlTokens = ['--t98-accent', '--t98-accent-soft', '--t98-focus', '--t98-control-touch', '--t98-control-border'];
-type VisualMode = 'aligned' | 'unknown' | 'mismatch' | 'unavailable' | 'loading' | 'expired' | 'revoked' | 'empty';
-const visualModes: VisualMode[] = ['aligned', 'unknown', 'mismatch', 'unavailable', 'loading', 'expired', 'revoked', 'empty'];
+type VisualMode = 'aligned' | 'unknown' | 'mismatch' | 'unavailable' | 'loading' | 'expired' | 'revoked' | 'empty' | 'coordinates';
+const visualModes: VisualMode[] = ['aligned', 'unknown', 'mismatch', 'unavailable', 'loading', 'expired', 'revoked', 'empty', 'coordinates'];
 const visualReasons: Record<VisualMode, string> = {
   aligned: 'Synthetic capture and click evidence use the same page version and 640 × 360 viewport. Choose a ranked element to change only local selection.',
   unknown: 'Page-version alignment has not been verified. The spatial overlay is hidden; the separately authorized ranked list remains available.',
@@ -17,8 +17,14 @@ const visualReasons: Record<VisualMode, string> = {
   expired: 'The capture has expired and its background/overlay are hidden. The app separately authorizes these aggregate ranked counts.',
   revoked: 'Access to this evidence has been revoked. All evidence slots, including ranked elements, are hidden.',
   empty: 'No click samples match the selected scope. A retained background does not imply a measured click count.',
+  coordinates: 'Coordinate groups and cumulative depth bands describe numeric evidence without DOM element identities. Alignment is unknown, so no spatial overlay is shown.',
 };
 function visualFixture(mode: VisualMode): VisualEvidenceFrameProps {
+  if (mode === 'coordinates') return {
+    label: 'Numeric evidence · synthetic page', rankedListLabel: 'Coordinate groups and depth bands',
+    context: 'Scope: example.test/product · 1–18 October 2026 · UTC · captured viewport 640 × 360 · capture as of 18 October, 08:00 UTC · 20 observed clicks grouped in captured-viewport pixels; cumulative reach from 20 captured documents. Synthetic demonstration only.',
+    alignment: 'unknown', reason: visualReasons[mode],
+  };
   return {
     label: 'Click evidence · synthetic page',
     context: `Scope: example.test/product · click map · 1–18 October 2026 · UTC · captured viewport 640 × 360 · page version demo-v1 · capture as of 18 October, 08:00 UTC · ${mode === 'empty' ? 'no click samples in this scope' : '20 accepted click samples in this demonstration'}.`,
@@ -48,12 +54,22 @@ function SampleBackground() {
 }
 function VisualDemo({ mode }: { mode: VisualMode }) {
   const [selected, setSelected] = useState('cart');
+  if (mode === 'coordinates') return <VisualEvidenceFrame {...visualFixture(mode)} background={<SampleBackground />} rankedList={<>
+    <ul><li>x 480–540 px, y 140–180 px · 12 observed clicks</li><li>x 200–250 px, y 140–180 px · 8 observed clicks</li></ul>
+    <h5>Cumulative depth bands</h5><ul><li>25% document depth · 18 of 20 captured documents reached</li><li>75% document depth · 10 of 20 captured documents reached</li></ul>
+  </>} />;
   return <VisualEvidenceFrame {...visualFixture(mode)} background={mode === 'unavailable' ? undefined : <SampleBackground />}
     overlay={mode === 'empty' ? undefined : <svg viewBox="0 0 640 360" role="img" aria-label={`Synthetic click location for ${selected === 'cart' ? 'Add to cart' : 'Product details'}`}><circle cx={selected === 'cart' ? 512 : 224} cy="156" r="28" fill="var(--t98-accent)" opacity="0.65" /></svg>}
     rankedList={mode === 'empty' ? <p>No samples in this scope.</p> : <ol><li><Button variant="ghost" aria-pressed={selected === 'cart'} onClick={() => setSelected('cart')}>Add to cart · 12 clicks</Button></li><li><Button variant="ghost" aria-pressed={selected === 'details'} onClick={() => setSelected('details')}>Product details · 8 clicks</Button></li></ol>}
     actions={<Button variant="ghost" onClick={() => setSelected('cart')}>Reset local selection</Button>} />;
 }
 function visualCode(mode: VisualMode = 'aligned') {
+  if (mode === 'coordinates') return tsx(['VisualEvidenceFrame', 'type VisualEvidenceFrameProps'], `<VisualEvidenceFrame {...props}
+  background={${backgroundCode}}
+  rankedList={<>
+    <ul><li>x 480–540 px, y 140–180 px · 12 observed clicks</li><li>x 200–250 px, y 140–180 px · 8 observed clicks</li></ul>
+    <h5>Cumulative depth bands</h5><ul><li>25% document depth · 18 of 20 captured documents reached</li><li>75% document depth · 10 of 20 captured documents reached</li></ul>
+  </>} />`, `const props: VisualEvidenceFrameProps = ${JSON.stringify(visualFixture(mode), null, 2)};`);
   return tsx(['VisualEvidenceFrame', 'Button', 'type VisualEvidenceFrameProps'], `<VisualEvidenceFrame {...props}
   background={${mode === 'unavailable' ? 'undefined' : backgroundCode}}
   overlay={${mode === 'empty' ? 'undefined' : '<svg viewBox="0 0 640 360" role="img" aria-label={`Synthetic click location for ${selected === \'cart\' ? \'Add to cart\' : \'Product details\'}`}><circle cx={selected === \'cart\' ? 512 : 224} cy="156" r="28" fill="var(--t98-accent)" opacity="0.65" /></svg>'}}
@@ -120,12 +136,12 @@ const [fit, setFit] = useState(props.fit);`, ['useState']);
 export const inspectionEntries: ComponentEntry[] = [
   {
     name: 'VisualEvidenceFrame', category: 'Data display', description: 'App-rendered capture and overlay slots with strict spatial alignment gating and an authorized ranked-list alternative.',
-    usage: 'Use for Discover D7 heatmap investigation. The app supplies page, viewport, version, timestamp, scope and authorized evidence. An overlay renders only with an aligned, present background while access is allowed and the capture is unexpired. Expired capture backgrounds are hidden; separately authorized aggregate ranked data may remain. Revoked access hides every evidence slot. The component never fetches, transforms, redacts or aligns snapshots.',
-    props: [prop('label', 'string', 'Visible heading and accessible region name.', true), prop('context', 'ReactNode', 'Visible page, applied scope, captured viewport, snapshot time, units and coverage supplied by the app.', true), prop('alignment', 'VisualEvidenceAlignment', 'aligned | unknown | mismatch | unavailable. Only aligned can display a supplied spatial overlay.', true), prop('background / overlay', 'ReactNode', 'Consumer-rendered capture and spatial overlay. The overlay is also hidden without a background, after expiry or after access revocation.'), prop('rankedList', 'ReactNode', 'Separately authorized keyboard-accessible element/count list. Remains available when alignment is uncertain or capture expired; hidden when forbidden.'), prop('reason', 'ReactNode', 'App-owned explanation of alignment, coverage, capture failure, no samples or access state.'), prop('loading', 'boolean', 'Sets aria-busy and loading text; an aligned retained capture keeps its supplied original context.'), prop('expired / forbidden', 'boolean', 'Expired hides background and overlay. Forbidden additionally hides the ranked list. These flags never perform policy checks.'), prop('actions', 'ReactNode', 'App-owned actions; displaying the frame never initiates a request.'), prop('className', 'string', 'Additional class on the frame section.')],
+    usage: 'Use for Discover D7 heatmap investigation. The app supplies page, viewport, version, timestamp, scope and authorized evidence. An overlay renders only with an aligned, present background while access is allowed and the capture is unexpired. Expired capture backgrounds are hidden; separately authorized aggregate ranked data may remain. Set rankedListLabel for coordinate groups or depth bands, and supply the actual list or its empty state through rankedList. Revoked access hides every evidence slot. The component never fetches, transforms, redacts or aligns snapshots.',
+    props: [prop('label', 'string', 'Visible heading and accessible region name.', true), prop('context', 'ReactNode', 'Visible page, applied scope, captured viewport, snapshot time, units and coverage supplied by the app.', true), prop('alignment', 'VisualEvidenceAlignment', 'aligned | unknown | mismatch | unavailable. Only aligned can display a supplied spatial overlay.', true), prop('background / overlay', 'ReactNode', 'Consumer-rendered capture and spatial overlay. The overlay is also hidden without a background, after expiry or after access revocation.'), prop('rankedList', 'ReactNode', 'Separately authorized accessible evidence list. Supply its actual content or custom empty state; the default empty state describes ranked elements. Remains available when alignment is uncertain or capture expired; hidden when forbidden.'), prop('rankedListLabel', 'string', 'Optional visible list heading and accessible region-name suffix. Defaults to Ranked elements with the existing lowercase ranked elements region suffix. Set a truthful label for coordinate groups or cumulative depth bands.'), prop('reason', 'ReactNode', 'App-owned explanation of alignment, coverage, capture failure, no samples or access state.'), prop('loading', 'boolean', 'Sets aria-busy and loading text; an aligned retained capture keeps its supplied original context.'), prop('expired / forbidden', 'boolean', 'Expired hides background and overlay. Forbidden additionally hides the ranked list. These flags never perform policy checks.'), prop('actions', 'ReactNode', 'App-owned actions; displaying the frame never initiates a request.'), prop('className', 'string', 'Additional class on the frame section.')],
     tokens: [...surfaceTokens, ...controlTokens],
     accessibility: ['Visible alignment/access text and reasons convey state without color; precise-looking overlays are omitted from the DOM when alignment cannot be trusted.', 'The ranked-list slot must provide accessible labels, counts and native keyboard controls. It is the alternative to spatial inspection.', 'The app supplies accessible names for capture/overlay graphics and manages selection/focus across slots.', 'Capture graphics fit the available width; the ranked list and context remain readable on narrow screens. No hover-only information is required.'],
     related: ['EvidenceSummary', 'DataTable', 'ReplayControls'], example: visualCode(),
-    states: visualModes.map(mode => ({ name: mode === 'empty' ? 'No samples' : mode === 'revoked' ? 'Access revoked' : mode === 'loading' ? 'Loading retained capture' : mode[0].toUpperCase() + mode.slice(1), description: visualReasons[mode], preview: <VisualDemo mode={mode} />, code: visualCode(mode) })),
+    states: visualModes.map(mode => ({ name: mode === 'coordinates' ? 'Coordinate groups' : mode === 'empty' ? 'No samples' : mode === 'revoked' ? 'Access revoked' : mode === 'loading' ? 'Loading retained capture' : mode[0].toUpperCase() + mode.slice(1), description: visualReasons[mode], preview: <VisualDemo mode={mode} />, code: visualCode(mode) })),
   },
   {
     name: 'ReplayControls', category: 'Controls', description: 'Controlled native play/pause, finite seek, speed, inactivity skip and optional display-fit requests around an app-owned replay player.',

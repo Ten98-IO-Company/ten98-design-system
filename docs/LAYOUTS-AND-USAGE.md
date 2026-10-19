@@ -14,7 +14,9 @@ Use these defaults across all ten98 apps. Campaign’s existing logo, icon geome
 
 Compose a template inside the existing `AppShell`. The shell owns one main landmark and global navigation. The template uses a section and one `PageHeader`; it does not add forms, submit handlers, requests, persistence or permissions. Keep native form IDs, names, refs, constraints, keys and `FormData` contracts in the consuming app. An external footer submit button must retain its `form` association.
 
-On narrow screens detail/editor columns stack in source order. List/detail tasks use `DetailWorkspace` so one pane is visible while drafts stay mounted. The app guards selection and restores focus after Back. Tables scroll inside labelled regions; a sidebar hides its scrollbar while remaining scrollable and keyboard reachable. Comfortable density is the default, compact is an explicit preference, and action targets remain usable on touch screens.
+On narrow screens detail/editor columns stack in source order. List/detail tasks use `DetailWorkspace` so one pane is visible while drafts stay mounted. The app guards selection and restores the originating list control after Back. When a selection change would leave focus in a hidden or removed workspace control, the shared component falls back to the visible pane heading. It does not take initial focus or replace an app's visible focus target. Tables scroll inside labelled regions; a sidebar hides its scrollbar while remaining scrollable and keyboard reachable. Comfortable density is the default, compact is an explicit preference, and action targets remain usable on touch screens.
+
+Put the primary analytical result in the full-width results area. An editor's preview column is for related context or an actual content preview; it must not squeeze the main evidence table into a sidebar. Group query controls before their results and keep the applied scope visible when the draft changes. Summaries adapt to the space inside their panel, including narrow side panels on a desktop viewport.
 
 Existing-app native forms use `.form-grid` for paired fields: two constrained columns on wider screens, one column at viewport widths of 480px or less. Preserve field order and native date/time types, names, values, constraints and read-only/disabled states. Test actual labels and control bounds at 320px with enlarged text; retain app-specific column overrides when their task requires a different structure.
 
@@ -49,7 +51,7 @@ flowchart TD
 | Recovery | Unknown outcomes keep their receipt and require reconciliation before repetition. A generic retry button does not decide safety. |
 | Evidence | Source/time and essential quality warnings stay beside results. Details may use a labelled disclosure; no fabricated freshness score or missing-data denominator. |
 | Navigation | The app owns URL/history/scope and draft guards. Selection does not automatically clear a draft or trigger provider reads before a guarded switch. |
-| Accessibility | Complete keyboard paths, labelled actions, visible focus, focus recovery, logical spacing and narrow/RTL/zoom acceptance. No drag-only editing. |
+| Accessibility | Complete keyboard paths, labelled actions, visible focus, focus recovery, logical spacing and narrow/enlarged-text acceptance in English LTR. RTL is not required. No drag-only editing. |
 | Consistency | Reuse the existing template and named API before making a new layout. Any exception records the concrete task and why the standard fails. |
 
 ## Progressive evidence decision

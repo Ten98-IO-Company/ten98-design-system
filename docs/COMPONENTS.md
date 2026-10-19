@@ -1,6 +1,6 @@
 # Component inventory and API
 
-This is the public component inventory for `@ten98/ui` version `0.3.4`. Import React components from `@ten98/ui` and load `@ten98/ui/styles.css` once at the application root. Campaign and Discover also use the application-compatible entry point described below. The emitted TypeScript declarations are the exact API contract.
+This is the public component inventory for `@ten98/ui` version `0.3.5`. Import React components from `@ten98/ui` and load `@ten98/ui/styles.css` once at the application root. Campaign and Discover also use the application-compatible entry point described below. The emitted TypeScript declarations are the exact API contract.
 
 ## Implemented primitives
 
@@ -224,7 +224,7 @@ All 28 additive exports have live props, state specimens, tokens, accessibility 
 | `AssetDetails`, `AudienceSummary` | Provenance, versions, rights and supplied consent/suppression/import outcomes. No asset pipeline or audience authorization is implemented. |
 | `FunnelBreakdown`, `RetentionTable`, `JourneyPath`, `RankComparison` | Supplied counts, rates, cohort states, paths and nullable native ranks. Keep specialized branching graphs and counting semantics in the app. |
 | `EvidenceDetail`, `ReportPanel`, `RunCostSummary` | Payload access states, independent widgets and explicit quoted/pending/settled/uncertain accounting. No paid action is generated. |
-| `VisualEvidenceFrame`, `ReplayControls` | Alignment-gated overlay, separately authorized ranked evidence and controlled playback/seek requests. Omit unsupported inactivity skipping; a supplied preference without a callback is read-only. App owns capture and replay engine. |
+| `VisualEvidenceFrame`, `ReplayControls` | Alignment-gated overlay, separately authorized evidence and controlled playback/seek requests. Optional `rankedListLabel` names coordinate groups truthfully; omission preserves the ranked-element defaults. Omit unsupported inactivity skipping; a supplied preference without a callback is read-only. App owns capture and replay engine. |
 | `OverviewTemplate`, `CollectionTemplate`, `DetailTemplate`, `EditorTemplate`, `SettingsTemplate` | Fixed slot order by task. Compose one inside the app's main landmark; preserve native form association. See [layout rules](LAYOUTS-AND-USAGE.md). |
 
 The emitted declarations remain the exact prop contract. Existing apps use `product.css` after `app.css`; new screens may load `styles.css`. Long main-API badges wrap within their containing surface.

@@ -1,5 +1,13 @@
 # Campaign and Discover integration
 
+## Design consistency patch: 0.3.5
+
+Compatibility tables, status badges, empty-state tiles and native field borders use existing semantic theme roles. Audience counts adapt to their panel width rather than the viewport. `DetailWorkspace` recovers focus to the visible pane heading only when selection hides or removes its focused control; the app still owns guards and restoration to the originating record. Initial focus and visible app-selected targets are preserved. Existing callback signatures are unchanged.
+
+`VisualEvidenceFrame` adds optional `rankedListLabel`. Use a truthful label such as `Coordinate groups and depth bands` for numeric coordinate evidence. Omission preserves the exact existing heading and region name. This changes presentation only: unknown alignment does not authorize an overlay, page readiness is not alignment proof, and an unavailable element identity must not be invented.
+
+The catalogue preserves intrinsic specimens and metric typography, keeps template section links inside their preview, and provides a compact template picker. Explorer and attribution use full-width overview results; the funnel keeps its editor and places saved results below it. These examples remain local simulations. Review [the full critique](reviews/2026-10-19/README.md) and verify affected app screens when adopting the new immutable archive.
+
 ## Native form grid patch: 0.3.4
 
 The established `.form-grid` keeps two constrained columns on wider screens and stacks into one column at viewport widths of 480px or less. Direct children can shrink within their tracks, preventing native date and date-time fields from widening the page. Native inputs, labels, values, constraints and form submission remain unchanged. Consumer-specific layouts keep their existing overrides. Adopt the new immutable archive and recheck actual calendar/settings forms before closing the consumer gate.
@@ -31,7 +39,7 @@ Existing apps add the scoped product stylesheet after their compatibility styles
 /* Existing application overrides follow. */
 ```
 
-`product.css` imports the canonical tokens and the same component styles assembled in `styles.css`. Established apps use the compatibility import order above and keep local overrides last. Keep native application forms, controllers, routed guards, provider rules and specialized renderers. `DetailWorkspace` requests selection/back through callbacks; the app guards navigation and restores focus. `ConversationThread` keeps its supplied composer mounted, but the app owns draft identity and authorization. `ConfirmDialog` is controlled by `open`/`onOpenChange`; invalidate the app's reviewed action when its draft, resource or request identity changes. Never treat an old review as authorization for a newer draft.
+`product.css` imports the canonical tokens and the same component styles assembled in `styles.css`. Established apps use the compatibility import order above and keep local overrides last. Keep native application forms, controllers, routed guards, provider rules and specialized renderers. `DetailWorkspace` requests selection/back through callbacks; the app guards navigation and restores the originating control, while the shared hidden-focus fallback keeps selection transitions usable. `ConversationThread` keeps its supplied composer mounted, but the app owns draft identity and authorization. `ConfirmDialog` is controlled by `open`/`onOpenChange`; invalidate the app's reviewed action when its draft, resource or request identity changes. Never treat an old review as authorization for a newer draft.
 
 Useful first consumers are `AppliedFilters` with optional `removeLabel`, compact `EvidenceSummary` (`variant="compact"`, optional basis/details), exact receipt stages in `OperationResults`, and `MediaStrip`'s neutral `unverified` metadata state. `FunnelBreakdown` and `JourneyPath` accept `countLabel` for app-native units. Keep branching graphs and provider-specific previews where they express more than the generic presentation.
 

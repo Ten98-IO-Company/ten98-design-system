@@ -378,6 +378,12 @@ test.describe('Campaign C8 · transactional audience and explicit recipient send
     await preview.getByRole('button', { name: 'Review exact send to 2 recipients', exact: true }).click();
     const dialog = page.getByRole('dialog', { name: 'Review exact transactional send', exact: true });
     await expect(dialog).toContainText('2 eligible / 5 imported · a*** and b*** only');
+    const beforeLines = await dialog.getByRole('columnheader', { name: 'Before', exact: true }).evaluate(element => {
+      const range = document.createRange();
+      range.selectNodeContents(element);
+      return new Set([...range.getClientRects()].map(rect => rect.top)).size;
+    });
+    expect(beforeLines, 'The Before heading must remain readable on one line').toBe(1);
     await expect(dialog).toContainText('appointments@example.test · immediately after confirmation');
     await expect(dialog.getByText('Your Dubai studio appointment', { exact: true })).toBeVisible();
     await dialog.getByRole('button', { name: 'Simulate explicit send to 2 recipients', exact: true }).click();

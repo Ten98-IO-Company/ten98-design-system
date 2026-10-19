@@ -1,8 +1,9 @@
-import { useState } from 'react';
-import { Alert, Tabs } from '../lib';
+import { useId, useState } from 'react';
+import { Alert, Field, Select, Tabs } from '../lib';
 import { componentEntries } from './entries';
 import { routeHref } from './navigation';
 import { Code } from './Code';
+import { previewLink } from './AdapterPreview';
 
 const choices = [
   ['OverviewTemplate', 'Understand a scope', 'Analytics overview, campaign performance, operations health', 'Scope → filters → metrics → results'],
@@ -32,9 +33,11 @@ const rules = [
 export function TemplateGuide() {
   const [tab, setTab] = useState('layouts');
   const [selected, setSelected] = useState('OverviewTemplate');
+  const choiceId = useId();
   const entry = componentEntries.find(item => item.name === selected)!;
+  const [, job, use, order] = choices.find(([name]) => name === selected)!;
   return <><header className="reference-page-heading"><div><p className="reference-eyebrow">Layout and usage standards</p><h1>Choose the task. Keep the familiar layout.</h1><p>Five fixed page structures, one component hierarchy and shared behavior rules across every ten98 app.</p></div></header><Tabs value={tab} onValueChange={setTab} label="Layout and usage standards" items={[
-    { value: 'layouts', label: 'Fixed templates', content: <><div className="reference-guide-grid">{choices.map(([name, job, use, order]) => <button type="button" className="reference-template-choice" aria-pressed={selected === name} key={name} onClick={() => setSelected(name)}><strong>{name}</strong><span>{job}</span><small>{use}</small><code>{order}</code></button>)}</div><section className="reference-section"><h2>{selected}</h2><p>{entry.description}</p><div className="reference-preview">{entry.states[0].preview}</div><Code value={entry.example}/><a className="reference-link" href={routeHref('Components', { component: selected })}>Props, states, tokens and accessibility for {selected}</a></section><Alert title="Keep the shell stable">Compose one template inside AppShell. Keep application controllers and forms in its slots. Templates do not create nested forms, run requests or decide when a change is saved.</Alert></> },
+    { value: 'layouts', label: 'Fixed templates', content: <><div className="reference-template-picker"><Field label="Page template" htmlFor={choiceId}><Select value={selected} onChange={event => setSelected(event.target.value)}>{choices.map(([name, task]) => <option key={name} value={name}>{name.replace('Template', '')} — {task}</option>)}</Select></Field><div className="reference-template-context"><strong>{job}</strong><p>{use}</p><p className="reference-template-order">{order}</p></div></div><section className="reference-section"><h2>{selected}</h2><p>{entry.description}</p><div className="reference-preview" onClickCapture={previewLink}>{entry.states[0].preview}</div><Code value={entry.example}/><a className="reference-link" href={routeHref('Components', { component: selected })}>Props, states, tokens and accessibility for {selected}</a></section><Alert title="Keep the shell stable">Compose one template inside AppShell. Keep application controllers and forms in its slots. Templates do not create nested forms, run requests or decide when a change is saved.</Alert></> },
     { value: 'hierarchy', label: 'Component hierarchy', content: <ol className="reference-hierarchy">{layers.map(([title, description, names]) => <li key={title}><h2>{title}</h2><p>{description}</p><div className="reference-related">{names.map(name => <a key={name} href={name === 'Design tokens' || name === 'Flows' ? routeHref(name) : routeHref('Components', { component: name })}>{name}</a>)}</div></li>)}</ol> },
     { value: 'rules', label: 'Behavior and usage', content: <div className="reference-guide-grid">{rules.map(([title, body]) => <section className="reference-note" key={title}><h2>{title}</h2><p>{body}</p></section>)}</div> },
   ]}/></>;

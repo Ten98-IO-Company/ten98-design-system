@@ -1,6 +1,6 @@
 'use client';
 
-import { useId, type ReactNode } from 'react';
+import { useEffect, useId, useRef, type ReactNode } from 'react';
 import { Alert, Button, cx } from './primitives.js';
 
 export interface PublishingAgendaEntry {
@@ -56,22 +56,36 @@ export interface DetailWorkspaceProps {
   list: ReactNode;
   detail: ReactNode;
   selected: boolean;
-  /** App guards unsaved work, updates selection and restores list focus here. */
+  /** App guards unsaved work, updates selection and restores its originating list control. */
   onBack: () => void;
   backLabel?: string;
   emptyMessage?: ReactNode;
   className?: string;
 }
 
-/** Both slots stay mounted; CSS exposes one pane at narrow widths. No routing or draft ownership. */
+/** Both slots stay mounted. Recover hidden focus to a pane heading; app guards, routes and drafts remain app-owned. */
 export function DetailWorkspace({ label, listLabel, detailLabel, list, detail, selected, onBack, backLabel = 'Back to list', emptyMessage = 'Select an item to see its details.', className }: DetailWorkspaceProps) {
   const id = useId();
-  return <section className={cx('t98-detail-root', className)} aria-labelledby={`${id}-title`} data-selected={selected ? 'true' : 'false'}>
+  const previousSelected = useRef(selected);
+  const lastFocus = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    if (previousSelected.current === selected) return;
+    previousSelected.current = selected;
+    const focused = lastFocus.current;
+    if (!focused || focused.getClientRects().length) return;
+    const document = focused.ownerDocument;
+    const active = document.activeElement;
+    if (active && active !== document.body && active !== document.documentElement && active.getClientRects().length) return;
+    document.getElementById(`${id}-${selected ? 'detail' : 'list'}`)?.focus();
+  }, [id, selected]);
+  return <section className={cx('t98-detail-root', className)} aria-labelledby={`${id}-title`} data-selected={selected ? 'true' : 'false'}
+    onFocusCapture={event => { lastFocus.current = event.target; }}
+    onBlurCapture={event => { if (event.target.getClientRects().length && !event.currentTarget.contains(event.relatedTarget)) lastFocus.current = null; }}>
     <h3 id={`${id}-title`} className="t98-detail-title">{label}</h3>
     <div className="t98-detail-panes">
-      <section className="t98-detail-list-pane" aria-labelledby={`${id}-list`}><h4 id={`${id}-list`} className="t98-detail-pane-title">{listLabel}</h4>{list}</section>
+      <section className="t98-detail-list-pane" aria-labelledby={`${id}-list`}><h4 id={`${id}-list`} className="t98-detail-pane-title" tabIndex={-1}>{listLabel}</h4>{list}</section>
       <section className="t98-detail-detail-pane" aria-labelledby={`${id}-detail`}>
-        <div className="t98-detail-header">{selected && <Button className="t98-detail-back" variant="secondary" onClick={onBack}>{backLabel}</Button>}<h4 id={`${id}-detail`} className="t98-detail-pane-title">{detailLabel}</h4></div>
+        <div className="t98-detail-header">{selected && <Button className="t98-detail-back" variant="secondary" onClick={onBack}>{backLabel}</Button>}<h4 id={`${id}-detail`} className="t98-detail-pane-title" tabIndex={-1}>{detailLabel}</h4></div>
         <div className="t98-detail-selected-content" hidden={!selected}>{detail}</div>
         {!selected && <div className="t98-detail-empty">{emptyMessage}</div>}
       </section>

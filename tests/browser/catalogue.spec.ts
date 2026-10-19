@@ -76,8 +76,26 @@ test('every component state page renders without browser errors or page overflow
 test('templates, hierarchy and usage rules are keyboard accessible', async ({ page }, info) => {
   const prefix = info.project.name === 'narrow-dark' ? '/?theme=dark' : '/';
   await page.goto(`${prefix}#templates`);
-  await page.getByRole('button', { name: /EditorTemplate Create or change/ }).click();
+  const picker = page.getByLabel('Page template', { exact: true });
+  await expect(picker.locator('option')).toHaveCount(5);
+  await picker.focus();
+  await picker.press('End');
+  await expect(picker).toHaveValue('SettingsTemplate');
+  await picker.selectOption('EditorTemplate');
   await expect(page.getByRole('heading', { name: 'EditorTemplate', exact: true })).toBeVisible();
+  await expect(page.locator('.reference-template-context')).toContainText('Scope → steps → feedback → form + preview → save actions');
+  await expect(page.getByRole('heading', { name: 'Overview', exact: true })).toHaveCount(0);
+  await expect(page.locator('.reference-preview .t98-template--editor')).toBeVisible();
+  // Browsing must reach the preview without scrolling past five full template cards.
+  await expect(page.locator('.reference-preview')).toBeInViewport({ ratio: .05 });
+  await picker.selectOption('SettingsTemplate');
+  await page.locator('.reference-preview').getByRole('link', { name: 'General', exact: true }).click();
+  await expect(page).toHaveURL(/#templates$/);
+  await expect(page.locator('.reference-preview section[id]').filter({ has: page.getByRole('heading', { name: 'General', exact: true }) })).toBeFocused();
+  await picker.selectOption('DetailTemplate');
+  await page.locator('.reference-preview').getByRole('link', { name: 'Activity', exact: true }).click();
+  await expect(page).toHaveURL(/#templates$/);
+  await expect(page.locator('.reference-preview section[id]').filter({ has: page.getByRole('heading', { name: 'Activity', exact: true }) })).toBeFocused();
   const hierarchy = page.getByRole('tab', { name: 'Component hierarchy' });
   await hierarchy.focus();
   await hierarchy.press('Enter');
