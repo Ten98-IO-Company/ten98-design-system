@@ -52,4 +52,3 @@ export function TemplateDemo({ kind, mode = 'default' }: { kind: TemplateKind; m
   return <SettingsTemplate title="Workspace settings" description="Keep account configuration separate from daily work." scope={scope} aria-busy={busy || undefined}
     navigation={<nav aria-label="Settings sections"><p><a href={`#${id}-general`}>General</a></p><p><a href={`#${id}-notifications`}>Notifications</a></p></nav>} feedback={feedback}>{form}</SettingsTemplate>;
 }
-
