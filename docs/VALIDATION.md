@@ -1,5 +1,13 @@
 # Release validation
 
+## Discover saved keywords into rank tracking
+
+The supplemental native D13 flow is implemented and verified in Discover's main working checkout on unchanged 0.3.10. Focused Playwright passes **21 groups / 76 synthetic requests / one context / 14.71s**. Native regression passes **14 scenarios / 85 requests / one context / 13.85s**; one ambiguous Pinned text wait was strengthened to require the status cell, with other scenarios/assertions/timeouts retained. Typecheck, production build, plan and 24 offline rank-parser checks pass. The new public opt-in regression is `tests/rank-saved-keywords-browser.mjs` in Discover.
+
+Eight width/theme/font scenes verify desktop/320px, light/dark, actual text doubling, zoom 1 and document containment. Exact checkbox counts and associated ≥44px labels prevent vacuous target coverage. Four contrast scenes measure 24 pairs each, minimum 5.773:1 light / 7.096:1 dark. Real reference/native screenshots exposed and verified fixes for a 6,286px unbounded list, unreachable bulk controls, lost append focus and oversized/detached boolean controls. See the [actual screenshot comparison](reviews/2026-10-19/saved-keywords-rank.md) for captures, frozen hashes, oracle corrections and synthetic limitations.
+
+The four final app files match the tested source byte-for-byte after copy; the app owner records all 96 inherited path hashes preserved and no extra paths. This native composition/focus update changes no shared module, token, CSS, dependency or archive. SQL, durable idempotency and server/provider behavior remain outside the fixture proof; the existing shared 0.3.10 prerelease qualification below remains unchanged.
+
 ## Independent report names: 0.3.10
 
 ReportPanel adds an optional standard `aria-label`. A nonblank value supplies the region name without changing its visible heading or adding a second region; blank labels preserve the default output. All statuses, retained content, access/expiry, actions and error announcements remain unchanged. The catalogue adds one copyable state: **73 components, 406 states, 28 flows and 511 strict TSX examples**.

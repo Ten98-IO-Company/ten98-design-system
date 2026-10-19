@@ -12,6 +12,8 @@ The shared catalogue contains **73 components, 406 states, 28 flows and 511 stri
 
 The table below records current per-flow acceptance. Version-specific evidence follows under [Historical checkpoints](#historical-checkpoints); product-reference and consumer screenshots are retained in the [visual review](reviews/2026-10-19/README.md).
 
+**Supplemental D13 native flow:** saved research keywords can now be explicitly selected, appended to the editable rank draft and saved through the existing Add action. The main app matches frozen tested source; 21 focused groups, all 14 native scenarios, 24 parser checks and type/build/plan pass. The original suite has one explicitly reviewed stronger Pinned-cell wait. Screenshot-derived list-density, focus and boolean-layout fixes are accepted in the [task-specific review](reviews/2026-10-19/saved-keywords-rank.md); shared 0.3.10 and paused database/provider boundaries remain unchanged.
+
 ## Current flow acceptance
 
 For each row: inspect real consumer contract → build or reuse typed presentation → complete interactive catalogue flow and applicable states → compile/test/browser acceptance → app integration plus preserved behavior evidence. A row is complete only when its required gates pass. A blocked API is recorded specifically; no fallback result may be labelled implemented.

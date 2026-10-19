@@ -25,6 +25,7 @@ The visual comparison reports pair matching ten98 functions with actual product 
 - [Template and workspace comparisons](visual-templates.md)
 - [Actual Campaign and Discover consumer screens](consumer-screens.md)
 - [Approval and recipient-review reference follow-up](visual-confirmations.md)
+- [Saved keywords into rank tracking](saved-keywords-rank.md)
 
 Competitor screenshots are reference evidence for this critique. Their assets, colors and branding are not part of the library. Differences in authorization, pricing, capture coverage, receipt handling and product capabilities remain app-owned decisions.
 

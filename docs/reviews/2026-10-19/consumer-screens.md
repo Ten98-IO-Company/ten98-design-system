@@ -126,6 +126,10 @@ The focused nine-group gate also passes in 11 contexts with 64 synthetic request
 
 Final app checks record **901 passed, three skipped and zero failed out of 904**, plus passing type, production build, plan, seven shared-browser groups and four token groups. The 0.3.10 shared release remains a qualified prerelease: two broad browser attempts each encountered one different pre-mount host-resource failure, with all affected isolated rechecks passing; see [shared validation](../../VALIDATION.md#independent-report-names-0310). This closes D9 shared presentation acceptance while leaving database, authorization, live-provider and deployment acceptance separate.
 
+## Discover saved keywords into rank tracking
+
+The [saved-keyword to rank-tracker review](saved-keywords-rank.md) retains actual native desktop/narrow/doubled-text captures, two exact official reference images, corrected long-list/focus/control behavior and 21 focused plus 14 native regression scenarios. It is a separate supplemental D13 acceptance on unchanged 0.3.10.
+
 ## Discover native replay renderer · separate harness
 
 [Captured masked rrweb playback, 320px](images/consumer/discover-native-rrweb-harness-320.png) shows reconstructed masked content in the accepted native-player harness. It uses the unmodified local rrweb recorder/player DOM and MessagePort path, with synthetic configuration, Begin and ingress acknowledgements. The evidence records no external or unexpected requests and no page errors; hostile-resource cases remain contained separately.

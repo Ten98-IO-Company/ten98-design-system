@@ -1,5 +1,11 @@
 # Campaign and Discover integration
 
+## Controlled saved-record pickers
+
+Compose app-owned server pagination and selection with controlled native checkboxes or `Checkbox`. The shared `DataTable` searches and pages loaded rows and owns its selection internally; it is not a controlled server-selection API. Never interpret zero selected rows as all matching records. Distinguish loaded, selected and not-yet-loaded counts, and preserve selection only across compatible appended pages.
+
+Keep bulk controls before a bounded, labelled keyboard-scrollable result list. Use compact checkbox glyphs inside large clickable labels; verify the effective label target rather than enlarging the glyph. Use the checkbox layout for boolean options, keeping the label beside its control instead of inheriting text-field width. A local copy/append action preserves edited draft text, announces its result and focuses the destination draft; the existing explicit save remains separate. The [D13 saved-keyword contract](research/campaign-discover/flows.md#d13-saved-keyword-selection-contract) records the native read route, precise reset/pagination rules and regression requirements.
+
 ## Report identity and native style boundaries
 
 In 0.3.10, use ReportPanel's optional standard `aria-label` when an existing report has a stable region name and a custom visible heading. Keep the heading in `title`; supply the original app-owned report name once through `aria-label`. Blank labels keep the existing title-based name. This preserves one region without nested wrappers or hidden-label substitutions. The catalogue's “Separate region name” state supplies complete TSX; [validation](VALIDATION.md#independent-report-names-0310) records the qualified browser evidence and consumer acceptance.
