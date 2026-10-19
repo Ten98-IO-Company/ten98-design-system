@@ -66,6 +66,10 @@ Campaign's actual article editor exposed the documented multiline adapter limita
 
 The actual 0.3.6 Campaign re-capture confirmed calendar and workspace-switcher improvements, then exposed enabled secondary buttons with fixed app-local dark text and selected navigation with a fixed shared pale background. These are distinct ownership problems. The shared 0.3.7 patch uses existing roles for action and navigation states; Campaign separately reconciles its later fixed-color overrides. The theme matrix now checks actual normal/hover/selected/danger/primary/count contrast, waits for finite transitions and reproduces the old-fill failures. No geometry, API or JavaScript changes are involved. Final consumer captures and acceptance remain separate from the shared gate.
 
+### Actual text reflow follow-up: 0.3.8
+
+The rebuilt 0.3.7 app confirms the chrome fixes and contained calendar controls at 2× text. Its fixed-height nowrap breadcrumb still pushes the profile control beyond a 320px viewport, producing a 382px document. A browser-only diagnostic isolates the shared header constraints: adaptive height and wrapping restore a 320px document with no escaping elements. The 0.3.8 shared patch preserves normal breakpoint heights as minimums, allows full context to wrap, and adds a native old-rule negative control. [The actual before crop](images/remediation/topbar-text-before.png) shows the clipped context/profile region; corrected consumer capture follows adoption. Page-heading geometry and component APIs remain unchanged.
+
 ## Evidence and verification
 
 The detailed reports retain baseline observations, including subsequently corrected findings. A delayed focus probe established that Back already restored focus correctly; opening the hidden detail was the actual gap. The final tests target that behavior. Tests distinguish visible focused sections from their child headings, and they use the real 19-status inventory rather than an invented count.

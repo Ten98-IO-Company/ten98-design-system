@@ -75,8 +75,8 @@ fieldset{border:0;margin:0;padding:0;min-width:0}
 .account small{font-size:11px;color:var(--color-text-muted);display:block;overflow:hidden;text-overflow:ellipsis;max-width:115px;margin-top:4px}
 .account .icon-button{width:24px}
 .workspace-main{margin-left:232px;min-width:0;width:calc(100% - 232px)}
-.topbar{height:69px;background:color-mix(in srgb,var(--color-surface) 85.1%,transparent);backdrop-filter:blur(16px);border-bottom:1px solid var(--color-border);display:flex;align-items:center;justify-content:space-between;padding:0 35px;gap:15px;position:sticky;top:0;z-index:20}
-.breadcrumb{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--color-text-muted);white-space:nowrap}
+.topbar{min-height:69px;background:color-mix(in srgb,var(--color-surface) 85.1%,transparent);backdrop-filter:blur(16px);border-bottom:1px solid var(--color-border);display:flex;align-items:center;justify-content:space-between;padding:0 35px;gap:15px;position:sticky;top:0;z-index:20}
+.breadcrumb{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--color-text-muted);min-width:0;flex:1;flex-wrap:wrap;white-space:normal;overflow-wrap:anywhere}
 .breadcrumb strong{font-size:13px;color:var(--color-text-muted);font-weight:500}
 .crumb-slash{padding:0 7px;color:var(--color-text-muted)}
 .topbar-tools{display:flex;align-items:center;gap:22px}
@@ -243,7 +243,7 @@ h1{font-size:25px}
 .breadcrumb{font-size:12px}
 .breadcrumb strong{font-size:12px}
 .search{display:none}
-.topbar{height:60px}
+.topbar{min-height:60px}
 .settings-grid{grid-template-columns:1fr}
 .integration-header>:is(.button,.btn){margin-left:58px}
 .tabs{gap:15px}
@@ -261,7 +261,7 @@ h1{font-size:25px}
 .sidebar-shade{display:block;position:fixed;inset:0;background:#22113355;z-index:25;backdrop-filter:blur(2px)}
 .workspace-main{margin-left:0;width:100%}
 .mobile-menu{display:inline-flex;margin-right:4px}
-.topbar{height:58px;padding:0 18px}
+.topbar{min-height:58px;padding:0 18px}
 .content{padding:25px 18px 0}
 .topbar-tools{gap:10px}
 .breadcrumb{gap:7px}

@@ -4,7 +4,7 @@ The current canonical scope is [the ten-tool coverage table](../UX-PATTERNS.md#c
 
 Research began on 19 October 2026 in six parallel same-folder forks for the original suite scope. The original groups and report paths below remain intact: Connect findings and the Wiki findings in Auth / Wiki both inform Connect + Wiki. Reports are research proposals until the human owner and coordinating design-system session decide them.
 
-| Original research group | Reports |
+| Research group | Reports |
 | --- | --- |
 | Campaign / Discover | [Evidence](campaign-discover/evidence.md) · [Flows](campaign-discover/flows.md) · [Recommendations](campaign-discover/recommendations.md) |
 | Auth / Wiki | [Evidence](auth-wiki/evidence.md) · [Flows](auth-wiki/flows.md) · [Recommendations](auth-wiki/recommendations.md) |
@@ -12,6 +12,7 @@ Research began on 19 October 2026 in six parallel same-folder forks for the orig
 | Construction / Property | [Evidence](construction-property/evidence.md) · [Flows](construction-property/flows.md) · [Recommendations](construction-property/recommendations.md) |
 | Monitor / Server | [Evidence](monitor-server/evidence.md) · [Flows](monitor-server/flows.md) · [Recommendations](monitor-server/recommendations.md) |
 | VoIP / Contact Center | [Evidence](voip/evidence.md) · [Flows](voip/flows.md) · [Recommendations](voip/recommendations.md) |
+| Researcher addition | [Bounded reference and flow proposal](researcher/README.md) |
 
 Review scores and category rank are signals for selecting references; they do not prove a flow is best. Adoption counts and detected installations are not automatically market share. Compare products by the specific task, identify denominators and source dates, and distinguish direct visual inspection from documented behavior. Preserve uncertainty where public evidence is incomplete.
 
@@ -21,7 +22,7 @@ Campaign's current logo, icons and login remain the visual baseline. Competitors
 
 All six report sets are complete for the original scope, with 18 evidence/flow/recommendation documents. Their source limitations and unaccepted feature suggestions remain recorded in each report. Shared Campaign C1–C8 and Discover D1–D17 presentation components and reference flows are implemented alongside the three cross-product recipes. See the [completion ledger](../CAMPAIGN-DISCOVER-COMPLETION.md) for library checks and separately tracked consumer acceptance. Reference examples do not approve new product capabilities. Specialized editors, canvases and domain features require their actual use case and data contract.
 
-Researcher has an evidence gap pending concrete approved tasks. Existing Discover primary references can be reused where those tasks fit; the original reports do not constitute completed Researcher research or approve its features, categories or paid-provider policy.
+Researcher now has a bounded [reference and flow proposal](researcher/README.md), using primary product documentation and explicitly limited user-review signals. It does not establish a popularity ranking, market-share ordering, screenshot comparison or approved feature set. Concrete tasks, categories, data contracts and any paid-provider policy remain undecided; the original reports are not its implementation acceptance.
 
 
 ## Selected references for the next concrete design
@@ -35,7 +36,7 @@ These are task-specific working references, chosen from the reports for design u
 | Auth | authentik setup, Auth0 login/recovery, JumpCloud lifecycle, Keycloak session scope and Entra evaluation | Workforce/developer audience, authoritative attributes, effective access and revocation guarantees |
 | Connect + Wiki | Activepieces lifecycle, n8n inspection and Make mapping/recovery; Docmost task structure, Notion search, Confluence comparison/comments, Outline restore and BookStack anchors | Final combined app name, first actual workflow, runtime/version/retry semantics, intended Mindwire/Whispr/Hermes references, permission inheritance, save/publish model and editor revision/anchor contract |
 | Construction | Procore commercial/inspection, Autodesk Build cost review and Fieldwire plans/synchronization | First project/roles, schedule depth and offline conflict guarantees |
-| Researcher | Pending concrete tasks and task-specific evidence; reuse Discover primary references only where they fit | Product features, research categories, data contracts and any paid-provider policy |
+| Researcher | Proposed Google notebook source/citation workflow, Elicit structured literature review and Perplexity open-web reports; reuse Discover patterns only where their contracts fit | Product features, research categories, data contracts and any paid-provider policy |
 | Property | Buildium/AppFolio/DoorLoop records and maintenance; Home Assistant operations, Apple Home scenes and ETS commissioning | Location hierarchy, controller integration versus direct protocols and observed-device acknowledgement |
 | Monitor | Grafana/Sentry investigation, Zabbix problems, PagerDuty/JSM incidents and Fleet device state | Incident transitions, device breadth, independent data/delivery health and scale |
 | Server | Proxmox VM tasks, Portainer/Komodo/Openship deployment and OpenShift/Rancher navigation | Backend capability model, durable task identity, cancellation, recovery and restore consequences |

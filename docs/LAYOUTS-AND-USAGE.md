@@ -22,6 +22,8 @@ Existing-app native forms use `.form-grid` for paired fields: two constrained co
 
 Shared controls use `--t98-control-height` as their minimum: 38px comfortable and 32px compact. Wrapped text can increase their height. Components explicitly designed for larger targets use `--t98-control-touch`; a narrow viewport alone does not impose 44px on every control. Check actual targets and spacing against [WCAG 2.5.8](https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html); the separate [enhanced criterion](https://www.w3.org/WAI/WCAG22/Understanding/target-size-enhanced.html) uses 44px. Text enlargement checks must verify visible labels actually double, including controls with fixed pixel font sizes.
 
+Fixed templates define familiar regions and order, rather than clipping text into fixed heights. Shared shell headers retain their normal minimum height and grow when context wraps. Keep the full context, menu and profile controls within the viewport at enlarged text sizes; do not hide content to make a width assertion pass. Application styles must not restore fixed-height or nowrap constraints over this shared behavior.
+
 ## Component hierarchy
 
 ```mermaid

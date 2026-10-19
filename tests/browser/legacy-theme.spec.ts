@@ -165,3 +165,48 @@ test('light geometry and authentication brand styling match the legacy baseline'
   };
   expect(await appearance(false)).toEqual(await appearance(true));
 });
+
+test('legacy topbar retains normal heights and contains doubled text at 320px', async ({ page }, info) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto(`/tests/legacy-theme.html?theme=${info.project.name === 'narrow-dark' ? 'dark' : 'light'}`);
+  expect(await page.locator('.topbar').evaluate(element => element.getBoundingClientRect().height)).toBe(69);
+  await page.setViewportSize({ width: 320, height: 850 });
+  expect(await page.locator('.topbar').evaluate(element => element.getBoundingClientRect().height)).toBe(58);
+  const text = page.locator('.topbar, .topbar *, .content > h1');
+  const original = await text.evaluateAll(nodes => nodes.map(element => {
+    const style = getComputedStyle(element);
+    return { fontSize: parseFloat(style.fontSize), lineHeight: style.lineHeight };
+  }));
+  const heading = page.getByRole('heading', { name: 'Synthetic settings', exact: true });
+  const headingSize = await heading.evaluate(element => parseFloat(getComputedStyle(element).fontSize));
+  const headingLine = await heading.evaluate(element => parseFloat(getComputedStyle(element).lineHeight));
+  await text.evaluateAll((nodes, snapshot) => nodes.forEach((element, index) => {
+    const style = (element as HTMLElement).style, before = snapshot[index];
+    style.fontSize = `${before.fontSize * 2}px`;
+    if (before.lineHeight !== 'normal') style.lineHeight = `${parseFloat(before.lineHeight) * 2}px`;
+  }), original);
+  expect(await heading.evaluate(element => parseFloat(getComputedStyle(element).fontSize))).toBeCloseTo(headingSize * 2);
+  expect(await heading.evaluate(element => parseFloat(getComputedStyle(element).lineHeight))).toBeCloseTo(headingLine * 2);
+  await expect(page.locator('#topbar-project')).toHaveText('Brand launch');
+  await expect(page.locator('#topbar-context')).toHaveText('Calendar');
+  await expect(page.getByRole('button', { name: 'Open navigation', exact: true })).toBeVisible();
+  const bounds = await page.locator('.topbar, .topbar *').evaluateAll(nodes => nodes.filter(element => getComputedStyle(element).display !== 'none').map(element => {
+    const rect = element.getBoundingClientRect();
+    return { label: element.id || element.className.toString(), left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom };
+  }));
+  const header = bounds[0];
+  expect(header.bottom - header.top).toBeGreaterThan(58);
+  for (const box of bounds) {
+    expect(box.left, `${box.label} left`).toBeGreaterThanOrEqual(0);
+    expect(box.right, `${box.label} right`).toBeLessThanOrEqual(320);
+    expect(box.top, `${box.label} top`).toBeGreaterThanOrEqual(header.top);
+    expect(box.bottom, `${box.label} bottom`).toBeLessThanOrEqual(header.bottom);
+  }
+  expect(await page.evaluate(() => ({ width: window.innerWidth, document: document.documentElement.scrollWidth,
+    scale: window.visualViewport?.scale, htmlZoom: getComputedStyle(document.documentElement).zoom, bodyZoom: getComputedStyle(document.body).zoom })))
+    .toEqual({ width: 320, document: 320, scale: 1, htmlZoom: '1', bodyZoom: '1' });
+  // Restore only the old fixed mobile height and non-wrapping breadcrumb.
+  await page.addStyleTag({ content: '.topbar{height:58px}.breadcrumb{flex-wrap:nowrap;white-space:nowrap}' });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeGreaterThan(320);
+  expect(await page.locator('.breadcrumb > *').evaluateAll(nodes => nodes.some(element => element.getBoundingClientRect().right > 320))).toBeTruthy();
+});

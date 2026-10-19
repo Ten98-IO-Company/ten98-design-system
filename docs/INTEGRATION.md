@@ -1,5 +1,11 @@
 # Campaign and Discover integration
 
+## Header text reflow: 0.3.8
+
+The compatibility topbar keeps its usual 69px, 60px and 58px breakpoint sizes as minimum heights. Its breadcrumb can shrink and wrap, so enlarged text can increase the header height while keeping context and profile/menu controls visible. No content is truncated or hidden to force a fit. The header remains in layout and sticky behavior is preserved. JavaScript, declarations and APIs are unchanged.
+
+Remove conflicting native `height`/`white-space` overrides if they replace this shared behavior. Verify the actual app at 320px with computed text enlarged to 2× and zoom left at 1; a root-font setting alone does not prove fixed-pixel labels doubled.
+
 ## Legacy action and navigation colors: 0.3.7
 
 Existing `.button`/`.btn` controls use the primary text and control-border roles; hover uses the subtle surface. Danger actions use the danger pair. Navigation hover, selection and counts use the existing accent pair. Geometry, primary/disabled behavior, JavaScript, declarations and APIs are unchanged.

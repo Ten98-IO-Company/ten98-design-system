@@ -1,5 +1,15 @@
 # Release validation
 
+## Shared topbar text reflow: 0.3.8
+
+The full `npm run check:all` gate passes: 58 native checks, 510 strict standalone TSX examples and 148 Playwright cases. Coverage remains 73 components, 405 states and 28 flows. Fixed compatibility header heights become matching 69/60/58px minimums; the breadcrumb can shrink and wrap without hiding context. APIs, JavaScript, primary actions and page-heading geometry are unchanged.
+
+Actual Campaign 0.3.7 at 320px and verified 2× text had no escaping content controls, but its breadcrumb/profile region widened the document to 382px. A browser-only adaptive-header diagnostic restored a 320px document with no escaping elements. The shared fixture now includes native menu/context/profile markup. Its new cases preserve normal wide/narrow heights, snapshot all relevant computed fonts and line heights before doubling, verify exact heading enlargement and full horizontal/vertical containment, and retain viewport/scale/body/root zoom at 1. Restoring only fixed mobile height and nowrap constraints reproduces overflow. The focused 16-case gate and full suite pass; independent source/oracle review found no actionable blockers. Final actual-consumer re-capture follows adoption.
+
+The Researcher addition now has a bounded primary-source flow proposal and user-review limitations. It introduces no component API, backend, approved feature, popularity ranking or market-share claim. Screenshots remain separate comparative evidence for the implemented Campaign/Discover flows.
+
+The inspected immutable 0.3.8 archive SHA256 is `516B3C91749011DC489219EE073E8B2239BE2F83ECC05521A41019A6BF74660A`, with 81 entries and a size of 305,040 bytes. All 30 JavaScript/declaration files match 0.3.7 byte-for-byte. Version, MIT license, all three header minimums, breadcrumb wrapping and 40 Markdown files are verified. Images remain excluded; earlier archives remain unchanged.
+
 ## Legacy action and navigation themes: 0.3.7
 
 The full `npm run check:all` gate passes: 58 native checks, 510 strict standalone TSX examples and 146 Playwright cases. Coverage remains 73 components, 405 states and 28 flows. This CSS-only correction applies existing semantic text, control-border, subtle-surface, danger and accent roles to compatibility action/navigation states. Geometry, primary/disabled behavior, component APIs and JavaScript are unchanged.
