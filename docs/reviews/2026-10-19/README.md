@@ -1,6 +1,8 @@
 # Component, flow and template design review
 
-Reviewed on 19 October 2026. The exhaustive baseline is version 0.3.4; the initial remediation is version 0.3.5, followed by the documented 0.3.6–0.3.10 corrections below. Campaign's existing logo, icons, purple accent and login composition remain the brand reference. English LTR is the required layout.
+Reviewed on 19 October 2026. The exhaustive baseline is version 0.3.4; the initial remediation is version 0.3.5, followed by the documented 0.3.6–0.3.11 corrections below. Campaign's existing logo, icons, purple accent and login composition remain the brand reference. English LTR is the required layout.
+
+The subsequent [Campaign dark-mode repair](campaign-dark.md) passes a clean complete shared gate: 58 native checks, 511 examples and 166 Playwright cases on 0.3.11. Its actual installed public sign-in retains the exact light brand region and measured dark text contrast. Authenticated native error/interaction acceptance is tracked separately; earlier release qualifications below remain historical evidence.
 
 The [scoped shared UI integration checkpoint](../../CAMPAIGN-DISCOVER-COMPLETION.md) is now accepted for Campaign on 0.3.9 and Discover on the qualified 0.3.10 prerelease. Final [native calendar and Boards captures](consumer-screens.md) retain actual consumer markup, measured text enlargement and regression results. Shared browser host-resource failures and their passing isolated rechecks remain explicit in [validation](../../VALIDATION.md#independent-report-names-0310); this is not a clean monolithic shared browser pass, live-provider acceptance or complete competitor-feature parity.
 
@@ -24,6 +26,7 @@ The visual comparison reports pair matching ten98 functions with actual product 
 - [Discover task comparisons](visual-discover.md)
 - [Template and workspace comparisons](visual-templates.md)
 - [Actual Campaign and Discover consumer screens](consumer-screens.md)
+- [Campaign dark-mode repair and actual baseline](campaign-dark.md)
 - [Approval and recipient-review reference follow-up](visual-confirmations.md)
 - [Saved keywords into rank tracking](saved-keywords-rank.md)
 

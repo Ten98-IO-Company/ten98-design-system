@@ -26,7 +26,7 @@ async function colors(page: Page) {
       return [...pixel.slice(0, 3), pixel[3] / 255];
     };
     const style = (selector: string) => getComputedStyle(document.querySelector(selector)!);
-    const root = style('html'), disabled = style('#disabled');
+    const root = style('html'), disabled = style('#disabled'), story = style('.auth-story');
     return {
       header: color(style('.topbar').backgroundColor),
       headerText: color(style('.breadcrumb').color),
@@ -49,8 +49,41 @@ async function colors(page: Page) {
       surface: color(root.getPropertyValue('--t98-surface')),
       disabledRole: color(root.getPropertyValue('--t98-disabled-surface')),
       scheme: root.colorScheme,
+      error: {
+        text: color(style('.form-error').color),
+        fill: color(style('.form-error').backgroundColor),
+        border: color(style('.form-error').borderColor),
+      },
+      auth: {
+        scheme: story.colorScheme,
+        fill: color(story.backgroundColor),
+        orbit: color(style('.auth-orbit').borderColor),
+        text: Object.fromEntries(['wordmark', 'eyebrow', 'headline', 'emphasis', 'copy', 'channels', 'footer'].map(id => [id, color(style(`#auth-${id}`).color)])),
+        roles: Object.fromEntries(['surface-subtle', 'surface-raised', 'text', 'text-muted', 'accent'].map(role => [role, color(story.getPropertyValue(`--color-${role}`))])),
+      },
     };
   });
+}
+
+function expectAuthStory(auth: Awaited<ReturnType<typeof colors>>['auth'], scheme: 'light' | 'dark') {
+  expect(auth.scheme).toBe(scheme);
+  if (scheme === 'light') {
+    expect(auth.fill.slice(0, 3)).toEqual([238, 233, 250]);
+    expect(auth.orbit.slice(0, 3)).toEqual([228, 218, 243]);
+    for (const [id, expected] of Object.entries({ eyebrow: [118, 96, 136], headline: [120, 87, 147], emphasis: [116, 92, 137], copy: [115, 97, 128], footer: [113, 99, 122] })) {
+      expect(auth.text[id].slice(0, 3), `${id} legacy light color`).toEqual(expected);
+    }
+  } else {
+    expect(auth.fill).toEqual(auth.roles['surface-subtle']);
+    expect(auth.orbit).toEqual(auth.roles['surface-raised']);
+    expect(auth.orbit).not.toEqual(auth.fill);
+    expect(auth.text.headline).toEqual(auth.roles.text);
+    expect(auth.text.emphasis).toEqual(auth.roles.accent);
+    for (const id of ['eyebrow', 'copy', 'footer']) expect(auth.text[id]).toEqual(auth.roles['text-muted']);
+  }
+  for (const [id, foreground] of Object.entries(auth.text)) {
+    expect(contrast(foreground, auth.fill), `auth ${id} on ${scheme} story`).toBeGreaterThanOrEqual(id === 'headline' || id === 'emphasis' ? 3 : 4.5);
+  }
 }
 
 for (const [theme, system, expected] of [
@@ -65,6 +98,12 @@ for (const [theme, system, expected] of [
     const surface = expected === 'dark' ? [23, 32, 44] : [255, 255, 255];
     const disabled = expected === 'dark' ? [29, 41, 56] : [245, 244, 250];
     expect(rendered.scheme).toBe(expected);
+    expectAuthStory(rendered.auth, expected);
+    const error = rendered.error;
+    expect(error.text.slice(0, 3)).toEqual(expected === 'dark' ? [255, 163, 153] : [105, 99, 116]);
+    expect(error.fill.slice(0, 3)).toEqual(expected === 'dark' ? [73, 42, 42] : [253, 240, 245]);
+    expect(error.border.slice(0, 3)).toEqual(expected === 'dark' ? [255, 163, 153] : [242, 212, 224]);
+    expect(contrast(error.text, error.fill), 'form error text').toBeGreaterThanOrEqual(4.5);
     expect(rendered.surface.slice(0, 3)).toEqual(surface);
     expect(rendered.disabled.slice(0, 3)).toEqual(disabled);
     expect(rendered.disabled).toEqual(rendered.disabledRole);
@@ -133,6 +172,56 @@ test('restoring the old fills reproduces dark surface, action and navigation con
     const hovered = await colors(page), action = hovered.actions[id];
     expect(contrast(action.text, composite(action.fill, hovered.canvas)), `${id} old hover fill`).toBeLessThan(4.5);
   }
+});
+
+test('authentication story follows inherited dark color-scheme without a theme attribute', async ({ page }) => {
+  await page.goto('/tests/legacy-theme.html?theme=dark');
+  await page.evaluate(() => {
+    const root = document.documentElement, dark = getComputedStyle(root);
+    const roles = ['subtle', 'surface-raised', 'text', 'muted', 'accent'].map(role => [role, dark.getPropertyValue(`--t98-${role}`)]);
+    for (const [role, value] of roles) root.style.setProperty(`--t98-${role}`, value);
+    root.style.colorScheme = 'dark';
+    root.removeAttribute('data-theme');
+  });
+  await expect(page.locator('[data-theme]')).toHaveCount(0);
+  expectAuthStory((await colors(page)).auth, 'dark');
+});
+
+test('authentication story follows the nearest nested theme', async ({ page }) => {
+  await page.goto('/tests/legacy-theme.html?theme=dark');
+  await page.locator('.auth-shell').evaluate(element => element.setAttribute('data-theme', 'light'));
+  expectAuthStory((await colors(page)).auth, 'light');
+  await page.locator('.auth-story').evaluate(element => element.setAttribute('data-theme', 'dark'));
+  expectAuthStory((await colors(page)).auth, 'dark');
+  await page.goto('/tests/legacy-theme.html?theme=light');
+  await page.locator('.auth-shell').evaluate(element => element.setAttribute('data-theme', 'dark'));
+  expectAuthStory((await colors(page)).auth, 'dark');
+  await page.locator('.auth-story').evaluate(element => element.setAttribute('data-theme', 'light'));
+  expectAuthStory((await colors(page)).auth, 'light');
+});
+
+test('restoring only the old pale authentication story fails dark readability', async ({ page }) => {
+  await page.goto('/tests/legacy-theme.html?theme=dark');
+  const fixed = (await colors(page)).auth;
+  expectAuthStory(fixed, 'dark');
+  await page.addStyleTag({ content: '.auth-story{background:#eee9fa}' });
+  const old = (await colors(page)).auth;
+  expect(old.fill.slice(0, 3)).toEqual([238, 233, 250]);
+  expect(old.text).toEqual(fixed.text);
+  expect(contrast(old.text.wordmark, old.fill)).toBeLessThan(4.5);
+  expect(contrast(old.text.headline, old.fill)).toBeLessThan(3);
+  expect(contrast(old.text.copy, old.fill)).toBeLessThan(4.5);
+});
+
+test('restoring the pale error surface reproduces the native Campaign dark contrast failure', async ({ page }) => {
+  await page.goto('/tests/legacy-theme.html?theme=dark');
+  const fixed = (await colors(page)).error;
+  expect(contrast(fixed.text, fixed.fill)).toBeGreaterThanOrEqual(4.5);
+  await page.addStyleTag({ content: '.form-error{background:#fdf0f5;border-color:#f2d4e0}' });
+  const old = (await colors(page)).error;
+  expect(old.text).toEqual(fixed.text);
+  expect(old.fill.slice(0, 3)).toEqual([253, 240, 245]);
+  expect(contrast(old.text, old.fill)).toBeLessThan(4.5);
 });
 
 test('disabled values use their semantic text role despite a legacy muted override', async ({ page }) => {

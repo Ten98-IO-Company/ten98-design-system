@@ -1,5 +1,17 @@
 # Release validation
 
+## Campaign authentication and validation colors: 0.3.11
+
+The compatibility stylesheet preserves the original light login palette and geometry while selecting existing semantic dark colors for the story, text and decorative orbit. Form errors now own their complete dark foreground, background and border pair. The actual Campaign baseline mixed pale login panels with dark controls; a native validation error independently measured 1.7313:1 contrast. See the [actual screenshot comparison](reviews/2026-10-19/campaign-dark.md).
+
+Typecheck, library/catalogue build, 58 native checks and 511 strict standalone TSX examples pass. The focused final Playwright gate passes **24/24 in 17.2s**, one worker, no retries: explicit/system themes, independent light/error palettes, measured contrast, nearest nested themes, preserved light geometry and negative controls. An initial story-only gate passed 22/22 before the confirmed error pair and decorative-orbit follow-up. Fresh independent source/oracle review found no blocker. The no-attribute fixture proves inheritance with deliberately supplied roles and color scheme; it does not establish automatic OS theme selection.
+
+The complete frozen-source Playwright gate passes **166/166 in 3.0 minutes**, one worker, zero retries and no host-resource failures. The final build/native/example gate also passes. This is a clean complete gate for 0.3.11; 0.3.10's historical host-resource qualification remains unchanged. No JavaScript, declaration, token palette, dependency or component API changes.
+
+The inspected immutable archive SHA256 is `0E2D6E56140B93E9CF56DDE447AD5185C691AE6C7B8FCB4EB9601EF6F8FFB52D`: 334,700 bytes, 84 entries, 30 modules/declarations, 43 Markdown files, MIT license and no reference images. All modules and eight of nine CSS files match 0.3.10 byte-for-byte; only `dist/app.css` changes. All emitted modules/CSS match the frozen build. The archive retains its packaging-time candidate documentation; this live validation records the subsequent complete gate without repacking it. Earlier archives remain immutable.
+
+Campaign installed that exact archive and rebuilt its native preview. Independent fresh-context public Playwright checks pass five login scenes, normal-text minimum 7.409:1 dark / 4.652:1 light, 320px containment, and an exact light-brand region comparison with zero of 8,700 pixels changed. Separate authenticated app-owner evidence measures dark configured/not-configured badge text at 7.1783:1 / 7.4091:1 after removing native color-only overrides. Native validation-error and interaction acceptance remain open; public sign-in screenshots do not prove authentication or saved theme preferences.
+
 ## Discover saved keywords into rank tracking
 
 The supplemental native D13 flow is implemented and verified in Discover's main working checkout on unchanged 0.3.10. Focused Playwright passes **21 groups / 76 synthetic requests / one context / 14.71s**. Native regression passes **14 scenarios / 85 requests / one context / 13.85s**; one ambiguous Pinned text wait was strengthened to require the status cell, with other scenarios/assertions/timeouts retained. Typecheck, production build, plan and 24 offline rank-parser checks pass. The new public opt-in regression is `tests/rank-saved-keywords-browser.mjs` in Discover.

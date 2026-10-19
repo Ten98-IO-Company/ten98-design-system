@@ -1,5 +1,11 @@
 # Campaign and Discover integration
 
+## Authentication and validation theme ownership
+
+Version 0.3.11 pairs the compatibility authentication story and form-error colors using the existing theme roles. Keep the package styles before native overrides, then remove fixed native fills or foregrounds that split these pairs. Badge state classes similarly own their foreground and surface together; native color-only overrides must not replace one half. Preserve Campaign's existing mark, icons, light palette and split layout. Check actual installed login, modal errors and badges in both themes at desktop and 320px.
+
+`light-dark()` follows the used `color-scheme`. Supply `data-theme="light"`, `"dark"` or `"system"` at the app's theme boundary; the library's explicit system contract follows the operating-system preference. A consumer supplying its own dark roles must supply the matching color scheme. Do not infer theme controls or saved-preference behavior from a CSS probe. See the [native screenshot baseline and repair](reviews/2026-10-19/campaign-dark.md).
+
 ## Controlled saved-record pickers
 
 Compose app-owned server pagination and selection with controlled native checkboxes or `Checkbox`. The shared `DataTable` searches and pages loaded rows and owns its selection internally; it is not a controlled server-selection API. Never interpret zero selected rows as all matching records. Distinguish loaded, selected and not-yet-loaded counts, and preserve selection only across compatible appended pages.

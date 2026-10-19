@@ -15,7 +15,7 @@
     // Negative control: restore only the reported legacy fills.
     if (options.get('baseline') === '1') {
       const baseline = document.createElement('style');
-      baseline.textContent = '.topbar{background:#ffffffd9}.field input:disabled{background:#faf7fd}.workspace-switch{background:#faf9fd}.workspace-avatar{background:#e8e1fa;color:var(--color-text-muted)}.button:not(.primary):hover:not(:disabled),.btn:not(.primary):hover:not(:disabled){background:#f7f6fc}.button.danger,.btn.danger{background:#fff3f5}.nav-item:hover{background:#f7f5fd}.nav-item.selected{background:#eeebfc}.nav-count{background:#e9e3fc}';
+      baseline.textContent = '.topbar{background:#ffffffd9}.field input:disabled{background:#faf7fd}.workspace-switch{background:#faf9fd}.workspace-avatar{background:#e8e1fa;color:var(--color-text-muted)}.button:not(.primary):hover:not(:disabled),.btn:not(.primary):hover:not(:disabled){background:#f7f6fc}.button.danger,.btn.danger{background:#fff3f5}.nav-item:hover{background:#f7f5fd}.nav-item.selected{background:#eeebfc}.nav-count{background:#e9e3fc}.auth-story{background:#eee9fa}';
       document.head.append(baseline);
     }
   </script>
@@ -36,6 +36,7 @@
         <label class="field"><span>Editable name</span><input id="editable" value="Synthetic draft"></label>
         <label class="field"><span>Disabled name</span><input id="disabled" value="Synthetic disabled value" disabled></label>
         <label class="field"><span>Read-only name</span><input id="readonly" value="Synthetic read-only value" readonly></label>
+        <div class="form-error" role="alert">Enter a project name.</div>
       </form>
       <div class="button-wrap" aria-label="Synthetic native actions">
         <button id="secondary" type="button" class="button">Cancel</button>
@@ -52,9 +53,10 @@
   </section>
   <section class="auth-shell" aria-label="Synthetic authentication layout">
     <aside class="auth-story">
-      <a class="brand" href="#"><span class="brand-mark" aria-hidden="true">98</span><span><strong>ten98<span class="brand-dot">.</span></strong><small>SYNTHETIC</small></span></a>
-      <div><p class="auth-story-title">A sample <em>workspace.</em></p></div>
-      <small>Synthetic fixture only</small>
+      <a class="brand" href="#"><span class="brand-mark" aria-hidden="true">98</span><span><strong id="auth-wordmark">ten98<span class="brand-dot">.</span></strong><small>CAMPAIGN</small></span></a>
+      <div><span id="auth-eyebrow" class="eyebrow">CAMPAIGN MANAGEMENT</span><h1 id="auth-headline">Plan.<br>Publish.<br><em id="auth-emphasis">Measure.</em></h1><p id="auth-copy">Manage social posts, advertising and campaign assets.</p><div id="auth-channels" class="auth-channels"><span>Social</span><span>Advertising</span><span>Out of home</span></div></div>
+      <small id="auth-footer">ten98 Campaign</small>
+      <div class="auth-orbit" aria-hidden="true"></div>
     </aside>
     <div class="auth-form"><div class="auth-form-inner"><h2>Sample sign in</h2><p>Synthetic layout for visual regression checks.</p></div></div>
   </section>
