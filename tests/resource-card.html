@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ResourceCard responsive check</title></head>
+<body><main id="root"></main><script type="module">
+import React, {useEffect, useState} from 'react';
+import {createRoot} from 'react-dom/client';
+import {Badge, Button} from '../src/lib/primitives.tsx';
+import {ResourceCard} from '../src/lib/patterns.tsx';
+import '../src/lib/tokens.css';
+import '../src/lib/primitives.css';
+import '../src/lib/patterns.css';
+
+const params = new URLSearchParams(location.search);
+document.documentElement.dir = params.get('dir') === 'rtl' ? 'rtl' : 'ltr';
+document.body.style.cssText = `margin:0;padding:12px;zoom:${params.get('zoom') === '2' ? '2' : '1'};font:14px var(--t98-font);color:var(--t98-text);background:var(--t98-bg)`;
+if(params.get('baseline') === '1') {
+  const style = document.createElement('style');
+  style.textContent = '.t98-resource-topline{flex-wrap:nowrap}.t98-resource-topline>div{min-width:auto;max-width:none;overflow-wrap:normal}.t98-resource-topline .t98-badge{white-space:nowrap}';
+  document.head.append(style);
+}
+function Check() {
+  const [result,setResult] = useState('Checking…');
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      const viewport = document.documentElement.clientWidth;
+      const problems = [];
+      if(document.documentElement.scrollWidth > viewport + 1) problems.push('Document overflow');
+      for(const status of document.querySelectorAll('.t98-resource-topline>div')) {
+        const statusBounds = status.getBoundingClientRect();
+        const cardBounds = status.closest('.t98-resource-card').getBoundingClientRect();
+        if(statusBounds.left < cardBounds.left - 1 || statusBounds.right > cardBounds.right + 1 || status.scrollWidth > status.clientWidth + 1) problems.push(status.textContent);
+      }
+      setResult(problems.length ? 'FAIL: '+problems.join(', ') : 'PASS: full status labels fit within every card');
+    });
+    return () => cancelAnimationFrame(frame);
+  }, []);
+  return React.createElement(React.Fragment, null,
+    React.createElement('h1',{style:{fontSize:16,overflowWrap:'anywhere'}},'ResourceCard responsive check'),
+    React.createElement('p',{role:'status',id:'result',style:{overflowWrap:'anywhere'}},result),
+    ...['Events received','Waiting for events','Check unavailable','UnbrokenStatusIdentifierWithNoWhitespace'].map((status,index) => React.createElement('div',{key:status,style:{marginBlock:'16px',minWidth:0}},
+      React.createElement(ResourceCard,{title:'Tracking setup',description:'The status remains readable at narrow widths.',status:React.createElement(Badge,{tone:index===0?'success':'warning'},status),actions:React.createElement(Button,{size:'sm'},'Check')},React.createElement('p',null,'Confirmed server receipt controls this status.')))));
+}
+createRoot(document.getElementById('root')).render(React.createElement(Check));
+</script></body></html>

@@ -22,17 +22,17 @@ npm run check
 npm pack
 ```
 
-`check` typechecks the project, emits the library into `dist`, builds the catalogue into `site-dist`, and runs the repository's checks. `npm pack` creates `ten98-ui-0.2.0.tgz` for installation in another tool. These checks are development evidence, not an accessibility certification or a guarantee about a consuming application.
+`check` typechecks the project, emits the library into `dist`, builds the catalogue into `site-dist`, and runs the repository's checks. `npm pack` creates `ten98-ui-0.2.1.tgz` for installation in another tool. These checks are development evidence, not an accessibility certification or a guarantee about a consuming application.
 
 ## Use in an application
 
 After building and packing this repository, copy the archive into the consuming application's `vendor` directory and install it:
 
 ```sh
-npm install ./vendor/ten98-ui-0.2.0.tgz
+npm install ./vendor/ten98-ui-0.2.1.tgz
 ```
 
-Commit the archive and the application's lockfile together. Campaign and Discover pin the same archive as `file:vendor/ten98-ui-0.2.0.tgz`; their builds do not require a sibling checkout. See [the integration contract](docs/INTEGRATION.md) for the shared application components and update workflow.
+Commit the archive and the application's lockfile together. Campaign and Discover initially adopted the same 0.2.0 archive as `file:vendor/ten98-ui-0.2.0.tgz`; their builds do not require a sibling checkout. See [the integration contract](docs/INTEGRATION.md) for the shared application components and update workflow.
 
 For new screens, use the main component API and `styles.css` shown below. Existing Campaign and Discover screens use the compatible `app` API and `app-tokens.css` followed by `app.css`, as described in the integration contract.
 

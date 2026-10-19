@@ -4,6 +4,8 @@
 
 The compatibility app styles, SVG markup and semantic tokens are adapted from the shared Campaign/Discover source snapshot inspected on 19 October 2026. Discover retains its original repository copyright name, ten98-monitor. Their original copyrights and MIT license are retained below. Existing application DOM, icon names, native form behavior, and semantic token names are preserved to support migration without replacing application controllers.
 
+The catalogue favicon also reuses Campaign's existing 98 mark asset.
+
 Copyright (c) 2026 ten98-campaign contributors
 
 Copyright (c) 2026 ten98-monitor contributors

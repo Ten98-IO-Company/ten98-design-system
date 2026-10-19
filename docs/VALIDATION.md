@@ -1,5 +1,13 @@
 # Release validation
 
+## ResourceCard patch 0.2.1
+
+The patch changes only ResourceCard status wrapping; its API is unchanged. The icon retains its dimensions, the status row can wrap, and long badges remain fully readable. All 18 library checks pass. The real component and stylesheet pass the native browser fixture at a 320px iframe viewport with body zoom 2 in LTR and RTL, including “Events received”, “Waiting for events”, “Check unavailable” and an unbroken identifier. Restoring the original nowrap rules fails the same fixture with document and status overflow.
+
+Run the catalogue and open `/tests/resource-card.html?zoom=2&dir=ltr` or `dir=rtl` at 320px. The page reports PASS/FAIL. `&baseline=1` restores the original layout as a regression control. Consumer app acceptance remains owned by the app session.
+
+## Initial application adoption 0.2.0
+
 Validated locally on 19 October 2026 using Node.js 22.14 for the library and Node.js 24.19 for consuming applications, with React 19.2.8.
 
 Run `npm run check` for TypeScript checking, the library and catalog production builds, and 18 native Node tests. The tests cover table transformations, field associations, confirmation prerequisites, permission role edge cases, secret labels, date boundaries, chart numeric ranges, semantic palette contrast, standalone sizing/fonts, theme and density resets, package exports, retained client directives, native application field defaults/constraints, brand markup and the Campaign inbox icon.

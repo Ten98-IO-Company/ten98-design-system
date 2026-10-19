@@ -2,6 +2,8 @@
 
 Campaign and Discover consume `@ten98/ui` through a versioned archive committed at `vendor/ten98-ui-0.2.0.tgz`, with `file:vendor/ten98-ui-0.2.0.tgz` in their dependency manifests. Both applications use the same immutable archive. Their builds require no sibling repository at runtime or during dependency installation.
 
+Version 0.2.1 fixes ResourceCard status wrapping at narrow widths without changing its API. Existing 0.2.0 archives remain immutable. Each app session owns adopting the new `vendor/ten98-ui-0.2.1.tgz` archive and regenerating its lockfile before its release.
+
 ## Shared components
 
 Import the application-compatible components from `@ten98/ui/app`. They preserve existing native markup and class names so applications can remove duplicate presentation without replacing their domain controllers. The emitted `dist/app.d.ts` declarations define the exact prop types; see also the [component inventory](COMPONENTS.md#existing-application-components).

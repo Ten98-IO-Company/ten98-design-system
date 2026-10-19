@@ -52,8 +52,10 @@
 .t98-activity-heading strong { font-weight: 500; }.t98-activity-heading > span { color: var(--t98-muted); font: .625rem/1.5 var(--t98-mono); white-space: nowrap; }
 .t98-activity-content p { margin: .25rem 0 0; color: var(--t98-muted); font-size: .6875rem; line-height: 1.65; }
 .t98-resource-card { display: flex; flex-direction: column; min-width: 0; padding: 1.25rem; border: 1px solid var(--t98-border); border-radius: var(--t98-radius); background: var(--t98-surface); font-family: var(--t98-font); color: var(--t98-text); }
-.t98-resource-topline { display: flex; align-items: center; justify-content: space-between; gap: .75rem; margin-bottom: 1.25rem; }
-.t98-resource-icon { display: grid; place-items: center; width: 2.75rem; height: 2.75rem; background: var(--t98-subtle); border: 1px solid var(--t98-border); border-radius: var(--t98-radius); }
+.t98-resource-topline { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; margin-bottom: 1.25rem; }
+.t98-resource-topline > div { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+.t98-resource-topline .t98-badge { white-space: normal; }
+.t98-resource-icon { display: grid; place-items: center; flex-shrink: 0; width: 2.75rem; height: 2.75rem; background: var(--t98-subtle); border: 1px solid var(--t98-border); border-radius: var(--t98-radius); }
 .t98-resource-card h3 { margin: 0; font-size: .9375rem; font-weight: 600; letter-spacing: -.02em; }
 .t98-resource-description { margin: .5rem 0 0; color: var(--t98-muted); font-size: .75rem; line-height: 1.7; }
 .t98-resource-content { margin-top: 1rem; font-size: .75rem; }

@@ -6,7 +6,7 @@ Understood as: build a reusable, installable React and TypeScript design system 
 
 The deliverable is a design-system foundation with a working catalogue, reusable UI, adoption instructions and explicit product coverage. It is not a claim that all ten planned applications or their specialized runtimes have been implemented.
 
-The package is `@ten98/ui`, version `0.2.0`. React and React DOM remain peer dependencies. The library ships ESM modules and declarations, with client boundaries retained for interactive modules. Consumer apps own routing and data orchestration.
+The package is `@ten98/ui`, version `0.2.1`. React and React DOM remain peer dependencies. The library ships ESM modules and declarations, with client boundaries retained for interactive modules. Consumer apps own routing and data orchestration.
 
 ## 002 — Brand baseline
 
