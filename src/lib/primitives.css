@@ -23,7 +23,7 @@
 .t98-tone--warning { --t98-tone-text: var(--t98-warning); --t98-tone-bg: var(--t98-warning-soft); }
 .t98-tone--danger { --t98-tone-text: var(--t98-danger); --t98-tone-bg: var(--t98-danger-soft); }
 .t98-tone--info { --t98-tone-text: var(--t98-info); --t98-tone-bg: var(--t98-info-soft); }
-.t98-badge { display: inline-flex; align-items: center; gap: 5px; max-width: 100%; padding: 3px 7px; border-radius: 5px; font-size: 11px; line-height: 16px; font-weight: 600; color: var(--t98-tone-text); background: var(--t98-tone-bg); white-space: nowrap; }
+.t98-badge { display: inline-flex; align-items: center; gap: 5px; max-width: 100%; padding: 3px 7px; border-radius: 5px; font-size: 11px; line-height: 16px; font-weight: 600; color: var(--t98-tone-text); background: var(--t98-tone-bg); white-space: normal; overflow-wrap: anywhere; }
 .t98-badge-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; flex: none; }
 .t98-avatar { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 50%; flex: none; background: var(--t98-accent-soft); color: var(--t98-accent); font-size: 11px; font-weight: 650; line-height: 1; }
 .t98-avatar--sm { width: 25px; height: 25px; font-size: 9px; }

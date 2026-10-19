@@ -1,6 +1,6 @@
 # Component inventory and API
 
-This is the public component inventory for `@ten98/ui` version `0.2.2`. Import React components from `@ten98/ui` and load `@ten98/ui/styles.css` once at the application root. Campaign and Discover also use the application-compatible entry point described below. The emitted TypeScript declarations are the exact API contract.
+This is the public component inventory for `@ten98/ui` version `0.3.0`. Import React components from `@ten98/ui` and load `@ten98/ui/styles.css` once at the application root. Campaign and Discover also use the application-compatible entry point described below. The emitted TypeScript declarations are the exact API contract.
 
 ## Implemented primitives
 
@@ -211,8 +211,26 @@ The matrix edits a local draft in this example. Add the application's validated 
 
 `@ten98/ui/app` exports `AppIcon`, `AppBrand`, `AppField`, `AppSelect`, `AppBadge`, `AppEmpty` and `AppStat`. They preserve Campaign and Discover's existing markup, class names and native form behavior. They use `@ten98/ui/app-tokens.css` and `@ten98/ui/app.css`; these styles are separate from the main component API. See [INTEGRATION.md](INTEGRATION.md) for props, styling and ownership.
 
+## Campaign and Discover presentation
+
+All 28 additive exports have live props, state specimens, tokens, accessibility notes and complete public TSX examples in the catalogue.
+
+| Exports | Usage and ownership |
+| --- | --- |
+| `EvidenceSummary`, `ReviewSummary`, `OperationResults` | App-supplied provenance, exact before/after scope and per-target receipt stages. Compact evidence keeps essential warnings visible. |
+| `DestinationPicker`, `MediaStrip`, `ContentPreview` | Controlled exact-account selection, media identity/alt text/order and approximate previews. App owns validation, uploads and provider renderers. |
+| `AppliedFilters`, `TrackerStatus`, `ComparisonMetric` | Applied scope, independent installation/receipt observations and supplied comparison values. No freshness or metric math is inferred. |
+| `PublishingAgenda`, `DetailWorkspace`, `ConversationThread` | Explicit timezone, responsive list/detail and history/composer slots. App owns schedules, navigation guards, drafts and sending. |
+| `AssetDetails`, `AudienceSummary` | Provenance, versions, rights and supplied consent/suppression/import outcomes. No asset pipeline or audience authorization is implemented. |
+| `FunnelBreakdown`, `RetentionTable`, `JourneyPath`, `RankComparison` | Supplied counts, rates, cohort states, paths and nullable native ranks. Keep specialized branching graphs and counting semantics in the app. |
+| `EvidenceDetail`, `ReportPanel`, `RunCostSummary` | Payload access states, independent widgets and explicit quoted/pending/settled/uncertain accounting. No paid action is generated. |
+| `VisualEvidenceFrame`, `ReplayControls` | Alignment-gated overlay, separately authorized ranked evidence and controlled playback/seek requests. App owns capture and replay engine. |
+| `OverviewTemplate`, `CollectionTemplate`, `DetailTemplate`, `EditorTemplate`, `SettingsTemplate` | Fixed slot order by task. Compose one inside the app's main landmark; preserve native form association. See [layout rules](LAYOUTS-AND-USAGE.md). |
+
+The emitted declarations remain the exact prop contract. Existing apps use `product.css` after `app.css`; new screens may load `styles.css`. Long main-API badges wrap within their containing surface.
+
 ## Domain boundaries
 
 Integration cards combine `ResourceCard`, `Badge`, `Button` and fields. The shared workspace compositions cover common presentation and interaction; business rules, credentials, protocols and execution stay in the consuming application.
 
-Specialized domain components remain future work until a real tool defines their behavior. Examples include rich-text editors, workflow canvases, publishing calendars, floor-plan viewers, terminals and softphones. See [suite coverage](UX-PATTERNS.md#coverage-for-all-ten-tools) for the boundary of every planned product.
+Specialized domain components remain future work until a real tool defines their behavior. Examples include rich-text editors, workflow canvases, drag-based calendar editing, floor-plan viewers, terminals and softphones. `PublishingAgenda` already provides app-resolved calendar records as an accessible list. See [suite coverage](UX-PATTERNS.md#coverage-for-all-ten-tools) for the boundary of every planned product.

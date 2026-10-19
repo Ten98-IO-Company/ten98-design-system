@@ -1,0 +1,6 @@
+/* Scoped additions for established applications; retain app overrides last. */
+@import './tokens.css';
+@import './primitives.css';
+@import './patterns.css';
+@import './workspace.css';
+@import './products.css';

@@ -4,3 +4,6 @@ site-dist/
 *.tgz
 .qa/
 .integration/
+.tmp/
+playwright-report/
+test-results/

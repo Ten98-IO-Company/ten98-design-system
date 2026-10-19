@@ -1,6 +1,6 @@
 {
   "name": "@ten98/ui",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "description": "Shared design tokens, React components and application patterns for the ten98 suite",
   "type": "module",
   "license": "MIT",
@@ -27,7 +27,8 @@
       "import": "./dist/app.js"
     },
     "./app.css": "./dist/app.css",
-    "./app-tokens.css": "./dist/app-tokens.css"
+    "./app-tokens.css": "./dist/app-tokens.css",
+    "./product.css": "./dist/product.css"
   },
   "sideEffects": [
     "**/*.css"
@@ -40,13 +41,16 @@
     "preview": "vite preview --host 127.0.0.1 --port 5198",
     "test": "node --test tests/*.test.mjs",
     "check": "npm run build && npm test",
-    "prepack": "npm run build:lib"
+    "prepack": "npm run build:lib",
+    "test:browser": "playwright test",
+    "check:all": "npm run check && npm run test:browser"
   },
   "peerDependencies": {
     "react": "^18.3.0 || ^19.0.0",
     "react-dom": "^18.3.0 || ^19.0.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.1",
     "@types/react": "19.2.2",
     "@types/react-dom": "19.2.2",
     "react": "19.2.8",

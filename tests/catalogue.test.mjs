@@ -107,6 +107,12 @@ test('flow recipes render and have complete task/state/ownership contracts', () 
     assert.doesNotThrow(() => renderToStaticMarkup(createElement(recipe.Preview)));
     assert.equal(readRoute(routeHref('Flows', { component: recipe.id })).component, recipe.id);
   }
+  const researched = catalogue.flowRecipes.filter(recipe => recipe.researchId);
+  assert.deepEqual(researched.map(recipe => recipe.researchId).sort(), [...Array.from({ length: 8 }, (_, i) => `C${i + 1}`), ...Array.from({ length: 17 }, (_, i) => `D${i + 1}`)].sort(), 'All 25 research flows appear exactly once');
+  for (const recipe of researched) {
+    assert.ok(recipe.references?.length && recipe.acceptance?.length >= 3, `${recipe.researchId} has reference comparisons and concrete acceptance cases`);
+    for (const reference of recipe.references) assert.ok(reference.label && new URL(reference.url).protocol === 'https:');
+  }
 });
 
 test('component search and shareable URLs retain filters, tabs and special characters', () => {

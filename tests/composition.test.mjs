@@ -1,0 +1,95 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { createElement as h } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { DestinationPicker, MediaStrip, ContentPreview } from '../dist/composition.js';
+
+const render = (Component, props) => renderToStaticMarkup(h(Component, props));
+const accounts = [
+  { id: 'main', name: 'Main account', provider: 'Same provider' },
+  { id: 'regional', name: 'Regional account', provider: 'Same provider' },
+  { id: 'locked', name: 'Locked account', provider: 'Same provider', disabled: true, disabledReason: 'Reconnect this exact account.' },
+];
+const items = [
+  { id: 'stable-a', name: 'first.jpg', status: 'ready', altText: 'First alt' },
+  { id: 'stable-b', name: 'second.jpg', status: 'pending', altText: 'Second alt' },
+  { id: 'stable-c', name: 'third.jpg', status: 'error', altText: '', error: 'Choose a supported rendition.' },
+];
+const buttons = html => [...html.matchAll(/<button\b([^>]*)>([\s\S]*?)<\/button>/g)].map(([, attributes, content]) => ({ attributes, content }));
+
+test('destination selection retains exact accounts and native disabled reasons', () => {
+  const html = render(DestinationPicker, { label: 'Destination accounts', accounts, selectedIds: ['regional', 'locked', 'outside-current-list'], onSelectionChange() { assert.fail('Rendering cannot change controlled selection'); } });
+  const inputs = [...html.matchAll(/<input\b[^>]*>/g)].map(([input]) => input);
+  assert.equal(inputs.length, 3);
+  assert.match(html, /<legend[^>]*>Destination accounts<\/legend>/);
+  assert.doesNotMatch(inputs[0], /checked=""|disabled=""/);
+  assert.match(inputs[1], /value="regional"/);
+  assert.match(inputs[1], /checked=""/);
+  assert.doesNotMatch(inputs[1], /disabled=""/);
+  assert.match(inputs[2], /checked=""/);
+  assert.match(inputs[2], /disabled=""/);
+  const reasonId = inputs[2].match(/aria-describedby="([^"]+)"/)?.[1];
+  assert.ok(reasonId);
+  assert.ok(html.includes(`id="${reasonId}"`));
+  assert.match(html, /Reconnect this exact account\./);
+  assert.equal([...html.matchAll(/Same provider/g)].length, 3, 'Accounts sharing a provider remain separate');
+  for (const mode of ['pending', 'readOnly']) {
+    const locked = render(DestinationPicker, { label: 'Accounts', accounts, selectedIds: ['regional'], onSelectionChange() {}, [mode]: true });
+    assert.equal([...locked.matchAll(/disabled=""/g)].length, 3);
+    assert.equal([...locked.matchAll(/checked=""/g)].length, 1);
+  }
+});
+
+test('media order uses stable IDs and disables only the applicable move boundary', () => {
+  const html = render(MediaStrip, { label: 'Draft media', items, onItemsChange() { assert.fail('Rendering cannot mutate media'); } });
+  assert.deepEqual([...html.matchAll(/data-media-id="([^"]+)"/g)].map(([, id]) => id), items.map(item => item.id));
+  const controls = buttons(html);
+  assert.equal(controls.length, 9);
+  assert.deepEqual(controls.filter(button => /disabled=""/.test(button.attributes)).map(button => button.content), ['Move earlier', 'Move later']);
+  for (const item of items) {
+    for (const action of ['Move earlier', 'Move later', 'Remove']) assert.ok(controls.some(button => button.attributes.includes(`aria-label="${action}: ${item.name}"`)));
+    assert.ok(html.includes(`Alt text for ${item.name}`));
+  }
+  assert.match(html, /Processing/);
+  assert.match(html, /Failed/);
+  assert.match(html, /Choose a supported rendition\./);
+  const reversed = render(MediaStrip, { label: 'Draft media', items: [...items].reverse(), onItemsChange() {} });
+  assert.deepEqual([...reversed.matchAll(/data-media-id="([^"]+)"/g)].map(([, id]) => id), ['stable-c', 'stable-b', 'stable-a']);
+  const one = buttons(render(MediaStrip, { label: 'Single media', items: items.slice(0, 1), onItemsChange() {} }));
+  assert.deepEqual(one.map(button => /disabled=""/.test(button.attributes)), [true, true, false]);
+});
+
+test('pending and read-only media retain data while constraining native controls', () => {
+  for (const mode of ['pending', 'readOnly']) {
+    const html = render(MediaStrip, { label: 'Draft media', items, onItemsChange() {}, onFilesSelect() {}, [mode]: true });
+    assert.equal(buttons(html).filter(button => /disabled=""/.test(button.attributes)).length, 9);
+    assert.match(html, /<input[^>]*type="file"[^>]*multiple=""[^>]*disabled=""/);
+    assert.match(html, /First alt/);
+    const textareas = [...html.matchAll(/<textarea\b[^>]*>/g)].map(([textarea]) => textarea);
+    assert.equal(textareas.length, 3);
+    for (const textarea of textareas) assert.match(textarea, mode === 'pending' ? /disabled=""/ : /readOnly=""/);
+  }
+  assert.match(render(MediaStrip, { label: 'Empty media', items: [], onItemsChange() {} }), /No media attached\./);
+});
+
+test('preview labels its approximation and escapes supplied strings without fetching media', () => {
+  const html = render(ContentPreview, { label: 'Account preview', destination: '<Main account>', provider: 'Provider & connection', text: '<script>alert("draft")</script>\nSecond line', media: h('span', null, 'App-supplied media'), footer: 'App-owned readiness', pending: true, error: 'Refresh failed; retained copy.' });
+  assert.match(html, /aria-labelledby="[^"]+"/);
+  assert.match(html, /aria-describedby="[^"]+"/);
+  assert.match(html, /Approximate preview\. Final delivery may look different\./);
+  assert.match(html, /&lt;Main account&gt;/);
+  assert.match(html, /Provider &amp; connection/);
+  assert.match(html, /&lt;script&gt;alert\(&quot;draft&quot;\)&lt;\/script&gt;\nSecond line/);
+  assert.doesNotMatch(html, /<script|<img|<iframe/);
+  assert.match(html, /App-supplied media/);
+  assert.match(html, /App-owned readiness/);
+  assert.match(html, /aria-busy="true"/);
+  assert.match(html, /Refresh failed; retained copy\./);
+  assert.match(render(ContentPreview, { label: 'Empty preview', destination: 'Main', provider: 'Provider' }), /No content supplied for this destination\./);
+});
+
+test('unverified media metadata does not imply processing or readiness', () => {
+  const html = render(MediaStrip, { label: 'Media', items: [{ id: 'unknown', name: 'image.jpg', status: 'unverified', altText: '' }], onItemsChange() {}, readOnly: true });
+  assert.match(html, /Metadata unverified/);
+  assert.doesNotMatch(html, /aria-busy="true"|>Processing<|>Ready</);
+});

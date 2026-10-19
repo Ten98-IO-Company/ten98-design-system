@@ -6,6 +6,12 @@ This design-system session and the human owner decide shared UX and components. 
 
 The coordinator selects one concrete outcome and checks existing components first. A worker receives only the relevant files, task, acceptance criteria, owned output paths and stop rules. Fresh workers use a compact brief instead of inheriting the entire conversation. Parallel workers must have disjoint write ownership. The coordinator owns shared registries, package changes, final review and publishing.
 
+## Design challenge gate
+
+The owner explicitly requires the same challenge-and-verify process for Campaign, Discover and every worker. Existing app code establishes compatibility and data contracts; its interaction choices are not automatically approved. For each flow, compare the proposed interaction to the task-specific references in the research, identify what should be retained or improved, and record why. Find a missing primary reference only when the existing evidence does not resolve the decision. Do not copy a competitor's unsupported policies or ten98's existing usability defects.
+
+Acceptance requires concrete keyboard, narrow-screen, empty/error/partial/stale/unknown and draft-recovery cases where applicable. Use an old-behavior negative control for consequential fixes. Compilation or a source inventory alone is not UX acceptance, and local simulation is not live-provider validation. The coordinator and human decide unresolved tradeoffs. Workers return the comparison, checks and limits with their deliverable; they do not start an open-ended research pass.
+
 ## Hard gates
 
 | Gate | Required evidence | If it fails |
@@ -15,7 +21,7 @@ The coordinator selects one concrete outcome and checks existing components firs
 | Ownership | One assigned file or isolated directory; no sibling app writes, package changes, commits or releases | Stop and return the proposed cross-boundary change to the coordinator |
 | Bounded work | Coding worker: at most 12 tool calls, one targeted check and at most two repair passes; no nested workers without coordinator assignment | Return results, exact blocker and smallest next action; do not loop or broaden the task |
 | Contract | Typed props/callbacks, canonical tokens, complete TSX, applicable states, keyboard and narrow-screen behavior | Keep it out of the public API/catalogue until corrected |
-| Verification | Typecheck/build plus one meaningful regression check; catalogue inventory, all examples compile, previews render | No merge, package or handoff marked complete |
+| Verification | Typecheck/build, meaningful regression checks and Playwright for every new component/flow; catalogue inventory, all examples compile, previews render; primary interaction plus consequential recovery boundary at desktop and narrow English layouts | No merge, package or handoff marked complete |
 | Review | Coordinator reviews diff, sources, ownership and browser behavior; independent review for nontrivial shared changes | Fix the concrete issue, then repeat only affected checks |
 | Release | Versioned immutable archive for library changes; app session verifies and integrates its consumer | Do not overwrite a released archive or claim an app is deployed |
 

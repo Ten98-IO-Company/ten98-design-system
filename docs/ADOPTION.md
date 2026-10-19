@@ -10,13 +10,13 @@ npm run check
 npm pack
 ```
 
-The emitted archive is `ten98-ui-0.2.2.tgz`. Copy that archive into the consuming application's `vendor` directory, then run:
+The emitted archive is `ten98-ui-0.3.0.tgz`. Copy that archive into the consuming application's `vendor` directory, then run:
 
 ```sh
-npm install ./vendor/ten98-ui-0.2.2.tgz
+npm install ./vendor/ten98-ui-0.3.0.tgz
 ```
 
-Commit the archive and updated lockfile together. Use `file:vendor/ten98-ui-0.2.2.tgz` in the application's dependency manifest. An installed archive gives the application a fixed build without requiring a sibling checkout or registry publication. Generate a new versioned archive for an update rather than changing an archive in place. See [the Campaign and Discover integration contract](INTEGRATION.md) for the application-compatible entry points and release workflow.
+Commit the archive and updated lockfile together. Use `file:vendor/ten98-ui-0.3.0.tgz` in the application's dependency manifest. An installed archive gives the application a fixed build without requiring a sibling checkout or registry publication. Generate a new versioned archive for an update rather than changing an archive in place. See [the Campaign and Discover integration contract](INTEGRATION.md) for the application-compatible entry points and release workflow.
 
 The package's public entry points are:
 
@@ -29,6 +29,7 @@ The package's public entry points are:
 | `@ten98/ui/app` | Native-markup application components shared by Campaign and Discover |
 | `@ten98/ui/app-tokens.css` | Canonical tokens and aliases for existing application variable names |
 | `@ten98/ui/app.css` | Shared application base and existing class-name styles |
+| `@ten98/ui/product.css` | Scoped product components and fixed templates for existing apps |
 
 Use `styles.css` for the main component API. Importing only `tokens.css` does not style component classes. Existing Campaign and Discover screens use `app-tokens.css` followed by `app.css` and their remaining local styles instead; see [INTEGRATION.md](INTEGRATION.md). The package supplies ESM and declarations, and expects the consuming application's React and React DOM installation to satisfy the peer range.
 

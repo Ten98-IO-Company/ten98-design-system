@@ -1,13 +1,19 @@
+import type { ComponentType } from 'react';
 import ConnectionSetup from './ConnectionSetup';
 import DataInvestigation from './DataInvestigation';
 import MutationReview from './MutationReview';
 import connectionCode from './ConnectionSetup.tsx?raw';
 import investigationCode from './DataInvestigation.tsx?raw';
 import mutationCode from './MutationReview.tsx?raw';
+import { campaignFlowRecipes } from '../campaign';
+import { discoverAnalyticsFlowRecipes } from '../discover-analytics';
+import { discoverResearchFlowRecipes } from '../discover-research';
 
 // Copy the same source rendered by the catalogue, using the public package path.
 const publicCode = (source: string) => source.replaceAll("'../../lib'", "'@ten98/ui'").replaceAll("'../../lib/app'", "'@ten98/ui/app'");
-export const flowRecipes = [
+export interface FlowRecipe { id: string; name: string; description: string; products: string; steps: readonly string[]; states: readonly string[]; ownership: string; Preview: ComponentType; code: string; researchId?: string; references?: readonly { label: string; url: string }[]; acceptance?: readonly string[] }
+export const flowRecipes: FlowRecipe[] = [
+  ...campaignFlowRecipes, ...discoverAnalyticsFlowRecipes, ...discoverResearchFlowRecipes,
   { id: 'connection-setup', name: 'Connection setup and verification', description: 'Configure locally, distinguish unverified from confirmed, and retain evidence after a failed check.', products: 'Campaign, Discover, Connect, Auth, Property', steps: ['Configure a scoped endpoint', 'Copy configuration independently', 'Request verification', 'Inspect observed evidence or retry a failed check'], states: ['Setup required', 'Configured / unverified', 'Pending', 'Failed / retry', 'Confirmed', 'Historical evidence'], ownership: 'The app supplies authoritative connection identity, credentials, verification evidence and retry policy. A clipboard success never establishes connectivity.', Preview: ConnectionSetup, code: publicCode(connectionCode) },
   { id: 'data-investigation', name: 'Data investigation and report states', description: 'Apply a date scope, inspect a bounded result and distinguish zero, missing, partial and stale measurements.', products: 'Discover, Campaign, Monitor, Construction, Server', steps: ['Choose draft dates', 'Refresh and retain applied scope', 'Inspect metrics and search results', 'Explain measurement quality and recovery'], states: ['Ready', 'Loading', 'Empty', 'Filtered empty', 'Measured zero', 'Unavailable', 'Partial', 'Stale', 'Error', 'Read only'], ownership: 'The app owns querying, data provenance, consent, permissions and server pagination. This recipe uses four local observations; it is not a large-data browser.', Preview: DataInvestigation, code: publicCode(investigationCode) },
   { id: 'mutation-review', name: 'Change review and reconciliation', description: 'Review an exact scoped change, retain the draft on failure, and reconcile an unknown outcome before repetition.', products: 'Campaign, Connect, Auth, Server, Property, VoIP', steps: ['Edit a draft', 'Review resource, scope and change', 'Confirm and inspect the receipt', 'Reconcile an uncertain result before retry'], states: ['Draft', 'Review / cancel', 'Pending', 'Confirmed applied', 'Confirmed not applied / retry', 'Unknown', 'Inconclusive reconciliation'], ownership: 'The app defines operation receipts, idempotency, authorization and reconciliation guarantees. The UI cannot decide whether a remote mutation was applied.', Preview: MutationReview, code: publicCode(mutationCode) },

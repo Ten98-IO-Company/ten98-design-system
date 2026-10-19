@@ -4,6 +4,7 @@ import { Dialog, Input, Select, ToastProvider } from './lib';
 import { AppBrand, AppIcon } from './lib/app';
 import type { Density, Theme } from './lib/tokens';
 import { ComponentCatalogue } from './catalog/ComponentCatalogue';
+import { TemplateGuide } from './catalog/TemplateGuide';
 import { FlowReference } from './catalog/FlowReference';
 import { flowRecipes } from './catalog/flows';
 import { TokenReference } from './catalog/TokenReference';
@@ -18,15 +19,19 @@ import './lib/app.css';
 import './lib/primitives.css';
 import './lib/patterns.css';
 import './lib/workspace.css';
+import './lib/products.css';
 import './showcase.css';
 
 const groups: { label: string; items: { name: Page; icon: string }[] }[] = [
-  { label: 'REFERENCE', items: [{ name: 'Components', icon: 'layers' }, { name: 'Flows', icon: 'grid' }, { name: 'Design tokens', icon: 'sun' }, { name: 'Brand & login', icon: 'lock' }] },
+  { label: 'REFERENCE', items: [{ name: 'Components', icon: 'layers' }, { name: 'Flows', icon: 'grid' }, { name: 'Templates', icon: 'layers' }, { name: 'Design tokens', icon: 'sun' }, { name: 'Brand & login', icon: 'lock' }] },
   { label: 'BUILD WITH TEN98', items: [{ name: 'Getting started', icon: 'folder' }, { name: 'Patterns', icon: 'grid' }, { name: 'Guidelines', icon: 'shield' }, { name: 'Changelog', icon: 'calendar' }] },
 ];
 function preference<T extends string>(name: string, fallback: T, values: readonly T[]): T {
+  const override = new URLSearchParams(location.search).get(name.replace('t98-', '')) as T;
+  if (values.includes(override)) return override;
   try { const saved = localStorage.getItem(name) as T; return values.includes(saved) ? saved : fallback; } catch { return fallback; }
 }
+
 
 function App() {
   const [route, setRoute] = useState(() => readRoute(location.hash));
@@ -81,6 +86,7 @@ function App() {
     <div className="catalog-body" inert={mobile && menuOpen}><header className="catalog-header"><div className="catalog-breadcrumb"><button className="catalog-menu-toggle" aria-label="Open navigation" aria-expanded={menuOpen} onClick={() => setMenuOpen(true)}><AppIcon name="menu"/></button><span>Design system</span><span aria-hidden="true">/</span><strong>{selected?.name ?? route.page}</strong></div><div className="catalog-header-controls"><button className="catalog-search-button" aria-label="Search catalogue" onClick={() => { setQuery(''); setSearchOpen(true); }}><AppIcon name="search" size={17}/><span>Search catalogue</span><kbd>Ctrl K</kbd></button><Select aria-label="Appearance" value={theme} onChange={event => setTheme(event.target.value as Theme)}><option value="light">Light</option><option value="dark">Dark</option><option value="system">System</option></Select><Select aria-label="Density" value={density} onChange={event => setDensity(event.target.value as Density)}><option value="comfortable">Comfortable</option><option value="compact">Compact</option></Select></div></header>
     <main id="main-content" className="catalog-main" tabIndex={-1}>
       {route.page === 'Components' ? <ComponentCatalogue route={route} theme={theme} density={density} onCopy={copy}/>
+      : route.page === 'Templates' ? <TemplateGuide/>
       : route.page === 'Flows' ? <FlowReference selected={route.component}/>
       : route.page === 'Design tokens' ? <TokenReference query={route.query} group={route.group} onFilter={filterTokenPage} onCopy={copy}/>
       : route.page === 'Brand & login' ? <BrandReference theme={theme} density={density}/>

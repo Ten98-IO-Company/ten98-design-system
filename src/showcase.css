@@ -185,3 +185,14 @@ code,pre { font-family: var(--t98-mono); }
   html { scroll-behavior: auto; }
   .catalog-sidebar { transition: none; }
 }
+
+.reference-template-choice { display:grid; gap:10px; min-width:0; text-align:start; padding:22px; background:var(--t98-surface); border:1px solid var(--t98-border); border-radius:var(--t98-radius); color:var(--t98-text); cursor:pointer; }
+.reference-template-choice[aria-pressed=true] { border-color:var(--t98-accent); background:var(--t98-accent-soft); }
+.reference-template-choice strong { font-size:16px; overflow-wrap:anywhere; }
+.reference-template-choice :where(small,code) { color:var(--t98-muted); font-size:11px; overflow-wrap:anywhere; }
+.reference-hierarchy { list-style:none; counter-reset:layer; padding:0; margin:24px 0; display:grid; gap:16px; }
+.reference-hierarchy > li { border-inline-start:3px solid var(--t98-accent); background:var(--t98-surface); padding:22px; border-radius:var(--t98-radius); }
+.reference-hierarchy h2 { font-size:18px; margin:0 0 8px; }.reference-hierarchy p { color:var(--t98-muted); font-size:13px; }
+/* Flow discovery follows the same labelled-control pattern as components. */
+.reference-flow-filters{display:grid;grid-template-columns:minmax(0,1fr) minmax(10rem,16rem);gap:var(--t98-space-4);margin-block:var(--t98-space-5)}
+@media(max-width:40rem){.reference-flow-filters{grid-template-columns:minmax(0,1fr)}}

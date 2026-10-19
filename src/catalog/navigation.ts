@@ -1,9 +1,9 @@
-export const pages = ['Components', 'Flows', 'Design tokens', 'Brand & login', 'Getting started', 'Patterns', 'Guidelines', 'Changelog'] as const;
+export const pages = ['Components', 'Flows', 'Templates', 'Design tokens', 'Brand & login', 'Getting started', 'Patterns', 'Guidelines', 'Changelog'] as const;
 export type Page = typeof pages[number];
 export const detailTabs = ['Overview', 'Examples', 'Props', 'Tokens', 'States'] as const;
 export type DetailTab = typeof detailTabs[number];
 export interface CatalogueRoute { page: Page; component?: string; tab: DetailTab; query: string; group: string }
-const paths: Record<Page, string> = { Components: 'components', Flows: 'flows', 'Design tokens': 'tokens', 'Brand & login': 'brand', 'Getting started': 'getting-started', Patterns: 'patterns', Guidelines: 'guidelines', Changelog: 'changelog' };
+const paths: Record<Page, string> = { Components: 'components', Flows: 'flows', Templates: 'templates', 'Design tokens': 'tokens', 'Brand & login': 'brand', 'Getting started': 'getting-started', Patterns: 'patterns', Guidelines: 'guidelines', Changelog: 'changelog' };
 export const componentSlug = (name: string) => name.replace(/([a-z\d])([A-Z])/g, '$1-$2').toLowerCase();
 
 export function readRoute(hash: string): CatalogueRoute {

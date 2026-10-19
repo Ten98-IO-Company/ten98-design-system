@@ -1,0 +1,54 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><title>Shared product component regression</title><style>body{font:14px system-ui;max-width:900px;margin:24px auto;padding:16px}#result{position:sticky;top:0;background:white;padding:16px;z-index:5}section{margin-block:16px}</style>
+<h1>Shared product component regression</h1><p>Controlled local fixtures. No provider requests or uploads.</p><button id="run">Run checks</button><output id="result" role="status">Not run</output><main id="fixture"></main>
+<script type="module">
+import React, { useState } from 'react';
+import { createRoot } from 'react-dom/client';
+import { DestinationPicker, MediaStrip, AppliedFilters, EvidenceSummary, DetailWorkspace, PublishingAgenda, ConversationThread, VisualEvidenceFrame, ReplayControls, EditorTemplate } from '../src/lib';
+import '../src/lib/product.css';
+const e = React.createElement;
+function Fixture() {
+  const [selected, setSelected] = useState(['a']), [items, setItems] = useState([{id:'one',name:'One',altText:'Original',status:'unverified'},{id:'two',name:'Two',altText:'Second',status:'ready'}]);
+  const [filters, setFilters] = useState([{id:'country',label:'Country',value:'UAE',removeLabel:'Remove country filter'}]);
+  const [detail, setDetail] = useState(false), [draft, setDraft] = useState('Retained draft'), [readOnly,setReadOnly] = useState(false), [alignment,setAlignment] = useState('unknown'), [access,setAccess] = useState('ready');
+  const [position,setPosition] = useState(0), [playing,setPlaying] = useState(false), [agenda,setAgenda] = useState(''), [submitted,setSubmitted] = useState(0);
+  return e(React.Fragment,null,
+    e('button',{onClick:()=>setReadOnly(!readOnly)},'Toggle read only'),
+    e(DestinationPicker,{label:'Destinations',accounts:[{id:'a',name:'Account A',provider:'Example'},{id:'b',name:'Account B',provider:'Example'},{id:'c',name:'Unavailable account',provider:'Example',disabled:true,disabledReason:'Permission missing'}],selectedIds:selected,onSelectionChange:setSelected,readOnly}),
+    e('output',{id:'selection'},selected.join(',')),
+    e(MediaStrip,{label:'Media',items,onItemsChange:setItems,readOnly}),
+    e(AppliedFilters,{label:'Applied scope',filters,onRemove:id=>setFilters(filters.filter(f=>f.id!==id))}),
+    e(EvidenceSummary,{source:'Synthetic events',variant:'compact',basis:'Observed sessions only',coverage:{status:'partial',reason:'One source is missing'},details:e('p',null,'Detailed definition')}),
+    e(DetailWorkspace,{label:'Inbox',listLabel:'Conversations',detailLabel:'Selected conversation',selected:detail,onBack:()=>setDetail(false),list:e('button',{onClick:()=>setDetail(true)},'Open conversation'),detail:e(ConversationThread,{label:'Thread',messages:[{id:'m',author:'A',time:'Now',visibility:'public',content:'Message history'}],readOnly,composer:e('textarea',{'aria-label':'Reply draft',value:draft,onChange:event=>setDraft(event.target.value)})})}),
+    e(PublishingAgenda,{label:'Agenda',scope:'One account',timezoneLabel:'UTC',readOnly:true,entries:[{id:'post',title:'Inspect scheduled post',when:'12:00 UTC',status:'Scheduled'}],onSelect:setAgenda}),
+    e('output',{id:'agenda'},agenda),
+    e('label',null,'Alignment',e('select',{'aria-label':'Alignment',value:alignment,onChange:event=>setAlignment(event.target.value)},...['unknown','aligned','mismatch'].map(value=>e('option',{key:value,value},value)))),
+    e('label',null,'Access',e('select',{'aria-label':'Access',value:access,onChange:event=>setAccess(event.target.value)},...['ready','expired','forbidden'].map(value=>e('option',{key:value,value},value)))),
+    e(VisualEvidenceFrame,{label:'Capture',context:'Page /home · desktop · counts',alignment,expired:access==='expired',forbidden:access==='forbidden',background:e('p',{id:'capture'},'Captured background'),overlay:e('span',{id:'overlay'},'Spatial counts'),rankedList:e('ol',{id:'ranked'},e('li',null,'Button: 0 clicks'))}),
+    e(ReplayControls,{label:'Replay',playing,onPlayingChange:setPlaying,currentTime:position,onSeek:setPosition,duration:10000,playbackRate:1,allowedRates:[1],onRateChange:()=>{},skipInactive:false,onSkipInactiveChange:()=>{}}),
+    e(EditorTemplate,{title:'Editor',scope:'Draft scope',preview:'Approximate preview',footer:e('button',{form:'controlled-editor',type:'submit'},'Save draft')},e('form',{id:'controlled-editor',onSubmit:event=>{event.preventDefault();setSubmitted(submitted+1)}},e('label',null,'Title',e('input',{name:'title',required:true,defaultValue:''})))),
+    e('output',{id:'submitted'},String(submitted)));
+}
+const root = createRoot(document.getElementById('fixture')), frame = () => new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+const check=(condition,message)=>{if(!condition)throw new Error(message)};
+const find=name=>[...document.querySelectorAll('button')].find(button=>button.textContent.trim()===name);
+async function click(name){const button=find(name);check(button&&!button.disabled,`Available: ${name}`);button.click();await frame()}
+async function value(control,next){Object.getOwnPropertyDescriptor(control instanceof HTMLSelectElement?HTMLSelectElement.prototype:control instanceof HTMLTextAreaElement?HTMLTextAreaElement.prototype:HTMLInputElement.prototype,'value').set.call(control,next);control.dispatchEvent(new Event(control instanceof HTMLSelectElement?'change':'input',{bubbles:true}));await frame()}
+let iteration=0;
+document.getElementById('run').onclick=async()=>{
+ const run=document.getElementById('run'), result=document.getElementById('result');run.disabled=true;result.textContent='Running';
+ try{
+  root.render(e(Fixture,{key:++iteration}));await frame();
+  const accounts=document.querySelectorAll('.t98-destination-picker input');accounts[1].click();await frame();check(document.getElementById('selection').textContent==='a,b','Stable account selection retained');check(accounts[2].disabled,'Unavailable account is disabled with a reason');
+  await value(document.querySelector('.t98-media-strip textarea'),'Edited alt');document.querySelector('[aria-label="Move later: One"]').click();await frame();check(document.querySelector('.t98-media-item').dataset.mediaId==='two','Keyboard-compatible reorder changes supplied order');check(document.querySelector('[data-media-id="one"] textarea').value==='Edited alt','Alt text survives reorder');check(!document.querySelector('[data-media-id="one"]').hasAttribute('aria-busy'),'Unknown metadata is not active processing');
+  const remove=document.querySelector('[aria-label="Remove country filter"]');check(remove.getBoundingClientRect().height>=44,'Filter removal target is at least 44px');remove.click();await frame();check(!document.querySelector('[aria-label="Remove country filter"]'),'Removal uses app callback');
+  check(document.body.textContent.includes('One source is missing'),'Essential coverage warning is visible');const disclosure=document.querySelector('.t98-evidence-disclosure');check(disclosure&&!disclosure.open,'Detailed basis is initially collapsed');disclosure.querySelector('summary').click();await frame();check(disclosure.open,'Native measurement disclosure expands');
+  await click('Open conversation');await value(document.querySelector('[aria-label="Reply draft"]'),'Unsent response');await click('Back to list');await click('Open conversation');check(document.querySelector('[aria-label="Reply draft"]').value==='Unsent response','Detail navigation retains mounted composer draft');
+  await click('Toggle read only');check(document.querySelector('.t98-conversation-composer').hidden,'Permission loss hides composer');await click('Toggle read only');check(document.querySelector('[aria-label="Reply draft"]').value==='Unsent response','Permission restoration preserves draft');
+  await click('Inspect scheduled post');check(document.getElementById('agenda').textContent==='post','Read only agenda remains inspectable');
+  check(!document.getElementById('overlay'),'Unknown alignment hides overlay');await value(document.querySelector('[aria-label="Alignment"]'),'aligned');check(!!document.getElementById('overlay'),'Aligned evidence exposes overlay');await value(document.querySelector('[aria-label="Access"]'),'expired');check(!document.getElementById('capture')&&!document.getElementById('overlay')&&!!document.getElementById('ranked'),'Expired capture hides spatial payload but preserves separately authorized ranking');await value(document.querySelector('[aria-label="Access"]'),'forbidden');check(!document.getElementById('ranked'),'Forbidden evidence hides ranked payload');
+  await click('Play recording');check(!!find('Pause recording'),'Replay playing is controlled');const range=document.querySelector('input[type="range"]');await value(range,'5000');check(range.value==='5000','Seek updates controlled position');
+  await click('Save draft');check(document.getElementById('submitted').textContent==='0','Native required validation blocks empty external-form submit');await value(document.querySelector('input[name="title"]'),'A title');await click('Save draft');check(document.getElementById('submitted').textContent==='1','Template footer preserves native form association');
+  result.textContent='PASS: selection, media identity, alt text, 44px filters, disclosure, draft retention, permissions, read-only inspection, spatial evidence, replay and native form association.';
+ }catch(error){result.textContent=`FAIL: ${error.message}`;throw error}finally{run.disabled=false}
+};
+</script></html>

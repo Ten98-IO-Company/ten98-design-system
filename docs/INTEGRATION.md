@@ -1,5 +1,24 @@
 # Campaign and Discover integration
 
+## Additive product batch: 0.3.0
+
+Version 0.3.0 adds 28 typed presentation components and fixed templates. The public declarations in `dist/index.d.ts` and the linked module declarations are the exact contract. Named imports remain `import { AppliedFilters, EvidenceSummary } from '@ten98/ui'`; the established `@ten98/ui/app` exports retain their APIs.
+
+Existing apps add the scoped product stylesheet after their compatibility stylesheet, before local overrides:
+
+```css
+@import '@ten98/ui/app-tokens.css';
+@import '@ten98/ui/app.css';
+@import '@ten98/ui/product.css';
+/* Existing application overrides follow. */
+```
+
+`product.css` includes tokens and the scoped component rules, without the main stylesheet's global reset. Keep native application forms, controllers, routed guards, provider rules and specialized renderers. `DetailWorkspace` requests selection/back through callbacks; the app guards navigation and restores focus. `ConversationThread` keeps its supplied composer mounted, but the app owns draft identity and authorization. `ConfirmDialog` is controlled by `open`/`onOpenChange`; invalidate the app's reviewed action when its draft, resource or request identity changes. Never treat an old review as authorization for a newer draft.
+
+Useful first consumers are `AppliedFilters` with optional `removeLabel`, compact `EvidenceSummary` (`variant="compact"`, optional basis/details), exact receipt stages in `OperationResults`, and `MediaStrip`'s neutral `unverified` metadata state. `FunnelBreakdown` and `JourneyPath` accept `countLabel` for app-native units. Keep branching graphs and provider-specific previews where they express more than the generic presentation.
+
+Every C1–C8 and D1–D17 reference flow has a complete local TSX example, research references and acceptance cases in the catalogue. These are synthetic presentation/controller examples; app sessions validate their actual adapters and existing features. Paid/provider operations, billing, database work and deployment remain outside this integration wave.
+
 Campaign and Discover consume `@ten98/ui` through a versioned archive committed at `vendor/ten98-ui-0.2.0.tgz`, with `file:vendor/ten98-ui-0.2.0.tgz` in their dependency manifests. Both applications use the same immutable archive. Their builds require no sibling repository at runtime or during dependency installation.
 
 Version 0.2.1 fixes ResourceCard status wrapping at narrow widths without changing its API. Existing 0.2.0 archives remain immutable. Each app session owns adopting the new `vendor/ten98-ui-0.2.1.tgz` archive and regenerating its lockfile before its release.

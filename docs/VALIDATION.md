@@ -1,5 +1,15 @@
 # Release validation
 
+## Product components, fixed layouts and Playwright: 0.3.0
+
+Validated on 19 October 2026 using Node.js 24, React 19.2.8 and Playwright 1.64.1 with its official Chromium build. `npm run check:all` passed: project typecheck, emitted declarations/modules, catalogue production build, 55 native tests, 505 standalone strict TSX examples and 88 browser cases. The inventory gate covers every public export exactly once: 73 components and 400 state specimens. All C1–C8 and D1–D17 research IDs appear exactly once among 28 interactive flow recipes, each with references and concrete acceptance cases.
+
+Playwright runs the actual React surfaces in a 1440px default-light desktop and 320px dark English left-to-right layout. It browses all 73 state pages without page errors or document overflow; tests native forms, exact account/media identity, mounted drafts, permissions, filters, evidence disclosure and payload gating; and exercises each flow's primary and consequential recovery paths. It checks fixed templates, hierarchy, search, focus return, hidden sidebar scrollbars, source links and text enlargement. Root font size 200% is used for text reflow, distinct from page zoom. See [the runnable browser gate](BROWSER-TESTING.md).
+
+The first broad browser run caught long status text overflowing PublishingAgenda; the shared Badge wrapping rule fixes the root cause. Fresh independent source review caught prompt draft saving bypassing a collecting/uncertain execution lock. The repaired D16 Playwright case passes for both states; temporarily removing the guard fails its disabled-action assertion. Stale prior receipts are also hidden during a new D12/D16 quote review. Test authors' local simulations are not independent provider truth; native app contracts, primary references and app-session regression checks provide separate evidence. No live paid/provider operation was used to validate these local flows.
+
+The immutable MIT archive handed to both app owners has SHA256 `F73229FC6B2C7E14348A1DC77709D60E7110756D8EA5B4DA30BE5047BA05033F`. It contains modules, declarations, `product.css`, notices, license and documentation. Both owners verified and pinned it. Consumer adapter acceptance is tracked in [the completion ledger](CAMPAIGN-DISCOVER-COMPLETION.md), independently of the library gate. The public source documentation and browser tests continue to record final review findings; the handed-off archive is never replaced in place.
+
 ## Component catalogue
 
 The reference documents every public component export: 38 main components and seven existing-app adapters. `npm run check` runs 23 native checks, including catalogue inventory/link integrity, rendering all 204 state specimens, compiling all 256 standalone TSX examples against the public declarations, URL/search behavior and token/alias references against shipped CSS. The TSX check includes component examples, state examples, three flow recipes, the getting-started form, the Campaign brand/login compositions and token usage. Flow recipes copy the exact rendered source with public imports.
