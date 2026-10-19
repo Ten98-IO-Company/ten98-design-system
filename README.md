@@ -17,19 +17,23 @@ npm run dev
 
 Open [the local catalogue](http://127.0.0.1:5198). It is a reference application with illustrative data; its examples do not connect to production services.
 
+Browse all 45 component exports by category, name, use or state. Each component has Overview, Examples, Props, Tokens and States pages, a shareable URL, and complete copyable TSX. The catalogue includes 204 state specimens, all 96 canonical tokens and 85 existing-app aliases. Token values update with appearance and density. Use `Ctrl/Cmd K` to find components, tokens and guides. Sidebar menus scroll with wheel, touch and keyboard without a visible scrollbar. Three interactive flow recipes cover connection verification, investigation states and change review/reconciliation; their copyable code is the actual rendered source.
+
+The [Brand & login reference](http://127.0.0.1:5198/#brand) uses Campaign's existing 98 mark, wordmark, icon geometry and login composition. The catalogue favicon also comes from Campaign. App adapter previews are isolated so their existing global styles do not alter the documentation interface.
+
 ```sh
 npm run check
 npm pack
 ```
 
-`check` typechecks the project, emits the library into `dist`, builds the catalogue into `site-dist`, and runs the repository's checks. `npm pack` creates `ten98-ui-0.2.1.tgz` for installation in another tool. These checks are development evidence, not an accessibility certification or a guarantee about a consuming application.
+`check` typechecks the project, emits the library into `dist`, builds the catalogue into `site-dist`, and runs the repository's checks. `npm pack` creates `ten98-ui-0.2.2.tgz` for installation in another tool. These checks are development evidence, not an accessibility certification or a guarantee about a consuming application.
 
 ## Use in an application
 
 After building and packing this repository, copy the archive into the consuming application's `vendor` directory and install it:
 
 ```sh
-npm install ./vendor/ten98-ui-0.2.1.tgz
+npm install ./vendor/ten98-ui-0.2.2.tgz
 ```
 
 Commit the archive and the application's lockfile together. Campaign and Discover initially adopted the same 0.2.0 archive as `file:vendor/ten98-ui-0.2.0.tgz`; their builds do not require a sibling checkout. See [the integration contract](docs/INTEGRATION.md) for the shared application components and update workflow.
@@ -56,6 +60,8 @@ React and React DOM are peer dependencies; the supported range for each is `^18.
 - [Component inventory and API](docs/COMPONENTS.md): exports, ownership boundaries and intended use.
 - [UX patterns and suite coverage](docs/UX-PATTERNS.md): shared interaction rules and coverage for all ten tools.
 - [Decisions and source evidence](docs/DECISIONS.md): the interpretation, audited baseline and maintenance rules.
+- [Bounded swarm workflow](docs/SWARM.md): worker ownership, acceptance gates and stop rules.
+- [Competitive research](docs/research/README.md): the initial ten-tool scope and proposed flow decisions.
 - [Release validation](docs/VALIDATION.md): automated and browser checks, package verification and integration limits.
 
 Start with the shared shell, field, button, table and state patterns. Keep routing, data fetching, permissions enforcement and product-specific business logic in each application. Add a new shared pattern when a real tool needs it and its behavior can be named clearly.

@@ -1,5 +1,23 @@
 # Release validation
 
+## Component catalogue
+
+The reference documents every public component export: 38 main components and seven existing-app adapters. `npm run check` runs 23 native checks, including catalogue inventory/link integrity, rendering all 204 state specimens, compiling all 256 standalone TSX examples against the public declarations, URL/search behavior and token/alias references against shipped CSS. The TSX check includes component examples, state examples, three flow recipes, the getting-started form, the Campaign brand/login compositions and token usage. Flow recipes copy the exact rendered source with public imports.
+
+Browser checks cover copy feedback and copied TSX, search by task, global search navigation, typed confirmation guards and rejected actions, table search/sort/pagination, and live token values (38px comfortable, 32px compact; dark surface values). The isolated Campaign login form validates and submits locally; owner setup is available as a separate reference state. Local specimen anchors focus their own targets, and the catalogue skip link keeps the current route while focusing the main content.
+
+All three flow recipe pages also fit a 320px viewport without page-wide horizontal overflow. The real catalogue was measured inside 320px, 360px, 760px and 1440px browser viewports with no page-wide horizontal overflow. Narrow views expose a drawer with inert background and Escape dismissal. LTR/RTL checks at 320px and 360px retain the same document width. The component rail is scrollable with computed `scrollbar-width: none`. These checks are representative acceptance evidence; screen-reader, forced-colors and complete consuming-app route coverage remain outside this validation.
+
+## Shared flow recipes
+
+Run the catalogue, open `/tests/flow-recipes.html` and choose **Run checks**. This native browser regression check mounts the actual React recipes and reports PASS/FAIL. It verifies connection required validation, configured/unverified status, failed verification preserving input, successful synthetic evidence and historical evidence after edits; measured zero versus unavailable; failed refresh retaining the prior result, applied dates and draft dates; filtered-empty recovery; review cancellation preserving a draft; stable focus after confirmation; unknown outcomes without blind retry; inconclusive reconciliation; and a reviewed retry only after confirmed not-applied.
+
+The fixture passed against the final source. A separate fresh-context review found the confirmation focus loss; retaining the same action button across the pending transition corrected it, and the fixture now asserts focus restoration. No backend, provider, physical device or product mutation is exercised by these local simulations.
+
+## Sidebar patch 0.2.2
+
+Both shared sidebar APIs retain `overflow-y: auto` and hide their visible scrollbar using standard `scrollbar-width: none` plus the WebKit pseudo-element. Catalogue navigation uses the same behavior. Version 0.2.2 includes the prior ResourceCard fix; the 0.2.1 archive remains unchanged. The full build and 23 native checks pass. Native browser specimens with 80 menu links confirm both APIs have computed `scrollbar-width: none`, retain `overflow-y: auto`, and scroll to the final links through keyboard focus.
+
 ## ResourceCard patch 0.2.1
 
 The patch changes only ResourceCard status wrapping; its API is unchanged. The icon retains its dimensions, the status row can wrap, and long badges remain fully readable. All 18 library checks pass. The real component and stylesheet pass the native browser fixture at a 320px iframe viewport with body zoom 2 in LTR and RTL, including “Events received”, “Waiting for events”, “Check unavailable” and an unbroken identifier. Restoring the original nowrap rules fails the same fixture with document and status overflow.
@@ -10,7 +28,7 @@ Run the catalogue and open `/tests/resource-card.html?zoom=2&dir=ltr` or `dir=rt
 
 Validated locally on 19 October 2026 using Node.js 22.14 for the library and Node.js 24.19 for consuming applications, with React 19.2.8.
 
-Run `npm run check` for TypeScript checking, the library and catalog production builds, and 18 native Node tests. The tests cover table transformations, field associations, confirmation prerequisites, permission role edge cases, secret labels, date boundaries, chart numeric ranges, semantic palette contrast, standalone sizing/fonts, theme and density resets, package exports, retained client directives, native application field defaults/constraints, brand markup and the Campaign inbox icon.
+Run `npm run check` for TypeScript checking, the library and catalog production builds, and the native Node tests. The original 18 library tests cover table transformations, field associations, confirmation prerequisites, permission role edge cases, secret labels, date boundaries, chart numeric ranges, semantic palette contrast, standalone sizing/fonts, theme and density resets, package exports, retained client directives, native application field defaults/constraints, brand markup and the Campaign inbox icon.
 
 The catalog was also exercised in the browser:
 

@@ -1,0 +1,13 @@
+import { Alert, Badge } from '../lib';
+import { AppIcon } from '../lib/app';
+import { Code } from './Code';
+import { flowRecipes } from './flows';
+import { routeHref } from './navigation';
+
+export function FlowReference({ selected }: { selected?: string }) {
+  const recipe = flowRecipes.find(item => item.id === selected);
+  if (!selected) return <><header className="reference-page-heading"><div><p className="reference-eyebrow">Flow recipes</p><h1>Compose the complete task</h1><p>Interactive React and TypeScript examples, built from existing components with synthetic data. Copy the exact source used by each preview.</p></div><span className="reference-count">{flowRecipes.length} working flows</span></header><div className="reference-component-grid">{flowRecipes.map(item => <a className="reference-component-card" key={item.id} href={routeHref('Flows', { component: item.id })}><span>{item.products}</span><h2>{item.name}<AppIcon name="arrow" size={16}/></h2><p>{item.description}</p><small>{item.states.length} applicable states</small></a>)}</div><div className="reference-note"><h2>Shared presentation, explicit ownership</h2><p>These compositions demonstrate existing scope. New product features remain proposals for the human and coordinating design-system session. App sessions implement their own data, authorization, execution and release.</p></div></>;
+  if (!recipe) return <div className="reference-empty"><h1>Flow not found</h1><p>This link does not match a documented flow.</p><a href={routeHref('Flows')}>Browse flow recipes</a></div>;
+  const Preview = recipe.Preview;
+  return <><a className="reference-back" href={routeHref('Flows')}><AppIcon name="arrow" size={14}/> All flow recipes</a><header className="reference-page-heading"><div><p className="reference-eyebrow">{recipe.products}</p><h1>{recipe.name}</h1><p>{recipe.description}</p></div><Badge>Local simulation</Badge></header><section className="reference-section"><h2>Task sequence</h2><ol className="reference-list">{recipe.steps.map(step => <li key={step}>{step}</li>)}</ol><p><strong>States to inspect:</strong> {recipe.states.join(' · ')}.</p><Alert title="Application contract" tone="info">{recipe.ownership}</Alert></section><section className="reference-section"><h2>Interactive flow</h2><p className="reference-muted">Use the labelled demo controls to exercise outcomes. No requests are sent.</p><div className="reference-preview"><Preview/></div></section><section className="reference-section"><h2>Complete TSX</h2><p>Load <code>@ten98/ui/styles.css</code> once at the application root. Replace local demonstration state with your validated application controller.</p><Code value={recipe.code}/></section></>;
+}

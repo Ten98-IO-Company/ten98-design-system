@@ -72,7 +72,8 @@
 .t98-stepper .t98-step-current { color: var(--t98-text); }.t98-step-current .t98-step-marker { background: var(--t98-accent); border-color: var(--t98-accent); color: var(--t98-on-accent); }
 .t98-stepper .t98-step-complete { color: var(--t98-muted); }.t98-step-complete .t98-step-marker { background: var(--t98-accent-soft); border-color: transparent; color: var(--t98-accent); }
 .t98-app-shell { display: grid; grid-template-columns: var(--t98-sidebar-width, 15rem) minmax(0, 1fr); min-height: 100dvh; color: var(--t98-text); background: var(--t98-bg); font-family: var(--t98-font); }
-.t98-shell-sidebar { position: sticky; top: 0; height: 100dvh; overflow-y: auto; border-right: 1px solid var(--t98-border); background: var(--t98-surface); }
+.t98-shell-sidebar { position: sticky; top: 0; height: 100dvh; overflow-y: auto; scrollbar-width: none; border-right: 1px solid var(--t98-border); background: var(--t98-surface); }
+.t98-shell-sidebar::-webkit-scrollbar { display: none; }
 .t98-shell-workspace { min-width: 0; }.t98-shell-header { min-height: var(--t98-header-height, 4rem); display: flex; align-items: center; gap: 1rem; padding: 0 2rem; border-bottom: 1px solid var(--t98-border); background: var(--t98-surface); }
 .t98-shell-main { padding: 2rem; outline: none; }
 .t98-skip-link { position: fixed; z-index: 1000; top: .75rem; left: .75rem; transform: translateY(-200%); padding: .75rem 1rem; color: var(--t98-on-accent); background: var(--t98-accent); border-radius: var(--t98-radius); font-size: .875rem; }

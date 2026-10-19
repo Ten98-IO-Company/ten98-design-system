@@ -1,0 +1,87 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><title>Flow recipe regression check</title><style>body{font:14px system-ui;max-width:900px;margin:24px auto;padding:16px}section{margin:24px 0}output{display:block;white-space:pre-wrap}#result{position:sticky;top:0;background:white;padding:16px;border:1px solid #aaa}</style>
+<h1>Native flow regression check</h1><p>Run against the actual React recipes. Uses synthetic local state and sends no requests.</p><button id="run">Run checks</button><output id="result" role="status">Not run</output><section id="connection"></section><section id="investigation"></section><section id="mutation"></section>
+<script type="module">
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import ConnectionSetup from '../src/catalog/flows/ConnectionSetup';
+import DataInvestigation from '../src/catalog/flows/DataInvestigation';
+import MutationReview from '../src/catalog/flows/MutationReview';
+import '../src/lib/primitives.css';
+import '../src/lib/patterns.css';
+import '../src/lib/workspace.css';
+import '../src/lib/tokens.css';
+const components = { connection: ConnectionSetup, investigation: DataInvestigation, mutation: MutationReview };
+const roots = Object.fromEntries(Object.keys(components).map(id => [id, createRoot(document.getElementById(id))]));
+const frame = () => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+const text = root => root.textContent.replace(/\s+/g, ' ');
+const check = (condition, message) => { if (!condition) throw new Error(message); };
+const button = (root, name) => [...root.querySelectorAll('button')].find(item => item.textContent.trim() === name);
+async function click(root, name) { const control = button(root, name); check(control && !control.disabled, `Available button: ${name}`); control.focus(); control.click(); await frame(); }
+async function value(control, next) {
+  Object.getOwnPropertyDescriptor(control instanceof HTMLSelectElement ? HTMLSelectElement.prototype : HTMLInputElement.prototype, 'value').set.call(control, next);
+  control.dispatchEvent(new Event(control instanceof HTMLSelectElement ? 'change' : 'input', { bubbles: true })); await frame();
+}
+async function until(condition) { const start = performance.now(); while (!condition()) { check(performance.now() - start < 4000, 'Flow completion timed out'); await frame(); } }
+let iteration = 0;
+document.getElementById('run').onclick = async () => {
+  const run = document.getElementById('run'), result = document.getElementById('result');
+  run.disabled = true; result.textContent = 'Running';
+  try {
+    iteration += 1;
+    for (const [id, Component] of Object.entries(components)) roots[id].render(React.createElement(Component, { key: iteration }));
+    await frame();
+    const connection = document.getElementById('connection');
+    await click(connection, 'Configure locally');
+    check(text(connection).includes('No configured connection'), 'Native required validation blocks empty configuration');
+    await value(connection.querySelector('input[name="connectionName"]'), 'Sandbox');
+    await value(connection.querySelector('input[name="endpoint"]'), 'https://example.test/events');
+    await click(connection, 'Configure locally');
+    check(text(connection).includes('Configured · unverified'), 'Configuration remains unverified');
+    await value(connection.querySelector('select'), 'failure');
+    await click(connection, 'Simulate verification');
+    await until(() => !!button(connection, 'Retry simulated verification'));
+    check(connection.querySelector('input').value === 'Sandbox', 'Failed verification retains fields');
+    await value(connection.querySelector('select'), 'success');
+    await click(connection, 'Retry simulated verification');
+    await until(() => text(connection).includes('Last confirmed synthetic event:'));
+    await value(connection.querySelector('input'), 'Edited sandbox');
+    check(text(connection).includes('historical demo evidence'), 'Edits invalidate current verification and retain history');
+
+    const investigation = document.getElementById('investigation');
+    await value(investigation.querySelector('select'), 'Measured zero');
+    check(investigation.querySelector('.t98-metric-value').textContent === '0', 'Measured zero is shown as zero');
+    await value(investigation.querySelector('select'), 'Unavailable');
+    check(investigation.querySelector('.t98-metric-value').textContent === 'Unavailable', 'Unknown measurement is not coerced to zero');
+    await value(investigation.querySelector('select'), 'Error');
+    await value(investigation.querySelector('input[type="date"]'), '2026-10-13');
+    await click(investigation, 'Retry local refresh');
+    await until(() => !button(investigation, 'Retry local refresh')?.disabled);
+    check(investigation.querySelector('.t98-metric-value').textContent === 'Unavailable', 'Failed refresh preserves prior unavailable result');
+    check(text(investigation).includes('Applied dates: 2026-10-12 to 2026-10-18'), 'Failed refresh preserves applied date range');
+    check(investigation.querySelector('input[type="date"]').value === '2026-10-13', 'Failed refresh preserves draft dates');
+    await value(investigation.querySelector('select'), 'Filtered empty');
+    check(text(investigation).includes('No pages match this search'), 'Filtered empty differs from absent observations');
+    await click(investigation, 'Clear search');
+    check(!!investigation.querySelector('table'), 'Clearing search recovers the result');
+
+    const mutation = document.getElementById('mutation');
+    await value(mutation.querySelector('select'), 'unknown');
+    await click(mutation, 'Review change'); await click(mutation, 'Cancel');
+    check(mutation.querySelector('input').value.includes('Operations'), 'Cancel preserves draft');
+    await click(mutation, 'Review change'); await click(mutation, 'Confirm rename');
+    check(button(mutation, 'Simulate response') === document.activeElement, 'Confirmation restores focus to the next action');
+    await click(mutation, 'Simulate response');
+    check(!button(mutation, 'Review retry'), 'Unknown outcome has no blind retry');
+    await click(mutation, 'Simulate reconciliation');
+    check(!button(mutation, 'Review retry') && text(mutation).includes('inconclusive'), 'Inconclusive reconciliation stays blocked');
+    await value(mutation.querySelectorAll('select')[1], 'not-applied');
+    await click(mutation, 'Simulate reconciliation');
+    check(!!button(mutation, 'Review retry'), 'Confirmed not-applied permits reviewed retry');
+    await value(mutation.querySelector('select'), 'confirmed');
+    await click(mutation, 'Review retry'); await click(mutation, 'Confirm rename'); await click(mutation, 'Simulate response');
+    check(text(mutation).includes('Rename confirmed in this demo'), 'Only confirmed outcome presents success');
+    result.textContent = 'PASS: connection validation/verification/history; zero/unavailable/draft retention; review/cancel/unknown/reconcile/retry.';
+  } catch (error) { result.textContent = `FAIL: ${error.message}`; }
+  finally { run.disabled = false; }
+};
+</script></html>

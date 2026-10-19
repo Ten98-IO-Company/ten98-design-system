@@ -45,3 +45,5 @@ Keep product-specific layouts and overrides in each application's stylesheet. Ne
 6. Run each application's required type, test and build checks, then verify its actual navigation, forms, pending states and responsive screens. Library checks alone do not establish consumer correctness.
 
 See [VALIDATION.md](VALIDATION.md) for recorded release evidence. Do not infer production service coverage from the catalogue's sample data.
+
+Patch 0.2.2 hides visible scrollbar tracks/thumbs in both shared sidebar APIs while retaining native scrolling and keyboard access. It includes the 0.2.1 ResourceCard wrapping fix. Adoption remains an explicit app-owned dependency update; existing archives are unchanged.
