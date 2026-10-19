@@ -1,6 +1,6 @@
 # Component, flow and template design review
 
-Reviewed on 19 October 2026. The exhaustive baseline is version 0.3.4; the initial remediation is version 0.3.5, followed by the documented 0.3.6–0.3.9 corrections below. Campaign's existing logo, icons, purple accent and login composition remain the brand reference. English LTR is the required layout.
+Reviewed on 19 October 2026. The exhaustive baseline is version 0.3.4; the initial remediation is version 0.3.5, followed by the documented 0.3.6–0.3.10 corrections below. Campaign's existing logo, icons, purple accent and login composition remain the brand reference. English LTR is the required layout.
 
 The system's strongest quality is its truthful state handling. It distinguishes a measured zero from missing data, a draft from applied scope, accepted work from delivery, and an uncertain outcome from a failed request. The largest design weaknesses were inconsistent theme surfaces, cramped results, and catalogue previews that did not faithfully show the shipped components. Those are more consequential than adding visual decoration.
 
@@ -92,6 +92,8 @@ The new template-reference note also displaced the working preview below the fir
 An actual Campaign Settings capture widened a 320px document to 752px. Its direct grid column retained an automatic minimum around a correctly configured table scroller. One shared direct-child shrink guard preserves desktop tracks and keeps horizontal scrolling inside the table. The native-markup regression covers normal and actual doubled text, table contents/actions and native form values; restoring the old minimum reproduces overflow at both text sizes. The [frozen consumer recheck](consumer-screens.md#settings-and-exact-price-review--later-frozen-038-fixture) verifies the same guard in Campaign before package adoption. No new layout API is introduced.
 
 ## Evidence and verification
+
+The retained consumer gate found one more compatibility gap after the 0.3.9 alert repair: a custom widget heading replaced its native type-based region name. The optional standard `aria-label` in 0.3.10 keeps these independent without adding a region or changing the visible heading. Blank labels retain the original default. The catalogue includes the exact one-boundary example and copyable TSX; native/browser checks preserve the source, scope, zero, status and access rules. This is a concrete consumer contract, not a reason to alter the original assertion or add hidden labels.
 
 The detailed reports retain baseline observations, including subsequently corrected findings. A delayed focus probe established that Back already restored focus correctly; opening the hidden detail was the actual gap. The final tests target that behavior. Tests distinguish visible focused sections from their child headings, and they use the real 19-status inventory rather than an invented count.
 

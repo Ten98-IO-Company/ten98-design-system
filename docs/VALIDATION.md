@@ -1,5 +1,15 @@
 # Release validation
 
+## Independent report names: 0.3.10
+
+ReportPanel adds an optional standard `aria-label`. A nonblank value supplies the region name without changing its visible heading or adding a second region; blank labels preserve the default output. All statuses, retained content, access/expiry, actions and error announcements remain unchanged. The catalogue adds one copyable state: **73 components, 406 states, 28 flows and 511 strict TSX examples**.
+
+Typecheck, catalogue/library build, **58 native checks** and all 511 standalone examples pass. Focused checks pass three native reporting tests and four browser cases; the old compiled implementation fails the new naming assertion. Independent source/oracle review found no actionable blockers.
+
+Browser acceptance is qualified: two complete frozen-source 158-case attempts each passed 157 cases, with different unrelated pages failing before mount. Both retained traces show Chromium `net::ERR_NO_BUFFER_SPACE` while loading a source module, rather than an executed flow failure. The serial attempt used one worker; assertions and timeouts were unchanged. Every original case has a passing result across those runs. One final bounded recheck of both affected tests in both projects passes **4/4**. Bulk retries stopped. **A clean monolithic `check:all` run is not claimed**; these records retain complete case coverage, the two host-resource failures and their passing isolated rechecks. Consumer acceptance remains separate.
+
+The immutable 0.3.10 candidate SHA256 is `A356965B7C0E19B718CB8C9334D1ACA3F67CB4C2ED97885295E8485C0841F280`: 321,489 bytes, 82 entries, 30 JavaScript/declaration files and 41 Markdown files. All modules match the validated build; only reporting.js and reporting.d.ts differ from 0.3.9. All nine CSS files match byte-for-byte. Version, MIT license, optional declaration, source-review links and image exclusion are verified. It is handed to Discover for the original native Boards gate; Campaign has no ReportPanel consumer and retains accepted 0.3.9. No earlier archive is replaced.
+
 ## Metric readability, error alerts and Settings reflow: 0.3.9
 
 The complete `npm run check:all` gate passes: **58 native checks, 510 strict standalone TSX examples and 156 Playwright cases**. Coverage remains 73 components, 405 states and 28 flows. Public APIs, declarations, app tokens and compatibility JavaScript remain unchanged.

@@ -45,6 +45,7 @@ export function EvidenceDetail({ label, title = label, scope, provenance, availa
 export type ReportPanelStatus = 'loading' | 'ready' | 'empty' | 'partial' | 'stale' | 'error' | 'forbidden' | 'expired';
 export interface ReportPanelProps {
   title: ReactNode;
+  'aria-label'?: string;
   scope: ReactNode;
   source: ReactNode;
   asOf: ReactNode;
@@ -64,11 +65,12 @@ const reportLabels: Record<ReportPanelStatus, string> = {
 };
 
 /** One widget boundary. App owns rendering, query state, authorization and recovery. */
-export function ReportPanel({ title, scope, source, asOf, status, reason, retainedContent = false, retainedContentLabel = 'Previously supplied content is shown; this refresh has not confirmed new data.', children, actions, retry, className }: ReportPanelProps) {
+export function ReportPanel({ title, 'aria-label': ariaLabel, scope, source, asOf, status, reason, retainedContent = false, retainedContentLabel = 'Previously supplied content is shown; this refresh has not confirmed new data.', children, actions, retry, className }: ReportPanelProps) {
   const id = useId();
+  const regionLabel = ariaLabel?.trim() || undefined;
   const retained = retainedContent && (status === 'loading' || status === 'error');
   const showContent = status === 'ready' || status === 'partial' || status === 'stale' || retained;
-  return <Card className={cx('t98-report-root', className)} title={<span id={`${id}-title`}>{title}</span>} role="region" aria-labelledby={`${id}-title`} aria-busy={status === 'loading' || undefined} data-status={status}>
+  return <Card className={cx('t98-report-root', className)} title={<span id={`${id}-title`}>{title}</span>} role="region" aria-label={regionLabel} aria-labelledby={regionLabel ? undefined : `${id}-title`} aria-busy={status === 'loading' || undefined} data-status={status}>
     <dl className="t98-report-context"><div><dt>Scope</dt><dd>{scope}</dd></div><div><dt>Source</dt><dd>{source}</dd></div><div><dt>As of</dt><dd>{asOf}</dd></div></dl>
     <div className="t98-report-status" role={status === 'error' ? 'alert' : 'status'}><Badge tone={status === 'error' ? 'danger' : status === 'ready' ? 'neutral' : 'warning'}>{reportLabels[status]}</Badge>{reason != null && <div className="t98-report-reason">{reason}</div>}</div>
     {retained && children != null && <p className="t98-report-retained">{retainedContentLabel}</p>}

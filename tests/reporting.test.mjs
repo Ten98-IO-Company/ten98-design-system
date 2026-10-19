@@ -23,21 +23,34 @@ test('evidence preserves cited/retrieved labels, renders text safely and suppres
 
 test('failed report keeps explicitly retained content and leaves sibling widgets useful without retry', () => {
   const base = { scope: 'Project A · UTC', source: 'Collector A', asOf: '19 October, 09:30 UTC' };
+  const named = { title: 'Visitor activity', scope: 'Demo website', source: 'Synthetic website analytics', asOf: 'Unknown', status: 'ready', children: '0 recorded pageviews' };
+  const defaultName = render(ReportPanel, named);
+  const override = render(ReportPanel, { ...named, 'aria-label': '  Visitors over time  ' });
+  assert.match(override, /role="region" aria-label="Visitors over time"/);
+  assert.doesNotMatch(override, /aria-labelledby=/);
+  assert.match(override, /<span id="[^"]+-title">Visitor activity<\/span>/);
+  assert.match(override, /Synthetic website analytics/);
+  assert.match(override, /0 recorded pageviews/);
+  assert.equal([...override.matchAll(/role="region"/g)].length, 1);
+  for (const label of ['', '   ', '\n\t']) assert.equal(render(ReportPanel, { ...named, 'aria-label': label }), defaultName);
   const html = renderToStaticMarkup(h('div', null,
-    h(ReportPanel, { ...base, title: 'Failed widget', status: 'error', retainedContent: true, retainedContentLabel: 'Retained snapshot from original query.', reason: 'Refresh failed.' }, '42 accepted events'),
+    h(ReportPanel, { ...base, title: 'Failed widget', 'aria-label': 'Failed widget region', status: 'error', retainedContent: true, retainedContentLabel: 'Retained snapshot from original query.', reason: 'Refresh failed.' }, '42 accepted events'),
     h(ReportPanel, { ...base, title: 'Useful sibling', status: 'ready' }, '12 accepted events')));
   assert.match(html, /Retained snapshot from original query/); assert.match(html, /42 accepted events/);
   assert.match(html, /Useful sibling/); assert.match(html, /12 accepted events/);
   assert.doesNotMatch(html, /<button|Retrying|All reports failed/);
   for (const status of ['loading', 'ready', 'empty', 'partial', 'stale', 'error', 'forbidden', 'expired']) {
-    const state = render(ReportPanel, { ...base, title: 'Widget status', status, reason: 'Status reason.' });
+    const state = render(ReportPanel, { ...base, title: 'Widget status', 'aria-label': 'Visitors over time', status, reason: 'Status reason.' });
+    assert.match(state, /role="region" aria-label="Visitors over time"/);
+    assert.doesNotMatch(state, /aria-labelledby=/);
+    assert.equal([...state.matchAll(/role="region"/g)].length, 1);
     assert.match(state, new RegExp(`class="t98-report-status" role="${status === 'error' ? 'alert' : 'status'}"`), status);
     assert.equal([...state.matchAll(/role="alert"/g)].length, status === 'error' ? 1 : 0, status);
     assert.equal([...state.matchAll(/role="status"/g)].length, status === 'error' ? 0 : 1, status);
     assert.match(state, /Status reason\./);
   }
   for (const status of ['error', 'loading', 'forbidden', 'expired', 'empty']) {
-    const hidden = render(ReportPanel, { ...base, title: 'Hidden payload', status, retainedContent: status === 'forbidden' || status === 'expired', children: 'Sensitive payload' });
+    const hidden = render(ReportPanel, { ...base, title: 'Hidden payload', 'aria-label': 'Visitors over time', status, retainedContent: status === 'forbidden' || status === 'expired', children: 'Sensitive payload' });
     assert.doesNotMatch(hidden, /Sensitive payload/);
   }
   for (const status of ['partial', 'stale']) {
