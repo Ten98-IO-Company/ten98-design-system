@@ -49,6 +49,7 @@ code,pre { font-family: var(--t98-mono); }
 .reference-page-heading > div { min-width: 0; }
 .reference-eyebrow { color: var(--t98-muted); text-transform: uppercase; font-size: 10px; letter-spacing: 1.4px; font-weight: 600; margin-bottom: 9px; }
 .reference-page-heading h1 { font-size: 29px; font-weight: 750; letter-spacing: -1.25px; line-height: 1.25; overflow-wrap: anywhere; }
+.reference-page-heading p,.reference-list { overflow-wrap: anywhere; }
 .reference-page-heading h1:focus { outline: none; }
 .reference-page-heading p:not(.reference-eyebrow) { color: var(--t98-muted); font-size: 13px; max-width: 720px; margin-top: 11px; }
 .reference-count { font-size: 11px; color: var(--t98-muted); white-space: nowrap; padding-top: 8px; }

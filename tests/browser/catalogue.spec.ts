@@ -1,4 +1,25 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
+
+async function doubleText(page: Page) {
+  // Snapshot first: changing a parent before measuring its child would compound inheritance.
+  const snapshots = await Promise.all(page.frames().map(frame => frame.evaluateHandle(() => {
+    const sizes = [...document.body.querySelectorAll('*')].filter((element): element is HTMLElement => element instanceof HTMLElement).map(element => {
+      const style = getComputedStyle(element);
+      return { element, original: element.style.cssText, size: parseFloat(style.fontSize), height: parseFloat(style.lineHeight) };
+    });
+    for (const { element, size, height } of sizes) {
+      element.style.setProperty('font-size', `${size * 2}px`, 'important');
+      if (Number.isFinite(height)) element.style.setProperty('line-height', `${height * 2}px`, 'important');
+    }
+    return sizes;
+  })));
+  return async () => {
+    for (const snapshot of snapshots) {
+      await snapshot.evaluate(sizes => { for (const { element, original } of sizes) element.style.cssText = original; });
+      await snapshot.dispose();
+    }
+  };
+}
 
 test('shared product controls preserve identity, drafts, evidence and native forms', async ({ page }) => {
   const errors: string[] = [];
@@ -28,8 +49,21 @@ test('every component state page renders without browser errors or page overflow
       await page.goto(`${prefix}${link.href}?tab=states`);
       await expect(page.locator('.reference-detail > header h1')).toHaveText(link.name);
       await expect(page.locator('.reference-state').first()).toBeVisible();
+      for (const frame of page.frames().filter(frame => frame !== page.mainFrame())) await expect(frame.locator('.specimen')).toBeVisible();
       expect(await page.locator('.reference-state').count()).toBeGreaterThan(0);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1), `${link.name} must contain horizontal overflow`).toBeTruthy();
+      if (info.project.name === 'narrow-dark') {
+        const heading = page.locator('.reference-detail > header h1');
+        const original = await heading.evaluate(element => parseFloat(getComputedStyle(element).fontSize));
+        const restore = await doubleText(page);
+        try {
+          expect(await heading.evaluate(element => parseFloat(getComputedStyle(element).fontSize))).toBeCloseTo(original * 2);
+          for (const frame of page.frames()) {
+            const fits = await frame.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1);
+            expect.soft(fits, `${link.name} must reflow at actual 200% text size`).toBeTruthy();
+          }
+        } finally { await restore(); }
+      }
     });
   }
   if (info.project.name === 'narrow-dark') {
@@ -51,6 +85,50 @@ test('templates, hierarchy and usage rules are keyboard accessible', async ({ pa
   await page.getByRole('tab', { name: 'Behavior and usage' }).click();
   await expect(page.getByRole('heading', { name: 'Read-only still permits inspection' })).toBeVisible();
   expect(await page.locator('main').getByRole('heading', { level: 1 }).count()).toBe(1);
+});
+
+test('open dialogs keep enlarged controls usable and return focus', async ({ page }, info) => {
+  const prefix = info.project.name === 'narrow-dark' ? '/?theme=dark' : '/';
+  for (const [id, name, close] of [['dialog', 'Open dialog', 'Done'], ['confirm-dialog', 'Open typed confirmation', 'Cancel']]) {
+    await page.goto(`${prefix}#components/${id}?tab=states`);
+    const trigger = page.getByRole('button', { name, exact: true });
+    await trigger.click();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toBeVisible();
+    const title = dialog.getByRole('heading');
+    const original = await title.evaluate(element => parseFloat(getComputedStyle(element).fontSize));
+    const restore = await doubleText(page);
+    try {
+      expect(await title.evaluate(element => parseFloat(getComputedStyle(element).fontSize))).toBeCloseTo(original * 2);
+      expect.soft(await dialog.evaluate(element => element.scrollWidth <= element.clientWidth + 1), `${id} contains enlarged controls`).toBeTruthy();
+      if (id === 'confirm-dialog') {
+        await expect(dialog.getByRole('button', { name: 'Confirm demo' })).toBeDisabled();
+        await dialog.getByLabel('Type REMOVE to confirm').fill('REMOVE');
+        await expect(dialog.getByRole('button', { name: 'Confirm demo' })).toBeEnabled();
+      }
+      await dialog.getByRole('button', { name: close, exact: true }).click();
+      await expect(trigger).toBeFocused();
+    } finally { await restore(); }
+  }
+});
+
+test('every reference flow reflows with visibly doubled text', async ({ page }, info) => {
+  test.setTimeout(120_000);
+  const prefix = info.project.name === 'narrow-dark' ? '/?theme=dark' : '/';
+  await page.goto(`${prefix}#flows`);
+  await expect(page.locator('.reference-component-card')).toHaveCount(28);
+  const links = await page.locator('.reference-component-card').evaluateAll(nodes => nodes.map(node => ({ href: node.getAttribute('href')!, name: node.querySelector('h2')!.textContent! })));
+  for (const link of links) await test.step(link.name, async () => {
+    await page.goto(`${prefix}${link.href}`);
+    const heading = page.locator('.reference-page-heading h1');
+    await expect(heading).toHaveText(link.name);
+    const original = await heading.evaluate(element => parseFloat(getComputedStyle(element).fontSize));
+    const restore = await doubleText(page);
+    try {
+      expect(await heading.evaluate(element => parseFloat(getComputedStyle(element).fontSize))).toBeCloseTo(original * 2);
+      expect.soft(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1), `${link.name} must reflow with doubled text`).toBeTruthy();
+    } finally { await restore(); }
+  });
 });
 
 test('flow discovery, copyable source and reference decisions are connected', async ({ page }, info) => {
@@ -85,9 +163,12 @@ test('navigation restores focus and keeps scrollbar tracks hidden', async ({ pag
 
 test('templates retain layout at 200 percent text zoom', async ({ page }, info) => {
   await page.goto(`${info.project.name === 'narrow-dark' ? '/?theme=dark' : '/'}#templates`);
-  // Text-only zoom exercises reflow independently of a smaller viewport.
-  await page.addStyleTag({ content: 'html { font-size: 200% !important }' });
   await page.getByRole('tab', { name: 'Component hierarchy' }).click();
+  const heading = page.getByRole('heading', { level: 1 });
+  const original = await heading.evaluate(element => parseFloat(getComputedStyle(element).fontSize));
+  const restore = await doubleText(page);
+  expect(await heading.evaluate(element => parseFloat(getComputedStyle(element).fontSize))).toBeCloseTo(original * 2);
   await expect(page.getByRole('heading', { name: '5. Application flows' })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)).toBeTruthy();
+  await restore();
 });

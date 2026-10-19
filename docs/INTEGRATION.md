@@ -1,5 +1,9 @@
 # Campaign and Discover integration
 
+## Text reflow patch: 0.3.1
+
+Version 0.3.1 preserves the 0.3.0 API and lets main-API Button labels wrap within their container at enlarged text sizes. It updates the catalogue's long description/list wrapping and installation snippet presentation. Existing application compatibility selectors remain unchanged. Both apps should pin the same new archive and preserve the earlier 0.3.0 archive. The browser gate now verifies actual computed text doubling, including open dialogs, every component state page and every reference flow.
+
 ## Additive product batch: 0.3.0
 
 Version 0.3.0 adds 28 typed presentation components and fixed templates. The public declarations in `dist/index.d.ts` and the linked module declarations are the exact contract. Named imports remain `import { AppliedFilters, EvidenceSummary } from '@ten98/ui'`; the established `@ten98/ui/app` exports retain their APIs.

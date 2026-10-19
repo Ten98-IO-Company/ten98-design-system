@@ -38,7 +38,7 @@ For each row: inspect real consumer contract → build or reuse typed presentati
 
 ## Confirmed invariants
 
-The shared UI/reference gate passed on 19 October 2026: 73 documented exports, 400 component state specimens, 28 complete flows (25 research IDs plus three cross-product recipes), 505 strict public TSX examples, 55 native checks and 88 Playwright cases. Required layouts are English left-to-right at desktop and narrow sizes; RTL is not required by the owner.
+The shared UI/reference gate passed for 0.3.1 on 19 October 2026: 73 documented exports, 400 component state specimens, 28 complete flows (25 research IDs plus three cross-product recipes), 505 strict public TSX examples, 55 native checks and 92 Playwright cases. Required layouts are English left-to-right at desktop and narrow sizes; RTL is not required by the owner.
 
 Immutable consumer batch: `ten98-ui-0.3.0.tgz`, SHA256 `F73229FC6B2C7E14348A1DC77709D60E7110756D8EA5B4DA30BE5047BA05033F`. Both active app owners verified and adopted the archive dependency. Their presentation adapters and application regression evidence remain separately tracked below; generic components are not forced over richer native behavior.
 
@@ -52,3 +52,7 @@ Current consumer evidence: Campaign integrated compact evidence into its provide
 - Discover retains applied-query/counting units, null-versus-zero, consent/capture isolation, measurement evidence, usage accounting and paused paid operations.
 - Draft, submitted, accepted, delivered and observed outcomes remain distinct. Unknown mutation outcomes require app-owned reconciliation before repeat.
 - Every released archive stays immutable; app integrations pin the same new archive and keep manifest/lockfile/vendor inputs together.
+
+The 0.3.1 patch verifies actual text doubling across all component state pages and every reference flow, including isolated previews and open dialogs. It fixes shared Button wrapping and catalogue long-text presentation, with no API change. Consumer owners are continuing bounded per-flow adoption; Discover accepted D5 AppliedFilters and D10 compact evidence with 901 native passes and its targeted browser groups, then started D2 and D15 adapters. Remaining candidate rows are not yet marked complete.
+
+Current handed-off patch: `ten98-ui-0.3.1.tgz`, SHA256 `9F41F5E616E525D70767EDCF138BF6131BC9BC14D86AEA45B8C3A0C3D9C73EB8`. All 30 JavaScript/declaration files match the earlier archive byte-for-byte. The previous archive remains available and unchanged; app owners schedule the CSS patch with their next accepted component batch.
