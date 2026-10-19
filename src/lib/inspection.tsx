@@ -64,8 +64,9 @@ export interface ReplayControlsProps {
   playbackRate: number;
   allowedRates: readonly number[];
   onRateChange: (rate: number) => void;
-  skipInactive: boolean;
-  onSkipInactiveChange: (skip: boolean) => void;
+  /** Omit when unsupported; a supplied preference is read-only without a callback. */
+  skipInactive?: boolean;
+  onSkipInactiveChange?: (skip: boolean) => void;
   fit?: string;
   fitOptions?: readonly ReplayFitOption[];
   onFitChange?: (value: string) => void;
@@ -109,7 +110,7 @@ export function ReplayControls({ label = 'Replay controls', context, playing, on
           {rates.map(rate => <option value={rate} key={rate}>{rate}×</option>)}
         </Select>
       </Field>
-      <Checkbox className="t98-replay-skip" label="Skip inactive periods" checked={skipInactive} disabled={blocked} aria-describedby={describedBy} onChange={event => onSkipInactiveChange(event.currentTarget.checked)} />
+      {skipInactive !== undefined && <Checkbox className="t98-replay-skip" label="Skip inactive periods" checked={skipInactive} disabled={blocked || !onSkipInactiveChange} aria-describedby={describedBy} onChange={event => onSkipInactiveChange?.(event.currentTarget.checked)} />}
       {fitOptions != null && <Field className="t98-replay-fit" label="Recording display fit" htmlFor={`${id}-fit`}>
         <Select value={knownFit ? fit : ''} disabled={blocked || !onFitChange || fitOptions.length === 0} aria-describedby={describedBy}
           onChange={event => { const next = event.currentTarget.value; if (!blocked && fitOptions.some(option => option.value === next)) onFitChange?.(next); }}>

@@ -176,3 +176,23 @@ test('templates retain layout at 200 percent text zoom', async ({ page }, info) 
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)).toBeTruthy();
   await restore();
 });
+
+test('replay controls expose only supported inactivity requests', async ({ page }) => {
+  await page.goto('/#components/replay-controls?tab=states');
+  const state = (name: string) => page.locator('.reference-state').filter({ has: page.getByRole('heading', { name, exact: true }) });
+  const unsupported = state('Unsupported inactivity skip');
+  await expect(unsupported.getByRole('checkbox', { name: 'Skip inactive periods' })).toHaveCount(0);
+  await unsupported.getByRole('button', { name: 'Play recording', exact: true }).click();
+  await expect(unsupported.getByRole('button', { name: 'Pause recording', exact: true })).toBeVisible();
+  await unsupported.getByRole('slider', { name: 'Seek recording', exact: true }).press('End');
+  await expect(unsupported.getByRole('slider', { name: 'Seek recording', exact: true })).toHaveValue('90');
+  await unsupported.getByLabel('Playback speed', { exact: true }).selectOption('2');
+  await expect(unsupported.getByLabel('Playback speed', { exact: true })).toHaveValue('2');
+  const readOnly = state('Read-only inactivity skip');
+  await expect(readOnly.getByRole('checkbox', { name: 'Skip inactive periods' })).toBeDisabled();
+  await expect(readOnly.getByRole('checkbox', { name: 'Skip inactive periods' })).not.toBeChecked();
+  await expect(readOnly.getByRole('button', { name: 'Play recording', exact: true })).toBeEnabled();
+  const editable = state('Paused').getByRole('checkbox', { name: 'Skip inactive periods' });
+  await editable.check();
+  await expect(editable).toBeChecked();
+});

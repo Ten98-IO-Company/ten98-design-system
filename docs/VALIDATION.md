@@ -1,5 +1,13 @@
 # Release validation
 
+## Consumer capability and disabled values: 0.3.3
+
+`npm run check:all` passes: 56 native tests, 507 strict public TSX examples and 108 Playwright cases. The catalogue now has 402 state specimens across the same 73 components and 28 reference flows. The new replay specimens cover an unsupported inactivity preference and a supported read-only preference. Browser checks verify omitted controls, retained play/seek/speed requests, disabled preferences and existing editable checkbox behavior. The native regression also covers both read-only boolean values and a callback without a preference.
+
+The compatibility input uses its semantic disabled-text role even when a consumer supplies an older muted-text override. The light role reuses the established muted palette color, preserving the field's previous contrast; dark keeps its existing disabled-text color. Browser checks measure at least 4.5:1 for these fixture values. Restoring the consumer's inherited purple foreground fails that same dark contrast check. Fresh independent review found no actionable defect in the optional API, copied examples, token change or regression checks. Native player execution and full app acceptance remain app-owned.
+
+The inspected immutable archive SHA256 is `587D396D36E6CD654A6E451F9EB778062267FEC2D96AF90AED6800F1AA8C3B25`. Of 30 emitted JavaScript/declaration files, only `inspection.js` and `inspection.d.ts` differ from 0.3.2. MIT license, version, optional declarations and disabled role CSS are verified. Both active app owners received this exact archive for adoption; prior archives remain unchanged.
+
 ## Existing application dark themes: 0.3.2
 
 The full `npm run check:all` gate passes: 55 native tests, 505 strict public TSX examples and 104 Playwright cases. The patch changes two established compatibility fills to existing semantic roles: the translucent topbar uses the surface token, and disabled field inputs use the disabled-surface token. Component APIs, JavaScript, declarations and authentication markup are unchanged.

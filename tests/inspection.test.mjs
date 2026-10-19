@@ -58,3 +58,25 @@ test('seek bounds and rate choices stay finite and positive without issuing call
     assert.doesNotMatch(invalid, /NaN|Infinity|max="-/);
   }
 });
+
+test('inactivity skipping is hidden when unsupported and readable without a change callback', () => {
+  const { skipInactive, onSkipInactiveChange, ...playback } = replay;
+  for (const props of [playback, { ...playback, onSkipInactiveChange }]) {
+    const html = render(ReplayControls, props);
+    assert.doesNotMatch(html, /Skip inactive periods|type="checkbox"|disabled=""/);
+    assert.match(html, /Play recording/);
+    assert.match(html, /type="range"/);
+    assert.match(html, /Playback speed/);
+  }
+  for (const skipInactive of [false, true]) {
+    const readonly = render(ReplayControls, { ...playback, skipInactive });
+    assert.match(readonly, /type="checkbox"[^>]*disabled=""/);
+    assert.match(readonly, /Skip inactive periods/);
+    assert.equal([...readonly.matchAll(/disabled=""/g)].length, 1);
+    assert.equal(/checked=""/.test(readonly), skipInactive);
+    const editable = render(ReplayControls, { ...replay, skipInactive });
+    assert.match(editable, /type="checkbox"/);
+    assert.doesNotMatch(editable, /disabled=""/);
+    assert.equal(/checked=""/.test(editable), skipInactive);
+  }
+});

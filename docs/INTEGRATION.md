@@ -1,5 +1,11 @@
 # Campaign and Discover integration
 
+## Replay capability and disabled text patch: 0.3.3
+
+`ReplayControls` accepts an optional `skipInactive` preference and callback. Omit the preference when the player does not support it. A supplied boolean without `onSkipInactiveChange` renders a disabled readable preference; supplying both retains the controlled interaction. Existing callers keep their behavior. Native player validation, isolated rendering, payload loading and millisecond/second conversion remain app-owned.
+
+Disabled compatibility inputs use the existing disabled-text role, so an app's older muted-text override cannot recolor their values. The light disabled-text role reuses the existing muted color to retain the previous field contrast; dark uses its established semantic value. Use `ten98-ui-0.3.3.tgz` from the [0.3.3 release](https://github.com/Ten98-IO-Company/ten98-design-system/releases/tag/v0.3.3) and retain earlier archives.
+
 ## Shared application theme patch: 0.3.2
 
 Version 0.3.2 makes the established `.topbar` and disabled `.field input` fills follow the existing semantic surface tokens in explicit and system themes. The header retains its translucent treatment. JavaScript, declarations, native field behavior and authentication markup are unchanged. Pin `ten98-ui-0.3.2.tgz` from the [0.3.2 release](https://github.com/Ten98-IO-Company/ten98-design-system/releases/tag/v0.3.2) using the [adoption steps](ADOPTION.md), and retain previous archives. Run the application's dark-theme checks after adoption; app-specific panels and controls remain owned by each app.

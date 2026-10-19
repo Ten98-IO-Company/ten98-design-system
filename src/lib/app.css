@@ -154,7 +154,7 @@ td strong{font-weight:550;color:var(--color-text-muted)}
 .field input,.field select,.field textarea{width:100%;background:var(--color-surface);border:1px solid #dfd6eb;border-radius:6px;min-height:var(--control-md);padding:10px 11px;font-size:13px;color:var(--color-text-muted);box-shadow:0 1px 2px #20152e02}
 .field input::placeholder,.field textarea::placeholder{color:var(--color-text-muted)}
 .field textarea{min-height:100px;resize:vertical;line-height:1.65}
-.field input:disabled{background:var(--color-disabled-surface)}
+.field input:disabled{background:var(--color-disabled-surface);color:var(--color-disabled-text)}
 .field-help{display:block;color:var(--color-text-muted);font-size:12px;line-height:1.7;margin:-7px 0 17px}
 .form-grid{display:grid;grid-template-columns:1fr 1fr;column-gap:17px}
 .field-label{display:block;font-size:13px;color:var(--color-text-muted);font-weight:550;margin-bottom:11px}

@@ -95,6 +95,18 @@ test('restoring the old fills reproduces both dark contrast failures', async ({ 
   expect(old.disabled).not.toEqual(old.disabledRole);
 });
 
+test('disabled values use their semantic text role despite a legacy muted override', async ({ page }) => {
+  await page.goto('/tests/legacy-theme.html?theme=dark');
+  await page.evaluate(() => document.documentElement.style.setProperty('--color-text-muted', '#695276'));
+  const rendered = await colors(page);
+  expect(rendered.disabledText.slice(0, 3)).toEqual([160, 173, 191]);
+  expect(contrast(rendered.disabledText, rendered.disabled)).toBeGreaterThanOrEqual(4.5);
+  // Negative control matches the consumer's inherited legacy foreground.
+  await page.locator('#disabled').evaluate(element => (element as HTMLInputElement).style.color = 'var(--color-text-muted)');
+  const inherited = await colors(page);
+  expect(contrast(inherited.disabledText, inherited.disabled)).toBeLessThan(4.5);
+});
+
 test('light geometry and authentication brand styling match the legacy baseline', async ({ page }) => {
   const appearance = async (baseline: boolean) => {
     await page.goto(`/tests/legacy-theme.html?theme=light${baseline ? '&baseline=1' : ''}`);

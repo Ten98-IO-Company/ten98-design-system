@@ -65,8 +65,8 @@ function visualCode(mode: VisualMode = 'aligned') {
 const [selected, setSelected] = useState('cart');`, ['useState']);
 }
 
-type ReplayMode = 'unloaded' | 'loading' | 'paused' | 'playing' | 'gaps' | 'ended' | 'error' | 'disabled';
-const replayModes: ReplayMode[] = ['unloaded', 'loading', 'paused', 'playing', 'gaps', 'ended', 'error', 'disabled'];
+type ReplayMode = 'unloaded' | 'loading' | 'paused' | 'playing' | 'gaps' | 'ended' | 'error' | 'disabled' | 'skip-unsupported' | 'skip-readonly';
+const replayModes: ReplayMode[] = ['unloaded', 'loading', 'paused', 'playing', 'gaps', 'ended', 'error', 'disabled', 'skip-unsupported', 'skip-readonly'];
 type ReplayFixture = Omit<ReplayControlsProps, 'onPlayingChange' | 'onSeek' | 'onRateChange' | 'onSkipInactiveChange' | 'onFitChange'>;
 const replayReasons: Record<ReplayMode, string> = {
   unloaded: 'No recording has been loaded. Use the application’s explicit Load recording action before enabling playback.',
@@ -77,6 +77,8 @@ const replayReasons: Record<ReplayMode, string> = {
   ended: 'The app reports the supplied end position. It owns whether a new play request restarts the recording.',
   error: 'The recording prefix could not be read. No playable timeline is available; the app owns retry and error recovery.',
   disabled: 'Playback interaction is disabled by the application. Existing timeline values remain readable.',
+  'skip-unsupported': 'This player does not support changing inactivity skipping. Omit the preference and callback to hide the control; playback, seeking and speed remain available.',
+  'skip-readonly': 'The app reports inactivity skipping is off and supplies no change callback. The disabled preference remains readable; playback, seeking and speed remain available.',
 };
 function replayFixture(mode: ReplayMode): ReplayFixture {
   return {
@@ -84,7 +86,7 @@ function replayFixture(mode: ReplayMode): ReplayFixture {
     context: 'Session demo-018 · example.test/checkout · captured 18 October 2026, 08:00 UTC · viewport 1280 × 720. The app owns masking, access, expiry and recording completeness.',
     playing: mode === 'playing', currentTime: mode === 'unloaded' || mode === 'loading' || mode === 'error' ? null : mode === 'ended' ? 90 : mode === 'gaps' ? 35 : 12,
     duration: mode === 'unloaded' || mode === 'loading' ? null : 90,
-    playbackRate: 1, allowedRates: [0.5, 1, 2], skipInactive: false,
+    playbackRate: 1, allowedRates: [0.5, 1, 2], skipInactive: mode === 'skip-unsupported' ? undefined : false,
     fit: 'viewer', fitOptions: [{ value: 'viewer', label: 'Fit viewer' }, { value: 'capture', label: 'Captured size' }],
     disabled: mode === 'disabled' || mode === 'error', loading: mode === 'loading', reason: replayReasons[mode],
   };
@@ -97,21 +99,21 @@ function ReplayDemo({ mode }: { mode: ReplayMode }) {
   const [skipInactive, setSkipInactive] = useState(props.skipInactive);
   const [fit, setFit] = useState(props.fit);
   return <><ReplayControls {...props} playing={playing} onPlayingChange={setPlaying} currentTime={currentTime} onSeek={setCurrentTime}
-    playbackRate={playbackRate} onRateChange={setPlaybackRate} skipInactive={skipInactive} onSkipInactiveChange={setSkipInactive}
+    playbackRate={playbackRate} onRateChange={setPlaybackRate} skipInactive={skipInactive} onSkipInactiveChange={mode === 'skip-unsupported' || mode === 'skip-readonly' ? undefined : setSkipInactive}
     fit={fit} onFitChange={setFit} />
     <p>Changing controls updates local demonstration values. No recording is loaded or played.</p></>;
 }
 function replayCode(mode: ReplayMode = 'paused') {
+  const editableSkip = mode !== 'skip-unsupported' && mode !== 'skip-readonly';
   return tsx(['ReplayControls', 'type ReplayControlsProps'], `<>
   <ReplayControls {...props} playing={playing} onPlayingChange={setPlaying} currentTime={currentTime} onSeek={setCurrentTime}
-    playbackRate={playbackRate} onRateChange={setPlaybackRate} skipInactive={skipInactive} onSkipInactiveChange={setSkipInactive}
+    playbackRate={playbackRate} onRateChange={setPlaybackRate}${editableSkip ? ' skipInactive={skipInactive} onSkipInactiveChange={setSkipInactive}' : ''}
     fit={fit} onFitChange={setFit} />
   <p>Changing controls updates local demonstration values. No recording is loaded or played.</p>
 </>`, `const props: Omit<ReplayControlsProps, 'onPlayingChange' | 'onSeek' | 'onRateChange' | 'onSkipInactiveChange' | 'onFitChange'> = ${JSON.stringify(replayFixture(mode), null, 2)};
 const [playing, setPlaying] = useState(props.playing);
 const [currentTime, setCurrentTime] = useState(props.currentTime);
-const [playbackRate, setPlaybackRate] = useState(props.playbackRate);
-const [skipInactive, setSkipInactive] = useState(props.skipInactive);
+const [playbackRate, setPlaybackRate] = useState(props.playbackRate);${editableSkip ? '\nconst [skipInactive, setSkipInactive] = useState(props.skipInactive);' : ''}
 const [fit, setFit] = useState(props.fit);`, ['useState']);
 }
 
@@ -127,11 +129,11 @@ export const inspectionEntries: ComponentEntry[] = [
   },
   {
     name: 'ReplayControls', category: 'Controls', description: 'Controlled native play/pause, finite seek, speed, inactivity skip and optional display-fit requests around an app-owned replay player.',
-    usage: 'Use for Discover D8 only after the app explicitly loads authorized replay evidence. Null, non-finite or invalid timelines disable requests; unloaded values are labelled unavailable, never represented as an observed zero. The range thumb is bounded to a finite nonnegative duration. The app owns playback, loaded payloads, gap semantics, consent, masking, retention and controller error handling. No timer, seek-on-render or automatic download runs.',
-    props: [prop('label / context', 'string / ReactNode', 'Accessible/visible heading (default Replay controls) and optional app-supplied session/scope/expiry context.'), prop('playing / onPlayingChange', 'boolean / (playing: boolean) => void', 'Controlled play state and requested next state. No player or restart behavior is implemented.', true), prop('currentTime / duration', 'number | null', 'Elapsed and duration seconds. Null/non-finite/negative values disable controls; zero duration is unplayable.', true), prop('onSeek', '(seconds: number) => void', 'Requests a finite seek between zero and supplied duration; never called during render.', true), prop('timeLabel', 'string', 'Optional already formatted elapsed/duration label for output and seek aria-valuetext.'), prop('playbackRate / allowedRates / onRateChange', 'number / readonly number[] / (rate: number) => void', 'Controlled speed and app-authorized choices. Only distinct finite positive choices render and can be requested.', true), prop('skipInactive / onSkipInactiveChange', 'boolean / (skip: boolean) => void', 'Controlled inactivity preference; does not infer gaps or reconstruct missing capture.', true), prop('fit / fitOptions / onFitChange', 'string / readonly ReplayFitOption[] / (value: string) => void', 'Optional app-defined display-fit values and labels. Fit select is read-only without a callback.'), prop('disabled / loading', 'boolean', 'Disable every playback request; loading also marks the section busy.'), prop('reason', 'ReactNode', 'Visible app-owned explanation for loading, gaps, expiry, error or restricted access, associated with controls.'), prop('className', 'string', 'Additional class on the replay section.')],
+    usage: 'Use for Discover D8 only after the app explicitly loads authorized replay evidence. Null, non-finite or invalid timelines disable requests; unloaded values are labelled unavailable, never represented as an observed zero. The range thumb is bounded to a finite nonnegative duration. Omit skipInactive when the player does not support the preference; provide a boolean without onSkipInactiveChange to show a disabled readable preference. The app owns playback, loaded payloads, gap semantics, consent, masking, retention and controller error handling. No timer, seek-on-render or automatic download runs.',
+    props: [prop('label / context', 'string / ReactNode', 'Accessible/visible heading (default Replay controls) and optional app-supplied session/scope/expiry context.'), prop('playing / onPlayingChange', 'boolean / (playing: boolean) => void', 'Controlled play state and requested next state. No player or restart behavior is implemented.', true), prop('currentTime / duration', 'number | null', 'Elapsed and duration seconds. Null/non-finite/negative values disable controls; zero duration is unplayable.', true), prop('onSeek', '(seconds: number) => void', 'Requests a finite seek between zero and supplied duration; never called during render.', true), prop('timeLabel', 'string', 'Optional already formatted elapsed/duration label for output and seek aria-valuetext.'), prop('playbackRate / allowedRates / onRateChange', 'number / readonly number[] / (rate: number) => void', 'Controlled speed and app-authorized choices. Only distinct finite positive choices render and can be requested.', true), prop('skipInactive / onSkipInactiveChange', 'boolean / (skip: boolean) => void', 'Optional inactivity preference: undefined hides the control; a boolean without a callback shows it disabled; both enable controlled requests. Does not infer gaps or reconstruct missing capture.'), prop('fit / fitOptions / onFitChange', 'string / readonly ReplayFitOption[] / (value: string) => void', 'Optional app-defined display-fit values and labels. Fit select is read-only without a callback.'), prop('disabled / loading', 'boolean', 'Disable every playback request; loading also marks the section busy.'), prop('reason', 'ReactNode', 'Visible app-owned explanation for loading, gaps, expiry, error or restricted access, associated with controls.'), prop('className', 'string', 'Additional class on the replay section.')],
     tokens: [...surfaceTokens, ...controlTokens],
     accessibility: ['Native named Play recording/Pause recording buttons, range input, selects and checkbox support platform keyboard interaction.', 'Seek, speed and fit have explicit labels and stable per-instance ids. Seek exposes elapsed/duration as text; elapsed output is not a noisy live region.', 'Unavailable time remains explicit text. Disabled or unloaded controls cannot request playback, seek, rate, skip or fit through user interaction.', 'Controls and labels wrap on narrow screens. Gap/access/error reasons remain readable and associated through aria-describedby.'],
     related: ['VisualEvidenceFrame', 'EvidenceSummary', 'Button', 'Select', 'Checkbox'], example: replayCode(),
-    states: replayModes.map(mode => ({ name: mode === 'gaps' ? 'Capture gaps' : mode === 'error' ? 'Unavailable prefix / error' : mode[0].toUpperCase() + mode.slice(1), description: replayReasons[mode], preview: <ReplayDemo mode={mode} />, code: replayCode(mode) })),
+    states: replayModes.map(mode => ({ name: mode === 'gaps' ? 'Capture gaps' : mode === 'error' ? 'Unavailable prefix / error' : mode === 'skip-unsupported' ? 'Unsupported inactivity skip' : mode === 'skip-readonly' ? 'Read-only inactivity skip' : mode[0].toUpperCase() + mode.slice(1), description: replayReasons[mode], preview: <ReplayDemo mode={mode} />, code: replayCode(mode) })),
   },
 ];

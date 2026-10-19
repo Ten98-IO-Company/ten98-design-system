@@ -17,7 +17,7 @@ Campaign's current logo, icons and login remain the visual baseline. Competitors
 
 ## Implementation status
 
-All six report sets are complete, with 18 evidence/flow/recommendation documents. Their source limitations and unaccepted feature suggestions remain recorded in each report. Three shared flow compositions are implemented as local catalogue references using current exports: connection verification, data investigation and change review/reconciliation. They do not approve new product capabilities. Specialized editors, canvases and domain features remain proposed until their use case and data contract are agreed.
+All six report sets are complete, with 18 evidence/flow/recommendation documents. Their source limitations and unaccepted feature suggestions remain recorded in each report. Shared Campaign C1–C8 and Discover D1–D17 presentation components and reference flows are implemented alongside the three cross-product recipes. See the [completion ledger](../CAMPAIGN-DISCOVER-COMPLETION.md) for library checks and separately tracked consumer acceptance. Reference examples do not approve new product capabilities. Specialized editors, canvases and domain features require their actual use case and data contract.
 
 
 ## Selected references for the next concrete design
