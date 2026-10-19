@@ -2,6 +2,8 @@
 
 `@ten98/ui` is the shared React and TypeScript foundation for ten98 internal tools. It brings the suite's branding, controls, application layouts and recurring work patterns into one installable library, with a working component catalogue alongside it.
 
+The system is modular: canonical design tokens feed small typed components, which compose into reusable patterns. Use named imports such as `import { Button, Card, Alert } from '@ten98/ui'`; routing, data and business behavior stay in the application. New shared UI is designed, built and validated in this project, then integrated by each consuming app.
+
 The starting point is the existing Campaign and Discover interface: a purple accent, quiet surfaces, compact application navigation and clear information hierarchy. This repository does not implement the applications' authentication services, campaign engines, workflow runtimes, building controls, hypervisors or telephony servers.
 
 ## Run the catalogue
