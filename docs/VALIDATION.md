@@ -1,5 +1,13 @@
 # Release validation
 
+## Legacy action and navigation themes: 0.3.7
+
+The full `npm run check:all` gate passes: 58 native checks, 510 strict standalone TSX examples and 146 Playwright cases. Coverage remains 73 components, 405 states and 28 flows. This CSS-only correction applies existing semantic text, control-border, subtle-surface, danger and accent roles to compatibility action/navigation states. Geometry, primary/disabled behavior, component APIs and JavaScript are unchanged.
+
+The existing explicit/system theme matrix now measures normal and hovered `.button`/`.btn` actions, primary and danger controls, unselected/selected navigation and counts. It waits for finite CSS transitions before reading actual colors, verifies at least 4.5:1 text contrast, and retains disabled behavior. Restoring the original pale fills independently reproduces selected/count/danger/action-hover/navigation-hover failures. The focused 14-case gate and full suite pass; independent source/oracle review found no actionable problem. These shared checks do not override later application styles. Campaign separately reconciles fixed native foreground overrides observed in its actual browser capture; consumer adoption and re-capture are separate acceptance steps.
+
+The inspected immutable archive SHA256 is `60D92B668DF7DD04AE3FDD060C553A1080B532FC85773B6078FAA77BEBC307FA`, with 80 entries and a size of 298,144 bytes. All 30 emitted JavaScript/declaration files are byte-identical to 0.3.6. Version, MIT license, semantic action/navigation CSS, 39 Markdown files and image exclusion are verified. Earlier archives remain unchanged.
+
 ## Controlled multiline fields: 0.3.6
 
 The complete `npm run check:all` gate passed: 58 native checks, 510 strict standalone TSX examples and 146 Playwright cases. The catalogue has 73 components, 405 states and 28 flows. Literal multiline fields accept native textarea props with correctly typed textarea events; the previous input/dynamic-boolean signature remains available. The input branch is unchanged. Multiline forwarding preserves controlled value/change, read-only state, ID, ARIA and sizing while omitting input-only attributes. Existing uncontrolled drafts and native validation/submission remain intact.

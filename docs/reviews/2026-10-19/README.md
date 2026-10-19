@@ -62,6 +62,10 @@ Further current captures show [readable send-review headers](images/remediation/
 
 Campaign's actual article editor exposed the documented multiline adapter limitation as a consequential mismatch: typing changed the native textarea but did not reach controller review, and asynchronous content did not prefill. The 0.3.6 correction forwards native textarea props with a compatible typed overload, preserves uncontrolled defaults and omits input-only attributes. New controlled/read-only states and an async-prefill/type/review browser fixture cover the shared contract. Actual article-saving acceptance remains with Campaign; 0.3.5 is immutable.
 
+### Action and navigation follow-up: 0.3.7
+
+The actual 0.3.6 Campaign re-capture confirmed calendar and workspace-switcher improvements, then exposed enabled secondary buttons with fixed app-local dark text and selected navigation with a fixed shared pale background. These are distinct ownership problems. The shared 0.3.7 patch uses existing roles for action and navigation states; Campaign separately reconciles its later fixed-color overrides. The theme matrix now checks actual normal/hover/selected/danger/primary/count contrast, waits for finite transitions and reproduces the old-fill failures. No geometry, API or JavaScript changes are involved. Final consumer captures and acceptance remain separate from the shared gate.
+
 ## Evidence and verification
 
 The detailed reports retain baseline observations, including subsequently corrected findings. A delayed focus probe established that Back already restored focus correctly; opening the hidden detail was the actual gap. The final tests target that behavior. Tests distinguish visible focused sections from their child headings, and they use the real 19-status inventory rather than an invented count.

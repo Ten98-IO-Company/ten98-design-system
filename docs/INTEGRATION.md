@@ -1,5 +1,11 @@
 # Campaign and Discover integration
 
+## Legacy action and navigation colors: 0.3.7
+
+Existing `.button`/`.btn` controls use the primary text and control-border roles; hover uses the subtle surface. Danger actions use the danger pair. Navigation hover, selection and counts use the existing accent pair. Geometry, primary/disabled behavior, JavaScript, declarations and APIs are unchanged.
+
+When adopting, remove redundant application color overrides that replace these shared roles with fixed light-theme colors. Check visible native shell text and enabled actions in light/dark, normal/hover/selected states. Preserve intentional paired avatar and visualization colors where appropriate. An installed package cannot correct an application stylesheet that overrides it later.
+
 ## Controlled multiline correction: 0.3.6
 
 `AppField` now forwards controlled textarea values and native change handlers, read-only state, identity, ARIA descriptions and textarea sizing. An asynchronous response can populate a controlled field, and user edits reach the controller used by review and persistence. Existing uncontrolled `defaultValue` callers retain their native drafts; later default metadata does not overwrite edits. The app still owns review invalidation and saving.

@@ -41,6 +41,10 @@ async function colors(page: Page) {
       workspaceMeta: color(style('.workspace-switch small').color),
       avatar: color(style('.workspace-avatar').backgroundColor),
       avatarText: color(style('.workspace-avatar').color),
+      actions: Object.fromEntries(['secondary', 'secondary-alias', 'primary', 'danger', 'disabled-action', 'nav-normal', 'nav-selected', 'nav-count'].map(id => {
+        const action = style(`#${id}`);
+        return [id, { text: color(action.color), fill: color(action.backgroundColor), opacity: action.opacity }];
+      })),
       subtleRole: color(root.getPropertyValue('--t98-subtle')),
       surface: color(root.getPropertyValue('--t98-surface')),
       disabledRole: color(root.getPropertyValue('--t98-disabled-surface')),
@@ -53,7 +57,7 @@ for (const [theme, system, expected] of [
   ['light', 'dark', 'light'], ['dark', 'light', 'dark'],
   ['system', 'light', 'light'], ['system', 'dark', 'dark'],
 ] as const) {
-  test(`legacy header and native fields follow ${theme} theme with ${system} system`, async ({ page }) => {
+  test(`legacy surfaces, actions and native fields follow ${theme} theme with ${system} system`, async ({ page }) => {
     await page.emulateMedia({ colorScheme: system });
     await page.goto(`/tests/legacy-theme.html?theme=${theme}`);
     const rendered = await colors(page);
@@ -76,6 +80,18 @@ for (const [theme, system, expected] of [
     expect(contrast(rendered.workspaceText, rendered.workspace)).toBeGreaterThanOrEqual(4.5);
     expect(contrast(rendered.workspaceMeta, rendered.workspace)).toBeGreaterThanOrEqual(4.5);
     expect(contrast(rendered.avatarText, rendered.avatar)).toBeGreaterThanOrEqual(4.5);
+    for (const id of ['secondary', 'secondary-alias', 'primary', 'danger', 'nav-normal', 'nav-selected', 'nav-count']) {
+      const action = rendered.actions[id];
+      expect(contrast(action.text, composite(action.fill, rendered.canvas)), `${id} normal text`).toBeGreaterThanOrEqual(4.5);
+    }
+    for (const id of ['secondary', 'secondary-alias', 'primary', 'danger', 'nav-normal', 'nav-selected']) {
+      await page.locator(`#${id}`).hover();
+      await page.locator(`#${id}`).evaluate(element => Promise.all(element.getAnimations().map(animation => animation.finished)));
+      const hovered = await colors(page), action = hovered.actions[id];
+      expect(contrast(action.text, composite(action.fill, hovered.canvas)), `${id} hovered text`).toBeGreaterThanOrEqual(4.5);
+    }
+    await expect(page.locator('#disabled-action')).toBeDisabled();
+    expect(rendered.actions['disabled-action'].opacity).toBe('0.48');
     await page.getByLabel('Workspace', { exact: true }).selectOption('research');
     await expect(page.locator('#workspace-choice')).toHaveValue('research');
     await expect(page.locator('#disabled')).toBeDisabled();
@@ -98,7 +114,7 @@ for (const [theme, system, expected] of [
   });
 }
 
-test('restoring the old fills reproduces dark header, field and workspace contrast failures', async ({ page }) => {
+test('restoring the old fills reproduces dark surface, action and navigation contrast failures', async ({ page }) => {
   await page.goto('/tests/legacy-theme.html?theme=dark&baseline=1');
   const old = await colors(page);
   expect(old.header[3]).toBeCloseTo(0.851, 2);
@@ -107,6 +123,16 @@ test('restoring the old fills reproduces dark header, field and workspace contra
   expect(old.disabled).not.toEqual(old.disabledRole);
   expect(contrast(old.workspaceText, old.workspace)).toBeLessThan(4.5);
   expect(contrast(old.avatarText, old.avatar)).toBeLessThan(4.5);
+  for (const id of ['nav-selected', 'nav-count', 'danger']) {
+    const action = old.actions[id];
+    expect(contrast(action.text, composite(action.fill, old.canvas)), `${id} old fill`).toBeLessThan(4.5);
+  }
+  for (const id of ['secondary', 'secondary-alias', 'nav-normal']) {
+    await page.locator(`#${id}`).hover();
+    await page.locator(`#${id}`).evaluate(element => Promise.all(element.getAnimations().map(animation => animation.finished)));
+    const hovered = await colors(page), action = hovered.actions[id];
+    expect(contrast(action.text, composite(action.fill, hovered.canvas)), `${id} old hover fill`).toBeLessThan(4.5);
+  }
 });
 
 test('disabled values use their semantic text role despite a legacy muted override', async ({ page }) => {
