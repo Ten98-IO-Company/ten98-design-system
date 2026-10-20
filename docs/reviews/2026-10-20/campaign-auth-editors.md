@@ -29,9 +29,11 @@ The computed scan retains **56 unsupported paint records: 20 from queues and 36 
 
 ## Selected exact screenshots
 
+The dark 320px sign-in image uses the byte-identical earlier file. Original capture names and hashes remain in the receipt; the [unaltered originals](https://github.com/Ten98-IO-Company/ten98-code-system/releases/tag/archive-2026-10-20) preserve the complete evidence before deduplication.
+
 | Native composition | Actual published capture | Observation |
 | --- | --- | --- |
-| Sign-in | [Light desktop](images/campaign-auth-editors/signin-light-1440.png), [dark 320px](images/campaign-auth-editors/signin-dark-320.png) | Existing Campaign mark, story/form composition and native controls retained. |
+| Sign-in | [Light desktop](images/campaign-auth-editors/signin-light-1440.png), [dark 320px](../2026-10-19/images/consumer/campaign-login-dark-after-320-0.3.11.png) | Existing Campaign mark, story/form composition and native controls retained. |
 | Owner setup | [Dark 320px](images/campaign-auth-editors/owner-setup-dark-320.png) | Native setup fields and guidance stay visible. |
 | No project access | [Dark 320px](images/campaign-auth-editors/no-project-local-dark-320.png) | Workspace creation, refresh/sign-out and account alternatives remain available. |
 | Invitation rejection | [Dark 320px](images/campaign-auth-editors/invitation-accept-401-dark-320.png) | Invited identity, sign-in recovery and full diagnostic remain readable. |

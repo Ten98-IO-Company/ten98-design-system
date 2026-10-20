@@ -1,5 +1,7 @@
 # Campaign and Discover UI completion ledger
 
+Historical package filenames below identify the original review generations. Their exact bytes and document snapshots are preserved in the [ten98 archive release](https://github.com/Ten98-IO-Company/ten98-code-system/releases/tag/archive-2026-10-20); application folders retain only their current manifest pins. Bug and task status belongs in the [shared GitHub Project](https://github.com/orgs/Ten98-IO-Company/projects/1).
+
 This ledger tracks shared UI/reference acceptance and the separate integration decisions for Campaign C1–C8 and Discover D1–D17. App owners retain controllers, persistence, permissions and behavior; a catalogue preview does not enable new backend features or authorize provider operations.
 
 ## Feature layout correction — 20 October 2026
