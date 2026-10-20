@@ -15,3 +15,4 @@ export * from './reporting.js';
 export * from './inspection.js';
 export * from './sidebar.js';
 export * from './account-menu.js';
+export * from './structure.js';

@@ -112,35 +112,18 @@ The library does not install TanStack Router, Start, Query or Table into a consu
 
 Theme values are `light`, `dark` and `system`. `system` follows the browser's color-scheme preference. Density values are `comfortable` and `compact`; compact suits information-heavy desktop work. Keep comfortable spacing for touch-oriented tasks and forms. The consuming app owns storing the user's preference and rendering the chosen attributes consistently across server and client.
 
-Use semantic variables when adding a product-specific surface:
-
-```css
-.project-note {
-  color: var(--t98-text);
-  background: var(--t98-surface);
-  border: 1px solid var(--t98-border);
-  border-radius: var(--t98-radius);
-  padding: var(--t98-space-4);
-  font-family: var(--t98-font);
-}
-```
-
-Typed references resolve to CSS variables rather than fixed colors:
-
-```tsx
-import { tokens } from '@ten98/ui/tokens';
-
-export function ProjectNote() {
-  return <p style={{ color: tokens.color.muted }}>Last checked a moment ago.</p>;
-}
-```
+Applications do not add their own surfaces, CSS or inline styles. When a screen needs something the library lacks, add it here as a component, flow section or template, release a version, and import it. The typed `tokens` export exists for library code and charts that need a CSS variable reference in JavaScript, not for styling app elements.
 
 Keep the standard accent across products. Differentiate products through their name, icon and task navigation. Use semantic success, warning, danger and information colors for meaning. A local override must be checked in both themes, interaction states and forced-colors mode.
+
+## Applications write no elements
+
+`@ten98/ui` is the only place frontend elements are authored. Application source composes library components, flow sections and templates and never renders raw JSX elements (`div`, `button`, `svg`…), passes `className` or `style`, or imports its own stylesheets. Layout and text come from `Stack`, `Inline`, `Grid`, `FormGrid`, `FormActions`, `FeatureControls`, `Text`, `Heading`, `Link`, `Image`, `List` and `DescriptionList`; router links pass the router's link component to `Link`. The `@ten98/runtime` architecture check enforces this in each app's `test` and `build` scripts, with a per-app baseline that can only go down until it reaches zero.
 
 ## Incremental migration
 
 1. Build and install a fixed package version; import its CSS once.
-2. Replace local color, spacing and typography literals with `--t98-*` tokens.
+2. Replace local elements, `className`/`style` props and app CSS with library components, starting from the layout primitives (`Stack`, `Inline`, `Grid`, `Text`, `Heading`, `Link`) and the gaps listed for the app.
 3. Adopt the shared shell and page hierarchy without changing the app's route behavior.
 4. Replace repeated controls and states one screen at a time.
 5. Adopt table, settings, integration and activity patterns where they fit real flows.

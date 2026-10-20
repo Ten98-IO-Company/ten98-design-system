@@ -10,7 +10,7 @@ This is the public component inventory for `@ten98/ui`. Import React components 
 | `Badge` | `tone`, `dot`, children; span attributes | Status text with optional decorative dot. Include meaningful text. |
 | `Avatar` | `name`, `size`; span attributes | Initials with an accessible name; does not fetch images. |
 | `Icon` | `name`, `size`, `title`; SVG attributes | Bundled stroke icons. Decorative by default; use `title` for a meaningful standalone image and label icon-only buttons. |
-| `Card` | `title?`, `description?`, `actions?`, children; div attributes | Panel with optional header and a 16px gap between direct content children. Its built-in title is an `h3`; consider the screen's heading hierarchy. Group buttons in `t98-form-actions`, fields in `t98-form-grid`. |
+| `Card` | `title?`, `description?`, `actions?`, children; div attributes | Panel with optional header and a 16px gap between direct content children. Its built-in title is an `h3`; consider the screen's heading hierarchy. Group buttons in `FormActions`, fields in `FormGrid`. |
 | `Input` | Native input attributes and ref | Styled input; choose its native `type`, constraints and controlled/uncontrolled state. |
 | `Textarea` | Native textarea attributes and ref | Resizable multiline input; default four rows. |
 | `Select` | Native select attributes and ref; option children | Browser-native select. Searchable combobox and multiselect behavior are not included. |
@@ -31,25 +31,44 @@ This is the public component inventory for `@ten98/ui`. Import React components 
 
 `cx(...values)` joins truthy class names. Exported types include `IconName`, `ButtonProps`, `CardProps`, `TabItem`, `DialogProps`, `Tone`, `Theme` and `Density`.
 
+## Layout and text primitives
+
+Applications compose every screen from these instead of writing elements, `className` or `style`. Spacing, size and tone props accept token steps only.
+
+| Component | Main props | Behavior |
+| --- | --- | --- |
+| `Stack` | `as?`, `gap?` (0–16 token step, default 4), `align?`; native form/fieldset attributes | Vertical rhythm. `as="form"` keeps `action`/`method`; direct buttons and badges keep their intrinsic width. |
+| `Inline` | `as?`, `gap?` (default 2), `align?`, `justify?`, `wrap?` | Wrapping horizontal run for toolbars, badges and metadata. |
+| `Grid` | `as?`, `gap?`, `columns?` (1–6 or `auto`), `minItemWidth?` | Responsive columns; fixed counts drop to two under 960px and one under 600px. |
+| `FormGrid`, `FormActions`, `FeatureControls` | div attributes | Field columns, the action row after them, and short report filters above full-width results. |
+| `Text` | `as?`, `size?`, `tone?`, `weight?`, `align?`, `mono?`, `numeric?`, `truncate?` | Body text, values and inline emphasis; `as="time"` takes `dateTime`. |
+| `Heading` | `level` (required), `size?` | Outline level is independent of visual size. |
+| `Link` | `href`, `variant?`, `target?`, `component?` | Navigation; pass a router link as `component`. New-tab links get `noopener noreferrer`. |
+| `Image` | `alt` (required), `fit?`, `aspect?`, `rounded?` | Lazy, async-decoded responsive image. |
+| `List`, `ListItem` | `ordered?`, `gap?` | Prose lists with markers; use `Stack as="ul"` for unmarked layout lists. |
+| `DescriptionList` | `items`, `columns?` | Native label/value pairs. |
+| `Option`, `OptionGroup` | native option/optgroup attributes | `Select` children. |
+| `VisuallyHidden` | `as?` | Screen-reader-only text. |
+
 ## A labelled form
 
 ```tsx
-import { Button, Field, Input, Select } from '@ten98/ui';
+import { Button, Field, FormActions, Input, Option, Select, Stack } from '@ten98/ui';
 
 export function ProjectForm() {
   return (
-    <form onSubmit={event => event.preventDefault()}>
+    <Stack as="form" onSubmit={event => event.preventDefault()}>
       <Field label="Project name" htmlFor="project-name" description="Visible to your workspace.">
         <Input name="name" required maxLength={120} />
       </Field>
       <Field label="Visibility" htmlFor="project-visibility">
         <Select name="visibility" defaultValue="workspace">
-          <option value="workspace">Workspace</option>
-          <option value="private">Private</option>
+          <Option value="workspace">Workspace</Option>
+          <Option value="private">Private</Option>
         </Select>
       </Field>
-      <Button type="submit" variant="primary">Create project</Button>
-    </form>
+      <FormActions><Button type="submit" variant="primary">Create project</Button></FormActions>
+    </Stack>
   );
 }
 ```

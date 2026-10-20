@@ -4,6 +4,7 @@ import { accountMenuEntries } from './account-menu';
 import { reportingEntries } from './reporting';
 import { templateEntries } from './templates';
 import { layoutEntries } from './layout';
+import { structureEntries } from './structure';
 import { coordinationEntries } from './coordination';
 import { assetsAudienceEntries } from './assets-audience';
 import { analyticsEntries } from './analytics';
@@ -15,7 +16,7 @@ import { patternEntries } from './patterns';
 import { adapterEntries } from './adapters';
 import type { ComponentEntry } from './model';
 
-export const componentEntries: ComponentEntry[] = [...primitiveEntries, ...patternEntries, ...adapterEntries, ...evidenceEntries, ...compositionEntries, ...measurementEntries, ...coordinationEntries, ...assetsAudienceEntries, ...analyticsEntries, ...layoutEntries, ...templateEntries, ...reportingEntries, ...inspectionEntries, ...sidebarEntries, ...accountMenuEntries];
+export const componentEntries: ComponentEntry[] = [...primitiveEntries, ...patternEntries, ...adapterEntries, ...evidenceEntries, ...compositionEntries, ...measurementEntries, ...coordinationEntries, ...assetsAudienceEntries, ...analyticsEntries, ...layoutEntries, ...structureEntries, ...templateEntries, ...reportingEntries, ...inspectionEntries, ...sidebarEntries, ...accountMenuEntries];
 export const categories = ['All', ...new Set(componentEntries.map(entry => entry.category))];
 
 export function findComponents(query: string, category = 'All') {
