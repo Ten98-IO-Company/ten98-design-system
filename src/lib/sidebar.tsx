@@ -10,8 +10,11 @@ export interface SidebarNavigationOptions {
   mediaQuery?: string;
 }
 
+/** Matches the shared stylesheet's mobile breakpoint. */
+export const defaultSidebarMediaQuery = '(max-width:760px)';
+
 /** Drawer behavior for an existing sidebar; applications retain navigation and draft guards. */
-export function useSidebarNavigation({ open, onOpenChange, sidebarRef, triggerRef, mediaQuery = '(max-width:760px)' }: SidebarNavigationOptions) {
+export function useSidebarNavigation({ open, onOpenChange, sidebarRef, triggerRef, mediaQuery = defaultSidebarMediaQuery }: SidebarNavigationOptions) {
   // The server and first client render agree; the stylesheet hides closed mobile navigation.
   const [mobile, setMobile] = useState(false);
   const current = useRef({ open, onOpenChange });

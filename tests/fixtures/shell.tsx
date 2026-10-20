@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Card, Grid, Heading, Link, SearchField, SidebarNav, Stack, Text, WorkspaceProjectSwitcher, type NavLinkComponent, type SidebarNavGroup } from '@ten98/ui';
+import { Button, AccountMenu, AppShell, AppTopbar, Banner, Card, Grid, Heading, Link, SearchField, SidebarFooter, SidebarNav, SidebarStatus, Stack, Text, WorkspaceProjectSwitcher, type NavLinkComponent, type SidebarNavGroup } from '@ten98/ui';
 import '@ten98/ui/app-tokens.css';
 import '@ten98/ui/app.css';
 import '@ten98/ui/product.css';
@@ -49,6 +49,20 @@ function CampaignNav() {
   </Stack>;
 }
 
+/* Real hrefs plus a guarded onSelect, as Campaign uses: an unsaved draft cancels navigation. */
+function GuardedNav() {
+  const [dirty, setDirty] = useState(true);
+  const [selected, setSelected] = useState(0);
+  const [navigated, setNavigated] = useState(0);
+  return <Stack gap={3}>
+    <SidebarNav label="Guarded" onNavigate={() => setNavigated(count => count + 1)} groups={[{ id: 'g', items: [
+      { id: 'guarded-a', label: 'Guarded page', href: '#/guarded-a', onSelect: (_item, event) => { setSelected(count => count + 1); if (dirty) event.preventDefault(); } },
+    ] }]} />
+    <Button variant="secondary" onClick={() => setDirty(value => !value)}>{dirty ? 'Discard draft' : 'Restore draft'}</Button>
+    <Text as="p" role="status" aria-label="Guard counters" size="sm" tone="muted">selected {selected}, navigated {navigated}</Text>
+  </Stack>;
+}
+
 function Switchers() {
   const [workspace, setWorkspace] = useState('acme');
   const [project, setProject] = useState<string | null>('launch');
@@ -75,12 +89,52 @@ function Fixture() {
     <Grid minItemWidth="md" gap={4}>
       <Card title="Discover (link component)"><DiscoverNav /></Card>
       <Card title="Campaign (guarded callbacks)"><CampaignNav /></Card>
+      <Card title="Guarded links"><GuardedNav /></Card>
       <Card title="Workspace and project"><Switchers /></Card>
       <Card title="Search"><Searches /></Card>
     </Grid>
   </Stack>;
 }
 
+/* A complete application frame composed only from library components. */
+function AppFixture() {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const [workspace, setWorkspace] = useState('acme');
+  const [project, setProject] = useState<string | null>('launch');
+  const [current, setCurrent] = useState('overview');
+  const [signingOut, setSigningOut] = useState(false);
+  const [banner, setBanner] = useState(true);
+  const workspaces = [{ id: 'acme', name: 'Acme International', roleLabel: 'Workspace admin', initials: 'AI' }, { id: 'labs', name: 'Labs', initials: 'L' }];
+  return <AppShell
+    sidebarLabel="Workspace" mainLabel="Page content" skipLinkLabel="Skip to content"
+    navigation={{ open, onOpenChange: setOpen }}
+    sidebar={<>
+      <Heading level={2}>Discover</Heading>
+      <WorkspaceProjectSwitcher workspaces={workspaces} projects={[{ id: 'launch', name: 'Spring launch' }, { id: 'brand', name: 'Brand refresh' }]} workspaceId={workspace} projectId={project} onWorkspaceChange={setWorkspace} onProjectChange={setProject} create={{ href: 'projects/new' }} linkComponent={RouterLink} />
+      <SidebarNav label="Primary" groups={discoverGroups(current)} linkComponent={RouterLink} onNavigate={item => { setCurrent(item.id); setOpen(false); }} />
+      <SidebarFooter version="1.4.0">
+        <SidebarStatus tone="connected" label="Channels connected" action={{ label: 'Manage', href: 'connections' }} linkComponent={RouterLink} />
+        <Link href="#/settings" variant="quiet">Settings</Link>
+      </SidebarFooter>
+    </>}
+    topbar={<AppTopbar menuToggle breadcrumb={{ icon: 'home', scope: 'Acme', current: 'Overview' }}
+      search={<SearchField variant="topbar" label="Search everything" hideLabel placeholder="Search" shortcut="/" value={query} onValueChange={setQuery} onClear={() => setQuery('')} clearLabel="Clear search" />}
+      badge={{ label: 'Beta', hideOnMobile: true }}
+      actions={<AccountMenu name="Alex Morgan" email="alex@example.test" linkComponent={RouterLink} items={[
+        { id: 'profile', kind: 'link', label: 'Profile and appearance', icon: 'user', href: 'account' },
+        { id: 'sep', kind: 'separator' },
+        { id: 'out', kind: 'button', label: 'Sign out', busyLabel: 'Signing out…', busy: signingOut, danger: true, onSelect: () => setSigningOut(true) },
+      ]} />} />}
+    banners={banner && <Banner tone="warning" live icon="shield" title="Two-factor authentication required" action={{ label: 'Set up two-factor authentication', href: 'account/security' }} linkComponent={RouterLink} onDismiss={() => setBanner(false)}>This workspace requires it.</Banner>}
+  >
+    <Stack gap={4}>
+      <Heading level={1}>Overview</Heading>
+      <Text as="p">Page content for {project}.</Text>
+    </Stack>
+  </AppShell>;
+}
+
 const fixtureRoot = document.getElementById('shell-fixture');
 if (!fixtureRoot) throw new Error('Shell fixture root is missing.');
-createRoot(fixtureRoot).render(<Fixture />);
+createRoot(fixtureRoot).render(params.get('view') === 'app' ? <AppFixture /> : <Fixture />);

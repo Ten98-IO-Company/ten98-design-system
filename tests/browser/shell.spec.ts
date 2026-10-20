@@ -4,6 +4,7 @@ import { expect, test, type Page } from '@playwright/test';
 const evidence = '.qa/shell';
 
 test.beforeEach(async ({ page }, info) => {
+  if (info.title.startsWith('app ')) return;
   await page.goto(`/tests/shell.html?theme=${info.project.name === 'narrow-dark' ? 'dark' : 'light'}`);
   await expect(page.getByRole('navigation', { name: 'Discover' })).toBeVisible();
 });
@@ -104,4 +105,130 @@ test('right-to-left mirrors the layout without overflow', async ({ page }, info)
   await expectNoOverflow(page);
   await mkdir(evidence, { recursive: true });
   await page.screenshot({ path: `${evidence}/${info.project.name}-rtl.png`, fullPage: true });
+});
+
+/* Full application frame (?view=app), composed only from library components. */
+const appUrl = (theme: string) => `/tests/shell.html?view=app&theme=${theme}`;
+const narrowOnly = (name: string) => { test.skip(name !== 'narrow-dark', 'Drawer behaviour is exercised at 320px.'); };
+const sidebarOf = (page: Page) => page.locator('aside.t98-shell-sidebar');
+const inside = (page: Page) => page.evaluate(() => document.querySelector('aside')!.contains(document.activeElement));
+
+async function openDrawer(page: Page) {
+  const toggle = page.getByRole('button', { name: 'Open navigation' });
+  await toggle.click();
+  await expect(page.getByRole('dialog', { name: 'Workspace' })).toBeVisible();
+  return toggle;
+}
+
+test('app drawer: toggle opens, traps focus, Escape and close button return focus, no overflow', async ({ page }, info) => {
+  narrowOnly(info.project.name);
+  await page.goto(appUrl('dark'));
+  const toggle = page.getByRole('button', { name: 'Open navigation' });
+  await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+  await expect(sidebarOf(page)).toBeHidden();
+  await openDrawer(page);
+  await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+  await expectNoOverflow(page);
+  for (let i = 0; i < 14; i++) { await page.keyboard.press('Tab'); expect(await inside(page)).toBe(true); }
+  for (let i = 0; i < 14; i++) { await page.keyboard.press('Shift+Tab'); expect(await inside(page)).toBe(true); }
+  await mkdir(evidence, { recursive: true });
+  await page.screenshot({ path: `${evidence}/app-drawer-${info.project.name}.png` });
+  await page.keyboard.press('Escape');
+  await expect(sidebarOf(page)).toBeHidden();
+  await expect(toggle).toBeFocused();
+  await openDrawer(page);
+  await page.getByRole('button', { name: 'Close navigation' }).click();
+  await expect(sidebarOf(page)).toBeHidden();
+  await expect(toggle).toBeFocused();
+  await expectNoOverflow(page);
+  await page.screenshot({ path: `${evidence}/app-closed-${info.project.name}.png` });
+});
+
+test('app frame on desktop: static sidebar and no menu toggle', async ({ page }, info) => {
+  test.skip(info.project.name !== 'chromium', 'Desktop layout is checked at 1440px.');
+  await page.goto(appUrl('light'));
+  await expect(sidebarOf(page)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Open navigation' })).toBeHidden();
+  await expect(page.getByRole('button', { name: 'Close navigation' })).toBeHidden();
+  expect(await sidebarOf(page).evaluate(element => getComputedStyle(element).position)).toBe('sticky');
+  await expect(page.getByRole('banner').getByRole('navigation', { name: 'Breadcrumb' }).locator('[aria-current="page"]')).toHaveText('Overview');
+  expect(await page.locator('main').evaluate(main => main.closest('header') === null && !main.querySelector('header'))).toBe(true);
+  await mkdir(evidence, { recursive: true });
+  await page.screenshot({ path: `${evidence}/app-desktop-${info.project.name}.png` });
+});
+
+test('app skip link focuses main', async ({ page }) => {
+  await page.goto(appUrl('light'));
+  await page.keyboard.press('Tab');
+  await expect(page.getByRole('link', { name: 'Skip to content' })).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('main', { name: 'Page content' })).toBeFocused();
+});
+
+test('app drawer in right-to-left opens from the inline-end side without overflow', async ({ page }, info) => {
+  narrowOnly(info.project.name);
+  await page.goto(appUrl('dark'));
+  await page.locator('html').evaluate(element => { element.setAttribute('dir', 'rtl'); });
+  await openDrawer(page);
+  const right = async () => { const box = (await sidebarOf(page).boundingBox())!; return box.x + box.width; };
+  await expect.poll(right).toBeGreaterThanOrEqual(page.viewportSize()!.width - 1);
+  expect((await sidebarOf(page).boundingBox())!.x).toBeGreaterThan(0);
+  await expectNoOverflow(page);
+  await mkdir(evidence, { recursive: true });
+  await page.screenshot({ path: `${evidence}/app-drawer-rtl-${info.project.name}.png` });
+});
+
+test('app touch targets are at least 44px at 320px', async ({ page }, info) => {
+  narrowOnly(info.project.name);
+  await page.goto(appUrl('dark'));
+  const tall = async (locator: ReturnType<Page['locator']>, label: string) => {
+    const count = await locator.count();
+    expect(count, label).toBeGreaterThan(0);
+    for (let i = 0; i < count; i++) expect((await locator.nth(i).boundingBox())!.height, `${label} ${i}`).toBeGreaterThanOrEqual(43.5);
+  };
+  await tall(page.getByRole('button', { name: 'Open navigation' }), 'menu toggle');
+  await tall(page.getByRole('link', { name: /Set up two-factor/ }), 'banner action');
+  await tall(page.getByRole('button', { name: 'Dismiss' }), 'banner dismiss');
+  await page.getByRole('searchbox', { name: 'Search everything' }).fill('x');
+  await tall(page.getByRole('button', { name: 'Clear search' }), 'clear');
+  await page.getByRole('button', { name: 'Account menu' }).click();
+  await tall(page.locator('.t98-account-menu__actions').locator('a, button'), 'account items');
+  await page.keyboard.press('Escape');
+  await openDrawer(page);
+  await tall(page.getByRole('navigation', { name: 'Primary' }).locator('a, button'), 'nav items');
+  await tall(page.getByRole('link', { name: /^New project in/ }), 'create');
+  await tall(page.getByRole('link', { name: 'Manage' }), 'status action');
+});
+
+test('app focus returns to the account trigger on Escape and stays on switcher selects', async ({ page }, info) => {
+  narrowOnly(info.project.name);
+  await page.goto(appUrl('dark'));
+  const trigger = page.getByRole('button', { name: 'Account menu' });
+  await trigger.click();
+  await page.getByRole('link', { name: 'Profile and appearance' }).focus();
+  await page.keyboard.press('Escape');
+  await expect(trigger).toBeFocused();
+  await expect(page.getByRole('link', { name: 'Profile and appearance' })).toBeHidden();
+  await openDrawer(page);
+  const select = sidebarOf(page).locator('select').first();
+  await select.focus();
+  await select.selectOption('labs');
+  await expect(select).toBeFocused();
+  await expect(page.getByRole('dialog', { name: 'Workspace' })).toBeVisible();
+});
+
+test('href with onSelect: preventDefault cancels navigation and onNavigate, otherwise navigation proceeds, modified clicks skip callbacks', async ({ page }) => {
+  const link = page.getByRole('navigation', { name: 'Guarded' }).getByRole('link', { name: 'Guarded page' });
+  const counters = page.getByRole('status', { name: 'Guard counters' });
+  await expect(link).toHaveAttribute('href', '#/guarded-a');
+  await link.click();
+  await expect(counters).toHaveText('selected 1, navigated 0');
+  expect(page.url()).not.toContain('guarded-a');
+  await page.getByRole('button', { name: 'Discard draft' }).click();
+  await link.click();
+  await expect(counters).toHaveText('selected 2, navigated 1');
+  await expect.poll(() => page.url()).toContain('#/guarded-a');
+  await link.click({ modifiers: ['Control'] });
+  await link.click({ modifiers: ['Meta'] });
+  await expect(counters).toHaveText('selected 2, navigated 1');
 });

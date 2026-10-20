@@ -2,7 +2,8 @@ import { useId, useState } from 'react';
 import {
   ActivityFeed, Alert, AppShell, AuthLayout, Badge, Button, ConfirmDialog, CopyButton, DataTable,
   DateRangeField, EmptyState, Field, Input, MetricCard, PageHeader, PermissionMatrix, ProductSwitcher,
-  ResourceCard, SecretField, SettingsSection, Sparkline, Stepper, Switch, ToastProvider, useToast,
+  ResourceCard, SecretField, SettingsSection, Sparkline, Stack, Stepper, Switch, Text, ToastProvider, useToast,
+  AppTopbar, SidebarNav,
   type ActivityItem, type DataColumn, type Tone,
 } from '../lib/index.js';
 import { tsx, type ComponentEntry, type ComponentProp } from './model.js';
@@ -164,15 +165,17 @@ function withAppBrand(code: string, imports = 'AppBrand') {
 
 function ShellDemo({ header = true }: { header?: boolean }) {
   const id = useId();
-  return <AppShell sidebar={<nav aria-label="Demo workspace" style={{ padding: 20 }}><AppBrand product="Campaign" /><p><a href={`#${id}`}>Overview</a></p></nav>} header={header ? <span>Demo workspace</span> : undefined}><section id={id}><PageHeader title="Overview" description="Resize the viewport to see the sidebar stack above the workspace." /><p>Press Tab to find the built-in skip link.</p></section></AppShell>;
+  return <AppShell sidebar={<Stack gap={4}><AppBrand product="Campaign" /><SidebarNav label="Workspace" groups={[{ id: 'main', items: [{ id: 'overview', label: 'Overview', icon: 'home', href: `#${id}`, current: true }] }]} /></Stack>} topbar={header ? <AppTopbar breadcrumb={{ scope: 'Demo workspace', current: 'Overview' }} /> : undefined}><Stack id={id} as="section" gap={4}><PageHeader title="Overview" description="Resize the viewport to see the sidebar stack above the workspace." /><Text>Press Tab to find the built-in skip link.</Text></Stack></AppShell>;
 }
-const shellCode = (header = true) => withAppBrand(tsx(['AppShell', 'PageHeader'], `<AppShell sidebar={<nav aria-label="Workspace" style={{ padding: 20 }}>
-  <AppBrand product="Campaign" /><p><a href={'#' + id}>Overview</a></p>
-</nav>}${header ? ' header={<span>Demo workspace</span>}' : ''}>
-  <section id={id}>
+const shellCode = (header = true) => withAppBrand(tsx(['AppShell', 'AppTopbar', 'PageHeader', 'SidebarNav', 'Stack', 'Text'], `<AppShell
+  sidebar={<Stack gap={4}>
+    <AppBrand product="Campaign" />
+    <SidebarNav label="Workspace" groups={[{ id: 'main', items: [{ id: 'overview', label: 'Overview', icon: 'home', href: '#' + id, current: true }] }]} />
+  </Stack>}${header ? "\n  topbar={<AppTopbar breadcrumb={{ scope: 'Demo workspace', current: 'Overview' }} />}" : ''}>
+  <Stack id={id} as="section" gap={4}>
     <PageHeader title="Overview" description="The sidebar stacks above the workspace below 760px." />
-    <p>Press Tab to find the built-in skip link.</p>
-  </section>
+    <Text>Press Tab to find the built-in skip link.</Text>
+  </Stack>
 </AppShell>`, 'const id = useId();', ['useId']));
 
 const activityItems: ActivityItem[] = [
@@ -277,8 +280,8 @@ export const patternEntries: ComponentEntry[] = [
     ],
   },
   {
-    name: 'AppShell', category: 'Layout', description: 'Shared sidebar, optional header, content landmark and keyboard skip link.', usage: 'Use as the outer page shell once per app page; keep routing and sidebar contents app-owned. The sidebar stacks above content below 760px. This component has no mobile drawer, collapsed state or built-in navigation selection.',
-    props: [prop('sidebar', 'ReactNode', 'Sidebar content inside an aside.', true), prop('header', 'ReactNode', 'Optional workspace header content.'), prop('children', 'ReactNode', 'Page content inside the main landmark.', true)], tokens: ['--t98-sidebar-width', '--t98-header-height', '--t98-text', '--t98-bg', '--t98-font', '--t98-border', '--t98-surface', '--t98-accent', '--t98-on-accent', '--t98-radius'], accessibility: ['Includes a skip link to a generated focusable main landmark.', 'Label navigation inside sidebar; avoid nesting an additional main in children.', 'Responsive stacking preserves the sidebar and its controls.'], related: ['ProductSwitcher', 'PageHeader', 'Breadcrumb'], example: shellCode(),
+    name: 'AppShell', category: 'Layout', description: 'Shared sidebar, topbar, banners, content landmark, skip link and optional mobile drawer.', usage: 'Use as the outer page shell once per app page; keep routing and sidebar contents app-owned. Give navigation to get the mobile drawer (focus trap, Escape, shade, close button) and place AppTopbar menuToggle in topbar. Without navigation the sidebar stacks above content below 760px. Compose the sidebar from SidebarNav, WorkspaceProjectSwitcher and SidebarFooter; apps do not write elements or styles.',
+    props: [prop('sidebar', 'ReactNode', 'Sidebar content inside an aside.', true), prop('topbar', 'ReactNode', 'Usually AppTopbar; rendered in a header landmark outside main. Takes precedence over header.'), prop('header', 'ReactNode', 'Plain header strip (superseded by topbar).'), prop('banners', 'ReactNode', 'Stack of Banners above the main content.'), prop('navigation', '{ open; onOpenChange; mediaQuery?; closeLabel? }', 'Enables the drawer through useSidebarNavigation and shares its state with AppTopbar.'), prop('sidebarLabel / mainLabel', 'string', 'Accessible names of the sidebar and main landmarks.'), prop('skipLinkLabel', 'string', 'Skip link text; it targets main.', false, 'Skip to content'), prop('children', 'ReactNode', 'Page content inside the main landmark.', true)], tokens: ['--t98-sidebar-width', '--t98-header-height', '--t98-text', '--t98-bg', '--t98-font', '--t98-border', '--t98-surface', '--t98-accent', '--t98-on-accent', '--t98-radius'], accessibility: ['Includes a skip link to a generated focusable main landmark.', 'Label navigation inside sidebar; avoid nesting an additional main in children.', 'Responsive stacking preserves the sidebar and its controls.'], related: ['AppTopbar', 'Banner', 'SidebarNav', 'SidebarStatus', 'useSidebarNavigation'], example: shellCode(),
     states: [{ name: 'Sidebar / header / content', description: 'Use Tab to expose Skip to content. Resize the viewport below 760px for the stacked layout.', preview: <ShellDemo />, code: shellCode() }, { name: 'Header omitted', description: 'The optional header region is not rendered.', preview: <ShellDemo header={false} />, code: shellCode(false) }],
   },
   {

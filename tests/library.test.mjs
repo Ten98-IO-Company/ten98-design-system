@@ -311,3 +311,11 @@ test('standalone components set their font and scope border-box sizing to ten98 
   assert.match(sizing.selector, /::before/);
   assert.match(sizing.selector, /::after/);
 });
+
+test('the catalogue loads every stylesheet bundled into styles.css, so previews match what apps get', () => {
+  const build = readFileSync(new URL('../scripts/build.mjs', import.meta.url), 'utf8');
+  const main = readFileSync(new URL('../src/main.tsx', import.meta.url), 'utf8');
+  const bundled = [...build.match(/writeFileSync\('dist\/styles\.css', \[([^\]]+)\]/)[1].matchAll(/'([^']+\.css)'/g)].map(match => match[1]);
+  assert.ok(bundled.length > 5, 'found the bundled stylesheet list');
+  for (const file of bundled.filter(file => file !== 'tokens.css')) assert.ok(main.includes(`import './lib/${file}';`), `catalogue imports ${file}`);
+});

@@ -74,7 +74,7 @@
 .t98-alert { display: flex; align-items: flex-start; gap: 10px; border: 1px solid color-mix(in srgb, var(--t98-tone-text) 18%, transparent); border-radius: var(--t98-radius); padding: 13px 15px; background: var(--t98-tone-bg); color: var(--t98-tone-text); }
 .t98-alert > .t98-icon { margin-top: 1px; }
 .t98-alert-title { margin: 0; font-size: 12px; line-height: 19px; font-weight: 650; }
-.t98-alert-content { min-width: 0; flex: 1; }
+.t98-alert-content { min-width: 0; flex: 1; overflow-wrap: anywhere; }
 .t98-alert-description { margin-top: var(--t98-space-1); font-size: 12px; line-height: 19px; }
 .t98-alert-actions { margin-top: var(--t98-space-3); }
 .t98-alert-description p { margin: 0; }

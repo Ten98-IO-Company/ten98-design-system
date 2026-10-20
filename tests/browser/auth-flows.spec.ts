@@ -3,7 +3,9 @@ import { resolve } from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
 
 const evidence = resolve('.qa/auth-flows');
-const screens = ['signin', 'signin-single', 'signin-busy', 'signin-error', 'signin-providers-pending', 'signin-providers-loading', 'signin-providers-error', 'signin-providers-empty', 'setup', 'setup-full', 'setup-error', 'setup-busy', 'loading', 'error', 'boundary'];
+const screens = ['signin', 'signin-single', 'signin-busy', 'signin-error', 'signin-providers-pending', 'signin-providers-loading', 'signin-providers-error', 'signin-providers-empty', 'setup', 'setup-full', 'setup-error', 'setup-busy', 'loading', 'error', 'boundary', 'unconfirmed', 'signin-unconfirmed',
+  '2fa-authenticator', '2fa-recovery', '2fa-error', 'recovery-request', 'recovery-loading', 'recovery-disabled', 'recovery-error', 'recovery-sent', 'recovery-reset', 'recovery-reset-error', 'recovery-unconfirmed', 'recovery-invalid',
+  'invitation-loading', 'invitation-new', 'invitation-join', 'invitation-signin', 'invitation-mismatch', 'invitation-unavailable', 'invitation-accepted', 'onboarding', 'onboarding-native', 'onboarding-error'];
 
 const open = async (page: Page, screen: string, theme: string, width: number) => {
   await page.setViewportSize({ width, height: 1000 });
@@ -21,6 +23,7 @@ for (const theme of ['light', 'dark'] as const) {
     for (const screen of screens) {
       await open(page, screen, theme, width);
       await expect(page.locator('h1'), `${screen} has one h1`).toHaveCount(1);
+      await expect(page.locator('main'), `${screen} has one main landmark`).toHaveCount(1);
       expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth), `${screen} has no page overflow`).toBeLessThanOrEqual(1);
       const clipped = await page.locator('.auth-shell *').evaluateAll(nodes => nodes.filter(node => node.scrollWidth > node.clientWidth + 1 && getComputedStyle(node).overflowX === 'visible' && node.getBoundingClientRect().right > innerWidth + 1).length);
       expect(clipped, `${screen} keeps content inside the viewport`).toBe(0);
@@ -83,4 +86,84 @@ test('provider list renders links, buttons and nothing when empty', async ({ pag
   await open(page, 'signin-providers-pending', 'light', width);
   await expect(page.getByRole('button', { name: 'Continue with Google' })).toHaveAttribute('aria-busy', 'true');
   await expect(page.getByRole('link', { name: 'Continue with Microsoft' })).toBeVisible();
+});
+
+test('two-factor mode toggle clears the code and changes the input constraints', async ({ page }, info) => {
+  await open(page, '2fa-authenticator', 'light', info.project.name === 'narrow-dark' ? 320 : 1440);
+  const code = page.locator('input[name=code]');
+  await expect(code).toHaveAttribute('inputmode', 'numeric');
+  await expect(code).toHaveAttribute('maxlength', '6');
+  await code.fill('123456');
+  await page.getByRole('button', { name: 'Use a recovery code' }).click();
+  await expect(code).toHaveValue('');
+  await expect(code).toHaveAttribute('inputmode', 'text');
+  await expect(code).toHaveAttribute('maxlength', '21');
+  await expect(code).toHaveAttribute('autocomplete', 'one-time-code');
+  await expect(page.getByLabel('Recovery code')).toBeVisible();
+  await code.fill('abcde-12345');
+  await page.getByRole('button', { name: 'Use your authenticator app' }).click();
+  await expect(code).toHaveValue('');
+});
+
+test('a mismatched confirmation shows a field error and moves focus to it', async ({ page }, info) => {
+  await open(page, 'recovery-reset', 'light', info.project.name === 'narrow-dark' ? 320 : 1440);
+  await expect(page.locator('input[type=hidden][name=token]')).toHaveValue('reset-token');
+  await page.getByLabel('New password', { exact: true }).fill('synthetic-password-1');
+  await page.getByLabel('Confirm new password').fill('synthetic-password-2');
+  await page.getByRole('button', { name: 'Reset password' }).click();
+  await expect(page.getByText('The passwords do not match.')).toBeVisible();
+  await expect(page.getByLabel('Confirm new password')).toBeFocused();
+});
+
+test('recovery, invitation and onboarding screens expose the right actions', async ({ page }, info) => {
+  const width = info.project.name === 'narrow-dark' ? 320 : 1440;
+  await open(page, 'recovery-invalid', 'light', width);
+  await expect(page.getByRole('button', { name: 'Request a new link' })).toBeVisible();
+  await expect(page.locator('form')).toHaveCount(0);
+  await open(page, 'recovery-disabled', 'light', width);
+  await expect(page.getByRole('link', { name: 'Back to sign in' })).toHaveAttribute('href', '#signin');
+  await open(page, 'invitation-new', 'light', width);
+  await expect(page.getByRole('button', { name: 'Create account and join' })).toBeVisible();
+  await expect(page.locator('input[type=hidden][name=token]')).toHaveValue('invite-token');
+  await open(page, 'invitation-join', 'light', width);
+  await expect(page.getByRole('button', { name: 'Join workspace' })).toBeVisible();
+  await expect(page.locator('input[name=password]')).toHaveCount(0);
+  await open(page, 'invitation-signin', 'light', width);
+  await expect(page.getByRole('button', { name: 'Sign in to join' })).toBeVisible();
+  await open(page, 'invitation-mismatch', 'light', width);
+  await expect(page.getByText('Signed in as someone.else@example.test; this invitation is for new.member@example.test.')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Switch account' })).toBeVisible();
+  await open(page, 'invitation-unavailable', 'light', width);
+  await expect(page.getByRole('alert')).toHaveText('This invitation was cancelled by the workspace owner.');
+  await expect(page.getByRole('button', { name: 'Try again' })).toBeVisible();
+  await open(page, 'onboarding-native', 'light', width);
+  const signOut = page.locator('form[action="/logout"]');
+  await expect(signOut).toHaveAttribute('method', 'post');
+  await expect(signOut.getByRole('button', { name: 'Sign out' })).toBeVisible();
+  await expect(page.locator('input[name=name]')).toHaveAttribute('maxlength', '120');
+  await open(page, 'signin-unconfirmed', 'light', width);
+  await expect(page.getByRole('alert')).toContainText('could not confirm');
+});
+
+test('setup submits typed values with a boolean sample and without hidden fields', async ({ page }, info) => {
+  const width = info.project.name === 'narrow-dark' ? 320 : 1440;
+  const fill = async () => {
+    await page.getByLabel('Your name').fill('Owner');
+    await page.getByLabel('Setup token').fill('setup-token');
+    await page.getByLabel('Email address').fill('owner@example.test');
+    await page.getByLabel('Password').fill('synthetic-password-1');
+    await page.getByLabel('Workspace name').fill('Acme');
+  };
+  await open(page, 'values', 'light', width);
+  await fill();
+  await page.getByRole('button', { name: 'Create owner account' }).click();
+  await expect(page.getByRole('status')).toHaveText('{"name":"Owner","token":"setup-token","email":"owner@example.test","password":"synthetic-password-1","workspaceName":"Acme","sample":false}');
+  await page.getByLabel('Add sample content').check();
+  await page.getByRole('button', { name: 'Create owner account' }).click();
+  await expect(page.getByRole('status')).toContainText('"sample":true');
+  await open(page, 'values-hidden', 'light', width);
+  await fill();
+  await page.getByRole('button', { name: 'Create owner account' }).click();
+  await expect(page.getByRole('status')).toContainText('"sample":false');
+  await expect(page.getByRole('status')).not.toContainText('csrf');
 });

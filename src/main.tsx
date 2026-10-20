@@ -21,6 +21,8 @@ import './lib/patterns.css';
 import './lib/workspace.css';
 import './lib/products.css';
 import './lib/navigation.css';
+import './lib/structure.css';
+import './lib/shell.css';
 import './showcase.css';
 
 const groups: { label: string; items: { name: Page; icon: string }[] }[] = [

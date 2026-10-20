@@ -1,14 +1,14 @@
 'use client';
 
-import { useId, type ComponentType, type ReactNode, type Ref } from 'react';
-import { Badge, Icon, Input, Select, cx, type IconName, type Tone } from './primitives.js';
+import { createContext, useContext, useId, type ComponentType, type MouseEvent, type ReactNode, type Ref, type RefObject } from 'react';
+import { Avatar, Badge, Icon, Input, Select, cx, type IconName, type Tone } from './primitives.js';
 import { Option, VisuallyHidden } from './structure.js';
 
 /* Presentation for application navigation. Routing, authorization, data loading and draft guards stay in the app. */
 
 /** Router link contract shared with `Link.component`, plus the attributes navigation needs.
- * With a linkComponent, `href` is a key the application resolves (for example a route id), not necessarily a URL. */
-export type NavLinkComponent = ComponentType<{ href: string; className?: string; children?: ReactNode; 'aria-current'?: 'page'; onClick?: () => void }>;
+ * With a linkComponent, `href` is a key the application resolves (for example a route id mapped to a router `to` and `search`), not necessarily a URL. */
+export type NavLinkComponent = ComponentType<{ href: string; className?: string; children?: ReactNode; 'aria-current'?: 'page'; onClick?: (event: MouseEvent<HTMLElement>) => void }>;
 
 interface NavItemBase {
   id: string;
@@ -26,7 +26,12 @@ interface NavItemBase {
   keywords?: string[];
   disabled?: boolean;
 }
-export type SidebarNavItem = NavItemBase & ({ href: string; onSelect?: never } | { onSelect: () => void; href?: never });
+type NavSelect = (item: SidebarNavItem, event: MouseEvent<HTMLElement>) => void;
+/** At least one of `href` and `onSelect`. With both, the anchor is always rendered and `onSelect` runs first on a plain primary click:
+ * calling `event.preventDefault()` there (for example to guard an unsaved draft) cancels navigation and `onNavigate`.
+ * A `linkComponent` must honour `event.defaultPrevented` (TanStack Link does). Modified or non-primary clicks skip both callbacks and keep the browser default.
+ * An item with only `onSelect` renders a button. */
+export type SidebarNavItem = NavItemBase & ({ href: string; onSelect?: NavSelect } | { onSelect: NavSelect; href?: string });
 export interface SidebarNavGroup { id: string; label?: string; items: SidebarNavItem[] }
 export interface SidebarNavProps {
   /** Accessible name of the navigation landmark. */
@@ -34,9 +39,9 @@ export interface SidebarNavProps {
   groups: SidebarNavGroup[];
   /** Renders `href` items, for example a TanStack Router link. `href` is then a key your component resolves. */
   linkComponent?: NavLinkComponent;
-  /** Case-insensitive match on label and keywords; other items get the `hidden` attribute. */
+  /** Case-insensitive match on label and keywords; other items get the `hidden` attribute. A group whose items are all hidden or filtered is hidden too. */
   filter?: string;
-  /** Called after the item's own handler, for example to close a mobile drawer. */
+  /** Called after the item's own handler unless that handler prevented the default action, for example to close a mobile drawer. */
   onNavigate?: (item: SidebarNavItem) => void;
   /** Shown when a non-empty filter matches nothing. */
   emptyFilter?: (query: string) => ReactNode;
@@ -69,7 +74,11 @@ export function SidebarNav({ label, groups, linkComponent: LinkComponent, filter
         <ul className="t98-sidebar-nav__list" aria-labelledby={group.label ? headingId : undefined}>
           {group.items.map(item => {
             const aria = item.current ? 'page' as const : undefined;
-            const select = () => { item.onSelect?.(); onNavigate?.(item); };
+            const select = (event: MouseEvent<HTMLElement>) => {
+              if (item.href != null && (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)) return;
+              item.onSelect?.(item, event);
+              if (item.href == null || !event.defaultPrevented) onNavigate?.(item);
+            };
             let control: ReactNode;
             if (item.disabled) control = <span className="t98-sidebar-nav__item" aria-disabled="true" aria-current={aria}><NavItemContent item={item} /></span>;
             else if (item.href != null) {
@@ -86,7 +95,7 @@ export function SidebarNav({ label, groups, linkComponent: LinkComponent, filter
   </nav>;
 }
 
-export interface WorkspaceOption { id: string; name: string; roleLabel?: string }
+export interface WorkspaceOption { id: string; name: string; roleLabel?: string; /** One or two characters shown in a decorative avatar beside the select. */ initials?: string }
 export interface ProjectOption { id: string; name: string }
 export type WorkspaceCreateAction = { label?: string } & ({ href: string; onSelect?: never } | { onSelect: () => void; href?: never });
 export interface WorkspaceProjectSwitcherLabels { workspace: string; project: string; noWorkspaces: string; loading: string; choose: string; noProjects: string }
@@ -123,10 +132,13 @@ export function WorkspaceProjectSwitcher({ workspaces, projects, workspaceId, pr
   return <div className="t98-switcher">
     <div className="t98-switcher__field">
       <label className="t98-switcher__label" htmlFor={`${id}-workspace`}>{text.workspace}</label>
+      <div className="t98-switcher__workspace">
+      {workspace?.initials && <Avatar name={Array.from(workspace.initials).slice(0, 2).join(' ')} size="sm" role={undefined} aria-label={undefined} aria-hidden="true" className="t98-switcher__avatar" />}
       <Select id={`${id}-workspace`} value={workspace?.id ?? ''} disabled={disabled} aria-describedby={workspace?.roleLabel ? `${id}-role` : undefined} onChange={event => onWorkspaceChange(event.target.value)}>
         {!workspace && <Option value="" disabled>{text.workspace}</Option>}
         {workspaces.map(item => <Option key={item.id} value={item.id}>{item.name}</Option>)}
       </Select>
+      </div>
       {workspace?.roleLabel && <p id={`${id}-role`} className="t98-switcher__role">{workspace.roleLabel}</p>}
     </div>
     <div className="t98-switcher__field">
@@ -176,5 +188,105 @@ export function SearchField({ label, value, onValueChange, placeholder, hideLabe
         : shortcut && !value && <kbd className="t98-search-field__shortcut" aria-hidden="true">{shortcut}</kbd>}
     </div>
     <div role="status" className="t98-search-field__status">{status}</div>
+  </div>;
+}
+
+/** Drawer state shared from `AppShell` (when given `navigation`) with `AppTopbar`. Internal to the shell. */
+export interface AppShellNavigationState {
+  open: boolean;
+  setOpen: (open: boolean) => void;
+  triggerRef: RefObject<HTMLButtonElement | null>;
+  sidebarId: string;
+}
+/** @internal Provided by `AppShell`; applications use `AppTopbar` instead. */
+export const appShellNavigation = createContext<AppShellNavigationState | null>(null);
+
+export type ShellAction = { label: string; icon?: IconName } & ({ href: string; onSelect?: never } | { onSelect: () => void; href?: never });
+
+function ShellActionControl({ action, className, linkComponent: LinkComponent }: { action: ShellAction; className: string; linkComponent?: NavLinkComponent }) {
+  const content = <>{action.icon && <Icon name={action.icon} size={16} aria-hidden="true" />}<span>{action.label}</span></>;
+  if (action.href == null) return <button type="button" className={className} onClick={action.onSelect}>{content}</button>;
+  return LinkComponent
+    ? <LinkComponent href={action.href} className={className}>{content}</LinkComponent>
+    : <a href={action.href} className={className}>{content}</a>;
+}
+
+export interface AppTopbarProps {
+  breadcrumb: { icon?: IconName; scope?: string; current: string };
+  breadcrumbLabel?: string;
+  /** Shows the menu button that opens the drawer; needs `AppShell navigation`. Hidden on desktop. */
+  menuToggle?: boolean;
+  menuLabel?: string;
+  search?: ReactNode;
+  badge?: { label: string; hideOnMobile?: boolean };
+  actions?: ReactNode;
+}
+
+/** Top bar content for `AppShell topbar`: breadcrumb, drawer toggle, search, badge and actions. */
+export function AppTopbar({ breadcrumb, breadcrumbLabel = 'Breadcrumb', menuToggle = false, menuLabel = 'Open navigation', search, badge, actions }: AppTopbarProps) {
+  const shell = useContext(appShellNavigation);
+  return <div className="t98-app-topbar">
+    {menuToggle && shell && <button type="button" ref={shell.triggerRef} className="t98-app-topbar__menu" aria-label={menuLabel} aria-controls={shell.sidebarId} aria-expanded={shell.open} onClick={() => shell.setOpen(!shell.open)}><Icon name="menu" size={20} aria-hidden="true" /></button>}
+    <nav aria-label={breadcrumbLabel} className="t98-app-topbar__breadcrumb">
+      <ol className="t98-app-topbar__crumbs">
+        {(breadcrumb.icon || breadcrumb.scope) && <>
+          <li className="t98-app-topbar__crumb">
+            {breadcrumb.icon && <Icon name={breadcrumb.icon} size={17} aria-hidden="true" />}
+            {breadcrumb.scope && <span className="t98-app-topbar__scope">{breadcrumb.scope}</span>}
+          </li>
+          <li className="t98-app-topbar__separator" aria-hidden="true"><Icon name="chevron-right" size={14} /></li>
+        </>}
+        <li className="t98-app-topbar__crumb t98-app-topbar__current" aria-current="page">{breadcrumb.current}</li>
+      </ol>
+    </nav>
+    {search && <div className="t98-app-topbar__search">{search}</div>}
+    {badge && <Badge className={cx('t98-app-topbar__badge', badge.hideOnMobile && 't98-app-topbar__badge--hide-mobile')}>{badge.label}</Badge>}
+    {actions && <div className="t98-app-topbar__actions">{actions}</div>}
+  </div>;
+}
+
+export type BannerTone = 'sample' | 'info' | 'success' | 'warning' | 'danger';
+export interface BannerProps {
+  tone?: BannerTone;
+  /** Short uppercase tag before the title, for example "Sample". */
+  pill?: string;
+  title?: string;
+  children?: ReactNode;
+  icon?: IconName;
+  action?: ShellAction;
+  linkComponent?: NavLinkComponent;
+  onDismiss?: () => void;
+  dismissLabel?: string;
+  /** Announces the banner politely when it appears or changes. */
+  live?: boolean;
+}
+
+/** Full-width notice above the page content. */
+export function Banner({ tone = 'info', pill, title, children, icon, action, linkComponent, onDismiss, dismissLabel = 'Dismiss', live = false }: BannerProps) {
+  return <div className={cx('t98-banner', `t98-banner--${tone}`)} role={live ? 'status' : undefined}>
+    {icon && <Icon name={icon} size={18} className="t98-banner__icon" aria-hidden="true" />}
+    <div className="t98-banner__body">
+      {pill && <span className="t98-banner__pill">{pill}</span>}
+      {title && <strong className="t98-banner__title">{title}</strong>}
+      {children != null && <span className="t98-banner__text">{children}</span>}
+    </div>
+    {action && <ShellActionControl action={action} className="t98-banner__action" linkComponent={linkComponent} />}
+    {onDismiss && <button type="button" className="t98-banner__dismiss" aria-label={dismissLabel} onClick={onDismiss}><Icon name="x" size={16} aria-hidden="true" /></button>}
+  </div>;
+}
+
+export interface SidebarStatusProps {
+  tone: 'connected' | 'idle';
+  label: string;
+  action?: ShellAction;
+  linkComponent?: NavLinkComponent;
+}
+
+/** Connection status line for the `SidebarFooter` slot. The dot is decorative; the label carries the meaning. */
+export function SidebarStatus({ tone, label, action, linkComponent }: SidebarStatusProps) {
+  return <div className={cx('t98-sidebar-status', `t98-sidebar-status--${tone}`)}>
+    <span className="t98-sidebar-status__dot" aria-hidden="true" />
+    <span className="t98-sidebar-status__label">{label}</span>
+    {action && <ShellActionControl action={action} className="t98-sidebar-status__action" linkComponent={linkComponent} />}
   </div>;
 }

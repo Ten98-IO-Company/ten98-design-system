@@ -1,7 +1,9 @@
 'use client';
 
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type HTMLAttributes, type ReactNode, type RefObject } from 'react';
 import { Badge, Button, Icon, Input, cx } from './primitives.js';
+import { appShellNavigation } from './shell.js';
+import { useSidebarNavigation } from './sidebar.js';
 
 export interface DataColumn<T> {
   key: string;
@@ -262,12 +264,65 @@ export function Stepper({ steps, current }: { steps: readonly string[]; current:
   </li>)}</ol>;
 }
 
-export function AppShell({ sidebar, header, children }: { sidebar: ReactNode; header?: ReactNode; children: ReactNode }) {
-  const mainId = useId();
-  return <div className="t98-app-shell"><a className="t98-skip-link" href={`#${mainId}`}>Skip to content</a>
-    <aside className="t98-shell-sidebar">{sidebar}</aside>
-    <div className="t98-shell-workspace">{header && <div className="t98-shell-header">{header}</div>}
-      <main className="t98-shell-main" id={mainId} tabIndex={-1}>{children}</main>
+export interface AppShellNavigation {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  /** Must agree with the stylesheet breakpoint; defaults to `defaultSidebarMediaQuery`. */
+  mediaQuery?: string;
+  closeLabel?: string;
+}
+export interface AppShellProps {
+  sidebar: ReactNode;
+  /** Plain header strip. Superseded by `topbar` when both are given. */
+  header?: ReactNode;
+  /** Usually an `AppTopbar`; rendered in a header landmark outside `main`. */
+  topbar?: ReactNode;
+  /** Stack of `Banner`s above the main content. */
+  banners?: ReactNode;
+  /** Adds the mobile drawer (focus trap, Escape, shade) and shares its state with `AppTopbar menuToggle`. */
+  navigation?: AppShellNavigation;
+  sidebarLabel?: string;
+  skipLinkLabel?: string;
+  mainLabel?: string;
+  children: ReactNode;
+}
+
+type FrameProps = Omit<AppShellProps, 'navigation'> & {
+  mainId: string;
+  asideProps?: HTMLAttributes<HTMLElement> & { ref?: RefObject<HTMLElement | null> };
+  workspaceProps?: HTMLAttributes<HTMLElement>;
+  drawer?: { closeLabel: string; modal: boolean; close: () => void };
+};
+
+function ShellFrame({ sidebar, header, topbar, banners, sidebarLabel, skipLinkLabel = 'Skip to content', mainLabel, children, mainId, asideProps, workspaceProps, drawer }: FrameProps) {
+  return <div className={cx('t98-app-shell', drawer && 't98-app-shell--drawer')}><a className="t98-skip-link" href={`#${mainId}`}>{skipLinkLabel}</a>
+    <aside {...asideProps} className="t98-shell-sidebar" aria-label={sidebarLabel}>
+      {drawer ? <div className="t98-shell-sidebar__body">
+        <div className="t98-shell-sidebar__bar"><button type="button" className="t98-shell-close" aria-label={drawer.closeLabel} onClick={drawer.close}><Icon name="x" size={20} aria-hidden="true" /></button></div>
+        {sidebar}
+      </div> : sidebar}
+    </aside>
+    {drawer?.modal && <div className="t98-shell-shade" aria-hidden="true" onClick={drawer.close} />}
+    <div {...workspaceProps} className="t98-shell-workspace">
+      {topbar ? <header className="t98-shell-header t98-shell-header--topbar">{topbar}</header> : header && <div className="t98-shell-header">{header}</div>}
+      {banners && <div className="t98-shell-banners">{banners}</div>}
+      <main className="t98-shell-main" id={mainId} tabIndex={-1} aria-label={mainLabel}>{children}</main>
     </div>
   </div>;
+}
+
+function DrawerShell({ navigation, ...props }: AppShellProps & { navigation: AppShellNavigation; mainId: string }) {
+  const { open, onOpenChange, mediaQuery, closeLabel = 'Close navigation' } = navigation;
+  const sidebarRef = useRef<HTMLElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const sidebarId = useId();
+  const { modal, sidebarProps, contentProps } = useSidebarNavigation({ open, onOpenChange, sidebarRef, triggerRef, mediaQuery });
+  return <appShellNavigation.Provider value={{ open, setOpen: onOpenChange, triggerRef, sidebarId }}>
+    <ShellFrame {...props} asideProps={{ ...sidebarProps, id: sidebarId, ref: sidebarRef }} workspaceProps={contentProps} drawer={{ closeLabel, modal, close: () => onOpenChange(false) }} />
+  </appShellNavigation.Provider>;
+}
+
+export function AppShell({ navigation, ...props }: AppShellProps) {
+  const mainId = useId();
+  return navigation ? <DrawerShell {...props} navigation={navigation} mainId={mainId} /> : <ShellFrame {...props} mainId={mainId} />;
 }

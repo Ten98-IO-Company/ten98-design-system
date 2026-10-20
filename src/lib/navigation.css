@@ -45,7 +45,7 @@
 .t98-account-menu__panel {
   position: absolute;
   top: calc(100% + var(--t98-space-2));
-  right: 0;
+  inset-inline-end: 0;
   z-index: var(--t98-z-popover);
   display: grid;
   width: 18rem;
@@ -105,6 +105,9 @@
 .t98-sidebar-footer__actions > :is(a, button):is(:disabled, [aria-disabled='true']) { opacity: .5; cursor: not-allowed; }
 .t98-account-menu :is(a, button):focus-visible,
 .t98-sidebar-footer__actions > :is(a, button):focus-visible { outline: 3px solid var(--t98-focus); outline-offset: 2px; }
+.t98-account-menu__actions .t98-account-menu__item { min-height: var(--t98-control-touch); }
+.t98-account-menu__actions .t98-account-menu__item--danger { color: var(--t98-danger); }
+.t98-account-menu__separator { height: 0; margin: var(--t98-space-1) 0; border: 0; border-top: 1px solid var(--t98-border); }
 .t98-account-menu__actions svg,
 .t98-sidebar-footer__actions > :is(a, button) svg { flex: none; }
 .t98-sidebar-footer {

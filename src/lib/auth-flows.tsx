@@ -1,8 +1,8 @@
 'use client';
 
-import { Component, useEffect, useId, useRef, type FormEvent, type MouseEvent, type ReactNode } from 'react';
+import { Component, useEffect, useId, useRef, useState, type FormEvent, type MouseEvent, type ReactNode } from 'react';
 import { Alert, Button, Checkbox, Field, Icon, Input, type Tone } from './primitives.js';
-import { Link, Stack, Text, type LinkProps } from './structure.js';
+import { DescriptionList, Heading, Link, Stack, Text, type LinkProps } from './structure.js';
 import { AuthLayout } from './workspace.js';
 
 /* Presentation-only authentication flows. Applications keep requests, sessions, routing, CSRF and OIDC redirects,
@@ -11,15 +11,15 @@ import { AuthLayout } from './workspace.js';
 export interface PasswordPolicy { minLength: number; maxLength: number; hint?: string }
 export const defaultPasswordPolicy: PasswordPolicy = { minLength: 12, maxLength: 128 };
 
-export type AuthFieldName = 'email' | 'password' | 'token' | 'name' | 'workspaceName';
+export type AuthFieldName = 'email' | 'password' | 'token' | 'name' | 'workspaceName' | 'code' | 'confirmation';
 export type AuthFieldErrors = Partial<Record<AuthFieldName, string>>;
-/** Values read from the submitted form, including hidden fields. Checkbox fields are present only when checked. */
+/** Raw values read from the submitted form, including hidden fields. Flows convert them to their own typed values. */
 export type AuthFormValues = Record<string, string>;
 export interface AuthNotice { tone: Tone; text: string }
 /** Either a callback that receives the current email, or a destination. */
 export type AuthAction = { onClick: (email: string) => void; href?: never } | { href: string; onClick?: never };
 
-export interface AuthFormBaseProps {
+export interface AuthFormBaseProps<Values = AuthFormValues> {
   /** Brand content, normally `AppBrand`. */
   brand: ReactNode;
   /** Side panel, normally `AuthStory`. */
@@ -30,8 +30,8 @@ export interface AuthFormBaseProps {
   eyebrow?: string;
   title: string;
   description?: string;
-  /** Controlled mode: receives the form values and the browser does not navigate. Omit it to post natively to `action`. */
-  onSubmit?: (values: AuthFormValues) => void | Promise<void>;
+  /** Controlled mode: receives this flow's typed values and the browser does not navigate. `hiddenFields` are not included. Omit it to post natively to `action`. */
+  onSubmit?: (values: Values) => void | Promise<void>;
   action?: string;
   method?: 'get' | 'post';
   /** Extra values such as a CSRF token, posted with the form. */
@@ -41,13 +41,34 @@ export interface AuthFormBaseProps {
   busyLabel?: string;
   /** Form-level failure. Focus moves to it when it changes after a submit. */
   error?: string;
+  /** The outcome of the last request is unknown, for example after a timeout. Shown as a warning alert, distinct from `error`; say what to check and not to assume the request failed or succeeded. */
+  unconfirmed?: string;
   notice?: AuthNotice;
   fieldErrors?: AuthFieldErrors;
   linkComponent?: LinkProps['component'];
 }
 
-interface AuthFormFrameProps extends AuthFormBaseProps {
-  submitLabel: string;
+export interface SignInValues { email: string; password: string }
+export interface FirstUserSetupValues { name: string; token: string; email: string; password: string; workspaceName?: string; sample: boolean }
+export interface TwoFactorValues { code: string; mode: 'authenticator' | 'recovery' }
+export interface RecoveryRequestValues { email: string }
+export interface RecoveryResetValues { password: string; confirmation: string; token?: string }
+export interface InvitationValues { name?: string; password?: string; token?: string }
+export interface WorkspaceCreateValues { name: string }
+
+/** Wraps a typed handler for the frame, which reads raw form values. */
+const typed = <Values,>(onSubmit: ((values: Values) => void | Promise<void>) | undefined, convert: (raw: AuthFormValues) => Values) => onSubmit && ((raw: AuthFormValues) => onSubmit(convert(raw)));
+const text = (raw: AuthFormValues, name: string) => raw[name] ?? '';
+const optional = (raw: AuthFormValues, name: string) => raw[name] === undefined ? {} : { [name]: raw[name] };
+
+interface AuthFormFrameProps extends Omit<AuthFormBaseProps, 'onSubmit'> {
+  onSubmit?: (values: AuthFormValues) => void | Promise<void>;
+  /** Posted and submitted like hiddenFields but kept in the values, for example a token the flow documents as a value. */
+  valueFields?: Record<string, string>;
+  /** Omit it for a screen without a form: the children render below the heading with the notice and error. */
+  submitLabel?: string;
+  /** Runs before a submit is accepted. Return false to keep the browser from posting; the flow shows its own message. */
+  validate?: (values: AuthFormValues) => boolean;
   children: ReactNode;
   after?: ReactNode;
   below?: ReactNode;
@@ -64,7 +85,7 @@ const emailOf = (button: HTMLElement) => {
   return typeof value === 'string' ? value : '';
 };
 
-function AuthFormFrame({ brand, aside, footer, label, eyebrow, title, description, onSubmit, action, method = 'post', hiddenFields, busy = false, busyLabel, error, notice, fieldErrors, submitLabel, children, after, below }: AuthFormFrameProps) {
+function AuthFormFrame({ brand, aside, footer, label, eyebrow, title, description, onSubmit, action, method = 'post', hiddenFields, valueFields, busy = false, busyLabel, error, unconfirmed, notice, fieldErrors, submitLabel, validate, children, after, below }: AuthFormFrameProps) {
   const formRef = useRef<HTMLFormElement>(null);
   const submitted = useRef(false);
   const pending = useRef(false);
@@ -80,28 +101,39 @@ function AuthFormFrame({ brand, aside, footer, label, eyebrow, title, descriptio
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     if (busy || pending.current) { event.preventDefault(); return; }
     submitted.current = true;
+    const values = readValues(event.currentTarget);
+    for (const name of Object.keys(hiddenFields ?? {})) delete values[name];
+    if (validate && !validate(values)) { event.preventDefault(); return; }
     if (!onSubmit) return;
     event.preventDefault();
     pending.current = true;
-    try { await onSubmit(readValues(event.currentTarget)); } finally { pending.current = false; }
+    try { await onSubmit(values); } finally { pending.current = false; }
   }
 
-  return <AuthLayout label={label} brand={brand} aside={aside} footer={footer}>
+  return <AuthLayout label={label ?? title} brand={brand} aside={aside} footer={footer}>
     <header className="t98-auth-heading">
       {eyebrow && <p className="eyebrow">{eyebrow}</p>}
       <h1 className="t98-auth-title">{title}</h1>
       {description && <p>{description}</p>}
     </header>
-    <form ref={formRef} aria-busy={busy || undefined} onSubmit={handleSubmit} action={onSubmit ? undefined : action} method={onSubmit ? undefined : method}>
-      {hiddenFields && Object.entries(hiddenFields).map(([name, value]) => <input key={name} type="hidden" name={name} value={value} />)}
-      {notice && <Alert className="t98-auth-feedback" tone={notice.tone} title={notice.text} />}
-      {error && <Alert className="t98-auth-feedback t98-auth-error" tone="danger" title={error} tabIndex={-1} />}
-      <fieldset className="t98-auth-fieldset" disabled={busy}>
+    {submitLabel === undefined
+      ? <Stack gap={4}>
+        {notice && <Alert tone={notice.tone} title={notice.text} />}
+        {unconfirmed && <Alert tone="warning" role="alert" title={unconfirmed} />}
+        {error && <Alert className="t98-auth-error" tone="danger" title={error} tabIndex={-1} />}
         {children}
-        <Button type="submit" className="t98-auth-submit" loading={busy}>{busy && busyLabel ? busyLabel : submitLabel}</Button>
-        {after}
-      </fieldset>
-    </form>
+      </Stack>
+      : <form ref={formRef} aria-busy={busy || undefined} onSubmit={handleSubmit} action={onSubmit ? undefined : action} method={onSubmit ? undefined : method}>
+        {Object.entries({ ...hiddenFields, ...valueFields }).map(([name, value]) => <input key={name} type="hidden" name={name} value={value} />)}
+        {notice && <Alert className="t98-auth-feedback" tone={notice.tone} title={notice.text} />}
+        {unconfirmed && <Alert className="t98-auth-feedback" tone="warning" role="alert" title={unconfirmed} />}
+        {error && <Alert className="t98-auth-feedback t98-auth-error" tone="danger" title={error} tabIndex={-1} />}
+        <fieldset className="t98-auth-fieldset" disabled={busy}>
+          {children}
+          <Button type="submit" className="t98-auth-submit" loading={busy}>{busy && busyLabel ? busyLabel : submitLabel}</Button>
+          {after}
+        </fieldset>
+      </form>}
     {below}
   </AuthLayout>;
 }
@@ -112,7 +144,7 @@ function AuthActionControl({ action, label, linkComponent, variant }: { action: 
   return <Button type="button" variant={variant} size="sm" onClick={(event: MouseEvent<HTMLButtonElement>) => onClick(emailOf(event.currentTarget))}>{label}</Button>;
 }
 
-export interface SignInFlowProps extends AuthFormBaseProps {
+export interface SignInFlowProps extends AuthFormBaseProps<SignInValues> {
   defaultValues?: { email?: string };
   /** Only `maxLength` applies to a current password. */
   passwordPolicy?: Pick<PasswordPolicy, 'maxLength'>;
@@ -123,10 +155,10 @@ export interface SignInFlowProps extends AuthFormBaseProps {
   providers?: ReactNode;
 }
 /** Email and password sign-in. The application authenticates; this renders the screen. */
-export function SignInFlow({ defaultValues, passwordPolicy, submitLabel = 'Sign in', busyLabel = 'Signing in…', forgotPassword, cancel, providers, linkComponent, fieldErrors, ...frame }: SignInFlowProps) {
+export function SignInFlow({ defaultValues, passwordPolicy, submitLabel = 'Sign in', busyLabel = 'Signing in…', forgotPassword, cancel, providers, linkComponent, fieldErrors, onSubmit, ...frame }: SignInFlowProps) {
   const id = useId();
   const maxLength = passwordPolicy?.maxLength ?? defaultPasswordPolicy.maxLength;
-  return <AuthFormFrame {...frame} fieldErrors={fieldErrors} linkComponent={linkComponent} submitLabel={submitLabel} busyLabel={busyLabel} below={providers}
+  return <AuthFormFrame {...frame} onSubmit={typed(onSubmit, raw => ({ email: text(raw, 'email'), password: text(raw, 'password') }))} fieldErrors={fieldErrors} linkComponent={linkComponent} submitLabel={submitLabel} busyLabel={busyLabel} below={providers}
     after={cancel && <div className="t98-auth-aux">{cancel.href !== undefined ? <Link href={cancel.href} variant="standalone" component={linkComponent}>{cancel.label}</Link> : <Button type="button" variant="secondary" onClick={cancel.onClick}>{cancel.label}</Button>}</div>}>
     <Field label="Email address" htmlFor={`${id}-email`} error={fieldErrors?.email}>
       <Input name="email" type="email" autoComplete="username" required maxLength={254} defaultValue={defaultValues?.email} />
@@ -138,7 +170,7 @@ export function SignInFlow({ defaultValues, passwordPolicy, submitLabel = 'Sign 
   </AuthFormFrame>;
 }
 
-export interface FirstUserSetupFlowProps extends AuthFormBaseProps {
+export interface FirstUserSetupFlowProps extends AuthFormBaseProps<FirstUserSetupValues> {
   defaultValues?: { name?: string; email?: string; workspaceName?: string };
   passwordPolicy?: PasswordPolicy;
   tokenLength?: { min?: number; max?: number };
@@ -151,9 +183,9 @@ export interface FirstUserSetupFlowProps extends AuthFormBaseProps {
   submitLabel?: string;
 }
 /** Owner account creation for a new installation, gated by a setup token the application verifies. */
-export function FirstUserSetupFlow({ defaultValues, passwordPolicy = defaultPasswordPolicy, tokenLength, tokenHint, workspaceName = false, sampleOptIn = false, signInInstead, submitLabel = 'Create owner account', busyLabel = 'Creating account…', linkComponent, fieldErrors, ...frame }: FirstUserSetupFlowProps) {
+export function FirstUserSetupFlow({ defaultValues, passwordPolicy = defaultPasswordPolicy, tokenLength, tokenHint, workspaceName = false, sampleOptIn = false, signInInstead, submitLabel = 'Create owner account', busyLabel = 'Creating account…', linkComponent, fieldErrors, onSubmit, ...frame }: FirstUserSetupFlowProps) {
   const id = useId();
-  return <AuthFormFrame {...frame} fieldErrors={fieldErrors} linkComponent={linkComponent} submitLabel={submitLabel} busyLabel={busyLabel}
+  return <AuthFormFrame {...frame} onSubmit={typed(onSubmit, raw => ({ name: text(raw, 'name'), token: text(raw, 'token'), email: text(raw, 'email'), password: text(raw, 'password'), ...(workspaceName ? optional(raw, 'workspaceName') : {}), sample: raw.sample === 'true' }))} fieldErrors={fieldErrors} linkComponent={linkComponent} submitLabel={submitLabel} busyLabel={busyLabel}
     after={signInInstead && <div className="t98-auth-aux"><AuthActionControl action={signInInstead} label={signInInstead.label ?? 'Sign in instead'} linkComponent={linkComponent} variant="ghost" /></div>}>
     <Field label="Your name" htmlFor={`${id}-name`} error={fieldErrors?.name}>
       <Input name="name" autoComplete="name" required maxLength={120} defaultValue={defaultValues?.name} />
@@ -171,6 +203,236 @@ export function FirstUserSetupFlow({ defaultValues, passwordPolicy = defaultPass
       <Input name="workspaceName" autoComplete="organization" required maxLength={120} defaultValue={defaultValues?.workspaceName} />
     </Field>}
     {sampleOptIn && <div className="t98-auth-choice"><Checkbox name="sample" value="true" label={sampleOptIn.label} defaultChecked={sampleOptIn.defaultChecked} /></div>}
+  </AuthFormFrame>;
+}
+
+type LabelledAction = AuthAction & { label?: string };
+const actionRow = (items: ReactNode[]) => {
+  const shown = items.filter(Boolean);
+  return shown.length ? <div className="t98-auth-aux">{shown}</div> : null;
+};
+
+export type TwoFactorMode = 'authenticator' | 'recovery';
+export interface TwoFactorMessages {
+  /** `{length}` is replaced with the code length. */
+  authenticatorLabel: string; authenticatorDescription: string; recoveryLabel: string; recoveryDescription: string;
+  /** Toggle button text: names the mode the person switches to. */
+  useRecovery: string; useAuthenticator: string;
+}
+const twoFactorMessages: TwoFactorMessages = {
+  authenticatorLabel: 'Authentication code', authenticatorDescription: 'Enter the {length}-digit code from your authenticator app.',
+  recoveryLabel: 'Recovery code', recoveryDescription: 'Enter one of your saved recovery codes. Each code works once.',
+  useRecovery: 'Use a recovery code', useAuthenticator: 'Use your authenticator app',
+};
+export interface TwoFactorChallengeFlowProps extends AuthFormBaseProps<TwoFactorValues> {
+  /** The application owns the mode; the flow clears the code whenever it changes. */
+  mode: TwoFactorMode;
+  onModeChange: (mode: TwoFactorMode) => void;
+  codeLength?: Partial<Record<TwoFactorMode, number>>;
+  messages?: Partial<TwoFactorMessages>;
+  submitLabel?: string;
+  cancel?: LabelledAction;
+}
+/** Second-step sign-in with an authenticator or recovery code. The application verifies the code. */
+export function TwoFactorChallengeFlow({ mode, onModeChange, codeLength, messages, submitLabel = 'Verify', busyLabel = 'Verifying…', cancel, linkComponent, fieldErrors, onSubmit, ...frame }: TwoFactorChallengeFlowProps) {
+  const id = useId();
+  const copy = { ...twoFactorMessages, ...messages };
+  const recovery = mode === 'recovery';
+  const length = codeLength?.[mode] ?? (recovery ? 21 : 6);
+  return <AuthFormFrame {...frame} onSubmit={typed(onSubmit, raw => ({ code: text(raw, 'code'), mode }))} valueFields={{ mode }} fieldErrors={fieldErrors} linkComponent={linkComponent} submitLabel={submitLabel} busyLabel={busyLabel}
+    after={actionRow([
+      <Button key="mode" type="button" variant="ghost" size="sm" onClick={() => onModeChange(recovery ? 'authenticator' : 'recovery')}>{recovery ? copy.useAuthenticator : copy.useRecovery}</Button>,
+      cancel && <AuthActionControl key="cancel" action={cancel} label={cancel.label ?? 'Back to sign in'} linkComponent={linkComponent} variant="ghost" />,
+    ])}>
+    <Field label={recovery ? copy.recoveryLabel : copy.authenticatorLabel} htmlFor={`${id}-code`} description={(recovery ? copy.recoveryDescription : copy.authenticatorDescription).replace('{length}', String(length))} error={fieldErrors?.code}>
+      <Input key={mode} name="code" autoComplete="one-time-code" inputMode={recovery ? 'text' : 'numeric'} maxLength={length} required spellCheck={false} autoCapitalize="off" />
+    </Field>
+  </AuthFormFrame>;
+}
+
+export interface PasswordRecoveryMessages {
+  loading: string; disabled: string; error: string; sent: string; invalid: string; resetIntro: string; mismatch: string;
+}
+const recoveryMessages: PasswordRecoveryMessages = {
+  loading: 'Checking whether password reset is available…', disabled: 'Password reset is not available for this installation.', error: 'Password reset availability could not be checked.',
+  sent: 'If an account exists for that email address, a reset link is on its way.', invalid: 'This reset link has expired or was already used.',
+  resetIntro: 'Choose a new password for your account.', mismatch: 'The passwords do not match.',
+};
+interface PasswordRecoveryBaseProps extends Omit<AuthFormBaseProps, 'onSubmit'> {
+  /** Reset stage: the reset token, held in memory by the application. It is posted as the hidden field `token`; the flow never reads or changes the address. */
+  token?: string;
+  /** Request stage: whether the application offers password reset. Omit it when known to be enabled. */
+  availability?: 'loading' | 'enabled' | 'disabled' | 'error';
+  /** Request stage: replaces the form with a confirmation. */
+  sent?: boolean;
+  /** Reset stage: the link is unusable, so the form is hidden. */
+  invalid?: boolean;
+  onRequestNewLink?: () => void;
+  requestNewLinkLabel?: string;
+  defaultValues?: { email?: string };
+  passwordPolicy?: PasswordPolicy;
+  messages?: Partial<PasswordRecoveryMessages>;
+  submitLabel?: string;
+  backToSignIn: LabelledAction;
+}
+export type PasswordRecoveryFlowProps = PasswordRecoveryBaseProps & (
+  | { stage: 'request'; onSubmit?: (values: RecoveryRequestValues) => void | Promise<void> }
+  | { stage: 'reset'; onSubmit?: (values: RecoveryResetValues) => void | Promise<void> }
+);
+/** Password reset request and new-password screens. The application sends links and checks tokens. */
+export function PasswordRecoveryFlow({ stage, token, availability = 'enabled', sent = false, invalid = false, onRequestNewLink, requestNewLinkLabel = 'Request a new link', defaultValues, passwordPolicy = defaultPasswordPolicy, messages, submitLabel, busyLabel, backToSignIn, linkComponent, fieldErrors, onSubmit, ...frame }: PasswordRecoveryFlowProps) {
+  const id = useId();
+  const [mismatch, setMismatch] = useState(false);
+  const copy = { ...recoveryMessages, ...messages };
+  const back = actionRow([<AuthActionControl key="back" action={backToSignIn} label={backToSignIn.label ?? 'Back to sign in'} linkComponent={linkComponent} variant="ghost" />]);
+  const message = (tone: Tone, text: string, actions?: ReactNode) => <Stack gap={4}><Alert tone={tone} title={text} />{actions}{back}</Stack>;
+  const common = { ...frame, linkComponent, onSubmit: stage === 'request' ? typed(onSubmit as ((values: RecoveryRequestValues) => void | Promise<void>) | undefined, raw => ({ email: text(raw, 'email') })) : typed(onSubmit as ((values: RecoveryResetValues) => void | Promise<void>) | undefined, raw => ({ password: text(raw, 'password'), confirmation: text(raw, 'confirmation'), ...optional(raw, 'token') })), valueFields: token && stage === 'reset' ? { token } : undefined };
+  if (stage === 'request' && availability === 'loading') return <AuthFormFrame {...common}><div className="t98-auth-state" role="status"><span className="t98-spinner" aria-hidden="true" /><span>{copy.loading}</span></div>{back}</AuthFormFrame>;
+  if (stage === 'request' && availability !== 'enabled') return <AuthFormFrame {...common}>{message(availability === 'error' ? 'danger' : 'info', availability === 'error' ? copy.error : copy.disabled)}</AuthFormFrame>;
+  if (stage === 'request' && sent) return <AuthFormFrame {...common}>{message('success', copy.sent)}</AuthFormFrame>;
+  if (stage === 'reset' && invalid) return <AuthFormFrame {...common}>{message('danger', copy.invalid, onRequestNewLink && <Button type="button" onClick={onRequestNewLink}>{requestNewLinkLabel}</Button>)}</AuthFormFrame>;
+  if (stage === 'request') return <AuthFormFrame {...common} fieldErrors={fieldErrors} submitLabel={submitLabel ?? 'Send reset link'} busyLabel={busyLabel ?? 'Sending…'} after={back}>
+    <Field label="Email address" htmlFor={`${id}-email`} error={fieldErrors?.email}>
+      <Input name="email" type="email" autoComplete="username" required maxLength={254} defaultValue={defaultValues?.email} />
+    </Field>
+  </AuthFormFrame>;
+  // Presentation-only check so a typo is caught before a request; the application still validates the password.
+  const confirmationError = fieldErrors?.confirmation ?? (mismatch ? copy.mismatch : undefined);
+  const clearMismatch = () => setMismatch(false);
+  return <AuthFormFrame {...common} fieldErrors={{ ...fieldErrors, confirmation: confirmationError }} submitLabel={submitLabel ?? 'Reset password'} busyLabel={busyLabel ?? 'Resetting…'} after={back}
+    validate={values => { const same = values.password === values.confirmation; setMismatch(!same); return same; }}>
+    <Text tone="muted" size="sm">{copy.resetIntro}</Text>
+    <Field label="New password" htmlFor={`${id}-password`} description={passwordPolicy.hint ?? `Use at least ${passwordPolicy.minLength} characters.`} error={fieldErrors?.password}>
+      <Input name="password" type="password" autoComplete="new-password" required minLength={passwordPolicy.minLength} maxLength={passwordPolicy.maxLength} onChange={clearMismatch} />
+    </Field>
+    <Field label="Confirm new password" htmlFor={`${id}-confirmation`} error={confirmationError}>
+      <Input name="confirmation" type="password" autoComplete="new-password" required maxLength={passwordPolicy.maxLength} onChange={clearMismatch} />
+    </Field>
+  </AuthFormFrame>;
+}
+
+export type InvitationState = 'loading' | 'details' | 'signin-required' | 'mismatch' | 'unavailable' | 'accepted';
+export interface InvitationDetails { workspaceName: string; email: string; role: string; expiresAt: string | Date }
+export interface InvitationMessages { loading: string; mismatch: string; accepted: string; signInRequired: string }
+const invitationMessages: InvitationMessages = {
+  loading: 'Loading the invitation…', mismatch: 'Signed in as {signedIn}; this invitation is for {invited}.', accepted: 'You joined {workspace}.',
+  signInRequired: 'Sign in as {invited} to join {workspace}.',
+};
+const defaultFormatDate = (value: string | Date) => {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? String(value) : new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeZone: 'UTC' }).format(date);
+};
+export interface InvitationAcceptFlowProps extends AuthFormBaseProps<InvitationValues> {
+  state: InvitationState;
+  /** Invitation token, held in memory by the application. It is posted as the hidden field `token` and included in the onSubmit values; the flow never reads or changes the address. */
+  token?: string;
+  invitation?: InvitationDetails;
+  formatDate?: (value: string | Date) => string;
+  /** Email of the current session, if any. */
+  signedInEmail?: string;
+  /** An account already exists for the invited email. */
+  accountExists?: boolean;
+  /** Sign-on providers shown when nobody is signed in. */
+  providers?: ReactNode;
+  onSignIn?: () => void;
+  onSwitchAccount?: () => void;
+  onRetry?: () => void;
+  /** Where to go after joining. */
+  continueAction?: LabelledAction;
+  passwordPolicy?: PasswordPolicy;
+  messages?: Partial<InvitationMessages>;
+  cancel?: LabelledAction;
+}
+/** Workspace invitation screens for every step of acceptance. The application validates the invitation and the session. */
+export function InvitationAcceptFlow({ state, token, invitation, formatDate = defaultFormatDate, signedInEmail, accountExists = false, providers, onSignIn, onSwitchAccount, onRetry, continueAction, passwordPolicy = defaultPasswordPolicy, messages, cancel, busyLabel, linkComponent, fieldErrors, onSubmit, ...frame }: InvitationAcceptFlowProps) {
+  const id = useId();
+  const copy = { ...invitationMessages, ...messages };
+  const fill = (text: string) => text.replace('{signedIn}', signedInEmail ?? '').replace('{invited}', invitation?.email ?? '').replace('{workspace}', invitation?.workspaceName ?? '');
+  const effective = state === 'details' && !signedInEmail && accountExists ? 'signin-required' : state;
+  const busy = frame.busy ?? false;
+  const summary = invitation && <DescriptionList items={[
+    { key: 'workspace', term: 'Workspace', description: invitation.workspaceName },
+    { key: 'email', term: 'Invited email', description: invitation.email },
+    { key: 'role', term: 'Role', description: invitation.role },
+    { key: 'expires', term: 'Expires', description: formatDate(invitation.expiresAt) },
+  ]} />;
+  const exit = cancel && <AuthActionControl key="exit" action={cancel} label={cancel.label ?? 'Cancel'} linkComponent={linkComponent} variant="ghost" />;
+  const base = { ...frame, linkComponent, onSubmit: typed(onSubmit, raw => ({ ...optional(raw, 'name'), ...optional(raw, 'password'), ...optional(raw, 'token') })), valueFields: token ? { token } : undefined };
+
+  if (effective === 'loading') return <AuthFormFrame {...base}><div className="t98-auth-state" role="status"><span className="t98-spinner" aria-hidden="true" /><span>{copy.loading}</span></div></AuthFormFrame>;
+  if (effective === 'unavailable') return <AuthFormFrame {...base}>
+    {actionRow([onRetry && <Button key="retry" type="button" variant="secondary" size="sm" onClick={onRetry}>Try again</Button>, exit])}
+  </AuthFormFrame>;
+  if (effective === 'accepted') return <AuthFormFrame {...base}>
+    <Alert tone="success" title={fill(copy.accepted)} />
+    {continueAction && actionRow([<AuthActionControl key="go" action={continueAction} label={continueAction.label ?? 'Open workspace'} linkComponent={linkComponent} variant="secondary" />])}
+  </AuthFormFrame>;
+  if (effective === 'mismatch') return <AuthFormFrame {...base}>
+    {summary}
+    <Alert tone="warning" title={fill(copy.mismatch)} />
+    {actionRow([onSwitchAccount && <Button key="switch" type="button" onClick={onSwitchAccount} disabled={busy}>Switch account</Button>, exit])}
+  </AuthFormFrame>;
+  if (effective === 'signin-required') return <AuthFormFrame {...base} below={providers}>
+    {summary}
+    <Text tone="muted" size="sm">{fill(copy.signInRequired)}</Text>
+    <Button type="button" loading={busy} onClick={onSignIn}>Sign in to join</Button>
+    {actionRow([exit])}
+  </AuthFormFrame>;
+  const joining = Boolean(signedInEmail);
+  return <AuthFormFrame {...base} fieldErrors={fieldErrors} submitLabel={joining ? 'Join workspace' : 'Create account and join'} busyLabel={busyLabel ?? (joining ? 'Joining…' : 'Creating account…')} below={joining ? undefined : providers}
+    after={actionRow([!joining && onSignIn && <Button key="signin" type="button" variant="ghost" size="sm" onClick={onSignIn}>Sign in instead</Button>, exit])}>
+    {summary}
+    {!joining && <>
+      <Field label="Your name" htmlFor={`${id}-name`} error={fieldErrors?.name}>
+        <Input name="name" autoComplete="name" required maxLength={120} />
+      </Field>
+      <Field label="Password" htmlFor={`${id}-password`} description={passwordPolicy.hint ?? `Use at least ${passwordPolicy.minLength} characters.`} error={fieldErrors?.password}>
+        <Input name="password" type="password" autoComplete="new-password" required minLength={passwordPolicy.minLength} maxLength={passwordPolicy.maxLength} />
+      </Field>
+    </>}
+  </AuthFormFrame>;
+}
+
+export type WorkspaceSignOut = { label?: string } & ({ onClick: () => void; action?: never; method?: never; hiddenFields?: never } | { action: string; method?: 'post'; hiddenFields?: Record<string, string>; onClick?: never });
+export interface WorkspaceOnboardingProps extends Omit<AuthFormBaseProps<WorkspaceCreateValues>, 'title'> {
+  title?: string;
+  /** The signed-in account's email. */
+  email: string;
+  subheading?: string;
+  help?: string;
+  defaultValues?: { name?: string };
+  submitLabel?: string;
+  onRefresh?: () => void;
+  refreshLabel?: string;
+  signOut?: WorkspaceSignOut;
+  /** Link to account settings, shown with Refresh and Sign out. */
+  account?: AuthAction & { label: string };
+  /** Extra content below the actions, for example pending invitations. */
+  children?: ReactNode;
+}
+/** Shown to a signed-in account that has no workspace access yet: create one, refresh access or sign out. */
+export function WorkspaceOnboarding({ title = 'Workspace access', email, subheading = 'Create a workspace', help, defaultValues, submitLabel = 'Create workspace', busyLabel = 'Creating workspace…', onRefresh, refreshLabel = 'Refresh access', signOut, account, children, fieldErrors, onSubmit, ...frame }: WorkspaceOnboardingProps) {
+  const id = useId();
+  const signOutLabel = signOut?.label ?? 'Sign out';
+  return <AuthFormFrame {...frame} onSubmit={typed(onSubmit, raw => ({ name: text(raw, 'name') }))} title={title} description={`Signed in as ${email}`} fieldErrors={fieldErrors} submitLabel={submitLabel} busyLabel={busyLabel}
+    below={(onRefresh || signOut || account || children) && <Stack gap={4}>
+      {(onRefresh || signOut || account) && <div className="t98-auth-aux">
+        {onRefresh && <Button type="button" variant="secondary" size="sm" onClick={onRefresh}>{refreshLabel}</Button>}
+        {account && <AuthActionControl action={account} label={account.label} linkComponent={frame.linkComponent} variant="ghost" />}
+        {signOut && (signOut.action !== undefined
+          ? <form action={signOut.action} method="post">
+            {signOut.hiddenFields && Object.entries(signOut.hiddenFields).map(([name, value]) => <input key={name} type="hidden" name={name} value={value} />)}
+            <Button type="submit" variant="ghost" size="sm">{signOutLabel}</Button>
+          </form>
+          : <Button type="button" variant="ghost" size="sm" onClick={signOut.onClick}>{signOutLabel}</Button>)}
+      </div>}
+      {children}
+    </Stack>}>
+    <Heading level={2} className="t98-auth-subheading">{subheading}</Heading>
+    {help && <Text tone="muted" size="sm">{help}</Text>}
+    <Field label="Workspace name" htmlFor={`${id}-name`} error={fieldErrors?.name ?? fieldErrors?.workspaceName}>
+      <Input name="name" autoComplete="organization" required maxLength={120} defaultValue={defaultValues?.name} />
+    </Field>
   </AuthFormFrame>;
 }
 
@@ -232,7 +494,7 @@ export function AuthStory({ label, eyebrow, title, emphasis, lead, channels, foo
   </>;
 }
 
-export type AppStateKind = 'loading' | 'error' | 'boundary';
+export type AppStateKind = 'loading' | 'error' | 'boundary' | 'unconfirmed';
 export interface AppStateScreenProps {
   state: AppStateKind;
   brand: ReactNode;
@@ -245,15 +507,16 @@ const stateCopy: Record<AppStateKind, { title: string; message: string; retryLab
   loading: { title: 'Loading', message: 'Loading your workspace…', retryLabel: '' },
   error: { title: 'Could not load', message: 'The request did not complete.', retryLabel: 'Try again' },
   boundary: { title: 'This screen stopped working', message: 'An unexpected error interrupted this screen.', retryLabel: 'Reload' },
+  unconfirmed: { title: 'Result not confirmed', message: 'The request may or may not have completed. Reload to check the current state before you try again.', retryLabel: 'Reload' },
 };
 /** Full-screen loading and failure states shown before the application shell is available. */
 export function AppStateScreen({ state, brand, title, message, onRetry, retryLabel }: AppStateScreenProps) {
   const copy = stateCopy[state];
-  return <AuthLayout brand={brand} title={title ?? copy.title}>
+  return <AuthLayout label={title ?? copy.title} brand={brand} title={title ?? copy.title}>
     {state === 'loading'
       ? <div className="t98-auth-state" role="status"><span className="t98-spinner" aria-hidden="true" /><Text as="span">{message ?? copy.message}</Text></div>
       : <Stack gap={4}>
-        <Alert tone="danger" title={message ?? copy.message} />
+        <Alert tone={state === 'unconfirmed' ? 'warning' : 'danger'} role="alert" title={message ?? copy.message} />
         {onRetry && <Button type="button" onClick={onRetry}>{retryLabel ?? copy.retryLabel}</Button>}
       </Stack>}
   </AuthLayout>;

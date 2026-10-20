@@ -5,19 +5,19 @@
 Place one `AccountMenu` in the top-right page header. The trigger opens a compact dropdown with the person's name/email and the app's existing account links and sign-out action. Remove the duplicated sidebar profile block. Keep `SidebarFooter` at the bottom of the sidebar for Settings, optional connection links and the actual application version supplied by the build. The UI library version is not the app version.
 
 ```tsx
-import { AccountMenu, SidebarFooter } from '@ten98/ui';
+<AccountMenu name={user.name} email={user.email} avatar={existingAvatar} linkComponent={RouterLink} items={[
+  { id: 'profile', kind: 'link', label: 'Profile and appearance', icon: 'user', href: 'account' },
+  { id: 'security', kind: 'link', label: 'Account security', icon: 'shield', href: 'account/security' },
+  { id: 'sep', kind: 'separator' },
+  { id: 'out', kind: 'button', label: 'Sign out', busyLabel: 'Signing out…', busy: signOutBusy, danger: true, onSelect: signOut },
+]} />
+```
 
-<AccountMenu name={user.name} email={user.email} avatar={existingAvatar}>
-  <Link to="/account">Profile and appearance</Link>
-  <Link to="/account/security">Account security</Link>
-  <button type="button" disabled={signOutBusy} aria-busy={signOutBusy || undefined} onClick={signOut}>
-    {signOutBusy ? 'Signing out…' : 'Sign out'}
-  </button>
-</AccountMenu>
+`items` render the same native links and buttons as `children`, so every dismissal rule below applies unchanged. `children` still works but is deprecated in favour of `items`; if both are given, items render first. A busy item is disabled, sets `aria-busy` and shows `busyLabel`.
 
+```tsx
 <SidebarFooter version={appVersion}>
-  {existingConnectionStatus}
-  <Link to="/settings">Settings</Link>
+  <SidebarStatus tone="connected" label="Channels connected" action={{ label: 'Manage', href: 'connections' }} linkComponent={RouterLink} />
 </SidebarFooter>
 ```
 
@@ -28,6 +28,46 @@ Load `styles.css` for new applications or the existing `app-tokens.css`, `app.cs
 This is a nonmodal disclosure with ordinary Tab navigation, not an ARIA application menu. Escape closes and returns focus to its trigger. Outside interaction and Tab exit close without stealing focus. Identity text wraps; disabled and busy actions cannot dispatch. Keep the sidebar free of a second profile/sign-out block and preserve its wheel, touch and keyboard scrolling without a visible scrollbar.
 
 The catalogue's **AccountMenu** and **SidebarFooter** entries provide complete TSX, props, tokens, and open, closed, long-content and busy examples. Verify native account navigation, draft cancellation, sign-out success/failure and permission gates in the consuming app, in light/dark and narrow/wide layouts.
+
+## Complete application shell
+
+`AppShell` provides the whole frame, so the application writes no elements, class names or styles. Pass `navigation` and `AppShell` runs `useSidebarNavigation` itself: it labels the sidebar, adds the shade (only while the drawer is modal) and a labelled close button, and shares its state with `AppTopbar menuToggle` (`aria-controls`, `aria-expanded`, focus return). The top bar sits in a `header` outside `main`; `banners` stack above the content; the skip link targets `main`.
+
+```tsx
+import { AccountMenu, AppShell, AppTopbar, Banner, SearchField, SidebarFooter, SidebarNav, SidebarStatus, WorkspaceProjectSwitcher, type NavLinkComponent } from '@ten98/ui';
+
+// TanStack-style wrapper: `href` is the app's key, mapped to `to` and `search`. It must honour event.defaultPrevented.
+const routes = { overview: { to: '/', search: {} }, alerts: { to: '/alerts', search: { view: 'new' } } };
+const RouterLink: NavLinkComponent = ({ href, ...props }) => <Link {...routes[href]} {...props} />;
+
+<AppShell
+  sidebarLabel="Workspace" mainLabel="Page content"
+  navigation={{ open, onOpenChange: setOpen }}
+  sidebar={<>
+    <WorkspaceProjectSwitcher workspaces={workspaces} projects={projects} workspaceId={workspaceId} projectId={projectId}
+      onWorkspaceChange={setWorkspaceId} onProjectChange={setProjectId} create={{ href: 'projects/new' }} linkComponent={RouterLink} />
+    <SidebarNav label="Primary" linkComponent={RouterLink} onNavigate={() => setOpen(false)} groups={groups} />
+    <SidebarFooter version={appVersion}>
+      <SidebarStatus tone="connected" label="Channels connected" />
+    </SidebarFooter>
+  </>}
+  topbar={<AppTopbar menuToggle breadcrumb={{ icon: 'home', scope: workspace.name, current: 'Overview' }}
+    search={<SearchField variant="topbar" label="Search" hideLabel shortcut="/" value={query} onValueChange={setQuery} />}
+    actions={<AccountMenu name={user.name} email={user.email} linkComponent={RouterLink} items={accountItems} />} />}
+  banners={needsTwoFactor && <Banner tone="warning" live icon="shield" title="Two-factor authentication required"
+    action={{ label: 'Set up two-factor authentication', href: 'account/security' }} linkComponent={RouterLink}>This workspace requires it.</Banner>}
+>
+  {page}
+</AppShell>
+```
+
+`SidebarNav` `href` is a key your `linkComponent` resolves, so Discover can map it to a router `to` and `search`. An item may have `href`, `onSelect` or both. With both, the anchor always renders. On a plain primary click `onSelect(item, event)` runs first; if it calls `event.preventDefault()` (for example while a draft is unsaved) navigation is cancelled and `onNavigate` is not called. Ctrl, meta, shift, alt and non-primary clicks skip both callbacks and keep the browser default. Items with only `onSelect` render buttons. `keywords` extend filter matching, and a group whose items are all hidden or filtered is hidden. Campaign passes real hrefs plus a guarded `onSelect`:
+
+```tsx
+{ id: 'drafts', label: 'Drafts', icon: 'file', href: 'drafts', onSelect: (_item, event) => { if (hasUnsavedDraft) { event.preventDefault(); askToDiscard('drafts'); } } }
+```
+
+`WorkspaceProjectSwitcher` accepts `initials` per workspace for a decorative avatar beside the select. `AppShell` keeps working without `navigation` (static stack below 760px), with `header` instead of `topbar`. The drawer breakpoint is `defaultSidebarMediaQuery`; a custom `navigation.mediaQuery` must match the stylesheet.
 
 ## Responsive navigation
 

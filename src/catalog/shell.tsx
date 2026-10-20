@@ -1,4 +1,5 @@
-import { SearchField, SidebarNav, WorkspaceProjectSwitcher } from '../lib';
+import { AccountMenu } from '../lib/account-menu';
+import { AppTopbar, Banner, SearchField, SidebarNav, SidebarStatus, WorkspaceProjectSwitcher } from '../lib';
 import { tsx, type ComponentEntry } from './model';
 
 const noop = () => undefined;
@@ -43,17 +44,31 @@ const search = (jsx: string) => tsx(['SearchField'], jsx, "const noop = () => un
 const linkContract = 'With a linkComponent, `href` is a key your component resolves (for example a route id), not necessarily a URL. The component receives href, className, children, aria-current and onClick.';
 const presentation = 'Presentation only: routing, authorization, data loading and draft guards stay in the application.';
 
+const topbarCode = tsx(['AppTopbar', 'AccountMenu', 'SearchField'], `<AppTopbar
+  menuToggle
+  breadcrumb={{ icon: 'home', scope: 'Acme', current: 'Overview' }}
+  search={<SearchField variant="topbar" label="Search" hideLabel placeholder="Search" shortcut="/" value={query} onValueChange={setQuery} />}
+  badge={{ label: 'Beta', hideOnMobile: true }}
+  actions={<AccountMenu name="Alex Morgan" email="alex@example.test" items={[{ id: 'profile', kind: 'link', label: 'Profile', href: 'account' }]} />}
+/>`, "const [query, setQuery] = useState('');", ['useState']);
+const bannerCode = tsx(['Banner'], `<Banner tone="sample" pill="Sample" title="Demo data" icon="box" action={{ label: 'Connect real data', href: 'connections' }}>
+  Figures are illustrative.
+</Banner>`);
+const statusCode = tsx(['SidebarStatus', 'SidebarFooter'], `<SidebarFooter version="1.4.0">
+  <SidebarStatus tone="connected" label="Channels connected" action={{ label: 'Manage', href: 'connections' }} />
+</SidebarFooter>`);
+
 export const shellEntries: ComponentEntry[] = [
   {
     name: 'SidebarNav', category: 'Navigation',
     description: 'Grouped navigation list with current-page state, badges and a client-side filter.',
-    usage: `Place inside the sidebar. Items with href render links (through linkComponent when given); items with onSelect render buttons for guarded navigation. ${linkContract} ${presentation}`,
+    usage: `Place inside the sidebar. Items with href render links (through linkComponent when given); items with only onSelect render buttons. Give href plus onSelect for a guarded link: preventDefault in onSelect while a draft is unsaved. A linkComponent must honour event.defaultPrevented. ${linkContract} ${presentation}`,
     props: [
       { name: 'label', type: 'string', required: true, description: 'Accessible name of the navigation landmark.' },
-      { name: 'groups', type: '{ id; label?; items }[]', required: true, description: 'Each item has id, label, icon, current, badge, badgeLabel, hidden, keywords, disabled and either href or onSelect.' },
+      { name: 'groups', type: '{ id; label?; items }[]', required: true, description: 'Each item has id, label, icon, current, badge, badgeLabel, hidden, keywords, disabled and href, onSelect or both (onSelect(item, event) runs first on a plain click; event.preventDefault() cancels navigation and onNavigate; modified clicks skip both).' },
       { name: 'linkComponent', type: 'ComponentType<{ href; className?; children?; aria-current?; onClick? }>', description: 'Router link used for href items. Defaults to a native anchor.' },
       { name: 'filter', type: 'string', description: 'Case-insensitive match on label and keywords; other items get the hidden attribute.' },
-      { name: 'onNavigate', type: '(item) => void', description: 'Called after the item’s own handler, for example to close a mobile drawer.' },
+      { name: 'onNavigate', type: '(item) => void', description: 'Called after the item’s own handler unless it prevented the default action, for example to close a mobile drawer. A group whose items are all hidden or filtered is hidden.' },
       { name: 'emptyFilter', type: '(query: string) => ReactNode', description: 'Content shown when the filter matches nothing.' },
     ],
     tokens: ['--t98-control-touch', '--t98-accent-soft', '--t98-accent', '--t98-muted', '--t98-focus'],
@@ -85,7 +100,7 @@ export const shellEntries: ComponentEntry[] = [
     description: 'Workspace and project selectors with loading, empty and create states.',
     usage: `Shows the signed-in user's current workspace and project (User > Workspace > Project). Pass create only when the user may create projects. ${linkContract} ${presentation}`,
     props: [
-      { name: 'workspaces', type: '{ id; name; roleLabel? }[]', required: true, description: 'Empty renders text instead of a disabled select.' },
+      { name: 'workspaces', type: '{ id; name; roleLabel?; initials? }[]', required: true, description: 'Empty renders text instead of a disabled select. initials (one or two characters) shows a decorative avatar beside the select.' },
       { name: 'projects', type: '{ id; name }[] | null', required: true, description: 'null means loading.' },
       { name: 'workspaceId / projectId', type: 'string | null', required: true, description: 'Selected ids.' },
       { name: 'onWorkspaceChange / onProjectChange', type: '(id: string) => void', required: true, description: 'Called with the chosen id.' },
@@ -137,6 +152,81 @@ export const shellEntries: ComponentEntry[] = [
       name: 'With value', description: 'Clear button and status.',
       code: search(`<SearchField label="Search results" value="launch" onValueChange={noop} onClear={noop} status="3 results" />`),
       preview: <SearchField label="Search results" value="launch" onValueChange={noop} onClear={noop} status="3 results" />,
+    }],
+  },
+  {
+    name: 'AppTopbar', category: 'Navigation',
+    description: 'Top bar content for AppShell: breadcrumb, drawer toggle, search, badge and actions.',
+    usage: `Pass to AppShell \`topbar\`; it renders inside a header landmark outside main. menuToggle needs AppShell \`navigation\` and is hidden on desktop. The breadcrumb names the current page with aria-current="page". ${presentation}`,
+    props: [
+      { name: 'breadcrumb', type: '{ icon?; scope?; current }', required: true, description: 'Optional icon and scope before the current page.' },
+      { name: 'menuToggle', type: 'boolean', description: 'Shows the button that opens the AppShell drawer (aria-controls, aria-expanded).' },
+      { name: 'menuLabel / breadcrumbLabel', type: 'string', description: 'Localised names; default "Open navigation" and "Breadcrumb".' },
+      { name: 'search', type: 'ReactNode', description: 'Usually a SearchField variant="topbar"; wraps to its own row on narrow screens.' },
+      { name: 'badge', type: '{ label; hideOnMobile? }', description: 'Environment or plan tag.' },
+      { name: 'actions', type: 'ReactNode', description: 'Trailing controls such as AccountMenu.' },
+    ],
+    tokens: ['--t98-control-touch', '--t98-muted', '--t98-text', '--t98-control-border', '--t98-focus'],
+    accessibility: ['Breadcrumb is a labelled nav with an ordered list; the separator is aria-hidden.', 'The menu toggle is a native button at least 44px square and reflects the drawer with aria-expanded.', 'Logical properties mirror the bar in right-to-left.'],
+    related: ['AppShell', 'SearchField', 'AccountMenu'],
+    example: topbarCode,
+    states: [{
+      name: 'Default', description: 'Breadcrumb, search, badge and an account action.', code: topbarCode,
+      preview: <AppTopbar breadcrumb={{ icon: 'home', scope: 'Acme', current: 'Overview' }} search={<SearchField variant="topbar" label="Search" hideLabel placeholder="Search" shortcut="/" value="" onValueChange={noop} />} badge={{ label: 'Beta' }} actions={<AccountMenu name="Alex Morgan" email="alex@example.test" items={[{ id: 'profile', kind: 'link', label: 'Profile', href: '#profile' }]} />} />,
+    }],
+  },
+  {
+    name: 'Banner', category: 'Feedback',
+    description: 'Full-width notice with an optional tag, action and dismiss button.',
+    usage: `Pass to AppShell \`banners\` or place above page content. Tones: sample (dashed, for demo data), info, success, warning, danger. Set live for notices that appear after load. Keep the app in charge of dismissal state. ${linkContract} ${presentation}`,
+    props: [
+      { name: 'tone', type: "'sample' | 'info' | 'success' | 'warning' | 'danger'", defaultValue: "'info'", description: 'Colour treatment.' },
+      { name: 'pill / title / children / icon', type: 'string / string / ReactNode / IconName', description: 'Tag, bold lead-in, message and decorative icon.' },
+      { name: 'action', type: '{ label; icon? } & ({ href } | { onSelect })', description: 'A link (through linkComponent) or a button.' },
+      { name: 'linkComponent', type: 'NavLinkComponent', description: 'Router link for action.href.' },
+      { name: 'onDismiss / dismissLabel', type: '() => void / string', description: 'Shows a labelled dismiss button.' },
+      { name: 'live', type: 'boolean', description: 'role="status" so changes are announced politely.' },
+    ],
+    tokens: ['--t98-info-soft', '--t98-success-soft', '--t98-warning-soft', '--t98-danger-soft', '--t98-control-touch', '--t98-focus'],
+    accessibility: ['Action and dismiss controls are native and at least 44px.', 'The icon is decorative; tone is also carried by the text.'],
+    related: ['AppShell', 'Alert'],
+    example: bannerCode,
+    states: [{
+      name: 'Sample data', description: 'Dashed banner marking demo content.', code: bannerCode,
+      preview: <Banner tone="sample" pill="Sample" title="Demo data" icon="box" action={{ label: 'Connect real data', onSelect: noop }}>Figures are illustrative.</Banner>,
+    }, {
+      name: 'Dismissible info', description: 'Labelled dismiss button.',
+      code: tsx(['Banner'], `<Banner title="New reports" icon="bell" onDismiss={() => hide()}>Weekly reports are available.</Banner>`, 'const hide = () => undefined;'),
+      preview: <Banner title="New reports" icon="bell" onDismiss={noop}>Weekly reports are available.</Banner>,
+    }, {
+      name: 'Security requirement (403)', description: 'A workspace requires two-factor authentication; the server answered 403 and the app shows the requirement with its action.',
+      code: tsx(['Banner'], `<Banner tone="warning" live icon="shield" title="Two-factor authentication required" action={{ label: 'Set up two-factor authentication', href: 'account/security' }}>
+  This workspace requires two-factor authentication before you can open its data.
+</Banner>`),
+      preview: <Banner tone="warning" live icon="shield" title="Two-factor authentication required" action={{ label: 'Set up two-factor authentication', href: '#account/security' }}>This workspace requires two-factor authentication before you can open its data.</Banner>,
+    }],
+  },
+  {
+    name: 'SidebarStatus', category: 'Layout',
+    description: 'Connection status line with an optional action for the SidebarFooter slot.',
+    usage: `Place inside SidebarFooter. The label carries the state; the coloured dot is decorative. ${linkContract} ${presentation}`,
+    props: [
+      { name: 'tone', type: "'connected' | 'idle'", required: true, description: 'Dot colour.' },
+      { name: 'label', type: 'string', required: true, description: 'Spoken status text.' },
+      { name: 'action', type: '{ label; icon? } & ({ href } | { onSelect })', description: 'Optional link or button, for example Manage.' },
+      { name: 'linkComponent', type: 'NavLinkComponent', description: 'Router link for action.href.' },
+    ],
+    tokens: ['--t98-success', '--t98-muted', '--t98-control-touch'],
+    accessibility: ['The dot is aria-hidden; do not rely on colour alone.', 'The action is at least 44px tall.'],
+    related: ['SidebarFooter', 'AppShell'],
+    example: statusCode,
+    states: [{
+      name: 'Connected', description: 'With a manage action.', code: statusCode,
+      preview: <SidebarStatus tone="connected" label="Channels connected" action={{ label: 'Manage', onSelect: noop }} />,
+    }, {
+      name: 'Idle', description: 'Nothing connected yet.',
+      code: tsx(['SidebarStatus'], '<SidebarStatus tone="idle" label="No channels connected" />'),
+      preview: <SidebarStatus tone="idle" label="No channels connected" />,
     }],
   },
 ];
