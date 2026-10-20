@@ -132,24 +132,55 @@ test('open dialogs keep enlarged controls usable and return focus', async ({ pag
     await expect(dialog).toBeVisible();
     const title = dialog.getByRole('heading');
     const original = await title.evaluate(element => parseFloat(getComputedStyle(element).fontSize));
+    const titleNode = await title.elementHandle();
+    if (!titleNode) throw new Error('The open dialog must have a title.');
+    const originalTitle = await titleNode.textContent();
     const restore = await doubleText(page);
     try {
       expect(await title.evaluate(element => parseFloat(getComputedStyle(element).fontSize))).toBeCloseTo(original * 2);
       expect.soft(await dialog.evaluate(element => element.scrollWidth <= element.clientWidth + 1), `${id} contains enlarged controls`).toBeTruthy();
       if (id === 'confirm-dialog') {
-        await expect(dialog.getByRole('button', { name: 'Confirm demo' })).toBeDisabled();
-        await dialog.getByLabel('Type REMOVE to confirm').fill('REMOVE');
-        await expect(dialog.getByRole('button', { name: 'Confirm demo' })).toBeEnabled();
+        await title.evaluate(element => { element.textContent = 'Remove CampaignResourceWithoutWordBreaks012345678901234567890123456789?'; });
+        expect(await dialog.evaluate(element => element.scrollWidth <= element.clientWidth + 1), 'Long resource names wrap inside the dialog').toBeTruthy();
+        const dismiss = dialog.getByRole('button', { name: 'Close dialog', exact: true });
+        await expect(dismiss).toBeInViewport({ ratio: 1 });
+        if (info.project.name === 'narrow-dark') {
+          const oldHeader = await page.addStyleTag({ content: '.t98-dialog-header > div { min-width: auto; overflow-wrap: normal; }' });
+          try {
+            expect(await dialog.evaluate(element => element.scrollWidth > element.clientWidth + 1), 'The old header reproduces the overflow').toBeTruthy();
+          } finally { await oldHeader.evaluate(element => { element.parentNode?.removeChild(element); }); }
+          expect(await dialog.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBeTruthy();
+          await expect(dismiss).toBeInViewport({ ratio: 1 });
+        }
+        await dialog.screenshot({ path: info.outputPath('enlarged-resource-confirmation.png') });
+        const confirmation = dialog.getByLabel('Type REMOVE to confirm', { exact: true });
+        await expect(dialog.getByRole('button', { name: 'Confirm demo', exact: true })).toBeDisabled();
+        await confirmation.scrollIntoViewIfNeeded();
+        await confirmation.fill('REMOVE');
+        await expect(confirmation).toBeInViewport({ ratio: 1 });
+        const confirm = dialog.getByRole('button', { name: 'Confirm demo', exact: true });
+        await expect(confirm).toBeEnabled();
+        await confirm.scrollIntoViewIfNeeded();
+        await expect(confirm).toBeInViewport({ ratio: 1 });
+        const cancel = dialog.getByRole('button', { name: close, exact: true });
+        await cancel.scrollIntoViewIfNeeded();
+        await expect(cancel).toBeInViewport({ ratio: 1 });
+        await dialog.screenshot({ path: info.outputPath('enlarged-confirmation-actions.png') });
       }
       await dialog.getByRole('button', { name: close, exact: true }).click();
       await expect(trigger).toBeFocused();
-    } finally { await restore(); }
+    } finally {
+      await titleNode.evaluate((element, text) => { element.textContent = text; }, originalTitle);
+      await titleNode.dispose();
+      await restore();
+    }
   }
 });
 
 test('every reference flow reflows with visibly doubled text', async ({ page }, info) => {
   test.setTimeout(120_000);
-  const prefix = info.project.name === 'narrow-dark' ? '/?theme=dark' : '/';
+  const narrow = info.project.name === 'narrow-dark';
+  const prefix = narrow ? '/?theme=dark' : '/';
   await page.goto(`${prefix}#flows`);
   await expect(page.locator('.reference-component-card')).toHaveCount(28);
   const links = await page.locator('.reference-component-card').evaluateAll(nodes => nodes.map(node => ({ href: node.getAttribute('href')!, name: node.querySelector('h2')!.textContent! })));
@@ -157,12 +188,21 @@ test('every reference flow reflows with visibly doubled text', async ({ page }, 
     await page.goto(`${prefix}${link.href}`);
     const heading = page.locator('.reference-page-heading h1');
     await expect(heading).toHaveText(link.name);
+    // Exercise the fallback font even on hosts that have the preferred monospace font.
+    const fallback = narrow ? await page.addStyleTag({ content: ':root { --t98-mono: monospace; }' }) : undefined;
+    if (narrow) expect(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--t98-mono').trim())).toBe('monospace');
     const original = await heading.evaluate(element => parseFloat(getComputedStyle(element).fontSize));
     const restore = await doubleText(page);
     try {
       expect(await heading.evaluate(element => parseFloat(getComputedStyle(element).fontSize))).toBeCloseTo(original * 2);
       expect.soft(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1), `${link.name} must reflow with doubled text`).toBeTruthy();
-    } finally { await restore(); }
+      if (narrow && link.href === '#flows/campaign-compose-social') {
+        await page.locator('.reference-section > p').filter({ hasText: '@ten98/ui/styles.css' }).screenshot({ path: info.outputPath('enlarged-installation-prose.png') });
+      }
+    } finally {
+      await restore();
+      if (fallback) await fallback.evaluate(element => { element.parentNode?.removeChild(element); });
+    }
   });
 });
 

@@ -66,6 +66,7 @@
 .t98-dialog { box-sizing: border-box; width: min(500px, calc(100vw - 32px)); max-height: calc(100dvh - 48px); padding: 0; overflow: auto; border: 1px solid var(--t98-border); border-radius: 13px; background: var(--t98-surface); color: var(--t98-text); box-shadow: 0 25px 80px #10182830; }
 .t98-dialog::backdrop { background: var(--t98-overlay, #10182866); backdrop-filter: blur(3px); }
 .t98-dialog-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; padding: 24px 24px 0; }
+.t98-dialog-header > div { min-width: 0; overflow-wrap: anywhere; }
 .t98-dialog-title { margin: 0; font-size: 18px; font-weight: 650; line-height: 27px; letter-spacing: -.4px; }
 .t98-dialog-description { margin: 5px 0 0; color: var(--t98-muted); font-size: 13px; line-height: 20px; }
 .t98-dialog-body { padding: 24px; }
