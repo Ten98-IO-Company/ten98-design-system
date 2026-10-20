@@ -23,7 +23,7 @@
 .auth-story>.brand{padding:0}
 .auth-story>div:not(.auth-orbit){padding:60px 0}
 .auth-story .eyebrow{color:light-dark(#766088,var(--color-text-muted,var(--t98-muted)));font-size:11px;letter-spacing:2px;margin-bottom:25px}
-.auth-story :is(h1,.auth-story-title){font-size:clamp(40px,5vw,76px);line-height:1.1;letter-spacing:-4px;font-weight:750;color:light-dark(#785793,var(--color-text,var(--t98-text)))}
+.auth-story :is(h1,.auth-story-title){overflow-wrap:anywhere;font-size:clamp(40px,5vw,76px);line-height:1.1;letter-spacing:-4px;font-weight:750;color:light-dark(#785793,var(--color-text,var(--t98-text)))}
 .auth-story :is(h1,.auth-story-title) em{color:light-dark(#745c89,var(--color-accent,var(--t98-accent)));font-style:normal}
 .auth-story p:not(.auth-story-title){font-size:13px;color:light-dark(#736180,var(--color-text-muted,var(--t98-muted)));margin-top:30px;line-height:1.9}
 .auth-channels{display:flex;gap:22px;margin-top:38px;color:var(--color-text-muted,var(--t98-muted));font-size:12px}

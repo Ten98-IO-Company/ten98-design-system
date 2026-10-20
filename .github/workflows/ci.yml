@@ -41,6 +41,12 @@ jobs:
         run: npm run check
         timeout-minutes: 8
 
+      - name: Typecheck auth heading regression
+        run: >-
+          node node_modules/typescript/bin/tsc --ignoreConfig --noEmit --strict --skipLibCheck
+          --target ES2022 --module ESNext --moduleResolution Bundler --lib ES2022,DOM,DOM.Iterable
+          --esModuleInterop tests/browser/auth-heading.spec.ts
+        timeout-minutes: 2
       - name: Install Chromium and Linux dependencies
         run: npx --no-install playwright install --with-deps chromium
         timeout-minutes: 10
