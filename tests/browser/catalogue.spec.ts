@@ -94,6 +94,7 @@ test('templates, hierarchy and usage rules are keyboard accessible', async ({ pa
   await expect(preview).toHaveCount(1);
   const previewTitle = preview.getByRole('heading', { level: 1, name: 'Edit campaign', exact: true });
   await expect(previewTitle).toBeInViewport({ ratio: 1 });
+  await page.screenshot({ path: test.info().outputPath('selected-editor-template.png') });
   const originalStyle = await preview.getAttribute('style');
   try {
     await preview.evaluate(element => (element as HTMLElement).style.marginBlockStart = '1000px');
