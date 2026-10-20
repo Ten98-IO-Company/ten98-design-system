@@ -35,7 +35,7 @@ const names = componentEntries.map(entry => entry.name);
 const unique = (values, label) => assert.equal(new Set(values).size, values.length, `${label} must be unique`);
 
 test('every public component has usable props, token links, examples and renderable states', () => {
-  const exported = [...Object.keys(ui), ...Object.keys(app)].filter(name => /^[A-Z]/.test(name));
+  const exported = [...Object.keys(ui), ...Object.keys(app)].filter(name => /^[A-Z]/.test(name) || name === 'useSidebarNavigation');
   assert.deepEqual([...names].sort(), exported.sort(), 'Every shipped component is documented exactly once');
   unique(names, 'Component names');
   unique(names.map(componentSlug), 'Component URLs');

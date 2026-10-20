@@ -1,0 +1,25 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Native sidebar behavior</title><div id="sidebar-fixture"></div>
+<script type="module">
+import React, { useRef, useState } from 'react';
+import { createRoot } from 'react-dom/client';
+import { useSidebarNavigation } from '@ten98/ui';
+import '@ten98/ui/app-tokens.css';
+import '@ten98/ui/app.css';
+
+const h = React.createElement;
+function Shell() {
+  const [open, setOpen] = useState(false), sidebarRef = useRef(null), triggerRef = useRef(null), dialogRef = useRef(null);
+  const { modal, sidebarProps, contentProps } = useSidebarNavigation({ open, onOpenChange: setOpen, sidebarRef, triggerRef });
+  return h('div', null,
+    h('aside', { ...sidebarProps, ref: sidebarRef, className: `sidebar${open ? ' visible' : ''}`, 'aria-label': 'Navigation' },
+      h('button', { id: 'first', onClick: () => setOpen(false) }, 'First'),
+      h('button', { hidden: true }, 'Hidden'), h('button', { disabled: true }, 'Disabled'),
+      h('details', null, h('summary', null, 'Closed group'), h('button', null, 'Closed detail')),
+      h('button', { id: 'dialog-open', onClick: () => dialogRef.current.showModal() }, 'Open discard dialog'),
+      h('button', { id: 'last', onClick: () => setOpen(false) }, 'Last')),
+    modal && h('button', { id: 'backdrop', onClick: () => setOpen(false) }, 'Close navigation'),
+    h('main', { ...contentProps, id: 'workspace', className: 'workspace-main' }, h('button', { id: 'trigger', ref: triggerRef, onClick: () => setOpen(true) }, 'Open navigation')),
+    h('dialog', { ref: dialogRef, id: 'discard' }, h('form', { method: 'dialog' }, h('button', { id: 'keep' }, 'Keep editing'), h('button', { id: 'discard-confirm' }, 'Discard'))));
+}
+createRoot(document.getElementById('sidebar-fixture')).render(h(Shell));
+</script>

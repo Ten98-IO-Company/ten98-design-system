@@ -8,7 +8,7 @@ Use the fixed templates instead of recreating their page framing. The catalogue'
 
 ## One authentication presentation
 
-Version 0.3.15 makes the main `AuthLayout` use the established Campaign login composition. Its six props and public export stay unchanged. The Brand & login reference and component catalogue call that same wrapper and reuse the same story content. Canonical brand/auth CSS lives in one source and is included in both stylesheet entry points; standalone consumers need only `styles.css`. Native authentication controllers and Discover's local layout remain app-owned.
+Version 0.3.15 makes the main `AuthLayout` use the established Campaign login composition. Its six props and public export stay unchanged. The Brand & login reference and component catalogue call that same wrapper and reuse the same story content. Canonical brand/auth CSS lives in one source and is included in both stylesheet entry points; standalone consumers need only `styles.css`. Native authentication controllers, product stories and page landmarks remain app-owned; use the shared layout for authentication geometry and spacing.
 
 Generic aside instructions and recovery links remain visible on narrow screens. Only Campaign's explicitly marked decorative story summary/footnote collapse with its existing mobile presentation. Do not hide required guidance inside decorative content. A padded `.settings-panel` also owns the inset of its direct `.panel-heading`; avoid adding a second header inset in a native override. Its `.form-grid` gap owns spacing between direct `.field` children, preventing the old extra top margin from staggering dates in Calendar and Account reports.
 
@@ -117,7 +117,7 @@ Import the application-compatible components from `@ten98/ui/app`. They preserve
 | `AppEmpty` | Empty-state presentation; `title`, explanation children, optional `icon` and `action`. |
 | `AppStat` | Metric presentation; application-formatted `label`, `value`, `caption` and `icon`. |
 
-The applications retain form submission, validation, domain vocabulary, loading/error state, permissions, route navigation and data fetching. Discover's `AuthLayout` stays local because its authentication layout and controller remain part of that application. The package's main `AuthLayout` export remains available for new screens with its [documented API](COMPONENTS.md); it does not replace Discover's existing component.
+The applications retain form submission, validation, domain vocabulary, loading/error state, permissions, route navigation and data fetching. Keep an app's local `AuthLayout` only as a thin adapter around the main `@ten98/ui` export: supply its established `AppBrand`, product story and page landmark while delegating geometry and spacing to the shared layout. Omit `title` when the native form already owns its h1, as shown in the [documented API](COMPONENTS.md) and [sidebar/auth adoption guide](SIDEBAR.md). Preserve the existing forms and controllers; do not maintain a second authentication shell. Qualify this presentation adoption in each application's native screens before updating its accepted package pin.
 
 ## Styles and tokens
 

@@ -1,0 +1,114 @@
+import { expect, test } from '@playwright/test';
+
+test('cross-preview opening keeps one modal, one scroll lock and both local drafts', async ({ page }) => {
+  await page.goto('/#components/use-sidebar-navigation?tab=states');
+  const states = page.locator('.reference-state');
+  const first = states.filter({ has: page.getByRole('heading', { name: 'Closed mobile', exact: true }) }).locator('.sidebar-example');
+  const second = states.filter({ has: page.getByRole('heading', { name: 'Mobile open and native draft guard', exact: true }) }).locator('.sidebar-example');
+  await first.getByLabel('Local draft', { exact: true }).fill('First retained draft');
+  await second.getByLabel('Local draft', { exact: true }).fill('Second retained draft');
+  await first.getByRole('button', { name: 'Open navigation', exact: true }).click();
+  await expect(first.locator('aside')).toHaveAttribute('aria-modal', 'true');
+  await second.getByRole('button', { name: 'Open navigation', exact: true }).click();
+  await expect(page.locator('.sidebar-example aside[aria-modal="true"]')).toHaveCount(1);
+  await expect(first.locator('aside')).toHaveAttribute('inert', '');
+  await expect(second.locator('aside')).toHaveAttribute('aria-modal', 'true');
+  await expect(second.getByRole('button', { name: 'Close navigation', exact: true })).toBeFocused();
+  await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe('hidden');
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.sidebar-example aside[aria-modal="true"]')).toHaveCount(0);
+  await expect(second.getByRole('button', { name: 'Open navigation', exact: true })).toBeFocused();
+  await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe('');
+  await expect(first.getByLabel('Local draft', { exact: true })).toHaveValue('First retained draft');
+  await expect(second.getByLabel('Local draft', { exact: true })).toHaveValue('Second retained draft');
+});
+
+test('responsive catalogue sidebar cleans up after a mobile-to-desktop resize', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto('/#components/use-sidebar-navigation?tab=states');
+  const state = page.locator('.reference-state').filter({ has: page.getByRole('heading', { name: 'Responsive 760px', exact: true }) });
+  const demo = state.locator('.sidebar-example');
+  await expect(demo.locator('aside')).toBeVisible();
+  await expect(demo.getByRole('button', { name: 'Open navigation', exact: true })).not.toBeVisible();
+  await page.setViewportSize({ width: 390, height: 900 });
+  await expect(demo.locator('aside')).toHaveAttribute('inert', '');
+  await demo.getByRole('button', { name: 'Open navigation', exact: true }).click();
+  await expect(demo.locator('aside')).toHaveAttribute('aria-modal', 'true');
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await expect(demo.locator('aside')).not.toHaveAttribute('aria-modal');
+  await expect(demo.locator('.sidebar-example-content')).not.toHaveAttribute('inert');
+  await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe('');
+});
+
+test('closed mobile catalogue keeps drafts through drawer and backdrop closure', async ({ page }) => {
+  await page.goto('/#components/use-sidebar-navigation?tab=states');
+  const state = page.locator('.reference-state').filter({ has: page.getByRole('heading', { name: 'Closed mobile', exact: true }) });
+  const demo = state.locator('.sidebar-example');
+  const trigger = demo.getByRole('button', { name: 'Open navigation', exact: true });
+  await expect(demo.locator('aside')).not.toBeVisible();
+  await trigger.focus();
+  await page.keyboard.press('Tab');
+  await expect(demo.getByLabel('Local draft', { exact: true })).toBeFocused();
+  await demo.getByLabel('Local draft', { exact: true }).fill('Keep this local note');
+  await trigger.click();
+  await demo.getByRole('button', { name: 'Close navigation', exact: true }).click();
+  await expect(trigger).toBeFocused();
+  await expect(demo.getByLabel('Local draft', { exact: true })).toHaveValue('Keep this local note');
+  await trigger.click();
+  const backdrop = demo.getByRole('button', { name: 'Close navigation backdrop', exact: true });
+  const bounds = await backdrop.boundingBox();
+  await backdrop.click({ position: { x: bounds!.width - 8, y: 8 } });
+  await expect(trigger).toBeFocused();
+  await expect(demo.getByLabel('Local draft', { exact: true })).toHaveValue('Keep this local note');
+});
+
+test('sidebar catalogue demonstrates mobile focus and an app-owned native draft guard', async ({ page }) => {
+  await page.goto('/#components/use-sidebar-navigation?tab=states');
+  const state = page.locator('.reference-state').filter({ has: page.getByRole('heading', { name: 'Mobile open and native draft guard', exact: true }) });
+  const demo = state.locator('.sidebar-example');
+  const sidebar = demo.locator('aside'), content = demo.locator('.sidebar-example-content');
+  const trigger = demo.getByRole('button', { name: 'Open navigation', exact: true });
+  await expect(sidebar).toHaveAttribute('inert', '');
+  await expect(sidebar).not.toBeVisible();
+  await trigger.click();
+  await expect(sidebar).toHaveAttribute('aria-modal', 'true');
+  await expect(content).toHaveAttribute('inert', '');
+  await expect(demo.getByRole('button', { name: 'Close navigation', exact: true })).toBeFocused();
+  await page.keyboard.press('Shift+Tab');
+  await expect(demo.getByRole('button', { name: 'Reports', exact: true })).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(demo.getByRole('button', { name: 'Close navigation', exact: true })).toBeFocused();
+  await demo.getByRole('button', { name: 'Reports', exact: true }).click();
+  const dialog = demo.getByRole('dialog', { name: 'Unsaved local draft' });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole('button', { name: 'Keep editing' })).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(dialog).not.toBeVisible();
+  await expect(sidebar).toHaveAttribute('aria-modal', 'true');
+  await expect(demo.getByLabel('Local draft', { exact: true })).toHaveValue('Unsent local note');
+  await page.keyboard.press('Escape');
+  await expect(trigger).toBeFocused();
+  await trigger.click();
+  await demo.getByRole('button', { name: 'Reports', exact: true }).click();
+  await dialog.getByRole('button', { name: 'Discard draft', exact: true }).click();
+  await expect(demo.getByRole('heading', { name: 'Reports', level: 2 })).toBeVisible();
+  await expect(demo.getByLabel('Local draft', { exact: true })).toHaveValue('');
+  await expect(sidebar).toHaveAttribute('inert', '');
+  await expect(trigger).toBeFocused();
+});
+
+test('desktop catalogue state leaves navigation and content interactive at narrow gallery widths', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 900 });
+  await page.goto('/#components/use-sidebar-navigation?tab=states');
+  const state = page.locator('.reference-state').filter({ has: page.getByRole('heading', { name: 'Desktop', exact: true }) });
+  const demo = state.locator('.sidebar-example');
+  await expect(demo.locator('aside')).toBeVisible();
+  await expect(demo.locator('aside')).not.toHaveAttribute('inert');
+  await expect(demo.locator('.sidebar-example-content')).not.toHaveAttribute('inert');
+  await expect(demo.getByRole('button', { name: 'Open navigation', exact: true })).not.toBeVisible();
+  await demo.getByRole('button', { name: 'Reports', exact: true }).click();
+  const dialog = demo.getByRole('dialog', { name: 'Unsaved local draft' });
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole('button', { name: 'Keep editing', exact: true }).click();
+  await expect(demo.getByLabel('Local draft', { exact: true })).toHaveValue('Unsent local note');
+});
