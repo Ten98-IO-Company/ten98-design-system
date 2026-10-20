@@ -1,8 +1,8 @@
 'use client';
 
 import { createContext, useContext, useId, type ComponentType, type MouseEvent, type ReactNode, type Ref, type RefObject } from 'react';
-import { Avatar, Badge, Icon, Input, Select, cx, type IconName, type Tone } from './primitives.js';
-import { Option, VisuallyHidden } from './structure.js';
+import { Avatar, Badge, Icon, Input, Option, Select, cx, type IconName, type Tone } from './primitives.js';
+import { VisuallyHidden } from './structure.js';
 
 /* Presentation for application navigation. Routing, authorization, data loading and draft guards stay in the app. */
 

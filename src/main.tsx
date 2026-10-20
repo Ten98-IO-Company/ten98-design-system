@@ -23,6 +23,7 @@ import './lib/products.css';
 import './lib/navigation.css';
 import './lib/structure.css';
 import './lib/shell.css';
+import './lib/controls.css';
 import './showcase.css';
 
 const groups: { label: string; items: { name: Page; icon: string }[] }[] = [

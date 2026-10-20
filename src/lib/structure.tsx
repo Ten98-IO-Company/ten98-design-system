@@ -1,6 +1,6 @@
 'use client';
 
-import type { ComponentType, HTMLAttributes, ImgHTMLAttributes, LiHTMLAttributes, OptgroupHTMLAttributes, OptionHTMLAttributes, ReactNode } from 'react';
+import type { ComponentType, HTMLAttributes, ImgHTMLAttributes, LiHTMLAttributes, ReactNode } from 'react';
 import { cx } from './primitives.js';
 
 /* Layout and text primitives let applications compose screens without authoring elements or styles.
@@ -121,13 +121,6 @@ export function Image({ fit = 'cover', aspect = 'auto', rounded = true, loading 
   return <img {...props} loading={loading} decoding={decoding} className={cx('t98-image', `t98-image--${fit}`, aspect !== 'auto' && `t98-aspect-${aspect}`, rounded && 't98-image--rounded', className)} />;
 }
 
-/** Choice inside `Select`. */
-export function Option(props: Omit<OptionHTMLAttributes<HTMLOptionElement>, 'className' | 'style'>) {
-  return <option {...props} />;
-}
-export function OptionGroup(props: Omit<OptgroupHTMLAttributes<HTMLOptGroupElement>, 'className' | 'style'> & { label: string }) {
-  return <optgroup {...props} />;
-}
 
 export interface DescriptionItem { term: ReactNode; description: ReactNode; key?: string }
 /** Label/value pairs for identity, settings or review details. `columns` places pairs side by side on wide screens. */
