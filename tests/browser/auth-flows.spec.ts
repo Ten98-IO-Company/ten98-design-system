@@ -167,3 +167,10 @@ test('setup submits typed values with a boolean sample and without hidden fields
   await expect(page.getByRole('status')).toContainText('"sample":false');
   await expect(page.getByRole('status')).not.toContainText('csrf');
 });
+
+test('a custom onReload recovers the error boundary in place', async ({ page }) => {
+  await open(page, 'boundary-recover', 'light', 1440);
+  await page.getByRole('button', { name: 'Reload' }).click();
+  await expect(page.locator('#recovered')).toHaveText('Recovered without a page reload.');
+  await expect(page.locator('.auth-shell')).toHaveCount(0);
+});

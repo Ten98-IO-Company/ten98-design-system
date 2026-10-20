@@ -17,6 +17,13 @@ const unconfirmed = 'We could not confirm whether your password changed. Do not 
 
 function Thrower(): ReactNode { throw new Error('Synthetic render failure'); }
 
+/** Fails until the app's in-place recovery runs, then renders normally. */
+let recovered = false;
+function FailsOnce(): ReactNode {
+  if (!recovered) throw new Error('Synthetic render failure');
+  return <Text id="recovered">Recovered without a page reload.</Text>;
+}
+
 /** A controlled sign-in whose request fails after a moment, with a new message each time. */
 function Interactive() {
   const [busy, setBusy] = useState(false);
@@ -65,6 +72,7 @@ const screens: Record<string, ReactNode> = {
   'loading': <AppStateScreen state="loading" brand={brand} />,
   'error': <AppStateScreen state="error" brand={brand} title="Could not load your session" message="The server did not respond." onRetry={noop} />,
   'boundary': <AuthErrorBoundary fallback={{ brand }} onReload={noop} onError={noop}><Thrower /></AuthErrorBoundary>,
+  'boundary-recover': <AuthErrorBoundary fallback={{ brand }} onReload={() => { recovered = true; }} onError={noop}><FailsOnce /></AuthErrorBoundary>,
   'interactive': <Interactive />,
   'values': <ValuesProbe optIn />,
   'values-hidden': <ValuesProbe optIn={false} />,

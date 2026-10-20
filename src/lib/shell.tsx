@@ -64,7 +64,9 @@ function NavItemContent({ item }: { item: SidebarNavItem }) {
 export function SidebarNav({ label, groups, linkComponent: LinkComponent, filter = '', onNavigate, emptyFilter }: SidebarNavProps) {
   const baseId = useId();
   const query = filter.trim().toLowerCase();
-  const visible = groups.map(group => group.items.filter(item => matches(item, query)).length);
+  // One match per item; ids only need to be unique within their group.
+  const shown = new Set(groups.flatMap(group => group.items.filter(item => matches(item, query)).map(item => `${group.id}/${item.id}`)));
+  const visible = groups.map(group => group.items.filter(item => shown.has(`${group.id}/${item.id}`)).length);
   const nothing = visible.every(count => count === 0);
   return <nav aria-label={label} className="t98-sidebar-nav">
     {groups.map((group, index) => {
@@ -86,7 +88,7 @@ export function SidebarNav({ label, groups, linkComponent: LinkComponent, filter
                 ? <LinkComponent href={item.href} className="t98-sidebar-nav__item" aria-current={aria} onClick={select}><NavItemContent item={item} /></LinkComponent>
                 : <a href={item.href} className="t98-sidebar-nav__item" aria-current={aria} onClick={select}><NavItemContent item={item} /></a>;
             } else control = <button type="button" className="t98-sidebar-nav__item" aria-current={aria} onClick={select}><NavItemContent item={item} /></button>;
-            return <li key={item.id} className="t98-sidebar-nav__entry" hidden={!matches(item, query)}>{control}</li>;
+            return <li key={item.id} className="t98-sidebar-nav__entry" hidden={!shown.has(`${group.id}/${item.id}`)}>{control}</li>;
           })}
         </ul>
       </div>;
@@ -215,6 +217,7 @@ export interface AppTopbarProps {
   breadcrumb: { icon?: IconName; scope?: string; current: string };
   breadcrumbLabel?: string;
   /** Shows the menu button that opens the drawer; needs `AppShell navigation`. Hidden on desktop. */
+  /** Shows the drawer toggle. It renders only inside an `AppShell` with `navigation`, which owns the drawer state. */
   menuToggle?: boolean;
   menuLabel?: string;
   search?: ReactNode;

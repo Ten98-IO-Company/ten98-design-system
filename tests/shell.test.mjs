@@ -163,3 +163,19 @@ test('SidebarNav renders an anchor for an item with both href and onSelect', () 
   assert.match(html, /<a href="draft" class="t98-sidebar-nav__item"/);
   assert.ok(!html.includes('<button'));
 });
+
+test('the shell sidebar has an accessible name by default, which the mobile drawer dialog inherits', async () => {
+  const { AppShell } = await import('../dist/index.js');
+  assert.match(renderToStaticMarkup(h(AppShell, { sidebar: 'nav' }, 'x')), /<aside[^>]*aria-label="Application navigation"/);
+  assert.match(renderToStaticMarkup(h(AppShell, { sidebar: 'nav', sidebarLabel: 'Workspace' }, 'x')), /<aside[^>]*aria-label="Workspace"/);
+});
+
+test('filtering keys items by group, so the same item id in two groups filters independently', async () => {
+  const { SidebarNav } = await import('../dist/index.js');
+  const html = renderToStaticMarkup(h(SidebarNav, { label: 'Nav', filter: 'reports', groups: [
+    { id: 'a', label: 'A', items: [{ id: 'overview', label: 'Reports overview', onSelect() {} }] },
+    { id: 'b', label: 'B', items: [{ id: 'overview', label: 'Overview', onSelect() {} }] },
+  ] }));
+  assert.match(html, /<li class="t98-sidebar-nav__entry"><button[^>]*>.*Reports overview/);
+  assert.match(html, /<li class="t98-sidebar-nav__entry" hidden="">.*?>Overview</);
+});

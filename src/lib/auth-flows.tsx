@@ -86,14 +86,14 @@ const emailOf = (button: HTMLElement) => {
 };
 
 function AuthFormFrame({ brand, aside, footer, label, eyebrow, title, description, onSubmit, action, method = 'post', hiddenFields, valueFields, busy = false, busyLabel, error, unconfirmed, notice, fieldErrors, submitLabel, validate, children, after, below }: AuthFormFrameProps) {
-  const formRef = useRef<HTMLFormElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
   const submitted = useRef(false);
   const pending = useRef(false);
   const fieldKey = JSON.stringify(fieldErrors ?? {});
 
   useEffect(() => {
     if (!submitted.current || busy) return;
-    const root = formRef.current;
+    const root = rootRef.current;
     const target = error ? root?.querySelector<HTMLElement>('.t98-auth-error') : root?.querySelector<HTMLElement>('[aria-invalid=true]');
     target?.focus();
   }, [error, fieldKey, busy]);
@@ -116,14 +116,14 @@ function AuthFormFrame({ brand, aside, footer, label, eyebrow, title, descriptio
       <h1 className="t98-auth-title">{title}</h1>
       {description && <p>{description}</p>}
     </header>
-    {submitLabel === undefined
+    <div ref={rootRef}>{submitLabel === undefined
       ? <Stack gap={4}>
         {notice && <Alert tone={notice.tone} title={notice.text} />}
         {unconfirmed && <Alert tone="warning" role="alert" title={unconfirmed} />}
         {error && <Alert className="t98-auth-error" tone="danger" title={error} tabIndex={-1} />}
         {children}
       </Stack>
-      : <form ref={formRef} aria-busy={busy || undefined} onSubmit={handleSubmit} action={onSubmit ? undefined : action} method={onSubmit ? undefined : method}>
+      : <form aria-busy={busy || undefined} onSubmit={handleSubmit} action={onSubmit ? undefined : action} method={onSubmit ? undefined : method}>
         {Object.entries({ ...hiddenFields, ...valueFields }).map(([name, value]) => <input key={name} type="hidden" name={name} value={value} />)}
         {notice && <Alert className="t98-auth-feedback" tone={notice.tone} title={notice.text} />}
         {unconfirmed && <Alert className="t98-auth-feedback" tone="warning" role="alert" title={unconfirmed} />}
@@ -133,7 +133,7 @@ function AuthFormFrame({ brand, aside, footer, label, eyebrow, title, descriptio
           <Button type="submit" className="t98-auth-submit" loading={busy}>{busy && busyLabel ? busyLabel : submitLabel}</Button>
           {after}
         </fieldset>
-      </form>}
+      </form>}</div>
     {below}
   </AuthLayout>;
 }
@@ -538,6 +538,8 @@ export class AuthErrorBoundary extends Component<AuthErrorBoundaryProps, { faile
   render() {
     if (!this.state.failed) return this.props.children;
     const { fallback, onReload } = this.props;
-    return <AppStateScreen brand={null} onRetry={onReload ?? (() => location.reload())} {...fallback} state="boundary" />;
+    // A custom onReload recovers in place, so clear the failure and render the children again.
+    const retry = onReload ? () => { this.setState({ failed: false }); onReload(); } : () => location.reload();
+    return <AppStateScreen brand={null} onRetry={retry} {...fallback} state="boundary" />;
   }
 }

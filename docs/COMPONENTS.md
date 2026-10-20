@@ -75,13 +75,33 @@ export function ProjectForm() {
 
 The example stops submission so it can demonstrate the components without writing data. Connect it to the application's validated mutation flow. Give `Field` one direct control child and a unique `htmlFor`; omit the child's `id` or keep it identical. Wrapper elements and custom components must forward the generated accessibility attributes to the actual input.
 
+## Authentication flows
+
+Each flow renders the whole screen on `AuthLayout` with one `main` and one `h1`, and owns no request, session, redirect or message text. Forms post natively (`action`, `method`, `hiddenFields`) or call `onSubmit` with typed values whose keys match the native field names; `busy`, `error`, `unconfirmed`, `notice` and `fieldErrors` come from the app.
+
+| Export | Values / states | Notes |
+| --- | --- | --- |
+| `SignInFlow` | `{email, password}` | Optional forgot-password, cancel and `providers` slot. Render `TwoFactorChallengeFlow` in its place when the app's result needs a second factor. |
+| `FirstUserSetupFlow` | `{name, token, email, password, workspaceName?, sample}` | Setup token is a plain password-type field with length limits only; `sample` is a boolean. |
+| `TwoFactorChallengeFlow` | `{code, mode}` | Authenticator (numeric, 6) and recovery-code (text, 21) modes; switching clears the code. |
+| `PasswordRecoveryFlow` | request `{email}`, reset `{password, confirmation, token?}` | Availability `loading`/`enabled`/`disabled`/`error`; `sent` and `invalid` states. The token stays in memory; the flow never touches the URL. |
+| `InvitationAcceptFlow` | `{name?, password?, token?}` | `loading`, `details`, `signin-required`, `mismatch`, `unavailable`, `accepted`. |
+| `WorkspaceOnboarding` | `{name}` | Signed in without project access: create a workspace, refresh, account and sign out. |
+| `OidcProviderButtons` | `providers`, `onStart?` | Providers with `href` are native links (one provider is fine); others call `onStart`. Loading, error and pending states. |
+| `AuthStory`, `AppStateScreen`, `AuthErrorBoundary` | — | Side-panel story; full-screen `loading`/`error`/`unconfirmed`/`boundary` states; a boundary whose `onReload` recovers in place. |
+
 ## Implemented work patterns
 
 | Export | Main props | Behavior and limits |
 | --- | --- | --- |
-| `AppShell` | `sidebar`, `header?`, children | Two-column frame, skip link and main landmark; stacks at narrow widths. Slots contain application-owned identity, navigation and scope controls. For mobile drawer behavior in an application-owned shell, use `useSidebarNavigation` below. |
-| `AccountMenu` | `name`, `email?`, `avatar?`, children, `label?`, `defaultOpen?` | One header account disclosure. Native account links/actions remain app-owned; Escape, outside interaction and Tab exit dismiss it. See [account placement and controller rules](SIDEBAR.md#account-controls-and-the-sidebar-footer). |
+| `AppShell` | `sidebar`, children; `topbar?`, `banners?`, `navigation?`, `sidebarLabel?`, `skipLinkLabel?`, `mainLabel?`, `header?` (legacy) | The whole app frame: skip link, named sidebar, topbar header outside `main`, banner stack and main landmark. With `navigation` it adds the mobile drawer (focus trap, Escape, shade) through `useSidebarNavigation`. |
+| `AccountMenu` | `name`, `email?`, `avatar?`, `items?`, `linkComponent?`, `label?`, `defaultOpen?`; `children` (deprecated) | One header account disclosure. `items` are typed links, buttons (busy, disabled, danger) and separators, so apps write no elements; sign-out and navigation handlers stay app-owned. |
 | `SidebarFooter` | `version`, children, `className?` | Settings, optional connection utilities and the actual app version. Keep profile identity and sign out in the header AccountMenu. |
+| `AppTopbar` | `breadcrumb`, `menuToggle?`, `search?`, `badge?`, `actions?` | Breadcrumb with the current page, drawer toggle (inside `AppShell navigation`), search, status badge and account actions. |
+| `SidebarNav` | `label`, `groups`, `linkComponent?`, `filter?`, `onNavigate?`, `emptyFilter?` | Grouped navigation. Items take `href` (a key your `linkComponent` resolves), `onSelect(item, event)` or both; `preventDefault()` in `onSelect` cancels navigation, modified clicks keep the browser default. `filter` matches labels and `keywords`; fully filtered groups hide. |
+| `WorkspaceProjectSwitcher` | `workspaces`, `projects`, `workspaceId`, `projectId`, `onWorkspaceChange`, `onProjectChange`, `create?` | User > Workspace > Project selection with role caption, initials, loading, empty and create states. The app chooses the default project. |
+| `SearchField` | `label`, `value`, `onValueChange`, `status?`, `onClear?`, `shortcut?`, `variant?` | Search input with a persistent polite status region, clear button and display-only shortcut hint. |
+| `Banner`, `SidebarStatus` | `tone`, children/`label`, `action?`, `onDismiss?` | Workspace-level notices above content (sample data, a required security step) and the sidebar connection note. |
 | `useSidebarNavigation` | `open`, `onOpenChange`, `sidebarRef`, `triggerRef`, `mediaQuery?` | Adds responsive drawer focus handling and inertness to existing app navigation. Spread returned `sidebarProps` and `contentProps` as described in [sidebar usage](SIDEBAR.md). The app owns routes, permissions and draft guards. |
 | `PageHeader` | `title`, `eyebrow?`, `description?`, `actions?` | Page `h1`, context and actions; actions wrap on narrow screens. |
 | `DataTable<T>` | `columns`, `rows`, `rowKey`, `caption`; options below | Local search, column sort, pagination and optional selection. Native table with scroll region. |

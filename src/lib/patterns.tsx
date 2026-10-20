@@ -294,7 +294,7 @@ type FrameProps = Omit<AppShellProps, 'navigation'> & {
   drawer?: { closeLabel: string; modal: boolean; close: () => void };
 };
 
-function ShellFrame({ sidebar, header, topbar, banners, sidebarLabel, skipLinkLabel = 'Skip to content', mainLabel, children, mainId, asideProps, workspaceProps, drawer }: FrameProps) {
+function ShellFrame({ sidebar, header, topbar, banners, sidebarLabel = 'Application navigation', skipLinkLabel = 'Skip to content', mainLabel, children, mainId, asideProps, workspaceProps, drawer }: FrameProps) {
   return <div className={cx('t98-app-shell', drawer && 't98-app-shell--drawer')}><a className="t98-skip-link" href={`#${mainId}`}>{skipLinkLabel}</a>
     <aside {...asideProps} className="t98-shell-sidebar" aria-label={sidebarLabel}>
       {drawer ? <div className="t98-shell-sidebar__body">
