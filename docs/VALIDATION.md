@@ -1,5 +1,17 @@
 # Release validation
 
+Historical package filenames below identify the original review generations. Their exact bytes and document snapshots are preserved in the [ten98 archive release](https://github.com/Ten98-IO-Company/ten98-code-system/releases/tag/archive-2026-10-20); application folders retain only their current manifest pins. Bug and task status belongs in the [shared GitHub Project](https://github.com/orgs/Ten98-IO-Company/projects/1).
+
+## Header account navigation: 0.3.19
+
+AccountMenu places account actions behind the existing header avatar. SidebarFooter retains utility links and the application's build-derived version without another identity or sign-out block. Both reuse the existing tokens and avatar component. Native routes, draft guards, authentication requests and permission gates remain app-owned; see [the integration contract](SIDEBAR.md).
+
+Architecture, strict source and fixture types, production/library builds, **71/71 native checks** (including React 18/19 compatibility) and **530 standalone TSX examples** pass. The complete narrow dark-mode browser run passes **113/113 in 1.8 minutes**. Desktop coverage consists of **111 passing cases**, followed by **2/2 targeted passes in 8.3 seconds** after updating the stale catalogue count from 75 to 77 and replaying a navigation that failed with `ERR_NO_BUFFER_SPACE` before page load. This is combined coverage of 226 cases, not a single uninterrupted passing run. Each run uses one worker and zero automatic retries. The two catalogue count labels were also clarified as entries because the catalogue includes a hook.
+
+The account checks cover keyboard and outside dismissal, native links and forms, draft-dialog focus, busy/error recovery, unavailable actions, unmount cleanup, long identity text, both themes and measured doubled text. An intentional overflow fails the same containment assertion. Actual wide/narrow screenshots were inspected; enlarged content can scroll within the menu. The React fixture is maintained in TSX and checked against public declarations before browser testing. These synthetic checks do not replace final Campaign and Discover account/sign-out acceptance; consumer integration is separately coordinated against immutable UI0.3.19/runtime0.1.3 archives.
+
+A final reuse review replaced duplicated chevron markup with the existing Icon component at the same size and stroke width. The affected build, **4/4 account rendering checks** and **22/22 account/catalogue browser checks in 28.5 seconds** pass afterward. The earlier local package candidate is superseded and was never handed off for consumer adoption or published.
+
 ## Feature sections and full-page composition: 0.3.17
 
 All 28 catalogue flows now use compact feature sections rather than page templates. Overview, Collection, Detail, Editor and Settings specimens combine multiple features under one page title. The public FlowSection and additive Alert.actions API, shared Card/control/action spacing and token-based surface insets reduce local layout decisions. The [canonical usage guide](LAYOUTS-AND-USAGE.md) defines hierarchy, spacing ownership and a bounded implementation brief. Campaign's branding, authentication composition and existing application controllers are preserved.

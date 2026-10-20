@@ -1,5 +1,36 @@
 # Existing application sidebars
 
+## Account controls and the sidebar footer
+
+Place one `AccountMenu` in the top-right page header. The trigger opens a compact dropdown with the person's name/email and the app's existing account links and sign-out action. Remove the duplicated sidebar profile block. Keep `SidebarFooter` at the bottom of the sidebar for Settings, optional connection links and the actual application version supplied by the build. The UI library version is not the app version.
+
+```tsx
+import { AccountMenu, SidebarFooter } from '@ten98/ui';
+
+<AccountMenu name={user.name} email={user.email} avatar={existingAvatar}>
+  <Link to="/account">Profile and appearance</Link>
+  <Link to="/account/security">Account security</Link>
+  <button type="button" disabled={signOutBusy} aria-busy={signOutBusy || undefined} onClick={signOut}>
+    {signOutBusy ? 'Signing out…' : 'Sign out'}
+  </button>
+</AccountMenu>
+
+<SidebarFooter version={appVersion}>
+  {existingConnectionStatus}
+  <Link to="/settings">Settings</Link>
+</SidebarFooter>
+```
+
+The code illustrates slots; keep the application's real router, routes, labels and handlers. Campaign retains its guarded `setPage` and `signOut`; Discover retains its native TanStack links, session-generation guard and logout/reset/redirect order. Do not add a generic sign-out guard over those controllers. Preserve role-gated account/security/identity choices and app-owned errors. The menu invokes no authentication request and creates no route.
+
+Load `styles.css` for new applications or the existing `app-tokens.css`, `app.css`, `product.css` sequence for Campaign and Discover. The `avatar` slot accepts the app's non-interactive existing initials or image. Supplied children retain native link, button and form semantics. Prevented router-link activations still dismiss the disclosure without changing their event or moving focus away from an app-owned guard dialog. Invalid native form submission keeps its fields available; a successful submit event dismisses it.
+
+This is a nonmodal disclosure with ordinary Tab navigation, not an ARIA application menu. Escape closes and returns focus to its trigger. Outside interaction and Tab exit close without stealing focus. Identity text wraps; disabled and busy actions cannot dispatch. Keep the sidebar free of a second profile/sign-out block and preserve its wheel, touch and keyboard scrolling without a visible scrollbar.
+
+The catalogue's **AccountMenu** and **SidebarFooter** entries provide complete TSX, props, tokens, and open, closed, long-content and busy examples. Verify native account navigation, draft cancellation, sign-out success/failure and permission gates in the consuming app, in light/dark and narrow/wide layouts.
+
+## Responsive navigation
+
 Import `useSidebarNavigation` from `@ten98/ui` when an application already owns its shell and sidebar contents. `AppShell` remains the static stacking layout; the hook adds mobile drawer behavior without replacing routes, authorization or draft controllers.
 
 The catalogue's **useSidebarNavigation** entry contains a complete copyable TSX file, scoped example CSS and responsive, mobile and desktop states. Load the package's existing stylesheet once for its theme tokens. Production apps may retain their established shell CSS.

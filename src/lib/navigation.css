@@ -1,0 +1,122 @@
+.t98-account-menu,
+.t98-account-menu *,
+.t98-sidebar-footer,
+.t98-sidebar-footer * { box-sizing: border-box; }
+
+.t98-account-menu {
+  position: relative;
+  flex: none;
+  font-family: var(--t98-font);
+  color: var(--t98-text);
+}
+.t98-account-menu__trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--t98-space-2);
+  min-width: 44px;
+  min-height: 44px;
+  margin: 0;
+  padding: var(--t98-space-1) var(--t98-space-2);
+  border: 1px solid transparent;
+  border-radius: var(--t98-radius);
+  color: var(--t98-muted);
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.t98-account-menu__trigger:hover,
+.t98-account-menu__trigger[aria-expanded='true'] { background: var(--t98-subtle); }
+.t98-account-menu__avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+.t98-account-menu__avatar img {
+  display: block;
+  width: 2rem;
+  height: 2rem;
+  object-fit: cover;
+  border-radius: var(--t98-radius-full);
+}
+.t98-account-menu__trigger > svg { flex: none; }
+.t98-account-menu__panel {
+  position: absolute;
+  top: calc(100% + var(--t98-space-2));
+  right: 0;
+  z-index: var(--t98-z-popover);
+  display: grid;
+  width: 18rem;
+  max-width: calc(100vw - 2 * var(--t98-space-4));
+  max-height: min(32rem, 70dvh);
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: var(--t98-space-2);
+  border: 1px solid var(--t98-border);
+  border-radius: var(--t98-radius-lg);
+  background: var(--t98-surface);
+  box-shadow: var(--t98-shadow-raised);
+  font-size: var(--t98-text-md);
+  line-height: var(--t98-leading-normal);
+}
+.t98-account-menu__panel[hidden] { display: none; }
+.t98-account-menu__identity {
+  display: grid;
+  gap: var(--t98-space-1);
+  min-width: 0;
+  margin-bottom: var(--t98-space-2);
+  padding: var(--t98-space-2) var(--t98-space-2) var(--t98-space-3);
+  border-bottom: 1px solid var(--t98-border);
+  overflow-wrap: anywhere;
+}
+.t98-account-menu__identity strong { color: var(--t98-text); font-weight: 650; }
+.t98-account-menu__identity span { color: var(--t98-muted); font-size: var(--t98-text-sm); }
+.t98-account-menu__actions,
+.t98-sidebar-footer__actions { display: grid; gap: var(--t98-space-1); min-width: 0; }
+.t98-account-menu__actions form { margin: 0; }
+.t98-account-menu__actions :is(a, button),
+.t98-sidebar-footer__actions > :is(a, button) {
+  display: flex;
+  align-items: center;
+  gap: var(--t98-space-2);
+  width: 100%;
+  min-width: 0;
+  min-height: var(--t98-control-height);
+  margin: 0;
+  padding: var(--t98-space-2);
+  border: 1px solid transparent;
+  border-radius: var(--t98-radius);
+  color: var(--t98-text);
+  background: transparent;
+  font: inherit;
+  font-weight: 500;
+  text-align: start;
+  text-decoration: none;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.t98-account-menu__actions :is(a, button):hover:not(:disabled, [aria-disabled='true']),
+.t98-sidebar-footer__actions > :is(a, button):hover:not(:disabled, [aria-disabled='true']) { background: var(--t98-subtle); }
+.t98-account-menu__actions :is(a, button):is(:disabled, [aria-disabled='true']),
+.t98-sidebar-footer__actions > :is(a, button):is(:disabled, [aria-disabled='true']) { opacity: .5; cursor: not-allowed; }
+.t98-account-menu :is(a, button):focus-visible,
+.t98-sidebar-footer__actions > :is(a, button):focus-visible { outline: 3px solid var(--t98-focus); outline-offset: 2px; }
+.t98-account-menu__actions svg,
+.t98-sidebar-footer__actions > :is(a, button) svg { flex: none; }
+.t98-sidebar-footer {
+  display: grid;
+  gap: var(--t98-space-2);
+  flex: none;
+  min-width: 0;
+  padding: var(--t98-space-3) 0;
+  border-top: 1px solid var(--t98-border);
+  color: var(--t98-muted);
+  font-family: var(--t98-font);
+  font-size: var(--t98-text-sm);
+  line-height: var(--t98-leading-normal);
+}
+.t98-sidebar-footer__version { padding: 0 var(--t98-space-2); font-size: var(--t98-text-xs); overflow-wrap: anywhere; }

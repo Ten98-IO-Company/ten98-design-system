@@ -28,6 +28,8 @@ Fixed templates define familiar regions and order, rather than clipping text int
 
 ## Appearance in account settings
 
+Use one `AccountMenu` in the top-right header for account identity, existing account links and sign out. The sidebar ends with `SidebarFooter`: Settings, optional connection utilities and the real app version. Do not repeat profile controls in both locations. Preserve native router links, draft guards and logout controllers; see [account navigation](SIDEBAR.md#account-controls-and-the-sidebar-footer).
+
 Place an **Appearance** select under **Your account**, using **System**, **Light** and **Dark** in that order. Explain that System follows the device preference and state the actual persistence scope. Apply the choice immediately; announce whether it was saved or only applied temporarily when storage is unavailable. Do not add a second save action for an immediate preference.
 
 Use the existing labelled native select/field pattern. The app owns preference storage, boot order and effects; the library does not need another theme controller. The first paint, selected option, semantic roles and used color scheme must agree. Verify System against both operating-system preferences, explicit choices across reload/navigation, keyboard operation, and the storage-denied message. A manually assigned `data-theme` proves CSS only, not a working preference flow.

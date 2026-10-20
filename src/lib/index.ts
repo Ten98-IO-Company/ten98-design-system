@@ -14,3 +14,4 @@ export * from './layout.js';
 export * from './reporting.js';
 export * from './inspection.js';
 export * from './sidebar.js';
+export * from './account-menu.js';

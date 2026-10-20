@@ -61,6 +61,8 @@ The example stops submission so it can demonstrate the components without writin
 | Export | Main props | Behavior and limits |
 | --- | --- | --- |
 | `AppShell` | `sidebar`, `header?`, children | Two-column frame, skip link and main landmark; stacks at narrow widths. Slots contain application-owned identity, navigation and scope controls. For mobile drawer behavior in an application-owned shell, use `useSidebarNavigation` below. |
+| `AccountMenu` | `name`, `email?`, `avatar?`, children, `label?`, `defaultOpen?` | One header account disclosure. Native account links/actions remain app-owned; Escape, outside interaction and Tab exit dismiss it. See [account placement and controller rules](SIDEBAR.md#account-controls-and-the-sidebar-footer). |
+| `SidebarFooter` | `version`, children, `className?` | Settings, optional connection utilities and the actual app version. Keep profile identity and sign out in the header AccountMenu. |
 | `useSidebarNavigation` | `open`, `onOpenChange`, `sidebarRef`, `triggerRef`, `mediaQuery?` | Adds responsive drawer focus handling and inertness to existing app navigation. Spread returned `sidebarProps` and `contentProps` as described in [sidebar usage](SIDEBAR.md). The app owns routes, permissions and draft guards. |
 | `PageHeader` | `title`, `eyebrow?`, `description?`, `actions?` | Page `h1`, context and actions; actions wrap on narrow screens. |
 | `DataTable<T>` | `columns`, `rows`, `rowKey`, `caption`; options below | Local search, column sort, pagination and optional selection. Native table with scroll region. |
