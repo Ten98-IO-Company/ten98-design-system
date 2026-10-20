@@ -20,6 +20,7 @@ import './lib/primitives.css';
 import './lib/patterns.css';
 import './lib/workspace.css';
 import './lib/products.css';
+import './lib/navigation.css';
 import './showcase.css';
 
 const groups: { label: string; items: { name: Page; icon: string }[] }[] = [

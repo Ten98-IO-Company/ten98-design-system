@@ -1,7 +1,7 @@
 'use client';
 
 import { useId, useState } from 'react';
-import { Alert, Button, EvidenceSummary, Field, OverviewTemplate, Select } from '../../lib';
+import { Alert, Button, EvidenceSummary, Field, FlowSection, Select } from '../../lib';
 
 export default function MeasurementConfidence() {
   const id = useId();
@@ -9,9 +9,8 @@ export default function MeasurementConfidence() {
   const [failedRefresh, setFailedRefresh] = useState(false);
   const unavailable = mode === 'Unknown';
   const estimated = mode === 'Estimated';
-  return <OverviewTemplate title="Understand a measurement" description="Synthetic local quality examples · Atlas · UTC"
-    scope={<p>Applied interval: 12–18 October 2026. Retained interval: 1–18 October 2026. Missing capture has no known traffic denominator.</p>}
-    filters={<Field label="Measurement example" htmlFor={`${id}-mode`}><Select value={mode} onChange={e => { setMode(e.target.value); setFailedRefresh(false); }}>{['Measured', 'Measured zero', 'Estimated', 'Partial', 'Unknown', 'Loading'].map(s => <option key={s}>{s}</option>)}</Select></Field>}>
+  return <FlowSection title="Understand a measurement" description="Synthetic local quality examples · Atlas · UTC" scope={<p>Applied interval: 12–18 October 2026. Retained interval: 1–18 October 2026. Missing capture has no known traffic denominator.</p>}>
+    <div className="t98-feature-controls">{<Field label="Measurement example" htmlFor={`${id}-mode`}><Select value={mode} onChange={e => { setMode(e.target.value); setFailedRefresh(false); }}>{['Measured', 'Measured zero', 'Estimated', 'Partial', 'Unknown', 'Loading'].map(s => <option key={s}>{s}</option>)}</Select></Field>}</div>
     {failedRefresh && <Alert tone="warning" title="Refresh failed; previous observation retained">The original as-of time below has not changed. No new measurement was confirmed.</Alert>}
     <EvidenceSummary variant="compact" title="Metric measurement quality" source={estimated ? 'DataForSEO synthetic provider estimate' : 'Synthetic native page-view events'}
       availability={unavailable ? 'unavailable' : mode === 'Loading' ? 'loading' : 'ready'}
@@ -22,7 +21,8 @@ export default function MeasurementConfidence() {
       coverage={{ status: mode === 'Partial' ? 'partial' : unavailable ? 'unavailable' : 'complete', reason: mode === 'Partial' ? 'Only one of two configured pages supplied counts. The full denominator is unknown.' : unavailable ? 'Collection coverage is not established.' : 'Complete only for this synthetic returned interval and stated source.' }}
       basis={<p>{estimated ? 'Estimated search demand' : 'Measured page-view events'} · timezone UTC · applied and retained intervals shown above.</p>}
       details={<p>Do not compare event counts with estimated unique people. Compatible collection definitions, retained intervals and population are required before the application supplies a comparison.</p>} />
-    <Button variant="secondary" disabled={mode === 'Loading' || unavailable} onClick={() => setFailedRefresh(true)}>Simulate failed local refresh</Button>
+    <div className="t98-form-actions"><Button variant="secondary" disabled={mode === 'Loading' || unavailable} onClick={() => setFailedRefresh(true)}>Simulate failed local refresh</Button></div>
     <p>Measurement details only explain the supplied evidence. Opening them starts no collection or paid research.</p>
-  </OverviewTemplate>;
+
+  </FlowSection>;
 }

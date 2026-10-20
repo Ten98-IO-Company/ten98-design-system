@@ -1,0 +1,607 @@
+{
+  "scope": "Frozen native Campaign fixture; four shared-field callers and conserved original CSS probe. No provider/recovery/metadata submission; not a persisted-theme or live-service test.",
+  "library": "0.3.16",
+  "archiveSha256": "09AC02877981C163FBDD61CD5063EA24E61B2A4C2FB92E1808EA88E4CA3FD2EA",
+  "sourcePins": {
+    "src/OperationRecovery.tsx": "15605689419a1203ba03bb1d8c4c222630752a90177f1be261773453c9896cfd",
+    "src/PostManagement.tsx": "335db115d5c1de6d51f514cb99421ff640c40d4c43ae3abd3987b776ce8646f7",
+    "src/main.tsx": "609c8e60989e467ba323b9dc8629e58e2c618693e07a6a2b87586ec9ee8a2bfb",
+    ".cache/swarm-cycle-browser.mjs": "9dfb686baa4b6c058f1eded83fee50c3e79e7a1cf561b579c8d8f1c782ff6e25",
+    ".cache/swarm-four-field-consumer-spec.md": "1a1b26231490b283e698cde28421e812379f7553eb7f28a6d7a8a0c5821d3d75"
+  },
+  "servedAssets": [
+    {
+      "path": "/theme.js",
+      "sha256": "3098822aac72c10905652a433db9f384cb153e3dc46bb546c111c937679a5bd3"
+    },
+    {
+      "path": "/assets/index-KqzDvpLE.js",
+      "sha256": "0b86b8389a0503c55319b7d9bcb39391c3353112abd1c2561f4ab66f64766b1d"
+    },
+    {
+      "path": "/assets/jsx-runtime-CwtgHpVt.js",
+      "sha256": "628f52b9713307057196298efb1a75558a4c6a130aec99bf2bbda82d4217756b"
+    },
+    {
+      "path": "/assets/index-BHOmKBp4.css",
+      "sha256": "76e33c2fe8237368076145f7eaac56b75d2a01d075474faa6bd4f95441eedf13"
+    }
+  ],
+  "independentReadback": {
+    "runtimeAndTests": 208,
+    "source": 103,
+    "fixtures": 8,
+    "served": 4,
+    "installedRuntimeFiles": 40
+  },
+  "fieldCases": [
+    {
+      "theme": "light",
+      "width": 1440,
+      "note": {
+        "tag": "textarea",
+        "name": "note",
+        "type": "textarea",
+        "required": true,
+        "minLength": 10,
+        "maxLength": 2000,
+        "rows": 3,
+        "rowsAttribute": "3",
+        "value": "",
+        "label": [
+          "What you checked *"
+        ],
+        "markers": 1,
+        "fieldset": true,
+        "disabled": false,
+        "bounds": {
+          "x": 292,
+          "y": 1148.5625,
+          "width": 1088,
+          "height": 100,
+          "top": 1148.5625,
+          "right": 1380,
+          "bottom": 1248.5625,
+          "left": 292
+        }
+      },
+      "reference": {
+        "tag": "input",
+        "name": "reference",
+        "type": "text",
+        "required": false,
+        "minLength": -1,
+        "maxLength": 500,
+        "rows": null,
+        "rowsAttribute": null,
+        "value": "",
+        "label": [
+          "Provider reference (optional)"
+        ],
+        "markers": 0,
+        "fieldset": true,
+        "disabled": false,
+        "bounds": {
+          "x": 292,
+          "y": 1291.5625,
+          "width": 1088,
+          "height": 39,
+          "top": 1291.5625,
+          "right": 1380,
+          "bottom": 1330.5625,
+          "left": 292
+        }
+      },
+      "title": {
+        "tag": "input",
+        "name": "title",
+        "type": "text",
+        "required": false,
+        "minLength": -1,
+        "maxLength": 100,
+        "rows": null,
+        "rowsAttribute": null,
+        "value": "",
+        "label": [
+          "Replacement video title"
+        ],
+        "markers": 0,
+        "fieldset": true,
+        "disabled": false,
+        "bounds": {
+          "x": 474,
+          "y": 910.140625,
+          "width": 492,
+          "height": 39,
+          "top": 910.140625,
+          "right": 966,
+          "bottom": 949.140625,
+          "left": 474
+        }
+      },
+      "tags": {
+        "tag": "textarea",
+        "name": "tags",
+        "type": "textarea",
+        "required": false,
+        "minLength": -1,
+        "maxLength": 1000,
+        "rows": 2,
+        "rowsAttribute": null,
+        "value": "",
+        "label": [
+          "Replacement keyword tags, one per line"
+        ],
+        "markers": 0,
+        "fieldset": true,
+        "disabled": false,
+        "bounds": {
+          "x": 474,
+          "y": 1011.140625,
+          "width": 492,
+          "height": 100,
+          "top": 1011.140625,
+          "right": 966,
+          "bottom": 1111.140625,
+          "left": 474
+        }
+      },
+      "recoveryData": {
+        "resolution": "applied",
+        "note": "Checked the synthetic QA receipt",
+        "reference": "QA field reference",
+        "confirmChecked": "on"
+      },
+      "metadataData": {
+        "changeTitle": "on",
+        "title": "QA replacement title",
+        "changeTags": "on",
+        "tags": "qa\nreview"
+      },
+      "recoveryLayout": {
+        "client": 1440,
+        "scroll": 1440
+      },
+      "metadataLayout": {
+        "client": 1440,
+        "scroll": 1440
+      }
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "note": {
+        "tag": "textarea",
+        "name": "note",
+        "type": "textarea",
+        "required": true,
+        "minLength": 10,
+        "maxLength": 2000,
+        "rows": 3,
+        "rowsAttribute": "3",
+        "value": "",
+        "label": [
+          "What you checked *"
+        ],
+        "markers": 1,
+        "fieldset": true,
+        "disabled": false,
+        "bounds": {
+          "x": 35,
+          "y": 1244.6875,
+          "width": 250,
+          "height": 100,
+          "top": 1244.6875,
+          "right": 285,
+          "bottom": 1344.6875,
+          "left": 35
+        }
+      },
+      "reference": {
+        "tag": "input",
+        "name": "reference",
+        "type": "text",
+        "required": false,
+        "minLength": -1,
+        "maxLength": 500,
+        "rows": null,
+        "rowsAttribute": null,
+        "value": "",
+        "label": [
+          "Provider reference (optional)"
+        ],
+        "markers": 0,
+        "fieldset": true,
+        "disabled": false,
+        "bounds": {
+          "x": 35,
+          "y": 1387.6875,
+          "width": 250,
+          "height": 39,
+          "top": 1387.6875,
+          "right": 285,
+          "bottom": 1426.6875,
+          "left": 35
+        }
+      },
+      "title": {
+        "tag": "input",
+        "name": "title",
+        "type": "text",
+        "required": false,
+        "minLength": -1,
+        "maxLength": 100,
+        "rows": null,
+        "rowsAttribute": null,
+        "value": "",
+        "label": [
+          "Replacement video title"
+        ],
+        "markers": 0,
+        "fieldset": true,
+        "disabled": false,
+        "bounds": {
+          "x": 39,
+          "y": 480.734375,
+          "width": 242,
+          "height": 39,
+          "top": 480.734375,
+          "right": 281,
+          "bottom": 519.734375,
+          "left": 39
+        }
+      },
+      "tags": {
+        "tag": "textarea",
+        "name": "tags",
+        "type": "textarea",
+        "required": false,
+        "minLength": -1,
+        "maxLength": 1000,
+        "rows": 2,
+        "rowsAttribute": null,
+        "value": "",
+        "label": [
+          "Replacement keyword tags, one per line"
+        ],
+        "markers": 0,
+        "fieldset": true,
+        "disabled": false,
+        "bounds": {
+          "x": 39,
+          "y": 581.734375,
+          "width": 242,
+          "height": 100,
+          "top": 581.734375,
+          "right": 281,
+          "bottom": 681.734375,
+          "left": 39
+        }
+      },
+      "recoveryData": {
+        "resolution": "applied",
+        "note": "Checked the synthetic QA receipt",
+        "reference": "QA field reference",
+        "confirmChecked": "on"
+      },
+      "metadataData": {
+        "changeTitle": "on",
+        "title": "QA replacement title",
+        "changeTags": "on",
+        "tags": "qa\nreview"
+      },
+      "recoveryLayout": {
+        "client": 320,
+        "scroll": 320
+      },
+      "metadataLayout": {
+        "client": 320,
+        "scroll": 320
+      }
+    },
+    {
+      "theme": "dark",
+      "width": 1440,
+      "note": {
+        "tag": "textarea",
+        "name": "note",
+        "type": "textarea",
+        "required": true,
+        "minLength": 10,
+        "maxLength": 2000,
+        "rows": 3,
+        "rowsAttribute": "3",
+        "value": "",
+        "label": [
+          "What you checked *"
+        ],
+        "markers": 1,
+        "fieldset": true,
+        "disabled": false,
+        "bounds": {
+          "x": 292,
+          "y": 1148.5625,
+          "width": 1088,
+          "height": 100,
+          "top": 1148.5625,
+          "right": 1380,
+          "bottom": 1248.5625,
+          "left": 292
+        }
+      },
+      "reference": {
+        "tag": "input",
+        "name": "reference",
+        "type": "text",
+        "required": false,
+        "minLength": -1,
+        "maxLength": 500,
+        "rows": null,
+        "rowsAttribute": null,
+        "value": "",
+        "label": [
+          "Provider reference (optional)"
+        ],
+        "markers": 0,
+        "fieldset": true,
+        "disabled": false,
+        "bounds": {
+          "x": 292,
+          "y": 1291.5625,
+          "width": 1088,
+          "height": 39,
+          "top": 1291.5625,
+          "right": 1380,
+          "bottom": 1330.5625,
+          "left": 292
+        }
+      },
+      "title": {
+        "tag": "input",
+        "name": "title",
+        "type": "text",
+        "required": false,
+        "minLength": -1,
+        "maxLength": 100,
+        "rows": null,
+        "rowsAttribute": null,
+        "value": "",
+        "label": [
+          "Replacement video title"
+        ],
+        "markers": 0,
+        "fieldset": true,
+        "disabled": false,
+        "bounds": {
+          "x": 474,
+          "y": 910.140625,
+          "width": 492,
+          "height": 39,
+          "top": 910.140625,
+          "right": 966,
+          "bottom": 949.140625,
+          "left": 474
+        }
+      },
+      "tags": {
+        "tag": "textarea",
+        "name": "tags",
+        "type": "textarea",
+        "required": false,
+        "minLength": -1,
+        "maxLength": 1000,
+        "rows": 2,
+        "rowsAttribute": null,
+        "value": "",
+        "label": [
+          "Replacement keyword tags, one per line"
+        ],
+        "markers": 0,
+        "fieldset": true,
+        "disabled": false,
+        "bounds": {
+          "x": 474,
+          "y": 1011.140625,
+          "width": 492,
+          "height": 100,
+          "top": 1011.140625,
+          "right": 966,
+          "bottom": 1111.140625,
+          "left": 474
+        }
+      },
+      "recoveryData": {
+        "resolution": "applied",
+        "note": "Checked the synthetic QA receipt",
+        "reference": "QA field reference",
+        "confirmChecked": "on"
+      },
+      "metadataData": {
+        "changeTitle": "on",
+        "title": "QA replacement title",
+        "changeTags": "on",
+        "tags": "qa\nreview"
+      },
+      "recoveryLayout": {
+        "client": 1440,
+        "scroll": 1440
+      },
+      "metadataLayout": {
+        "client": 1440,
+        "scroll": 1440
+      }
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "note": {
+        "tag": "textarea",
+        "name": "note",
+        "type": "textarea",
+        "required": true,
+        "minLength": 10,
+        "maxLength": 2000,
+        "rows": 3,
+        "rowsAttribute": "3",
+        "value": "",
+        "label": [
+          "What you checked *"
+        ],
+        "markers": 1,
+        "fieldset": true,
+        "disabled": false,
+        "bounds": {
+          "x": 35,
+          "y": 1244.6875,
+          "width": 250,
+          "height": 100,
+          "top": 1244.6875,
+          "right": 285,
+          "bottom": 1344.6875,
+          "left": 35
+        }
+      },
+      "reference": {
+        "tag": "input",
+        "name": "reference",
+        "type": "text",
+        "required": false,
+        "minLength": -1,
+        "maxLength": 500,
+        "rows": null,
+        "rowsAttribute": null,
+        "value": "",
+        "label": [
+          "Provider reference (optional)"
+        ],
+        "markers": 0,
+        "fieldset": true,
+        "disabled": false,
+        "bounds": {
+          "x": 35,
+          "y": 1387.6875,
+          "width": 250,
+          "height": 39,
+          "top": 1387.6875,
+          "right": 285,
+          "bottom": 1426.6875,
+          "left": 35
+        }
+      },
+      "title": {
+        "tag": "input",
+        "name": "title",
+        "type": "text",
+        "required": false,
+        "minLength": -1,
+        "maxLength": 100,
+        "rows": null,
+        "rowsAttribute": null,
+        "value": "",
+        "label": [
+          "Replacement video title"
+        ],
+        "markers": 0,
+        "fieldset": true,
+        "disabled": false,
+        "bounds": {
+          "x": 39,
+          "y": 480.734375,
+          "width": 242,
+          "height": 39,
+          "top": 480.734375,
+          "right": 281,
+          "bottom": 519.734375,
+          "left": 39
+        }
+      },
+      "tags": {
+        "tag": "textarea",
+        "name": "tags",
+        "type": "textarea",
+        "required": false,
+        "minLength": -1,
+        "maxLength": 1000,
+        "rows": 2,
+        "rowsAttribute": null,
+        "value": "",
+        "label": [
+          "Replacement keyword tags, one per line"
+        ],
+        "markers": 0,
+        "fieldset": true,
+        "disabled": false,
+        "bounds": {
+          "x": 39,
+          "y": 581.734375,
+          "width": 242,
+          "height": 100,
+          "top": 581.734375,
+          "right": 281,
+          "bottom": 681.734375,
+          "left": 39
+        }
+      },
+      "recoveryData": {
+        "resolution": "applied",
+        "note": "Checked the synthetic QA receipt",
+        "reference": "QA field reference",
+        "confirmChecked": "on"
+      },
+      "metadataData": {
+        "changeTitle": "on",
+        "title": "QA replacement title",
+        "changeTags": "on",
+        "tags": "qa\nreview"
+      },
+      "recoveryLayout": {
+        "client": 320,
+        "scroll": 320
+      },
+      "metadataLayout": {
+        "client": 320,
+        "scroll": 320
+      }
+    }
+  ],
+  "originalProbe": [
+    {
+      "theme": "dark",
+      "measuredPairs": 15,
+      "minContrast": 7.409128273016839,
+      "composerTextDoubled": true,
+      "oldPaintNegativeControl": true,
+      "oldSkipLeak": 5
+    },
+    {
+      "theme": "light",
+      "measuredPairs": 15,
+      "minContrast": 5.279114863876597,
+      "composerTextDoubled": true,
+      "oldPaintNegativeControl": false,
+      "oldSkipLeak": 5
+    }
+  ],
+  "passed": true,
+  "blockedRequests": 0,
+  "pageErrors": 0,
+  "oracleCorrection": "Initial four-field attempt used an exact select label. Native label includes option content; prefix combobox matcher preserves the intended selector. Assertions and app source unchanged.",
+  "figures": [
+    {
+      "file": "campaign-dark-320-recovery.png",
+      "sha256": "A99B00A1100A5454FF5F1665A500F85B529C2D219CDE31943AB6FB1E73FF1A54"
+    },
+    {
+      "file": "campaign-light-320-recovery.png",
+      "sha256": "3C267601275DC52B7AA3CB6B41F540005D5E0864B5A3C7F75C2F1F353154214B"
+    },
+    {
+      "file": "campaign-dark-320-youtube-review.png",
+      "sha256": "8A407A56BE304F8D99E4C0E0F99166E1A3014667EBD1D5B144D5835F36A24D9E"
+    },
+    {
+      "file": "campaign-light-320-youtube-review.png",
+      "sha256": "3B5E691C1EE9C4DFB0E27FD2116707B76E1513D05CE64B874A4A0D40648C0402"
+    }
+  ]
+}

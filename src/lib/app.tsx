@@ -54,7 +54,7 @@ export function AppField({ label, multiline, ...props }: { label: string; multil
     'accept', 'alt', 'capture', 'checked', 'defaultChecked', 'formAction', 'formEncType', 'formMethod', 'formNoValidate', 'formTarget',
     'height', 'list', 'max', 'min', 'multiple', 'pattern', 'size', 'src', 'step', 'type', 'width',
   ].includes(key))) as React.TextareaHTMLAttributes<HTMLTextAreaElement> : undefined;
-  return <label className="field"><span>{label}{props.required && <span className="required"> *</span>}</span>{multiline ? <textarea {...textareaProps}/> : <input {...props as React.InputHTMLAttributes<HTMLInputElement>}/>}</label>;
+  return <label className="field"><span>{label}{props.required && <span className="required" aria-hidden="true"> *</span>}</span>{multiline ? <textarea {...textareaProps}/> : <input {...props as React.InputHTMLAttributes<HTMLInputElement>}/>}</label>;
 }
 
 /** Options arrive already formatted by the application's domain vocabulary. */

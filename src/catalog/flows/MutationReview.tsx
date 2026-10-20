@@ -1,7 +1,7 @@
 'use client';
 
 import { useId, useState } from 'react';
-import { Alert, Badge, Button, Dialog, Field, Input, Select, SettingsTemplate } from '../../lib';
+import { Alert, Badge, Button, Dialog, Field, Input, Select, FlowSection } from '../../lib';
 
 type Outcome = 'confirmed' | 'error' | 'unknown';
 type Stage = 'draft' | 'pending' | Outcome;
@@ -35,15 +35,15 @@ export default function MutationReview() {
     if (reconciliation === 'not-applied') setStage('error');
   }
 
-  return <SettingsTemplate title="Connection display name" scope="Workspace: Operations · Project: Internal tools"
-    actions={<Badge tone={stage === 'confirmed' ? 'success' : stage === 'error' ? 'danger' : stage === 'unknown' ? 'warning' : 'neutral'}>{stage === 'error' ? 'Not applied' : stage}</Badge>}
-    feedback={<Alert title="Local simulation" tone="info">
+  return <FlowSection title="Connection display name" scope="Workspace: Operations · Project: Internal tools" actions={<Badge tone={stage === 'confirmed' ? 'success' : stage === 'error' ? 'danger' : stage === 'unknown' ? 'warning' : 'neutral'}>{stage === 'error' ? 'Not applied' : stage}</Badge>}>
+    <div className="t98-control-stack">{<Alert title="Local simulation" tone="info">
       Rename a synthetic connection. No request is sent. Choose a response, review the change, then simulate its outcome.
-    </Alert>}>
-      <div className="t98-settings-fields">
-        <h2>Rename connection</h2>
+    </Alert>}</div>
+      <div className="t98-control-stack">
+        <h3>Rename connection</h3>
         <p><strong>Resource:</strong> CRM sandbox <code>connect-demo-42</code></p>
-        <Field label="New display name" htmlFor={`${id}-name`} description="Your draft is retained if the simulated change fails or the review is closed.">
+        <div className="t98-form-grid">
+      <Field label="New display name" htmlFor={`${id}-name`} description="Your draft is retained if the simulated change fails or the review is closed.">
           <Input value={draft} maxLength={80} disabled={locked} onChange={event => setDraft(event.target.value)} />
         </Field>
         <Field label="Demo response for the next attempt" htmlFor={`${id}-scenario`}>
@@ -53,9 +53,10 @@ export default function MutationReview() {
             <option value="unknown">Outcome unknown</option>
           </Select>
         </Field>
-        {(stage === 'draft' || stage === 'error' || stage === 'pending') && <Button disabled={stage !== 'pending' && (!draft.trim() || draft.trim() === 'CRM sandbox')} onClick={() => stage === 'pending' ? setStage(scenario) : setReview(true)}>
+    </div>
+        {(stage === 'draft' || stage === 'error' || stage === 'pending') && <div className="t98-form-actions"><Button disabled={stage !== 'pending' && (!draft.trim() || draft.trim() === 'CRM sandbox')} onClick={() => stage === 'pending' ? setStage(scenario) : setReview(true)}>
           {stage === 'pending' ? 'Simulate response' : stage === 'error' ? 'Review retry' : 'Review change'}
-        </Button>}
+        </Button></div>}
         {stage !== 'draft' && <p><strong>Demo receipt:</strong> <code>{receipt}</code><br />Requested name: {submitted}</p>}
         {stage === 'pending' && <>
           <Alert title="Waiting for a simulated response" tone="info">The requested rename is pending. Its outcome has not been confirmed.</Alert>
@@ -75,13 +76,13 @@ export default function MutationReview() {
               <option value="not-applied">Confirmed not applied</option>
             </Select>
           </Field>
-          <Button variant="secondary" onClick={reconcile}>Simulate reconciliation</Button>
+          <div className="t98-form-actions"><Button variant="secondary" onClick={reconcile}>Simulate reconciliation</Button></div>
         </>}
         {stage === 'confirmed' && <>
           <Alert title="Rename confirmed in this demo" tone="success">
             {reconciled ? 'Simulated reconciliation confirms' : 'The simulated response confirms'} that connect-demo-42 is now named “{submitted}”.
           </Alert>
-          <Button variant="secondary" onClick={() => { setStage('draft'); setSubmitted(''); setReconciled(false); }}>Start another demo</Button>
+          <div className="t98-form-actions"><Button variant="secondary" onClick={() => { setStage('draft'); setSubmitted(''); setReconciled(false); }}>Start another demo</Button></div>
         </>}
       </div>
     <Dialog open={review} onOpenChange={setReview} title="Review connection rename"
@@ -94,5 +95,6 @@ export default function MutationReview() {
       </dl>
       <p>This demo changes the connection's display name. Closing this review retains your draft.</p>
     </Dialog>
-  </SettingsTemplate>;
+
+  </FlowSection>;
 }

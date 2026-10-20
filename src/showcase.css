@@ -85,6 +85,7 @@ code,pre { font-family: var(--t98-mono); }
 .reference-section { margin-bottom: 30px; min-width: 0; }
 .reference-section > h2,.reference-note > h2,.reference-prose > h2 { font-size: 18px; font-weight: 650; margin: 26px 0 12px; }
 .reference-section > p,.reference-note > p,.reference-prose p { font-size: 13px; line-height: 1.75; }
+.reference-section > p { overflow-wrap: anywhere; }
 .reference-section > ul { padding-inline-start: 20px; color: var(--t98-muted); font-size: 13px; line-height: 1.8; }
 .reference-muted { color: var(--t98-muted); }
 .reference-preview { margin-top: 18px; padding: 24px; background: var(--t98-surface); border: 1px solid var(--t98-border); border-radius: var(--t98-radius); min-width: 0; }

@@ -7,8 +7,13 @@ test('async multiline values, typed edits and controller review match the native
   const heldResponse = new Promise<void>(resolve => { respond = resolve; });
   await page.route('**/tests/fixture-article', async route => { await heldResponse; await route.fulfill({ json: { body: '<p>Loaded article & context</p>' } }); });
   await page.goto(`/tests/app-field.html?theme=${test.info().project.name === 'narrow-dark' ? 'dark' : 'light'}`);
-  const field = page.getByRole('textbox', { name: 'Article HTML *', exact: true });
+  const field = page.getByRole('textbox', { name: 'Article HTML', exact: true });
   await expect(field).toHaveValue('');
+  await expect(field).toHaveAccessibleName('Article HTML');
+  await expect(field).toHaveJSProperty('required', true);
+  await expect(page.locator('#article-form .required')).toBeVisible();
+  await expect(page.locator('#article-form .required')).toHaveAttribute('aria-hidden', 'true');
+  expect(await field.evaluate(element => (element as HTMLTextAreaElement).validity.valueMissing)).toBe(true);
   const requested = page.waitForRequest('**/tests/fixture-article');
   await page.getByRole('button', { name: 'Load synthetic article', exact: true }).click();
   await requested;
@@ -38,7 +43,7 @@ test('async multiline values, typed edits and controller review match the native
 
 test('uncontrolled multiline drafts, read-only submission and disabled exclusion stay native', async ({ page }) => {
   await page.goto(`/tests/app-field.html?theme=${test.info().project.name === 'narrow-dark' ? 'dark' : 'light'}`);
-  const message = page.getByRole('textbox', { name: 'Uncontrolled message *', exact: true });
+  const message = page.getByRole('textbox', { name: 'Uncontrolled message', exact: true });
   await expect(message).toHaveValue('Original uncontrolled draft');
   await message.fill('User-owned unsaved draft');
   await page.getByRole('button', { name: 'Update initial metadata', exact: true }).click();

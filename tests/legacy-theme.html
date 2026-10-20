@@ -16,7 +16,9 @@
     if (options.get('baseline') === '1') {
       const baseline = document.createElement('style');
       baseline.textContent = '.topbar{background:#ffffffd9}.field input:disabled{background:#faf7fd}.workspace-switch{background:#faf9fd}.workspace-avatar{background:#e8e1fa;color:var(--color-text-muted)}.button:not(.primary):hover:not(:disabled),.btn:not(.primary):hover:not(:disabled){background:#f7f6fc}.button.danger,.btn.danger{background:#fff3f5}.nav-item:hover{background:#f7f5fd}.nav-item.selected{background:#eeebfc}.nav-count{background:#e9e3fc}.auth-story{background:#eee9fa}.subtle-tag{background:#f9f7fd}.search kbd{background:#f8f7fb}.tabs :is(button,a)>span{background:#f4eef9}.integration-settings-icon{background:#f1edfc}.count{background:#f4eef9}.avatar{background:#efe1d4}';
-      document.head.append(baseline);
+      // Vite emits built stylesheet links after this early theme script.
+      // Apply the same fill-only fault after every stylesheet has been parsed.
+      document.addEventListener('DOMContentLoaded', () => document.head.append(baseline), { once: true });
     }
   </script>
 </head>

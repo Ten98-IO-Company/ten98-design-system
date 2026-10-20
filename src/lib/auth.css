@@ -23,7 +23,7 @@
 .auth-story>.brand{padding:0}
 .auth-story>div:not(.auth-orbit){padding:60px 0}
 .auth-story .eyebrow{color:light-dark(#766088,var(--color-text-muted,var(--t98-muted)));font-size:11px;letter-spacing:2px;margin-bottom:25px}
-.auth-story :is(h1,.auth-story-title){font-size:clamp(40px,5vw,76px);line-height:1.1;letter-spacing:-4px;font-weight:750;color:light-dark(#785793,var(--color-text,var(--t98-text)))}
+.auth-story :is(h1,.auth-story-title){overflow-wrap:anywhere;font-size:clamp(40px,5vw,76px);line-height:1.1;letter-spacing:-4px;font-weight:750;color:light-dark(#785793,var(--color-text,var(--t98-text)))}
 .auth-story :is(h1,.auth-story-title) em{color:light-dark(#745c89,var(--color-accent,var(--t98-accent)));font-style:normal}
 .auth-story p:not(.auth-story-title){font-size:13px;color:light-dark(#736180,var(--color-text-muted,var(--t98-muted)));margin-top:30px;line-height:1.9}
 .auth-channels{display:flex;gap:22px;margin-top:38px;color:var(--color-text-muted,var(--t98-muted));font-size:12px}
@@ -36,9 +36,9 @@
 .auth-form .eyebrow{font-size:10px;margin-bottom:15px;color:var(--color-text-muted,var(--t98-muted))}
 .auth-form h2,.auth-form .t98-auth-title{font-size:27px;letter-spacing:-1px;color:var(--color-text-muted,var(--t98-muted))}
 .auth-form h2+p,.auth-form .t98-auth-title+p{font-size:13px;color:var(--color-text-muted,var(--t98-muted));margin-top:10px;margin-bottom:32px}
-.auth-form .field{margin-bottom:20px}
-.auth-form .field input{height:43px}
-.auth-form :is(.button,.btn){min-height:43px;margin-top:5px}
+.auth-form :is(.field,.t98-field){margin-bottom:20px}
+.auth-form :is(input:not([type=checkbox]):not([type=radio]):not([type=hidden]),select,button,.button,.btn){min-block-size:max(44px,var(--t98-control-touch,2.75rem))}
+.auth-form :is(.button,.btn,.t98-button){margin-top:5px}
 .checkbox-label{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--color-text-muted,var(--t98-muted));margin:20px 0}
 .checkbox-label input{accent-color:var(--color-accent,var(--t98-accent));width:14px;height:14px}
 .auth-footnote{font-size:11px;color:var(--color-text-muted,var(--t98-muted));display:flex;align-items:center;justify-content:center;gap:6px;margin-top:25px}

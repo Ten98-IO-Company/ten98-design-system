@@ -11,6 +11,7 @@
 .t98-table th, .t98-table td { padding: var(--t98-cell-padding, .875rem) 1.125rem; }
 .t98-table th { padding-top: .625rem; padding-bottom: .625rem; }
 .t98-table td { border-bottom: 1px solid var(--t98-border); }
+.t98-table .t98-badge { overflow-wrap: normal; }
 .t98-table tbody tr:last-child td { border-bottom: 0; }
 .t98-table tbody tr:hover { background: var(--t98-subtle); }
 .t98-table tbody tr[data-selected] { background: var(--t98-accent-soft); }

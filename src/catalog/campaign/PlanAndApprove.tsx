@@ -1,7 +1,7 @@
 'use client';
 
 import { useId, useState } from 'react';
-import { Alert, Badge, Button, Card, DetailWorkspace, Dialog, Field, Input, OverviewTemplate, PublishingAgenda, Select } from '../../lib';
+import { Alert, Badge, Button, Card, DetailWorkspace, Dialog, Field, Input, FlowSection, PublishingAgenda, Select } from '../../lib';
 
 export default function PlanAndApprove() {
   const id = useId();
@@ -37,9 +37,11 @@ export default function PlanAndApprove() {
     {approvedVersion !== null && approvedVersion !== version && <Alert title="Review the changed version" tone="warning">A material time edit created v{version}. Request review again before planning. Overdue or missing approval does not auto-publish.</Alert>}
     {stage === 'planned' && <Alert title="Plan saved locally">A planned date is not a provider schedule. Submission and delivery need separate app-owned evidence.</Alert>}
   </Card>;
-  return <OverviewTemplate title="Plan and approve content" description="Local reference · one synthetic publishing item, no scheduler or calendar synchronization." scope={`Workspace Studio · Project Dubai launch · ${date || 'Unscheduled date'}`}
-    filters={<><Field htmlFor={`${id}-tz`} label="Calendar display timezone"><Select value={timezone} onChange={event => setTimezone(event.target.value)}><option value="Asia/Dubai">Asia/Dubai · UTC+04:00</option><option value="Europe/London">Europe/London</option><option value="UTC">UTC</option></Select></Field><Field htmlFor={`${id}-filter`} label="Approval filter"><Select value={filter} onChange={event => setFilter(event.target.value)}><option value="all">All items</option><option value="changes-requested">Changes requested · no matching items</option></Select></Field></>}
-    actions={<Button variant="secondary" onClick={() => setStale(current => !current)}>{stale ? 'Simulate successful refresh' : 'Simulate stale calendar sync'}</Button>}>
+  return <FlowSection title="Plan and approve content" description="Local reference · one synthetic publishing item, no scheduler or calendar synchronization." scope={`Workspace Studio · Project Dubai launch · ${date || 'Unscheduled date'}`}>
+    <div className="t98-feature-controls">{<>
+      <Field htmlFor={`${id}-tz`} label="Calendar display timezone"><Select value={timezone} onChange={event => setTimezone(event.target.value)}><option value="Asia/Dubai">Asia/Dubai · UTC+04:00</option><option value="Europe/London">Europe/London</option><option value="UTC">UTC</option></Select></Field><Field htmlFor={`${id}-filter`} label="Approval filter"><Select value={filter} onChange={event => setFilter(event.target.value)}><option value="all">All items</option><option value="changes-requested">Changes requested · no matching items</option></Select></Field>
+    </>}</div>
+    <div className="t98-form-actions">{<Button variant="secondary" onClick={() => setStale(current => !current)}>{stale ? 'Simulate successful refresh' : 'Simulate stale calendar sync'}</Button>}</div>
     {stale && <Alert title="Calendar sync stale" tone="warning">Last successful synthetic sync: 19 October 2026, 08:00 UTC. Current item and edits remain visible.</Alert>}
     <DetailWorkspace label="Publishing workspace" listLabel="Agenda" detailLabel="Version and schedule" selected={selected} onBack={() => { setSelected(false); requestAnimationFrame(() => document.getElementById(`${id}-inspect`)?.focus()); }}
       list={<><PublishingAgenda label="Publishing agenda" scope="Studio / Dubai launch · exact account demo-ig-17" timezoneLabel={timezone} selectedId={selected ? 'post-1' : undefined} entries={filter === 'all' ? [{ id: 'post-1', title: 'Studio opening', when, dateTime: valid ? instant : undefined, status: <Badge>{status}</Badge>, details: `Version ${version} · planned instant only, no provider schedule` }] : []} emptyMessage={<>No items match “Changes requested”. <Button variant="secondary" onClick={() => setFilter('all')}>Clear approval filter</Button></>} />{filter === 'all' && <Button id={`${id}-inspect`} onClick={() => setSelected(true)}>Inspect Studio opening</Button>}</>}
@@ -49,5 +51,6 @@ export default function PlanAndApprove() {
       <dl><dt>Destination</dt><dd>Studio Dubai · Instagram · demo-ig-17</dd><dt>Content</dt><dd>Meet our Dubai studio on 21 October.</dd><dt>Version</dt><dd>{version}</dd><dt>Due time / publishing timezone</dt><dd>{instant} · Asia/Dubai</dd></dl><p>Approval does not submit a schedule or establish delivery. The application validates permissions, revisions and ambiguous timezone inputs.</p>
       <Field htmlFor={`${id}-review-note`} label="Note required when requesting changes"><Input value={reviewNote} onChange={event => setReviewNote(event.target.value)} /></Field>
     </Dialog>
-  </OverviewTemplate>;
+
+  </FlowSection>;
 }

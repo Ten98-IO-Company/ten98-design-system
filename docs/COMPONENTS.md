@@ -1,6 +1,6 @@
 # Component inventory and API
 
-This is the public component inventory for `@ten98/ui` version `0.3.8`. Import React components from `@ten98/ui` and load `@ten98/ui/styles.css` once at the application root. Campaign and Discover also use the application-compatible entry point described below. The emitted TypeScript declarations are the exact API contract.
+This is the public component inventory for `@ten98/ui`. Import React components from `@ten98/ui` and load `@ten98/ui/styles.css` once at the application root. Campaign and Discover also use the application-compatible entry point described below. The installed package’s emitted TypeScript declarations are the exact versioned API contract.
 
 ## Implemented primitives
 
@@ -10,7 +10,7 @@ This is the public component inventory for `@ten98/ui` version `0.3.8`. Import R
 | `Badge` | `tone`, `dot`, children; span attributes | Status text with optional decorative dot. Include meaningful text. |
 | `Avatar` | `name`, `size`; span attributes | Initials with an accessible name; does not fetch images. |
 | `Icon` | `name`, `size`, `title`; SVG attributes | Bundled stroke icons. Decorative by default; use `title` for a meaningful standalone image and label icon-only buttons. |
-| `Card` | `title?`, `description?`, `actions?`, children; div attributes | Panel with optional header and body. Its built-in title is an `h3`; consider the screen's heading hierarchy. |
+| `Card` | `title?`, `description?`, `actions?`, children; div attributes | Panel with optional header and a 16px gap between direct content children. Its built-in title is an `h3`; consider the screen's heading hierarchy. Group buttons in `t98-form-actions`, fields in `t98-form-grid`. |
 | `Input` | Native input attributes and ref | Styled input; choose its native `type`, constraints and controlled/uncontrolled state. |
 | `Textarea` | Native textarea attributes and ref | Resizable multiline input; default four rows. |
 | `Select` | Native select attributes and ref; option children | Browser-native select. Searchable combobox and multiselect behavior are not included. |
@@ -19,7 +19,7 @@ This is the public component inventory for `@ten98/ui` version `0.3.8`. Import R
 | `Switch` | `label`, `checked`, `onCheckedChange`; button attributes | Controlled switch button; the application saves the value. |
 | `Tabs` | `items`, `value`, `onValueChange`, `label?`, `className?` | Controlled tabs and panels with arrow/Home/End navigation. Use route links for navigation between pages. |
 | `Dialog` | `open`, `onOpenChange`, `title`, children; `description?`, `footer?`, `className?`, `closeDisabled?` | Native modal dialog with focus restoration. `closeDisabled` defaults to `false`; when true it disables the close button and suppresses Escape/backdrop close requests. The application handles drafts, submission and confirmation policy. |
-| `Alert` | `title`, `tone`, children; div attributes | Danger uses an alert role; other tones use a status role. |
+| `Alert` | `title`, `tone`, `actions?`, children; div attributes | Danger uses an alert role; other tones use a status role. Inline message semantics are retained; optional recovery actions wrap in a separate row beneath the message. |
 | `Progress` | `value`, `label?`, `className?` | Determinate native progress from 0–100, with out-of-range values clamped. Supply confirmed progress rather than an invented percentage. |
 | `Skeleton` | Div attributes | Decorative placeholder; give the loading region its own status text. |
 | `Separator` | Horizontal-rule attributes | Thematic separation. |
@@ -60,7 +60,10 @@ The example stops submission so it can demonstrate the components without writin
 
 | Export | Main props | Behavior and limits |
 | --- | --- | --- |
-| `AppShell` | `sidebar`, `header?`, children | Two-column frame, skip link and main landmark; stacks at narrow widths. Slots contain application-owned identity, navigation and scope controls. It does not implement a mobile drawer. |
+| `AppShell` | `sidebar`, `header?`, children | Two-column frame, skip link and main landmark; stacks at narrow widths. Slots contain application-owned identity, navigation and scope controls. For mobile drawer behavior in an application-owned shell, use `useSidebarNavigation` below. |
+| `AccountMenu` | `name`, `email?`, `avatar?`, children, `label?`, `defaultOpen?` | One header account disclosure. Native account links/actions remain app-owned; Escape, outside interaction and Tab exit dismiss it. See [account placement and controller rules](SIDEBAR.md#account-controls-and-the-sidebar-footer). |
+| `SidebarFooter` | `version`, children, `className?` | Settings, optional connection utilities and the actual app version. Keep profile identity and sign out in the header AccountMenu. |
+| `useSidebarNavigation` | `open`, `onOpenChange`, `sidebarRef`, `triggerRef`, `mediaQuery?` | Adds responsive drawer focus handling and inertness to existing app navigation. Spread returned `sidebarProps` and `contentProps` as described in [sidebar usage](SIDEBAR.md). The app owns routes, permissions and draft guards. |
 | `PageHeader` | `title`, `eyebrow?`, `description?`, `actions?` | Page `h1`, context and actions; actions wrap on narrow screens. |
 | `DataTable<T>` | `columns`, `rows`, `rowKey`, `caption`; options below | Local search, column sort, pagination and optional selection. Native table with scroll region. |
 | `MetricCard` | `label`, `value`, `change?`, `trend?`, `chart?` | Formatted value and optional change/trend graphic. Application supplies all calculations and formatting. |
@@ -140,10 +143,10 @@ This is a small local-dataset table. It does not expose controlled server query/
 | `ConfirmDialog` | `open`, `onOpenChange`, `title: string`, `description: string`, `onConfirm: () => void \| Promise<void>`, `confirmLabel?`, `danger?`, `confirmationText?` | Confirm label defaults to “Confirm”; `danger` defaults to false. Optional confirmation text must match exactly. Disables confirmation and closing while pending, closes after success, and keeps a generic error visible for retry after rejection. The callback must throw/reject on failure. |
 | `ToastProvider` | children | Provides one current notification, replacing the previous message. It clears after five seconds and has a dismiss button. Mount once around consumers of `useToast`. |
 | `useToast` | No arguments; returns `{ toast(message: string, tone?: Tone): void }` | Default tone is `success`. Calling outside `ToastProvider` throws. Use for brief feedback; keep errors requiring action, histories and essential instructions in the page. |
-| `AuthLayout` | `brand: ReactNode`, `title: string`, children; `description?`, `aside?`, `footer?` | Uses the canonical Campaign login presentation and existing `AppBrand` slot. Providing `aside` creates a split layout that stacks below 760px; omitting it gives a full-width single panel. The form title is the only h1; use `auth-story-title` on a paragraph for a story heading. The application owns form submission, providers, recovery, sessions and routing. |
+| `AuthLayout` | `brand: ReactNode`, `title?: string`, children; `description?`, `aside?`, `footer?` | Uses the canonical Campaign login presentation and existing `AppBrand` slot. Providing `aside` creates a split layout that stacks below 760px; omitting it gives a full-width single panel. Supply `title` for the layout's h1, or omit it when the native form supplies its own heading. Keep one h1 and use `auth-story-title` on a paragraph for a story heading. The application owns form submission, providers, recovery, sessions and routing. |
 | `PermissionMatrix` | `roles: readonly string[]`, `permissions: readonly Permission[]`, `value: Readonly<Record<string, readonly string[]>>`, `onChange(role: string, permissionId: string, allowed: boolean)`, `disabled?` | Controlled checkbox table. Each role maps to its allowed permission IDs; omitted roles have no selections. Application code validates, saves and authorizes all changes on the server. |
 
-`AuthLayout` and `AppBrand` work with `@ten98/ui/styles.css` alone. Existing compatibility apps may retain their app-tokens.css, app.css and product.css loading order. Both entry points include the same canonical brand/auth CSS; do not load global app.css solely for AuthLayout. Pass the established story children as an `aside` fragment so its brand, story and footnote retain their spacing.
+`AuthLayout` and `AppBrand` work with `@ten98/ui/styles.css` alone. Existing compatibility apps may retain their app-tokens.css, app.css and product.css loading order. Both entry points include the same canonical brand/auth CSS; do not load global app.css solely for AuthLayout. Story headings allow long words to wrap when text is enlarged, while the decorative orbit remains clipped to its panel. Pass the established story children as an `aside` fragment so its brand, story and footnote retain their spacing. The auth container supplies field and action spacing; omit additional form row gaps and keep spacing for app-owned headings and feedback on those elements.
 
 Additional exported types are `ProductOption`, `DateRange`, `ConfirmDialogProps` and `Permission`. `Permission` contains `id`, `label` and optional `description`. Keep product IDs, permission IDs and role names stable and unique. These components do not provide authentication, authorization, secret storage or provider execution.
 
@@ -211,7 +214,7 @@ The matrix edits a local draft in this example. Add the application's validated 
 
 ## Existing application components
 
-`@ten98/ui/app` exports `AppIcon`, `AppBrand`, `AppField`, `AppSelect`, `AppBadge`, `AppEmpty` and `AppStat`. They preserve Campaign and Discover's existing markup, class names and native form behavior. They use `@ten98/ui/app-tokens.css` and `@ten98/ui/app.css`; these styles are separate from the main component API. See [INTEGRATION.md](INTEGRATION.md) for props, styling and ownership.
+`@ten98/ui/app` exports `AppIcon`, `AppBrand`, `AppField`, `AppSelect`, `AppBadge`, `AppEmpty` and `AppStat`. They preserve Campaign and Discover's existing markup, class names and native form behavior. In AuthLayout, text inputs, selects and actions have a minimum control height of max(44px, var(--t98-control-touch, 2.75rem)), so they grow with root text size; checkbox and radio glyph sizing is unchanged. AppField keeps native required validation and its visible asterisk, but hides that decorative marker from assistive technology so the accessible name remains the supplied label. They use `@ten98/ui/app-tokens.css` and `@ten98/ui/app.css`; these styles are separate from the main component API. See [INTEGRATION.md](INTEGRATION.md) for props, styling and ownership.
 
 ## Campaign and Discover presentation
 
@@ -228,6 +231,7 @@ All 28 additive exports have live props, state specimens, tokens, accessibility 
 | `EvidenceDetail`, `ReportPanel`, `RunCostSummary` | Payload access states, independent widgets and explicit quoted/pending/settled/uncertain accounting. No paid action is generated. |
 | `VisualEvidenceFrame`, `ReplayControls` | Alignment-gated overlay, separately authorized evidence and controlled playback/seek requests. Optional `rankedListLabel` names coordinate groups truthfully; omission preserves the ranked-element defaults. Omit unsupported inactivity skipping; a supplied preference without a callback is read-only. App owns capture and replay engine. |
 | `OverviewTemplate`, `CollectionTemplate`, `DetailTemplate`, `EditorTemplate`, `SettingsTemplate` | Fixed slot order by task. Compose one inside the app's main landmark; preserve native form association. See [layout rules](LAYOUTS-AND-USAGE.md). |
+| `FlowSection` | Smaller feature composition with an h2, optional description/scope/actions and spaced app-owned children. Several feature sections compose a full page template; a flow never mounts a page template. |
 
 The emitted declarations remain the exact prop contract. Existing apps use `product.css` after `app.css`; new screens may load `styles.css`. Long main-API badges wrap within their containing surface.
 

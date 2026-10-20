@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useId, useState, type FormEvent } from 'react';
-import { Alert, Badge, Button, CopyButton, EditorTemplate, Field, Input, ResourceCard, Select, Stepper } from '../../lib';
+import { Alert, Badge, Button, CopyButton, FlowSection, Field, Input, ResourceCard, Select, Stepper } from '../../lib';
 
 /** Catalogue recipe: local state only; no authorization, requests or records. */
 export default function ConnectionSetup() {
@@ -36,13 +36,13 @@ export default function ConnectionSetup() {
     setPhase('setup');
   }
 
-  return <EditorTemplate title="Connection setup"
-    scope={<p>Scope: Catalogue sandbox. This synthetic example stores configuration in this page only.</p>}
-    steps={<Stepper steps={['Configure endpoint', 'Simulate verification', 'Observe synthetic event']}
-      current={phase === 'setup' ? 0 : phase === 'confirmed' ? 3 : 1} />}>
-    <div className="t98-settings-fields">
-    <form onSubmit={configure} className="t98-settings-fields">
-      <h2>Configure endpoint</h2>
+  return <FlowSection title="Connection setup" scope={<p>Scope: Catalogue sandbox. This synthetic example stores configuration in this page only.</p>}>
+    <div className="t98-control-stack">{<Stepper steps={['Configure endpoint', 'Simulate verification', 'Observe synthetic event']}
+      current={phase === 'setup' ? 0 : phase === 'confirmed' ? 3 : 1} />}</div>
+    <div className="t98-control-stack">
+    <form onSubmit={configure} className="t98-control-stack">
+      <h3>Configure endpoint</h3>
+      <div className="t98-form-grid">
       <Field label="Connection name (required)" htmlFor={`${id}-name`} description="Use a meaningful non-blank name. Native browser validation checks this form.">
         <Input name="connectionName" required pattern=".*\S.*" maxLength={80} value={name} disabled={pending}
           placeholder="Example sandbox" onChange={event => { setName(event.target.value); edit(); }} />
@@ -51,7 +51,8 @@ export default function ConnectionSetup() {
         <Input name="endpoint" type="url" required pattern="https?://.+" value={endpoint} disabled={pending}
           placeholder="https://example.test/events" onChange={event => { setEndpoint(event.target.value); edit(); }} />
       </Field>
-      <div><Button type="submit" variant="secondary" disabled={pending}>Configure locally</Button></div>
+    </div>
+      <div className="t98-form-actions"><Button type="submit" variant="secondary" disabled={pending}>Configure locally</Button></div>
     </form>
     <ResourceCard title={configured?.name ?? 'No configured connection'}
       description={configured?.endpoint ?? 'Enter the required fields and configure the endpoint to continue.'}
@@ -61,14 +62,14 @@ export default function ConnectionSetup() {
       </Badge>}
       actions={configured && <CopyButton value={JSON.stringify({ scope: 'catalogue-sandbox', ...configured }, null, 2)} label="Copy demo configuration" />}>
       <p>Copying configuration does not verify the endpoint or create a connection.</p>
-      {configured && <div style={{ display: 'grid', gap: 'var(--t98-space-3)' }}>
+      {configured && <div className="t98-control-stack">
         <Field label="Next simulation outcome" htmlFor={`${id}-outcome`} description="Demo control: choose the local result before simulating verification.">
           <Select value={outcome} disabled={pending} onChange={event => setOutcome(event.target.value)}>
             <option value="success">Synthetic event observed</option>
             <option value="failure">Synthetic verification failure</option>
           </Select>
         </Field>
-        <div><Button loading={pending} onClick={() => setPhase('pending')}>
+        <div className="t98-form-actions"><Button loading={pending} onClick={() => setPhase('pending')}>
           {pending ? 'Simulating verification…' : phase === 'failed' ? 'Retry simulated verification' : 'Simulate verification'}
         </Button></div>
       </div>}
@@ -81,5 +82,6 @@ export default function ConnectionSetup() {
       {phase !== 'confirmed' && ' This is historical demo evidence, not current verified health.'}
     </p>}
     </div>
-  </EditorTemplate>;
+
+  </FlowSection>;
 }

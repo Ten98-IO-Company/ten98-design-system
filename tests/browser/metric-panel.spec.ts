@@ -53,7 +53,10 @@ for (const width of [1440, 320]) {
 
     // Restore both old rules before doubling: this must reproduce the word fragments.
     await page.addStyleTag({ content: `.t98-comparison-values{grid-template-columns:repeat(2,minmax(0,1fr))}.t98-comparison-value[data-unavailable]{font-size:var(--t98-text-metric);font-weight:var(--t98-weight-bold);line-height:var(--t98-leading-tight)}@media(max-width:600px){.t98-comparison-values{grid-template-columns:minmax(0,1fr)}}` });
-    expect((await textLines(unavailable)).length).toBe(width === 1440 ? 2 : 1);
+    const oldLines = await textLines(unavailable);
+    expect(oldLines.join('')).toBe('Unavailable');
+    if (width === 1440) expect(oldLines.length).toBeGreaterThan(1);
+    else expect(oldLines).toEqual(['Unavailable']);
     const oldSnapshot = await doubleFonts(article);
     expect(oldSnapshot.every(item => item.after === item.before * 2)).toBeTruthy();
     expect((await textLines(unavailable)).length).toBeGreaterThan(1);

@@ -2,7 +2,17 @@
 
 This ledger tracks shared UI/reference acceptance and the separate integration decisions for Campaign C1–C8 and Discover D1–D17. App owners retain controllers, persistence, permissions and behavior; a catalogue preview does not enable new backend features or authorize provider operations.
 
+## Feature layout correction — 20 October 2026
+
+The [layout correction](reviews/2026-10-20/spacing-layout.md) provides **28 feature sections and five full-page template specimens**, with one public FlowSection API, token-based spacing and a separate Alert recovery-action row. Component hierarchy and the worker brief are maintained in the [usage guide](LAYOUTS-AND-USAGE.md). All original flow controllers and 477 imported non-layout component tags are conserved. Final acceptance: **190 Playwright cases / 62 native checks / 515 standalone TSX examples**, architecture/type/build passing, one browser worker and zero retries. Nine refreshed images pass independent final review.
+
+UI17 is the tested presentation base for the coordinated UI18/runtime1.2 integration. Both primary applications retain the independently accepted UI16/runtime1.1 contract until that matching release qualifies. Their subsequent native feature batches, provider operations and deployment have separate acceptance; a catalogue result does not establish them.
+
 ## Current audit — 20 October 2026
+
+The follow-up [DRY/KISS consolidation](reviews/2026-10-20/dry-kiss.md) qualifies immutable 0.3.16 with 59 native checks, 511 strict examples, 174 full runtime/style browser cases plus six final targeted catalogue cases, and 56 final captures. Both primary apps declare/install the exact archive; Campaign's four native field scenes/original probe and Discover's six installed-consumer gates pass. Root independently verifies 40 installed files in each app and 143 canonical frontend files in Discover. Discover’s supplemental native Auth correction also passes its original groups and explicit light/dark wide/narrow proof. These are frozen UI-generation results; subsequent native features and a separate common-runtime migration remain outside this acceptance. Connect now includes automation, integrations, wiki/docs and research, leaving nine apps.
+
+The follow-up [DRY/KISS consolidation](reviews/2026-10-20/dry-kiss.md) qualifies immutable0.3.16 with59native checks,511strict examples,174full runtime/style browser cases plus6final targeted catalogue cases, and56final captures. Both primary apps declare/install the exact archive; Campaign's four native field scenes/original probe and Discover's six installed-consumer gates pass. Root independently verifies40installed files in each app and143canonical frontend files in Discover. These are frozen UI-generation results; subsequent native features and a separate common-runtime migration remain outside this acceptance. Connect now includes automation, integrations, wiki/docs and research, leaving nine apps.
 
 The new audit is tracked separately from the accepted checkpoint below. [AuthLayout consolidation](reviews/2026-10-20/auth-layout.md) is published as 0.3.15 with 172 browser checks plus the final four affected example checks. Campaign verified and installed the immutable archive. Brand & login and the catalogue component now reuse one layout and CSS source; native authentication controllers remain app-owned.
 
