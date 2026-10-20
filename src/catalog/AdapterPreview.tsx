@@ -4,7 +4,7 @@ import tokensCss from '../lib/app-tokens.css?inline';
 import appCss from '../lib/app.css?inline';
 import type { Density, Theme } from '../lib/tokens';
 
-const frameSource = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>${tokensCss}\n${appCss}\n:root{font-family:var(--font-sans);font-size:14px;color:var(--color-text);background:var(--color-surface)}body{padding:16px}.specimen{display:grid;gap:16px;min-width:0}.specimen form{display:grid;gap:16px}.specimen .brand{padding-bottom:8px}.specimen output{overflow-wrap:anywhere}.specimen>.auth-shell{min-height:600px}a,button,input,select,textarea{max-width:100%}</style></head><body></body></html>`;
+const frameSource = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>${tokensCss}\n${appCss}\n:root{font-family:var(--font-sans);font-size:14px;color:var(--color-text);background:var(--color-surface)}body{padding:16px}.specimen{display:grid;gap:16px;min-width:0}.specimen form:not(:where(.auth-form form)){display:grid;gap:16px}.specimen .brand{padding-bottom:8px}.specimen output{overflow-wrap:anywhere}.specimen>.auth-shell{min-height:600px}a,button,input,select,textarea{max-width:100%}</style></head><body></body></html>`;
 
 /** Keep specimen links inside their preview, including working local skip targets. */
 export function previewLink(event: MouseEvent<HTMLElement>): string | undefined {

@@ -2,6 +2,15 @@
 
 Historical package filenames below identify the original review generations. Their exact bytes and document snapshots are preserved in the [ten98 archive release](https://github.com/Ten98-IO-Company/ten98-code-system/releases/tag/archive-2026-10-20); application folders retain only their current manifest pins. Bug and task status belongs in the [shared GitHub Project](https://github.com/orgs/Ten98-IO-Company/projects/1).
 
+## Auth control consistency: 0.3.20
+
+AuthLayout applies Campaign's existing field and action spacing to both modern and compatibility controls. Catalogue examples no longer add a second form gap; app-owned headings and feedback retain explicit spacing. Text inputs, selects and actions have a 44px minimum height that grows with the root-size token. Checkbox and radio glyph sizes are unchanged. AppField preserves native required validation and its visible marker while hiding that decorative marker from the accessible name.
+
+Local qualification uses the accepted immutable runtime 0.1.5 archive and an ordinary updated lockfile. Architecture, strict production and fixture types, library/site builds, **530 standalone TSX examples**, and **69 native tests** pass. Two opt-in React compatibility tests are skipped because their external fixture was not supplied; the unchanged sidebar's earlier compatibility result remains recorded under 0.3.19. The two changed DOM-only browser specifications also pass a separate strict compiler check; this does not claim semantic checking of every test or inline HTML fixture.
+
+The focused Playwright gate passes **10/10 cases in 12.1 seconds**, with one worker and zero retries. It covers modern and legacy hints, field/action spacing, app-owned headings and errors, native validation and form values, light/dark themes, 1440px and 320px viewports, and control sizing at 12/16/24px root sizes. A deliberate run against the retained old stylesheet fails the same field-gap assertion: expected 20px, measured 0px. Final desktop/narrow screenshots were inspected. The root-size check measures control growth, not complete text-only zoom.
+
+[Linux CI](../.github/workflows/ci.yml) installs locked dependencies and runs the architecture/type/build/native gates plus the complete two-project Playwright suite. A successful run on the proposed source is required before publication; adding the workflow alone is not a Linux result. Application authentication controllers, provider actions and final consumer adoption remain app-owned and require their separate checks.
 ## Header account navigation: 0.3.19
 
 AccountMenu places account actions behind the existing header avatar. SidebarFooter retains utility links and the application's build-derived version without another identity or sign-out block. Both reuse the existing tokens and avatar component. Native routes, draft guards, authentication requests and permission gates remain app-owned; see [the integration contract](SIDEBAR.md).

@@ -14,8 +14,8 @@ function Fixture() {
     aside: params.has('single') ? undefined : e(React.Fragment, null, e('div', null, e('p', { className: 'auth-story-title' }, 'Plan. Publish. Measure.'), e('p', null, 'Consumer instructions must remain visible.')), e('small', null, e('a', { href: '#recovery' }, 'Recover access'))),
     footer: 'Authentication remains application-owned.' },
     e('form', { onSubmit: event => { event.preventDefault(); setMessage('Form validated: ' + [...new FormData(event.currentTarget).keys()].join(', ') + '. No authentication request sent.'); } },
-      e(Field, { label: 'Email address', htmlFor: 'email' }, e(Input, { id: 'email', name: 'email', type: 'email', autoComplete: 'username', required: true })),
-      e(Field, { label: 'Password', htmlFor: 'password' }, e(Input, { id: 'password', name: 'password', type: 'password', autoComplete: 'current-password', required: true })),
+      e(Field, { label: 'Email address', htmlFor: 'email', description: 'Use the email address registered to your account.' }, e(Input, { id: 'email', name: 'email', type: 'email', autoComplete: 'username', required: true })),
+      e(Field, { label: 'Password', htmlFor: 'password', description: 'Use your account password.' }, e(Input, { id: 'password', name: 'password', type: 'password', autoComplete: 'current-password', required: true })),
       e(Button, { type: 'submit' }, 'Sign in'), message && e('p', { role: 'status' }, message)));
 }
 createRoot(document.getElementById('root')).render(e(Fixture));
