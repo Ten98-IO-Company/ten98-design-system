@@ -79,3 +79,18 @@
 .auth-form .eyebrow{font-size:9px}
 .auth-form-inner{max-width:420px}
 }
+/* Shared authentication flows (SignInFlow, FirstUserSetupFlow, OidcProviderButtons, AppStateScreen) */
+.t98-auth-layout .t98-auth-heading .t98-auth-title:last-child{margin-bottom:32px}
+.t98-auth-layout .t98-auth-fieldset{border:0;margin:0;padding:0;min-width:0}
+.t98-auth-layout .t98-auth-feedback{margin-bottom:20px}
+.t98-auth-layout .t98-auth-error:focus-visible{outline:3px solid var(--color-accent,var(--t98-accent));outline-offset:2px}
+.t98-auth-layout .t98-auth-submit{width:100%}
+.t98-auth-layout .t98-auth-inline-action{display:flex;justify-content:flex-end;margin:-8px 0 12px}
+.t98-auth-layout .t98-auth-aux{display:flex;flex-wrap:wrap;justify-content:center;gap:8px 16px;margin-top:16px}
+.t98-auth-layout .t98-auth-choice{margin:4px 0 16px}
+.t98-auth-layout .t98-auth-providers{margin-top:8px}
+.t98-auth-layout .t98-auth-providers>ul{padding:0;margin:0;list-style:none}
+.t98-auth-layout .t98-auth-provider{width:100%;justify-content:center;text-decoration:none;margin-top:0}
+.t98-auth-layout .t98-auth-state{display:flex;align-items:center;gap:12px;color:var(--color-text-muted,var(--t98-muted));font-size:13px}
+.t98-auth-layout .t98-auth-state .t98-spinner{flex-shrink:0}
+.t98-auth-layout :is(.t98-auth-aux,.t98-auth-inline-action) :is(a,button){font-size:13px}

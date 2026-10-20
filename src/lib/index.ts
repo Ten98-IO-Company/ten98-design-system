@@ -16,3 +16,5 @@ export * from './inspection.js';
 export * from './sidebar.js';
 export * from './account-menu.js';
 export * from './structure.js';
+export * from './auth-flows.js';
+export * from './shell.js';

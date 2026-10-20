@@ -5,6 +5,8 @@ import { reportingEntries } from './reporting';
 import { templateEntries } from './templates';
 import { layoutEntries } from './layout';
 import { structureEntries } from './structure';
+import { authFlowEntries } from './auth-flows';
+import { shellEntries } from './shell';
 import { coordinationEntries } from './coordination';
 import { assetsAudienceEntries } from './assets-audience';
 import { analyticsEntries } from './analytics';
@@ -16,7 +18,7 @@ import { patternEntries } from './patterns';
 import { adapterEntries } from './adapters';
 import type { ComponentEntry } from './model';
 
-export const componentEntries: ComponentEntry[] = [...primitiveEntries, ...patternEntries, ...adapterEntries, ...evidenceEntries, ...compositionEntries, ...measurementEntries, ...coordinationEntries, ...assetsAudienceEntries, ...analyticsEntries, ...layoutEntries, ...structureEntries, ...templateEntries, ...reportingEntries, ...inspectionEntries, ...sidebarEntries, ...accountMenuEntries];
+export const componentEntries: ComponentEntry[] = [...primitiveEntries, ...patternEntries, ...adapterEntries, ...evidenceEntries, ...compositionEntries, ...measurementEntries, ...coordinationEntries, ...assetsAudienceEntries, ...analyticsEntries, ...layoutEntries, ...structureEntries, ...authFlowEntries, ...shellEntries, ...templateEntries, ...reportingEntries, ...inspectionEntries, ...sidebarEntries, ...accountMenuEntries];
 export const categories = ['All', ...new Set(componentEntries.map(entry => entry.category))];
 
 export function findComponents(query: string, category = 'All') {
