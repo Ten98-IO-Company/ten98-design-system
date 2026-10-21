@@ -210,6 +210,8 @@ export interface ComboboxProps {
  * ArrowUp moves to the previous option and wraps, and Enter on an open list with no highlighted option only closes it. */
 interface ComboboxControlProps {
   id?: string;
+  /** The value the hidden input posts; empty when a list-only field holds unlisted text. */
+  submitValue: string;
   'aria-describedby'?: string;
   'aria-invalid'?: boolean;
   options: ComboboxOption[];
@@ -223,7 +225,7 @@ interface ComboboxControlProps {
   disabled?: boolean;
   emptyMessage: string;
 }
-function ComboboxControl({ id, options, value, onValueChange, onLeave, label, name, placeholder, required, disabled, emptyMessage, ...described }: ComboboxControlProps) {
+function ComboboxControl({ id, options, value, submitValue, onValueChange, onLeave, label, name, placeholder, required, disabled, emptyMessage, ...described }: ComboboxControlProps) {
   const generated = useId();
   const listId = `${generated}-list`;
   const optionId = (index: number) => `${generated}-option-${index}`;
@@ -282,7 +284,7 @@ function ComboboxControl({ id, options, value, onValueChange, onLeave, label, na
       }}
       onKeyDown={onKeyDown}
       onBlur={() => { close(); onLeave(); }} />
-    {name && <input type="hidden" name={name} value={value} />}
+    {name && <input type="hidden" name={name} value={submitValue} />}
     <div className="t98-combobox-popup" hidden={!open}>
       <ul className="t98-combobox-list" id={listId} role="listbox" aria-label={typeof label === 'string' ? label : 'Options'} ref={list} hidden={count === 0}>
         {shown.map((option, index) => <li key={option.value} id={optionId(index)} role="option" aria-selected={index === activeOption} className="t98-combobox-option"
@@ -303,7 +305,9 @@ export function Combobox({ label, options, value, onValueChange, description, er
   const outside = !allowCustom && left && value !== '' && !normalized.some(option => option.value === value);
   // Field passes its id, description and invalid state to the first child, which hands them to the input.
   return <Field label={label} htmlFor={id} description={description} error={allowCustom || outside ? error : undefined} required={required}>
-    <ComboboxControl options={normalized} value={value} onValueChange={onValueChange} onLeave={() => setLeft(true)} label={label} name={name} placeholder={placeholder} required={required} disabled={disabled} emptyMessage={emptyMessage} />
+    <ComboboxControl options={normalized} value={value} onValueChange={onValueChange} onLeave={() => setLeft(true)} label={label} name={name}
+      // A list-only field never posts text that is not one of its options.
+      submitValue={allowCustom || normalized.some(option => option.value === value) ? value : ''} placeholder={placeholder} required={required} disabled={disabled} emptyMessage={emptyMessage} />
   </Field>;
 }
 

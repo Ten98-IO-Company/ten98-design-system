@@ -173,7 +173,11 @@ function saveTextFile(name: string, text: string) {
   anchor.href = url;
   anchor.download = name;
   anchor.rel = 'noopener';
-  anchor.dispatchEvent(new MouseEvent('click'));
+  anchor.hidden = true;
+  // Some browsers ignore downloads from detached anchors, so attach it for the click, as FileSaver.js does.
+  document.body.append(anchor);
+  anchor.click();
+  anchor.remove();
   setTimeout(() => URL.revokeObjectURL(url), 4e4);
 }
 

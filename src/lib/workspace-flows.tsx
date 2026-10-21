@@ -323,21 +323,23 @@ export function DangerZoneFlow({ actions, onConfirm, title, description, message
   const [target, setTarget] = useState<DangerAction>();
   const [attempted, setAttempted] = useState<string>();
   const locked = state.busy || state.disabled;
-  // After a remount the attempt is unknown, so actions marked retryOnly stand in for it.
+  // After a remount the attempt is unknown, so actions marked retryOnly stand in for it, but they confirm again:
+  // only an attempt confirmed in this mount may be retried directly.
   const retry = state.unconfirmed ? actions.filter(action => attempted !== undefined ? action.id === attempted : action.retryOnly) : [];
+  const directRetry = state.unconfirmed !== undefined && attempted !== undefined;
   const shown = state.unconfirmed ? retry : actions;
   const run = (action: DangerAction) => { setAttempted(action.id); return onConfirm({ id: action.id }); };
   return <SettingsFlow {...state} title={title ?? copy.title} description={description}>
     <Stack gap={4}>
       {shown.map(action => <div key={action.id} className="t98-workspace-danger-row">
         <Stack gap={1}><Heading level={3} size="sm">{action.title}</Heading><Text tone="muted" size="sm">{action.description}</Text></Stack>
-        {state.unconfirmed
+        {directRetry
           ? <Button type="button" variant="danger" disabled={locked} aria-label={`${copy.retry}: ${action.title}`} onClick={() => void singleFlight(() => run(action))}>{copy.retry}</Button>
           : <Button type="button" variant="danger" disabled={locked} onClick={() => setTarget(action)}>{action.confirmLabel}</Button>}
       </div>)}
     </Stack>
     <ConfirmDialog open={target !== undefined} onOpenChange={open => { if (!open) setTarget(undefined); }} title={target ? copy.confirmTitle.replace('{action}', target.title) : copy.title} description={target?.description ?? ''} confirmLabel={target?.confirmLabel} danger
-      confirmationText={target?.confirmationText} onConfirm={() => target ? run(target) : undefined} />
+      confirmationText={target?.confirmationText} onConfirm={() => target ? singleFlight(() => run(target)) : undefined} />
   </SettingsFlow>;
 }
 
@@ -373,11 +375,15 @@ export interface SettingsLayoutProps {
 /** Settings page with grouped navigation. It stacks above the content at narrow widths. */
 export function SettingsLayout({ title, scope, items, current, linkComponent, onNavigate, feedback, navigationLabel = 'Settings', groupLabels, children }: SettingsLayoutProps) {
   const labels = { ...defaultGroupLabels, ...groupLabels };
+  if (!onNavigate && items.some(item => item.href === undefined) && (globalThis as { process?: { env?: { NODE_ENV?: string } } }).process?.env?.NODE_ENV !== 'production') {
+    console.warn('@ten98/ui SettingsLayout: items without href need onNavigate, otherwise they do nothing.');
+  }
   const groups: SidebarNavGroup[] = groupOrder.map(group => ({
     id: group,
     label: labels[group],
     items: items.filter(item => item.group === group && item.allowed !== false).map(item => ({
       id: item.id, label: item.label, icon: item.icon, keywords: item.keywords, current: item.id === current,
+      // Items without href rely on onNavigate; SettingsLayoutProps requires one of the two.
       ...(item.href !== undefined ? { href: item.href } : { onSelect: () => undefined }),
     })),
   })).filter(group => group.items.length > 0);

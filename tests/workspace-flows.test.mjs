@@ -102,9 +102,10 @@ test('DangerZoneFlow offers only an exact retry of the attempted action when unc
   assert.match(normal, />Delete workspace<\/button>/);
   assert.match(normal, />Archive<\/button>/);
   const unconfirmed = render(h(DangerZoneFlow, { actions, onConfirm: noop, unconfirmed: 'Timed out.' }));
-  assert.match(unconfirmed, /aria-label="Retry: Delete workspace"/);
+  // Without an attempt confirmed in this mount, the restored action asks for confirmation again.
+  assert.match(unconfirmed, />Delete workspace<\/button>/);
+  assert.doesNotMatch(unconfirmed, /aria-label="Retry: Delete workspace"/);
   assert.doesNotMatch(unconfirmed, /Archive/);
-  assert.doesNotMatch(unconfirmed, />Delete workspace<\/button>/);
 });
 
 test('SettingsLayout omits disallowed items, hides empty groups and marks the current page', () => {
@@ -143,4 +144,12 @@ test('flow-frame stays internal while CopyButton keeps its manual-copy fallback'
   const workspace = readFileSync(new URL('../dist/workspace.js', import.meta.url), 'utf8');
   assert.match(workspace, /navigator\.clipboard\.writeText/);
   assert.match(workspace, /execCommand\('copy'\)/);
+});
+
+test('a danger action restored after a reload confirms again instead of retrying directly', async () => {
+  const { DangerZoneFlow } = await import('../dist/index.js');
+  const html = renderToStaticMarkup(h(DangerZoneFlow, { unconfirmed: 'We could not confirm the deletion.', onConfirm() {},
+    actions: [{ id: 'delete', title: 'Delete workspace', description: 'Removes everything.', confirmLabel: 'Delete workspace', confirmationText: 'DELETE', retryOnly: true }] }));
+  assert.match(html, />Delete workspace<\/button>/);
+  assert.doesNotMatch(html, /aria-label="Retry: Delete workspace"/);
 });

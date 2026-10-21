@@ -169,3 +169,13 @@ test('every emitted control class exists in the shipped stylesheet', () => {
   // Primitive button modifiers for the default variant and size are intentionally unstyled.
   for (const name of new Set(rendered.flatMap(classes))) if (!/^t98-button--(md|secondary)$/.test(name)) assert.ok(styles.includes(`.${name}`), `${name} is styled`);
 });
+
+test('a list-only Combobox never posts text that is not one of its options', async () => {
+  const { Combobox } = await import('../dist/index.js');
+  const listed = renderToStaticMarkup(h(Combobox, { label: 'Zone', name: 'zone', options: ['Asia/Dubai'], value: 'Asia/Dubai', onValueChange() {}, allowCustom: false }));
+  assert.match(listed, /<input type="hidden" name="zone" value="Asia\/Dubai"/);
+  const partial = renderToStaticMarkup(h(Combobox, { label: 'Zone', name: 'zone', options: ['Asia/Dubai'], value: 'Asia/Du', onValueChange() {}, allowCustom: false }));
+  assert.match(partial, /<input type="hidden" name="zone" value=""/);
+  const custom = renderToStaticMarkup(h(Combobox, { label: 'Tag', name: 'tag', options: ['a'], value: 'new', onValueChange() {} }));
+  assert.match(custom, /<input type="hidden" name="tag" value="new"/);
+});
