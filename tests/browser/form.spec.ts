@@ -37,3 +37,34 @@ test('an image that fails to load is replaced by a named fallback, and a decorat
   await expect(page.locator('img[src="/tests/missing-image.png"]')).toHaveCount(0);
   await expect(page.locator('.t98-image-fallback[aria-hidden="true"]')).toHaveCount(1);
 });
+
+test('a dirty Dialog asks before discarding, Escape keeps editing, and submitting closes it once', async ({ page }) => {
+  await page.goto('/tests/form.html');
+  await page.getByRole('button', { name: 'Edit placement' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Edit placement' });
+  await expect(dialog.getByText('Outdoor placements')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeHidden();
+  await page.getByRole('button', { name: 'Edit placement' }).click();
+  await dialog.getByLabel('Placement name').fill('Dubai Marina billboard, north face');
+  await page.keyboard.press('Escape');
+  const prompt = dialog.getByRole('alertdialog', { name: 'Discard unsaved changes?' });
+  await expect(prompt).toBeVisible();
+  await expect(prompt.getByRole('button', { name: 'Keep editing' })).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(prompt).toBeHidden();
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole('button', { name: 'Close dialog' }).click();
+  await prompt.getByRole('button', { name: 'Keep editing' }).click();
+  await expect(dialog.getByLabel('Placement name')).toHaveValue('Dubai Marina billboard, north face');
+  await dialog.getByLabel('Placement name').press('Enter');
+  await dialog.getByLabel('Placement name').press('Enter').catch(() => {});
+  await expect(dialog).toBeHidden();
+  await expect(page.locator('#saved')).toHaveText('Dubai Marina billboard, north face');
+  await page.getByRole('button', { name: 'Edit placement' }).click();
+  await dialog.getByLabel('Placement name').fill('Changed');
+  await dialog.getByRole('button', { name: 'Close dialog' }).click();
+  await dialog.getByRole('button', { name: 'Discard changes' }).click();
+  await expect(dialog).toBeHidden();
+  await expect(page.locator('#saved')).toHaveText('Dubai Marina billboard, north face');
+});

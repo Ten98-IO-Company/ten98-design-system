@@ -2,7 +2,7 @@
 
 import {
   Children, cloneElement, forwardRef, isValidElement, useEffect, useId, useRef, useState,
-  type ButtonHTMLAttributes, type ComponentType, type HTMLAttributes, type InputHTMLAttributes,
+  type ButtonHTMLAttributes, type ComponentType, type FormEvent, type HTMLAttributes, type InputHTMLAttributes,
   type OptgroupHTMLAttributes, type OptionHTMLAttributes, type ReactElement, type ReactNode, type SelectHTMLAttributes,
   type SVGProps, type TextareaHTMLAttributes,
 } from 'react';
@@ -269,13 +269,28 @@ export function Tabs({ items, value, onValueChange, label = 'Sections', classNam
 
 export interface DialogProps { open: boolean; onOpenChange: (open: boolean) => void; title: ReactNode; description?: ReactNode; children: ReactNode; footer?: ReactNode; className?: string; closeDisabled?: boolean;
   /** Called before Escape, backdrop and close-button closes; return false to keep the dialog open (for example to show a discard prompt). */
-  onBeforeClose?: (reason: DialogCloseReason) => boolean | void }
+  onBeforeClose?: (reason: DialogCloseReason) => boolean | void;
+  /** Short context above the title, for example the record being edited. Sentence case, not a label. */
+  eyebrow?: ReactNode;
+  /** Makes body and footer one form: footer buttons with type="submit" submit it. Called once per submit with FormData
+   * (including the submitter); the dialog cannot close and repeat submits are ignored until it settles. */
+  onSubmit?: (data: FormData, event: FormEvent<HTMLFormElement>) => void | Promise<void>;
+  /** There are unsaved changes: Escape, the backdrop and the close button ask before discarding them. */
+  dirty?: boolean;
+  discardMessage?: ReactNode }
 export type DialogCloseReason = 'escape' | 'backdrop' | 'close-button';
 /* Behaviour follows the WAI-ARIA APG Modal Dialog pattern and react-aria's useOverlay close interception (Apache-2.0); no code is copied. */
-export function Dialog({ open, onOpenChange, title, description, children, footer, className, closeDisabled = false, onBeforeClose }: DialogProps) {
+export function Dialog({ open, onOpenChange, title, description, children, footer, className, closeDisabled = false, onBeforeClose, eyebrow, onSubmit, dirty = false, discardMessage = 'Your changes have not been saved.' }: DialogProps) {
   const id = useId();
   const ref = useRef<HTMLDialogElement>(null);
   const trigger = useRef<HTMLElement | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const submitLock = useRef(false);
+  const [confirmingDiscard, setConfirmingDiscard] = useState(false);
+  const keepEditing = useRef<HTMLButtonElement>(null);
+  const locked = closeDisabled || submitting;
+  useEffect(() => { if (!open) setConfirmingDiscard(false); }, [open]);
+  useEffect(() => { if (confirmingDiscard) keepEditing.current?.focus(); }, [confirmingDiscard]);
   useEffect(() => {
     const dialog = ref.current;
     if (!dialog) return;
@@ -286,27 +301,43 @@ export function Dialog({ open, onOpenChange, title, description, children, foote
   }, [open]);
   useEffect(() => () => { trigger.current?.focus(); }, []);
   function requestClose(reason: DialogCloseReason) {
-    if (closeDisabled) return;
+    if (locked) return;
+    // While the discard prompt is open, Escape and the close button mean "keep editing", never a silent discard.
+    if (confirmingDiscard) { setConfirmingDiscard(false); return; }
     if (onBeforeClose?.(reason) === false) {
       const dialog = ref.current;
       if (dialog && !dialog.contains(document.activeElement)) dialog.querySelector<HTMLElement>('[autofocus], input, select, textarea, button:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])')?.focus();
       return;
     }
+    if (dirty) { setConfirmingDiscard(true); return; }
     onOpenChange(false);
   }
   return <dialog ref={ref} className={cx('t98-dialog', className)} aria-labelledby={`${id}-title`} aria-describedby={description ? `${id}-description` : undefined} onCancel={event => { event.preventDefault(); requestClose('escape'); }} onClose={() => {
     // Chrome's close watcher closes the dialog without a cancelable cancel event when Escape is pressed twice without
     // other interaction. If the app still wants it open and guards closing, reopen it and ask the guard first.
     const dialog = ref.current;
-    if (open && onBeforeClose && dialog && !closeDisabled) {
+    if (open && (onBeforeClose || dirty) && dialog && !locked) {
       dialog.showModal();
       requestClose('escape');
       return;
     }
     if (open) onOpenChange(false); trigger.current?.focus(); trigger.current = null;
   }} onClick={event => { if (!closeDisabled && event.target === event.currentTarget) { const bounds = event.currentTarget.getBoundingClientRect(); if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) requestClose('backdrop'); } }}>
-    <div className="t98-dialog-header"><div><h2 id={`${id}-title`} className="t98-dialog-title">{title}</h2>{description && <p id={`${id}-description`} className="t98-dialog-description">{description}</p>}</div><Button variant="ghost" aria-label="Close dialog" disabled={closeDisabled} className="t98-icon-button" onClick={() => requestClose('close-button')} icon={<Icon name="x" />} /></div>
-    <div className="t98-dialog-body">{children}</div>{footer && <div className="t98-dialog-footer">{footer}</div>}
+    <div className="t98-dialog-header"><div>{eyebrow != null && <p className="t98-dialog-eyebrow">{eyebrow}</p>}<h2 id={`${id}-title`} className="t98-dialog-title">{title}</h2>{description && <p id={`${id}-description`} className="t98-dialog-description">{description}</p>}</div><Button variant="ghost" aria-label="Close dialog" disabled={locked} className="t98-icon-button" onClick={() => requestClose('close-button')} icon={<Icon name="x" />} /></div>
+    {confirmingDiscard && <div className="t98-dialog-discard" role="alertdialog" aria-labelledby={`${id}-discard`} aria-describedby={`${id}-discard-message`}>
+      <p className="t98-dialog-discard-title" id={`${id}-discard`}>Discard unsaved changes?</p>
+      <p className="t98-dialog-discard-message" id={`${id}-discard-message`}>{discardMessage}</p>
+      <div className="t98-form-actions"><Button variant="danger" onClick={() => { setConfirmingDiscard(false); onOpenChange(false); }}>Discard changes</Button><Button ref={keepEditing} variant="secondary" onClick={() => setConfirmingDiscard(false)}>Keep editing</Button></div>
+    </div>}
+    {onSubmit ? <form className="t98-dialog-form" aria-busy={submitting || undefined} onSubmit={event => {
+      event.preventDefault();
+      if (submitLock.current) return;
+      const submitter = (event.nativeEvent as SubmitEvent).submitter as HTMLElement | null;
+      const data = new FormData(event.currentTarget, submitter);
+      submitLock.current = true; setSubmitting(true);
+      void (async () => { try { await onSubmit(data, event); } finally { submitLock.current = false; setSubmitting(false); } })();
+    }}><fieldset className="t98-dialog-fieldset" disabled={submitting || confirmingDiscard}><div className="t98-dialog-body">{children}</div>{footer && <div className="t98-dialog-footer">{footer}</div>}</fieldset></form>
+      : <><div className="t98-dialog-body">{children}</div>{footer && <div className="t98-dialog-footer">{footer}</div>}</>}
   </dialog>;
 }
 

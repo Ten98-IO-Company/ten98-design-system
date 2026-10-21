@@ -76,6 +76,12 @@
 .t98-dialog-title { margin: 0; font-size: 18px; font-weight: 650; line-height: 27px; letter-spacing: -.4px; }
 .t98-dialog-description { margin: 5px 0 0; color: var(--t98-muted); font-size: 13px; line-height: 20px; }
 .t98-dialog-body { padding: 24px; }
+.t98-dialog-eyebrow { margin: 0 0 2px; color: var(--t98-muted); font-size: 12px; line-height: 18px; }
+.t98-dialog-form, .t98-dialog-fieldset { display: contents; }
+.t98-dialog-fieldset { margin: 0; padding: 0; border: 0; min-inline-size: 0; }
+.t98-dialog-discard { display: grid; gap: 6px; margin: 16px 24px 0; padding: 12px 14px; border: 1px solid var(--t98-border); border-inline-start: 3px solid var(--t98-danger); border-radius: var(--t98-radius-sm); background: var(--t98-subtle); }
+.t98-dialog-discard-title { margin: 0; font-size: 13px; font-weight: 600; }
+.t98-dialog-discard-message { margin: 0; color: var(--t98-muted); font-size: 13px; }
 .t98-dialog-footer { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 9px; padding: 16px 24px; border-top: 1px solid var(--t98-border); background: var(--t98-bg); }
 .t98-alert { display: flex; align-items: flex-start; gap: 10px; border: 1px solid color-mix(in srgb, var(--t98-tone-text) 18%, transparent); border-radius: var(--t98-radius); padding: 13px 15px; background: var(--t98-tone-bg); color: var(--t98-tone-text); }
 .t98-alert > .t98-icon { margin-top: 1px; }

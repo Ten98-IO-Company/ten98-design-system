@@ -364,3 +364,12 @@ test('shipped sources and docs use LF only, so npm pack is byte-identical on eve
   for (const file of ['../README.md', '../package.json', '../THIRD_PARTY_NOTICES.md']) if (readFileSync(new URL(file, import.meta.url), 'utf8').includes('\r')) offenders.push(file);
   assert.deepEqual(offenders, []);
 });
+
+test('Dialog takes an eyebrow and, with onSubmit, makes body and footer one form', () => {
+  const html = render(ui.Dialog, { open: true, onOpenChange() {}, title: 'Edit placement', eyebrow: 'Dubai Marina billboard', onSubmit() {}, footer: h(ui.Button, { type: 'submit' }, 'Save placement') }, 'Fields');
+  assert.match(html, /<p class="t98-dialog-eyebrow">Dubai Marina billboard<\/p><h2[^>]*class="t98-dialog-title">Edit placement<\/h2>/);
+  assert.match(html, /<form class="t98-dialog-form"><fieldset class="t98-dialog-fieldset"><div class="t98-dialog-body">Fields<\/div><div class="t98-dialog-footer"><button type="submit"/);
+  assert.doesNotMatch(render(ui.Dialog, { open: true, onOpenChange() {}, title: 'T', children: 'x' }), /<form|t98-dialog-eyebrow/);
+  const css = readFileSync(new URL('../dist/styles.css', import.meta.url), 'utf8');
+  for (const name of ['t98-dialog-eyebrow', 't98-dialog-form', 't98-dialog-discard']) assert.ok(css.includes(`.${name}`), name);
+});
