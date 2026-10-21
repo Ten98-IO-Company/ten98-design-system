@@ -6,7 +6,7 @@
   "license": "MIT",
   "files": [
     "dist",
-    "docs/**/*.md",
+    "docs/*.md",
     "THIRD_PARTY_NOTICES.md"
   ],
   "main": "./dist/index.js",

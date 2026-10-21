@@ -95,4 +95,4 @@ This is a ten98 design decision inferred from [Plausible’s prominent applied f
 
 ## Acceptance before adoption
 
-A component needs typed props, canonical tokens, complete TSX and applicable state examples. A flow needs reference-backed interaction decisions plus actual keyboard, narrow-screen, failure/recovery and draft checks. Compilation and SSR are necessary checks, not proof of live-provider behavior. See [bounded workers](SWARM.md), [research](research/campaign-discover/recommendations.md) and [completion ledger](CAMPAIGN-DISCOVER-COMPLETION.md).
+A component needs typed props, canonical tokens, complete TSX and applicable state examples. A flow needs reference-backed interaction decisions plus actual keyboard, narrow-screen, failure/recovery and draft checks. Compilation and SSR are necessary checks, not proof of live-provider behavior. See [bounded workers](SWARM.md), [research](research/campaign-discover/recommendations.md) and [release validation](VALIDATION.md).
