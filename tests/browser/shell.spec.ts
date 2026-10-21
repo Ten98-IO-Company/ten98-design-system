@@ -273,3 +273,30 @@ test('href with onSelect: preventDefault cancels navigation and onNavigate, othe
   await link.click({ modifiers: ['Meta'] });
   await expect(counters).toHaveText('selected 2, navigated 1');
 });
+
+for (const direction of ['ltr', 'rtl'] as const) {
+  test(`wrapped long breadcrumb names stay readable at 320, 768 and 1440 in ${direction}`, async ({ page }, info) => {
+    test.skip(info.project.name !== 'chromium', 'Widths are set explicitly; one project is enough.');
+    for (const width of [320, 768, 1440]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto(`${appUrl('light')}&crumbs=long`);
+      await page.locator('html').evaluate((element, dir) => element.setAttribute('dir', dir), direction);
+      const header = page.locator('.t98-shell-header');
+      const metrics = await header.evaluate(node => {
+        const scope = node.querySelector<HTMLElement>('.t98-app-topbar__scope')!;
+        const line = parseFloat(getComputedStyle(scope).lineHeight) || parseFloat(getComputedStyle(scope).fontSize) * 1.4;
+        const trigger = node.querySelector<HTMLElement>('.t98-account-menu button')!.getBoundingClientRect();
+        const crumb = node.querySelector<HTMLElement>('.t98-app-topbar__breadcrumb')!.getBoundingClientRect();
+        return { scopeLines: Math.round(scope.getBoundingClientRect().height / line), crumbWidth: crumb.width, crumbTop: crumb.top, crumbBottom: crumb.bottom, triggerTop: trigger.top, triggerBottom: trigger.bottom, height: node.getBoundingClientRect().height, page: document.documentElement.scrollWidth };
+      });
+      // Regression: the scope used to break a few characters per line (9 lines at 320, a 2,854px header at 768).
+      expect(metrics.scopeLines, `${width} scope lines`).toBeLessThanOrEqual(width === 320 ? 4 : 2);
+      expect(metrics.crumbWidth, `${width} crumb width`).toBeGreaterThanOrEqual(120);
+      expect(metrics.height, `${width} header height`).toBeLessThan(width === 320 ? 320 : 260);
+      expect(metrics.page, `${width} page width`).toBeLessThanOrEqual(width);
+      // At phone width the account control stays beside the breadcrumb (vertically centred) rather than dropping below it;
+      // wider bars may move search and actions to their own rows.
+      if (width === 320) expect(metrics.triggerTop, `${width} account row`).toBeLessThan(metrics.crumbBottom);
+    }
+  });
+}

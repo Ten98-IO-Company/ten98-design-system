@@ -64,3 +64,10 @@ test('options, description lists and prose lists keep native semantics', async (
   assert.equal(list, '<ol class="t98-list t98-gap-1"><li class="t98-list-item">First</li></ol>');
   for (const name of new Set(classes(details + list)).values()) if (name !== 't98-list-item') assert.ok(styles.includes(`.${name}`), `${name} is styled`);
 });
+
+test('Text can keep the line breaks and spacing of multi-line text while long words still wrap', async () => {
+  const { Text } = await import('../dist/index.js');
+  const html = renderToStaticMarkup(h(Text, { preserveWhitespace: true }, 'Line one\n\n  indented line'));
+  assert.match(html, /class="t98-text t98-text--pre"/);
+  assert.match(styles, /\.t98-text--pre \{ white-space: pre-wrap; overflow-wrap: anywhere; \}/);
+});

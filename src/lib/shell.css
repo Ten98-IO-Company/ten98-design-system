@@ -161,9 +161,14 @@
 .t98-app-topbar__scope,
 .t98-app-topbar__current { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .t98-app-topbar__current { color: var(--t98-text); font-weight: var(--t98-weight-semibold); }
+/* Wrapping crumbs keep a readable width: without a basis the breadcrumb only got what search and actions left over,
+   so long names broke a few characters per line. The basis scales with the bar (8rem leaves room for the menu and
+   account controls at 320px); when search does not fit beside it, search wraps to its own row instead. */
+.t98-app-topbar--wrap .t98-app-topbar__breadcrumb { flex: 1 1 clamp(8rem, 40%, 20rem); min-width: min(8rem, 100%); }
 .t98-app-topbar--wrap .t98-app-topbar__crumbs { flex-wrap: wrap; }
+.t98-app-topbar--wrap .t98-app-topbar__crumb { max-width: 100%; }
 .t98-app-topbar--wrap .t98-app-topbar__scope,
-.t98-app-topbar--wrap .t98-app-topbar__current { overflow: visible; text-overflow: clip; white-space: normal; overflow-wrap: anywhere; }
+.t98-app-topbar--wrap .t98-app-topbar__current { overflow: visible; text-overflow: clip; white-space: normal; overflow-wrap: break-word; }
 .t98-app-topbar__separator { display: inline-flex; flex: none; color: var(--t98-muted); }
 .t98-app-topbar__separator:dir(rtl) svg { transform: scaleX(-1); }
 .t98-app-topbar__crumb > svg { flex: none; }

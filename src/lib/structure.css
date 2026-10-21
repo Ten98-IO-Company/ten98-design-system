@@ -36,6 +36,7 @@
 .t98-text-align-start { text-align: start; } .t98-text-align-center { text-align: center; } .t98-text-align-end { text-align: end; }
 .t98-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
 .t98-numeric { font-variant-numeric: tabular-nums; }
+.t98-text--pre { white-space: pre-wrap; overflow-wrap: anywhere; }
 .t98-truncate { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; overflow-wrap: normal; }
 span.t98-truncate, strong.t98-truncate, em.t98-truncate, small.t98-truncate, code.t98-truncate, time.t98-truncate { display: inline-block; max-width: 100%; vertical-align: bottom; }
 

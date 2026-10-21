@@ -70,11 +70,13 @@ export interface TextProps extends Omit<HTMLAttributes<HTMLElement>, 'style'> {
   numeric?: boolean;
   /** Single line with an ellipsis; supply the full value in `title` when it can be cut. */
   truncate?: boolean;
+  /** Keeps the line breaks and spacing of multi-line user or model text; long words still wrap. */
+  preserveWhitespace?: boolean;
   dateTime?: string;
   htmlFor?: string;
 }
-export function Text({ as: Tag = 'p', size, tone = 'default', weight, align, mono, numeric, truncate, className, ...props }: TextProps) {
-  return <Tag {...props} className={cx('t98-text', size && `t98-text--${size}`, tone !== 'default' && `t98-text-tone-${tone}`, weight && `t98-weight-${weight}`, align && `t98-text-align-${align}`, mono && 't98-mono', numeric && 't98-numeric', truncate && 't98-truncate', className)} />;
+export function Text({ as: Tag = 'p', size, tone = 'default', weight, align, mono, numeric, truncate, preserveWhitespace, className, ...props }: TextProps) {
+  return <Tag {...props} className={cx('t98-text', size && `t98-text--${size}`, tone !== 'default' && `t98-text-tone-${tone}`, weight && `t98-weight-${weight}`, align && `t98-text-align-${align}`, mono && 't98-mono', numeric && 't98-numeric', truncate && 't98-truncate', preserveWhitespace && 't98-text--pre', className)} />;
 }
 
 export interface HeadingProps extends Omit<HTMLAttributes<HTMLHeadingElement>, 'style'> {

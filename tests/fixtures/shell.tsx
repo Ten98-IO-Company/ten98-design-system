@@ -119,7 +119,7 @@ function AppFixture() {
         <Link href="#/settings" variant="quiet">Settings</Link>
       </SidebarFooter>
     </>}
-    topbar={<AppTopbar menuToggle wrap={longCrumbs} breadcrumb={longCrumbs ? { icon: 'home', scope: 'Acme International Marketing Group', current: 'Quarterly campaign performance review' } : { icon: 'home', scope: 'Acme', current: 'Overview' }}
+    topbar={<AppTopbar menuToggle wrap={longCrumbs} breadcrumb={longCrumbs ? { icon: 'home', scope: 'Discover workspace with a complete retained observation context', current: 'Research / Saved keyword report with a very long project and website scope' } : { icon: 'home', scope: 'Acme', current: 'Overview' }}
       search={<SearchField variant="topbar" label="Search everything" hideLabel placeholder="Search" shortcut="/" value={query} onValueChange={setQuery} onClear={() => setQuery('')} clearLabel="Clear search" />}
       badge={{ label: 'Beta', hideOnMobile: true }}
       actions={<AccountMenu name="Alex Morgan" email="alex@example.test" linkComponent={RouterLink} items={[

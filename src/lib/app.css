@@ -320,6 +320,11 @@ td{font-size:11px}
 .table-cards :is(table,tbody,tr,td){display:block;inline-size:100%}
 .table-cards thead{position:absolute;inline-size:1px;block-size:1px;overflow:hidden;clip-path:inset(50%)}
 .table-cards tr{margin-block:12px;border:1px solid var(--color-border);border-radius:7px;padding:12px}
-.table-cards td{border:0;padding:6px 0;overflow-wrap:anywhere}
+.table-cards :is(table,td){white-space:normal}
+.table-cards td{border:0;padding:6px 0;overflow-wrap:anywhere;min-width:0}
+/* Base tables keep cells on one line; cards must wrap, and controls inside a card keep within it. */
+.table-cards td>*{max-width:100%}
+/* Chips and buttons set their own nowrap; inside a card they wrap rather than push past it. */
+.table-cards td :is(button,a,.badge,.chip){white-space:normal;overflow-wrap:anywhere;min-width:0;max-width:100%;height:auto}
 .table-cards td[data-label]::before{content:attr(data-label);display:block;color:var(--color-text-muted);font-size:11px;margin-block-end:4px}
 }
