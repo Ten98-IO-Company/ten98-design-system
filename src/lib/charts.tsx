@@ -137,7 +137,7 @@ export interface TimeSeriesChartProps {
   /** `scroll` (default) keeps a minimum width per point and scrolls inside the region; `compress` fits every point into the
    * figure (for example 90 daily or 60 per-minute points), thinning axis labels. Keyboard inspection and the table are the same. */
   fit?: 'scroll' | 'compress';
-  /** Minimum width per point in pixels: default 48 when scrolling (more for grouped bars) and 3 when compressing. */
+  /** Minimum width per point in pixels: default 48 when scrolling (more for grouped bars); none when compressing. */
   minStep?: number;
   tableColumns?: readonly ChartTableColumn[];
   onInspect?: (index: number) => void;
@@ -234,9 +234,10 @@ export function TimeSeriesChart({ label, context, summary, kind, series, xScale 
   }
 
   const grouped = isBars && kind === 'grouped-bars';
-  const step = fit === 'compress' ? Math.max(minStep ?? 3, grouped ? series.length * 2 : 0)
+  const step = fit === 'compress' ? Math.max(minStep ?? 0, grouped ? series.length : 0)
     : Math.max(minStep ?? 48, grouped ? series.length * 16 + 14 : 0);
-  // Fill the figure, but keep a minimum width per point; when scrolling, dense series scroll inside the region.
+  // Scroll: fill the figure but keep a minimum width per point, so dense series scroll inside the region.
+  // Compress: always the figure's width unless the app sets minStep (or grouped bars need one pixel per series).
   const width = Math.max(available, MARGIN.left + MARGIN.right + count * step);
   const plotLeft = MARGIN.left;
   const plotRight = width - MARGIN.right;
