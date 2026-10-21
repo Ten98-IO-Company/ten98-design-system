@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useCallback, useContext, useEffect, useId, useRef, useState, type ReactNode } from 'react';
-import { Alert, Button, Checkbox, Dialog, Field, Icon, Input, Select, type Tone } from './primitives.js';
+import { Alert, Button, Checkbox, Dialog, Field, Icon, Input, Select, cx, type Tone } from './primitives.js';
 import { addDays, inclusiveDays } from './dates.js';
 
 export interface ProductOption { id: string; name: string; description?: string }
@@ -104,6 +104,72 @@ export function CopyButton({ value, label = 'Copy', messages }: { value: string;
 export function SecretField({ label, value }: { label: string; value: string }) {
   const id = useId(); const [visible, setVisible] = useState(false);
   return <div className="t98-secret-control"><Field label={label} htmlFor={id}><Input id={id} type={visible ? 'text' : 'password'} value={value} readOnly autoComplete="off"/></Field><Button variant="secondary" aria-label={`${visible ? 'Hide' : 'Show'} ${label}`} aria-pressed={visible} onClick={() => setVisible(!visible)}>{visible ? 'Hide' : 'Show'}</Button></div>;
+}
+
+export interface ReviewAcknowledgement { id: string; label: ReactNode }
+export interface ReviewConfirmProps {
+  title: string;
+  /** What will happen: counts, targets, cost or a preview. */
+  children?: ReactNode;
+  /** Each must be checked before confirming. Checks reset whenever `reviewKey` changes. */
+  acknowledgements: readonly ReviewAcknowledgement[];
+  /** Identifies what is being reviewed, for example the audience id plus the message revision. A new key clears every check. */
+  reviewKey: string;
+  confirmLabel: string;
+  onConfirm: () => void | Promise<void>;
+  onCancel?: () => void;
+  cancelLabel?: string;
+  tone?: 'default' | 'danger';
+  /** App-owned pending state; confirming is ignored while busy. */
+  busy?: boolean;
+  /** Why confirming is unavailable regardless of the checks, for example missing permission. */
+  disabledReason?: ReactNode;
+  /** Outcome of a failed confirm, shown in the panel. */
+  error?: ReactNode;
+  className?: string;
+}
+
+/** An inline, non-modal review step before a consequential action. Confirm stays focusable (aria-disabled) and always
+ * says why it is unavailable; checks are bound to `reviewKey`, so changing the target forces a fresh review. */
+export function ReviewConfirm({ title, children, acknowledgements, reviewKey, confirmLabel, onConfirm, onCancel, cancelLabel = 'Cancel', tone = 'default', busy = false, disabledReason, error, className }: ReviewConfirmProps) {
+  const id = useId();
+  const [review, setReview] = useState<{ key: string; checked: ReadonlySet<string> }>({ key: reviewKey, checked: new Set() });
+  const [pending, setPending] = useState(false);
+  const running = useRef(false);
+  // Derived reset: a new target invalidates every earlier acknowledgement, during render rather than after a paint.
+  const stale = review.key !== reviewKey;
+  if (stale) setReview({ key: reviewKey, checked: new Set() });
+  const checked = stale ? new Set<string>() : review.checked;
+  const [changed, setChanged] = useState(false);
+  const firstKey = useRef(reviewKey);
+  useEffect(() => { if (reviewKey !== firstKey.current) setChanged(true); }, [reviewKey]);
+  const missing = acknowledgements.filter(item => !checked.has(item.id)).length;
+  const locked = busy || pending;
+  const reason = disabledReason ?? (locked ? 'Working…' : missing ? (acknowledgements.length === 1 ? 'Check the item above to continue.' : missing === acknowledgements.length ? `Check all ${acknowledgements.length} items above to continue.` : `Check the remaining ${missing === 1 ? 'item' : `${missing} items`} above to continue.`) : null);
+  async function confirm() {
+    if (reason != null || running.current) return;
+    running.current = true; setPending(true);
+    try { await onConfirm(); } finally { running.current = false; setPending(false); }
+  }
+  return <section className={cx('t98-review-confirm', tone === 'danger' && 't98-review-confirm--danger', className)} aria-labelledby={`${id}-title`} aria-busy={locked || undefined}>
+    <h3 className="t98-review-confirm-title" id={`${id}-title`}>{title}</h3>
+    {children != null && <div className="t98-review-confirm-summary">{children}</div>}
+    {acknowledgements.length > 0 && <fieldset className="t98-review-confirm-checks" disabled={locked}>
+      <legend className="t98-visually-hidden">Confirm before continuing</legend>
+      {acknowledgements.map(item => <Checkbox key={`${reviewKey}:${item.id}`} label={item.label} checked={checked.has(item.id)} onChange={event => {
+        const next = new Set(checked);
+        if (event.target.checked) next.add(item.id); else next.delete(item.id);
+        setReview({ key: reviewKey, checked: next }); setChanged(false);
+      }} />)}
+    </fieldset>}
+    <p className="t98-visually-hidden" role="status">{changed ? 'What you are reviewing changed. Check each item again.' : ''}</p>
+    {error != null && <Alert tone="danger" title={`${confirmLabel} did not complete`}>{error}</Alert>}
+    <div className="t98-review-confirm-actions">
+      <Button variant={tone === 'danger' ? 'danger' : 'primary'} aria-disabled={reason != null || undefined} aria-describedby={reason != null ? `${id}-reason` : undefined} aria-busy={locked || undefined} onClick={() => { void confirm(); }}>{confirmLabel}</Button>
+      {onCancel && <Button variant="secondary" disabled={locked} onClick={onCancel}>{cancelLabel}</Button>}
+      {reason != null && <p className="t98-review-confirm-reason" id={`${id}-reason`}>{reason}</p>}
+    </div>
+  </section>;
 }
 
 export interface ConfirmDialogProps {

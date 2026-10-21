@@ -23,3 +23,14 @@
 .t98-permission-table tbody tr:last-child>* { border-bottom:0; }.t98-permission-target { display:inline-grid; place-items:center; min-width:28px; min-height:28px; cursor:pointer; }.t98-permission-target input { width:15px; height:15px; accent-color:var(--t98-accent); cursor:inherit; }
 @media(max-width:600px) { .t98-permission-target { min-width:44px; min-height:44px; }.t98-date-range-fields { grid-template-columns:1fr; } }
 @media(forced-colors:active) { .t98-permission-target input { forced-color-adjust:auto; }.t98-toast { border-color:CanvasText; } }
+/* ReviewConfirm: the inline-start rule carries the consequence (accent, or danger for destructive actions); no shadow or fill. */
+.t98-review-confirm { display: grid; gap: var(--t98-space-3); min-inline-size: 0; padding: var(--t98-space-4); padding-inline-start: calc(var(--t98-space-4) + 3px); border: var(--t98-border-width) solid var(--t98-border); border-inline-start: 3px solid var(--t98-accent); border-radius: var(--t98-radius); background: var(--t98-surface); color: var(--t98-text); font-family: var(--t98-font); }
+.t98-review-confirm--danger { border-inline-start-color: var(--t98-danger); }
+.t98-review-confirm-title { margin: 0; font-size: var(--t98-text-md); font-weight: var(--t98-weight-semibold); line-height: var(--t98-leading-tight); overflow-wrap: anywhere; }
+.t98-review-confirm-summary { min-inline-size: 0; font-size: var(--t98-text-sm); overflow-wrap: anywhere; }
+.t98-review-confirm-checks { display: grid; gap: var(--t98-space-2); min-inline-size: 0; margin: 0; padding: 0; border: 0; }
+.t98-review-confirm-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--t98-space-2) var(--t98-space-3); }
+.t98-review-confirm-actions > .t98-button[aria-disabled='true'] { opacity: .55; cursor: not-allowed; }
+.t98-review-confirm-reason { flex: 1 1 12rem; margin: 0; color: var(--t98-muted); font-size: var(--t98-text-sm); overflow-wrap: anywhere; }
+@media (forced-colors: active) { .t98-review-confirm { border-color: CanvasText; } .t98-review-confirm--danger { border-inline-start-style: double; border-inline-start-width: 4px; } }
+

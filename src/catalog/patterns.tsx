@@ -1,7 +1,7 @@
 import { useId, useState } from 'react';
 import {
   Image,
-  ActivityFeed, Alert, AppShell, AuthLayout, Badge, Button, ConfirmDialog, CopyButton, DataTable,
+  ActivityFeed, Alert, AppShell, AuthLayout, Badge, Button, ConfirmDialog, CopyButton, DataTable, ReviewConfirm, DescriptionList,
   DateRangeField, EmptyState, Field, Input, MetricCard, PageHeader, PermissionMatrix, ProductSwitcher,
   MetricGrid, ResourceCard, SecretField, SettingsSection, Sparkline, Stack, Stepper, Switch, Text, ToastProvider, useToast,
   AppTopbar, SidebarNav,
@@ -216,6 +216,29 @@ const activityItems: ActivityItem[] = [
 ];
 const activityCode = (items: ActivityItem[]) => tsx(['ActivityFeed', 'type ActivityItem'], '<ActivityFeed items={items} />', `const items: ActivityItem[] = ${JSON.stringify(items, null, 2)};`);
 
+const reviewCode = tsx(['ReviewConfirm', 'DescriptionList'], `<ReviewConfirm title={\`Send to \${audience.name}\`} reviewKey={\`\${audience.id}:\${revision}\`} confirmLabel="Send now"
+  acknowledgements={[{ id: 'list', label: 'I reviewed the recipient list' }, { id: 'undo', label: 'I understand sends cannot be undone' }]}
+  onConfirm={send} onCancel={close}>
+  <DescriptionList items={[{ term: 'Recipients', description: '1,204' }]} />
+</ReviewConfirm>`, `const audience = { id: 'aud-1', name: 'Spring subscribers' };
+const revision = 3;
+const send = async () => {};
+const close = () => {};`);
+
+function ReviewDemo({ danger = false }: { danger?: boolean }) {
+  const [audience, setAudience] = useState('Spring subscribers');
+  const [status, setStatus] = useState('');
+  return <div className="specimen-stack">
+    <Button variant="secondary" onClick={() => setAudience(current => current === 'Spring subscribers' ? 'Lapsed customers' : 'Spring subscribers')}>Change audience</Button>
+    <ReviewConfirm title={danger ? `Delete ${audience}` : `Send to ${audience}`} tone={danger ? 'danger' : 'default'} reviewKey={audience} confirmLabel={danger ? 'Delete audience' : 'Send now'}
+      acknowledgements={danger ? [{ id: 'gone', label: 'I understand the audience and its history are deleted' }] : [{ id: 'list', label: 'I reviewed the recipient list' }, { id: 'undo', label: 'I understand sends cannot be undone' }]}
+      onConfirm={() => new Promise<void>(resolve => setTimeout(() => { setStatus(danger ? 'Deleted (local example).' : 'Sent (local example).'); resolve(); }, 900))} onCancel={() => setStatus('Cancelled.')}>
+      <DescriptionList items={[{ term: 'Audience', description: audience }, { term: 'Recipients', description: '1,204' }]} />
+    </ReviewConfirm>
+    <p role="status">{status}</p>
+  </div>;
+}
+
 export const patternEntries: ComponentEntry[] = [
   {
     name: 'DataTable', category: 'Data display', description: 'A table with local search, sorting, selection and pagination, or a controlled view of rows the application already sorted, filtered and paged.',
@@ -378,6 +401,18 @@ const total = rows.reduce((sum, row) => sum + row.visits, 0);`) },
     name: 'SecretField', category: 'Controls', description: 'A read-only value with a labelled Show/Hide toggle.', usage: 'Presentation only: hiding a value does not encrypt it or protect a secret already delivered to the browser. Supply authorized data from the app. The input is read-only; there is no disabled, editable, initial-visible or copy prop.',
     props: [prop('label', 'string', 'Visible field label and toggle accessible-name suffix.', true), prop('value', 'string', 'Read-only browser-visible value.', true)], tokens: ['--t98-font', '--t98-mono', '--t98-text', '--t98-muted', '--t98-surface', '--t98-control-border', '--t98-radius', '--t98-accent'], accessibility: ['Generated label/input association.', 'Toggle has an explicit Show/Hide label and aria-pressed reflecting visibility.'], related: ['CopyButton', 'Input'], example: tsx(['SecretField'], '<SecretField label="Demo API key" value="demo_key_not_a_real_secret" />'),
     states: [{ name: 'Hidden / revealed', description: 'Initially masked. Click Show and Hide to inspect both genuine visibility states and the pressed state.', preview: <SecretField label="Demo API key" value="demo_key_not_a_real_secret" />, code: tsx(['SecretField'], '<SecretField label="Demo API key" value="demo_key_not_a_real_secret" />') }, { name: 'Empty value', description: 'The labelled read-only input and visibility toggle remain available for an empty value.', preview: <SecretField label="No demo key configured" value="" />, code: tsx(['SecretField'], '<SecretField label="No demo key configured" value="" />') }],
+  },
+  {
+    name: 'ReviewConfirm', category: 'Feedback', description: 'An inline, non-modal review step before a consequential action, with required acknowledgements that reset when the target changes.',
+    usage: 'Use where a send, delete or paid change is confirmed in place (inbox replies, contact edits, campaign sends). Put what will happen in the summary. Bind reviewKey to everything the review covers (target id plus revision), so any change clears the checks. Confirm stays focusable and always states why it is unavailable; disabledReason covers permissions. Use ConfirmDialog for a modal interruption.',
+    props: [prop('title', 'string', 'Heading naming the action and target.', true), prop('acknowledgements', 'readonly { id; label }[]', 'Required checks; empty for a plain confirm.', true), prop('reviewKey', 'string', 'Identity of what is reviewed; a new key clears every check and announces it.', true), prop('confirmLabel', 'string', 'Verb for the action, for example "Send now".', true), prop('onConfirm', '() => void | Promise<void>', 'Called once; repeat presses are ignored until it settles.', true), prop('children', 'ReactNode', 'Summary of what will happen.'), prop('onCancel / cancelLabel', '() => void / string', 'Optional cancel.'), prop('tone', "'default' | 'danger'", 'Danger uses the danger rule and button.', false, 'default'), prop('busy', 'boolean', 'App-owned pending state.'), prop('disabledReason', 'ReactNode', 'Why confirming is unavailable regardless of the checks.'), prop('error', 'ReactNode', 'Failure shown in the panel.')],
+    tokens: [...surfaceTokens, '--t98-accent', '--t98-danger'],
+    accessibility: ['A labelled section; the checks are a fieldset; the confirm button is aria-disabled (still focusable) and described by a visible reason.', 'Changing the reviewed target clears the checks and says so in a polite status.', 'Consequence is shown by the inline-start rule colour and the button tone, and stated in the title, never by colour alone.'],
+    related: ['ConfirmDialog', 'Checkbox', 'DescriptionList'], example: reviewCode,
+    states: [
+      { name: 'Send after review', description: 'Two acknowledgements; change the audience to see them reset.', preview: <ReviewDemo />, code: reviewCode },
+      { name: 'Danger', description: 'A destructive action with one acknowledgement.', preview: <ReviewDemo danger />, code: reviewCode },
+    ],
   },
   {
     name: 'ConfirmDialog', category: 'Feedback', description: 'A native modal confirmation with async pending, retryable errors and optional typed confirmation.', usage: 'The consumer controls open. Return a promise from onConfirm for async work; only successful resolution closes the dialog. Rejection stays open with a generic retry message. While pending, closing, Cancel and repeated confirmation are blocked. This presentation does not authorize server mutations.',
