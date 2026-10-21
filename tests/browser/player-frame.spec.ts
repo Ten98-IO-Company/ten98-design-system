@@ -24,7 +24,7 @@ test('the isolated player connects only after the token handshake, stays offline
   await expect(log('chatty')).toHaveText('ready 1000 | failed');
   await expect(log('silent')).toHaveText('failed', { timeout: 5000 });
   await page.getByRole('button', { name: 'Play silent' }).click();
-  await expect(log('silent')).toHaveText('failed | sent undefined');
+  await expect(log('silent')).toHaveText('failed | sent false');
 
   // Retry remounts with a fresh document (new nonce and token).
   const before = await page.locator('iframe[title="Player ok"]').getAttribute('src');
