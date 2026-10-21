@@ -159,7 +159,7 @@ export const spatialEntries: ComponentEntry[] = [
   },
   {
     name: 'ReplayViewer', category: 'Data display', description: 'Sandboxed iframe host for an app-supplied replay document, with ReplayControls rendered outside the frame.',
-    usage: 'Supply an authorized srcDoc (preferred) or src. The frame is sandbox="allow-scripts" only, never allow-same-origin, with no referrer. When the recording is unavailable pass a reason; it replaces the frame. The app owns loading, masking, expiry and playback.',
+    usage: 'Supply an authorized srcDoc (preferred) or src, with no referrer and never allow-same-origin. A srcDoc document runs no scripts by default (empty sandbox and script-src none) because a script could navigate its own frame to send data out; for scripted players on hostile data use IsolatedPlayerFrame. A src player keeps allow-scripts and must send its own CSP. When the recording is unavailable pass a reason; it replaces the frame. The app owns loading, masking, expiry and playback.',
     props: [prop('label / context / title', 'string / ReactNode / string', 'Heading, visible scope and iframe title.', true), prop('srcDoc / src', 'string', 'Player document; srcDoc wins.'), prop('controls', 'ReplayControlsProps', 'Controlled playback requests rendered below the frame.', true), prop('reason', 'ReactNode', 'Shown instead of the frame when unavailable.')],
     tokens: [...surfaceTokens, ...controlTokens],
     accessibility: ['The iframe has a title; the unavailable reason is a status region.', 'Controls are native and outside the frame, so keyboard users never get trapped by player content.'],

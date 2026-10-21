@@ -24,7 +24,11 @@ const capture = html => { emitted.push(html); return html; };
 
 test('the replay iframe is script-only sandboxed, never same-origin, and controls stay outside it', () => {
   const html = capture(render(ReplayViewer, replay));
-  assert.match(html, /<iframe[^>]*sandbox="allow-scripts"/);
+  // A srcDoc replay runs no scripts by default: the sandbox drops allow-scripts and the policy blocks script-src.
+  assert.match(html, /<iframe[^>]*sandbox=""/);
+  assert.match(html, /script-src &#x27;none&#x27;/);
+  assert.match(capture(render(ReplayViewer, { ...replay, srcDoc: undefined, src: '/player.html' })), /<iframe[^>]*sandbox="allow-scripts"/);
+  assert.match(capture(render(ReplayViewer, { ...replay, contentPolicy: "default-src 'none'; script-src 'nonce-abc'" })), /<iframe[^>]*sandbox="allow-scripts"/);
   assert.doesNotMatch(html, /allow-same-origin/);
   assert.match(html, /referrerPolicy="no-referrer"|referrerpolicy="no-referrer"/);
   assert.match(html, /title="Synthetic replay"/);

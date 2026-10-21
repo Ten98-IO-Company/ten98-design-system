@@ -9,7 +9,9 @@ for (const theme of ['light', 'dark'] as const) {
     const errors: string[] = [];
     page.on('pageerror', error => errors.push(error.message));
     // A response means the request left the browser; CSP- and sandbox-blocked loads never get one.
-    page.on('response', response => { if (response.url().includes('/tests/probe-')) reached.push(response.url()); });
+    // Count requests that left the browser: CSP- and sandbox-blocked loads fail with "csp" or never start.
+    page.on('requestfinished', request => { if (request.url().includes('/tests/probe-')) reached.push(request.url()); });
+    page.on('requestfailed', request => { if (request.url().includes('/tests/probe-') && request.failure()?.errorText !== 'csp') reached.push(request.url()); });
     await page.setViewportSize({ width, height: 900 });
     await page.emulateMedia({ colorScheme: theme });
     await page.goto(`/tests/sandboxed-preview.html?theme=${theme}`);
@@ -48,7 +50,8 @@ for (const theme of ['light', 'dark'] as const) {
 
 test('a commented-out <head> cannot move the replay content policy out of effect', async ({ page }) => {
   const reached: string[] = [];
-  page.on('response', response => { if (response.url().includes('/tests/probe-replay')) reached.push(response.url()); });
+  page.on('requestfinished', request => { if (request.url().includes('/tests/probe-replay')) reached.push(request.url()); });
+  page.on('requestfailed', request => { if (request.url().includes('/tests/probe-replay') && request.failure()?.errorText !== 'csp') reached.push(request.url()); });
   await page.goto('/tests/sandboxed-preview.html');
   await expect(page.frameLocator('iframe[title="Replay with a commented head"]').getByText('Replay')).toBeVisible();
   await page.waitForTimeout(300);

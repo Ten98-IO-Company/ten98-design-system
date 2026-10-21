@@ -32,7 +32,9 @@ for (const theme of ['light', 'dark'] as const) {
     const probes: string[] = [];
     page.on('pageerror', error => errors.push(error.message));
     // Chromium reports a CSP-blocked load as a request that fails with ERR_BLOCKED_BY_CSP, so watch responses.
-    page.on('response', response => { if (response.url().includes('replay-probe')) probes.push(response.url()); });
+    // Count requests that left the browser: CSP-blocked loads fail with "csp"; anything else reached the server.
+    page.on('requestfinished', request => { if (request.url().includes('replay-probe')) probes.push(request.url()); });
+    page.on('requestfailed', request => { if (request.url().includes('replay-probe') && request.failure()?.errorText !== 'csp') probes.push(request.url()); });
     await page.setViewportSize({ width, height: 1000 });
     await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
     await page.goto(`/tests/spatial.html?theme=${theme}`);
@@ -42,7 +44,7 @@ for (const theme of ['light', 'dark'] as const) {
 
     // Replay: script-only sandbox, never same-origin.
     const frame = screen.locator('iframe');
-    await expect(frame).toHaveAttribute('sandbox', 'allow-scripts');
+    await expect(frame).toHaveAttribute('sandbox', '');
     await expect(frame).toHaveAttribute('referrerpolicy', 'no-referrer');
     await expect(frame.contentFrame().getByText(/^Synthetic replay document/)).toBeVisible();
     expect(probes, 'the replay content policy blocks network loads').toEqual([]);

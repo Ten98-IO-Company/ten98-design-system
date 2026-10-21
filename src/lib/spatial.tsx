@@ -258,12 +258,16 @@ export interface ReplayViewerProps {
   /** Shown instead of the frame when the recording is unavailable, expired, loading or not authorized. */
   reason?: ReactNode;
   className?: string;
-  /** CSP applied to a `srcDoc` player; defaults to `defaultReplayContentPolicy`, which blocks all network access. */
+  /** CSP applied to a `srcDoc` document; defaults to `defaultReplayContentPolicy`, which runs no scripts and loads nothing from the
+   * network. Passing a policy that allows scripts also enables `allow-scripts`: script in the document can then navigate its own
+   * frame, which no CSP prevents, so only do that for a player you trust. Run scripted players on hostile data in `IsolatedPlayerFrame`. */
   contentPolicy?: string;
 }
 
-/** Content policy for player documents: inline player scripts and styles run, recorded media stays local, nothing reaches the network. */
-export const defaultReplayContentPolicy = "default-src 'none'; script-src 'unsafe-inline' blob:; style-src 'unsafe-inline' data: blob:; img-src data: blob:; media-src data: blob:; font-src data:";
+/** Content policy for srcDoc replay documents: no scripts run, styles and recorded media stay inline, nothing is fetched. Scripts are
+ * blocked because a running script can navigate its own frame to any URL, which a content policy cannot stop. */
+export const defaultReplayContentPolicy = "default-src 'none'; script-src 'none'; style-src 'unsafe-inline' data: blob:; img-src data: blob:; media-src data: blob:; font-src data:; form-action 'none'; base-uri 'none'";
+const allowsScripts = (policy: string) => !/(?:^|;)\s*script-src\s+'none'\s*(?:;|$)/i.test(policy);
 /** Hosts an untrusted player document in a script-only sandbox with no same-origin access and no referrer; controls stay outside it.
  * A `srcDoc` player also gets a content policy so recorded pages cannot fetch, beacon or load remote assets while replaying. */
 export function ReplayViewer({ label, context, title, srcDoc, src, controls, reason, className, contentPolicy = defaultReplayContentPolicy }: ReplayViewerProps) {
@@ -273,7 +277,7 @@ export function ReplayViewer({ label, context, title, srcDoc, src, controls, rea
     <div className="t98-replay-viewer-context">{context}</div>
     {reason != null || !hasDocument
       ? <div className="t98-replay-viewer-reason" role="status">{reason ?? 'No replay document was supplied.'}</div>
-      : <iframe className="t98-replay-frame" title={title} sandbox="allow-scripts" referrerPolicy="no-referrer" srcDoc={srcDoc === undefined ? undefined : prefixDocument(srcDoc, contentPolicyMeta(contentPolicy))} src={srcDoc === undefined ? src : undefined} />}
+      : <iframe className="t98-replay-frame" title={title} sandbox={srcDoc === undefined || allowsScripts(contentPolicy) ? 'allow-scripts' : ''} referrerPolicy="no-referrer" srcDoc={srcDoc === undefined ? undefined : prefixDocument(srcDoc, contentPolicyMeta(contentPolicy))} src={srcDoc === undefined ? src : undefined} />}
     <ReplayControls {...controls} />
   </section>;
 }
