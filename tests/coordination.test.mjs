@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createElement as h } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { ConversationThread, DetailWorkspace, PublishingAgenda } from '../dist/coordination.js';
+import { ConversationThread, DetailWorkspace, PublishingAgenda, SelectableList } from '../dist/coordination.js';
 
 const render = (component, props) => renderToStaticMarkup(h(component, props));
 const styles = readFileSync(new URL('../dist/styles.css', import.meta.url), 'utf8');
@@ -77,4 +77,24 @@ test('conversation distinguishes public, private and note text and never infers 
   assert.match(readonly, /Read only. Replies are unavailable/);
   assert.match(readonly, /class="t98-conversation-composer" hidden=""><textarea>Preserved draft/);
   assert.match(render(ConversationThread, { label: 'Studio', messages: [], emptyMessage: 'No matching messages.' }), /No matching messages/);
+});
+
+test('SelectableList is one listbox with a roving stop on the selection and states unread counts in text', () => {
+  const items = [
+    { id: 'a', title: 'Lina Haddad', preview: 'Is the studio open on Friday?', meta: '10:42', unread: 3 },
+    { id: 'b', title: 'Omar Saleh', preview: 'Thanks!', meta: 'Yesterday' },
+    { id: 'c', title: 'Archived thread', disabled: true },
+  ];
+  const html = render(SelectableList, { label: 'Conversations', items, selectedId: 'b', onSelect() {} });
+  assert.match(html, /<ul class="t98-selectable-list" role="listbox" aria-label="Conversations">/);
+  assert.equal((html.match(/role="option"/g) ?? []).length, 3);
+  assert.match(html, /data-item-id="b" aria-selected="true" tabindex="0"/);
+  assert.match(html, /data-item-id="a" aria-selected="false" tabindex="-1" class="t98-selectable-item t98-selectable-item--unread"/);
+  assert.match(html, /<span aria-hidden="true">3<\/span><span class="t98-visually-hidden">, 3 unread<\/span>/);
+  assert.match(html, /data-item-id="c" aria-selected="false" aria-disabled="true"/);
+  const none = render(SelectableList, { label: 'Conversations', items, onSelect() {} });
+  assert.match(none, /data-item-id="a" aria-selected="false" tabindex="0"/);
+  assert.match(render(SelectableList, { label: 'C', items: [], onSelect() {}, emptyMessage: 'No conversations match.' }), /No conversations match\./);
+  assert.match(render(SelectableList, { label: 'C', items: [{ id: 'x', title: 'X', unread: 250 }], onSelect() {} }), />99\+</);
+  for (const name of ['t98-selectable', 't98-selectable-item', 't98-selectable-unread', 't98-selectable-preview']) assert.ok(styles.includes(`.${name}`), name);
 });

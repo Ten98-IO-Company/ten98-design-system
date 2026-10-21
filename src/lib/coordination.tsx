@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useId, useRef, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { Alert, Button, cx } from './primitives.js';
 
 export interface PublishingAgendaEntry {
@@ -146,3 +146,76 @@ export function ConversationThread({ label, messages, composer, status, loading 
     {composer != null && <div className="t98-conversation-composer" hidden={readOnly}>{composer}</div>}
   </section>;
 }
+
+export interface SelectableListItem {
+  id: string;
+  /** Primary line, for example a contact or conversation name. */
+  title: ReactNode;
+  /** Secondary line, for example the latest message; clipped to two lines. */
+  preview?: ReactNode;
+  /** Trailing detail such as a time. */
+  meta?: ReactNode;
+  /** Leading visual such as an Avatar or a status dot; it should not carry meaning alone. */
+  leading?: ReactNode;
+  /** Unread count; 0 or undefined means read. Shown as a badge and stated in text. */
+  unread?: number;
+  /** A short status after the title, for example "Assigned to you". */
+  status?: ReactNode;
+  disabled?: boolean;
+}
+export interface SelectableListProps {
+  label: string;
+  items: readonly SelectableListItem[];
+  selectedId?: string | null;
+  onSelect: (id: string) => void;
+  loading?: boolean;
+  emptyMessage?: ReactNode;
+  /** Rendered after the list, for example LoadMore. */
+  footer?: ReactNode;
+  className?: string;
+}
+
+/**
+ * The list side of DetailWorkspace: conversations, contacts or queue items as one listbox. Arrow keys, Home and End move
+ * focus without opening anything; Enter, Space or a click selects. One roving tab stop returns to the selected item.
+ * Keyboard model from the WAI-ARIA APG listbox pattern (W3C), selection not following focus.
+ */
+export function SelectableList({ label, items, selectedId = null, onSelect, loading = false, emptyMessage = 'Nothing to show.', footer, className }: SelectableListProps) {
+  const id = useId();
+  const list = useRef<HTMLUListElement>(null);
+  const [focused, setFocused] = useState<string | null>(null);
+  const enabled = items.filter(item => !item.disabled);
+  const stop = enabled.some(item => item.id === focused) ? focused : enabled.some(item => item.id === selectedId) ? selectedId : enabled[0]?.id ?? null;
+  const focusItem = (itemId: string) => { setFocused(itemId); list.current?.querySelector<HTMLElement>(`[data-item-id="${CSS.escape(itemId)}"]`)?.focus(); };
+  function onKeyDown(event: KeyboardEvent<HTMLLIElement>, itemId: string) {
+    const index = enabled.findIndex(item => item.id === itemId);
+    const target = event.key === 'ArrowDown' ? enabled[index + 1] : event.key === 'ArrowUp' ? enabled[index - 1] : event.key === 'Home' ? enabled[0] : event.key === 'End' ? enabled.at(-1) : undefined;
+    if (target) { event.preventDefault(); focusItem(target.id); return; }
+    if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onSelect(itemId); }
+  }
+  return <section className={cx('t98-selectable', className)} aria-labelledby={`${id}-label`} aria-busy={loading || undefined}>
+    <h3 className="t98-visually-hidden" id={`${id}-label`}>{label}</h3>
+    {loading && <p className="t98-selectable-status" role="status">Loading…</p>}
+    {items.length === 0 ? !loading && <p className="t98-selectable-empty">{emptyMessage}</p>
+      : <ul className="t98-selectable-list" role="listbox" aria-label={label} ref={list}>
+        {items.map(item => {
+          const unread = item.unread && item.unread > 0 ? item.unread : 0;
+          return <li key={item.id} role="option" data-item-id={item.id} aria-selected={item.id === selectedId} aria-disabled={item.disabled || undefined}
+            tabIndex={item.id === stop ? 0 : -1} className={cx('t98-selectable-item', unread > 0 && 't98-selectable-item--unread')}
+            onFocus={() => setFocused(item.id)} onClick={() => { if (!item.disabled) onSelect(item.id); }} onKeyDown={event => { if (!item.disabled || event.key.startsWith('Arrow') || event.key === 'Home' || event.key === 'End') onKeyDown(event, item.id); }}>
+            {item.leading != null && <span className="t98-selectable-leading" aria-hidden="true">{item.leading}</span>}
+            <span className="t98-selectable-body">
+              <span className="t98-selectable-top"><span className="t98-selectable-title">{item.title}</span>{item.meta != null && <span className="t98-selectable-meta">{item.meta}</span>}</span>
+              {(item.preview != null || item.status != null || unread > 0) && <span className="t98-selectable-bottom">
+                {item.preview != null && <span className="t98-selectable-preview">{item.preview}</span>}
+                {item.status != null && <span className="t98-selectable-state">{item.status}</span>}
+                {unread > 0 && <span className="t98-selectable-unread"><span aria-hidden="true">{unread > 99 ? '99+' : unread}</span><span className="t98-visually-hidden">, {unread} unread</span></span>}
+              </span>}
+            </span>
+          </li>;
+        })}
+      </ul>}
+    {footer != null && <div className="t98-selectable-footer">{footer}</div>}
+  </section>;
+}
+

@@ -1,7 +1,7 @@
 import { useId, useRef, useState } from 'react';
-import { ConversationThread, DetailWorkspace, PublishingAgenda, type ConversationMessage, type PublishingAgendaEntry } from '../lib/coordination.js';
-import { Badge, Button, Field, Textarea } from '../lib/primitives.js';
-import { MediaPlayer } from '../lib/controls.js';
+import { ConversationThread, DetailWorkspace, PublishingAgenda, SelectableList, type ConversationMessage, type PublishingAgendaEntry, type SelectableListItem } from '../lib/coordination.js';
+import { Avatar, Badge, Button, Field, Textarea } from '../lib/primitives.js';
+import { LoadMore, MediaPlayer } from '../lib/controls.js';
 import { Blockquote } from '../lib/structure.js';
 import { tsx, type ComponentEntry, type ComponentProp, type ComponentState } from './model.js';
 
@@ -112,6 +112,22 @@ const [receipt, setReceipt] = useState('');
 const messages: ConversationMessage[] = ${JSON.stringify(sampleMessages, null, 2)};`, ['useId', 'useState']);
 }
 
+const conversations: SelectableListItem[] = [
+  { id: 'lina', title: 'Lina Haddad', preview: 'Is the studio open on Friday? We would like to book the larger room for an afternoon shoot.', meta: '10:42', unread: 3, leading: <Avatar name="Lina Haddad" size="sm" /> },
+  { id: 'omar', title: 'Omar Saleh', preview: 'Thanks, see you then.', meta: 'Yesterday', status: 'Assigned to you', leading: <Avatar name="Omar Saleh" size="sm" /> },
+  { id: 'meta', title: 'Comment on Spring launch post', preview: 'Love this colour!', meta: 'Mon', leading: <Avatar name="Spring launch" size="sm" /> },
+];
+function SelectableDemo() {
+  const [selected, setSelected] = useState<string | null>('omar');
+  return <SelectableList label="Conversations" items={conversations} selectedId={selected} onSelect={setSelected}
+    footer={<LoadMore hasMore shown={3} total={48} itemLabel="conversations" onLoadMore={() => {}} />} />;
+}
+const selectableCode = tsx(['SelectableList', 'Avatar', 'type SelectableListItem'], `<SelectableList label="Conversations" items={items} selectedId={selected} onSelect={setSelected} />`, `const [selected, setSelected] = useState<string | null>(null);
+const items: SelectableListItem[] = [
+  { id: 'lina', title: 'Lina Haddad', preview: 'Is the studio open on Friday?', meta: '10:42', unread: 3, leading: <Avatar name="Lina Haddad" size="sm" /> },
+  { id: 'omar', title: 'Omar Saleh', preview: 'Thanks, see you then.', meta: 'Yesterday', status: 'Assigned to you' },
+];`, ['useState']);
+
 export const coordinationEntries: ComponentEntry[] = [
   {
     name: 'PublishingAgenda', category: 'Data display', description: 'Controlled agenda of app-resolved publishing and review records, with explicit scope and display timezone.',
@@ -126,6 +142,15 @@ export const coordinationEntries: ComponentEntry[] = [
     props: [prop('label', 'string', 'Visible workspace heading.', true), prop('listLabel', 'string', 'Accessible list-pane heading.', true), prop('detailLabel', 'string', 'Accessible detail-pane heading, ideally naming the selected record.', true), prop('list', 'ReactNode', 'App-owned selectable list, filters and list states.', true), prop('detail', 'ReactNode', 'App-owned detail, composer and loading/error states; retained in the DOM when deselected.', true), prop('selected', 'boolean', 'Explicitly chooses the detail or list pane on narrow screens; never inferred from slot truthiness.', true), prop('onBack', '() => void', 'App guards draft, clears selection and restores list focus; callback does not automatically change selected.', true), prop('backLabel', 'string', 'Visible narrow-screen back-button text.', false, 'Back to list'), prop('emptyMessage', 'ReactNode', 'Desktop detail placeholder when no record is selected.', false, 'Select an item to see its details.'), prop('className', 'string', 'Additional workspace class.')],
     tokens: [...surfaceTokens, '--t98-focus', '--t98-control-touch'], accessibility: ['Workspace and panes have linked visible headings. Native Back button is shown with selected details at narrow widths.', 'Inactive narrow pane uses display:none; deselected detail content uses hidden, keeping controls outside keyboard and accessibility navigation while retaining DOM state.', 'Selection changes that hide or remove the focused control fall back to the visible pane heading. Initial and visible app focus are preserved. App callbacks own guards and restoration to the originating list control; Escape never bypasses confirmation.', 'At narrow container widths only the selected pane is shown. Empty selection keeps the list usable; desktop shows a detail placeholder.'], related: ['PublishingAgenda', 'ConversationThread', 'ResourceCard'], example: detailCode(),
     states: ([['Selected desktop', 'selected', 'Edit a draft, return to the list and reopen it; draft remains controlled by this example.'], ['No selection', 'empty', 'The list is available with an explicit desktop detail placeholder.'], ['Narrow with back', 'narrow', 'A 21rem wrapper demonstrates one pane and a labelled Back action; reopening preserves the draft.'], ['Loading detail', 'loading', 'App-owned loading content preserves the reply draft.'], ['Detail refresh error', 'error', 'App-owned failure context leaves the draft available.']] as const).map(([name, mode, description]) => ({ name, description, preview: <DetailDemo mode={mode} />, code: detailCode(mode) })),
+  },
+  {
+    name: 'SelectableList', category: 'Data display', description: 'The list side of DetailWorkspace: conversations, contacts or queue items as one keyboard listbox with unread counts and a selected item.',
+    usage: 'Use beside DetailWorkspace or a detail pane. Arrow keys, Home and End move focus without opening anything; Enter, Space or a click calls onSelect. Put LoadMore in footer for cursor paging. Titles stay on one line; previews clip to two.',
+    props: [prop('label', 'string', 'Accessible name of the list.', true), prop('items', 'readonly SelectableListItem[]', 'id, title, preview, meta, leading, unread, status, disabled.', true), prop('selectedId', 'string | null', 'The open item; marked aria-selected and with a bar and tint.'), prop('onSelect', '(id: string) => void', 'Called on Enter, Space or click.', true), prop('loading', 'boolean', 'Shows a loading status and keeps items.'), prop('emptyMessage', 'ReactNode', 'Shown when there are no items.'), prop('footer', 'ReactNode', 'Rendered after the list, for example LoadMore.')],
+    tokens: [...surfaceTokens, '--t98-accent', '--t98-accent-soft', '--t98-focus', '--t98-control-touch'],
+    accessibility: ['A listbox with one roving tab stop that returns to the selected item; selection does not follow focus, so browsing never opens a conversation.', 'Unread counts are stated in text (", 3 unread") and the selected item has a bar as well as a tint.', 'Rows are at least 44px tall; leading avatars are decorative.'],
+    related: ['DetailWorkspace', 'ConversationThread', 'LoadMore'], example: selectableCode,
+    states: [{ name: 'Inbox list', description: 'Unread, assigned and selected conversations with a load-more footer.', preview: <SelectableDemo />, code: selectableCode }],
   },
   {
     name: 'ConversationThread', category: 'Data display', description: 'Readonly conversation history with explicit public, private and internal-note labels and an app-owned composer slot.',

@@ -213,4 +213,24 @@
 .t98-validation-name { font-weight: var(--t98-weight-semibold); overflow-wrap: anywhere; }
 .t98-validation-messages { display: grid; gap: var(--t98-space-1); margin-block-start: var(--t98-space-2); padding-inline-start: var(--t98-space-4); list-style: disc; overflow-wrap: anywhere; }
 .t98-validation--stale .t98-validation-list { opacity: .7; }
+.t98-selectable { display: grid; gap: var(--t98-space-2); min-width: 0; color: var(--t98-text); font: var(--t98-text-sm)/var(--t98-leading-normal) var(--t98-font); }
+.t98-selectable-list { display: grid; margin: 0; padding: 0; list-style: none; border-block-start: var(--t98-border-width) solid var(--t98-border); }
+.t98-selectable-item { display: flex; align-items: flex-start; gap: var(--t98-space-3); min-width: 0; min-block-size: var(--t98-control-touch); padding: var(--t98-space-2) var(--t98-space-3); border-block-end: var(--t98-border-width) solid var(--t98-border); cursor: pointer; }
+.t98-selectable-item:hover { background: var(--t98-subtle); }
+.t98-selectable-item:focus-visible { outline: var(--t98-focus-width) solid var(--t98-focus); outline-offset: calc(-1 * var(--t98-focus-width)); }
+/* Selection is marked by an inline-start bar and a tint, so it never relies on colour alone. */
+.t98-selectable-item[aria-selected='true'] { background: var(--t98-accent-soft); box-shadow: inset 3px 0 0 var(--t98-accent); }
+.t98-selectable-item[aria-selected='true']:dir(rtl) { box-shadow: inset -3px 0 0 var(--t98-accent); }
+.t98-selectable-item[aria-disabled='true'] { color: var(--t98-muted); cursor: not-allowed; }
+.t98-selectable-leading { flex: none; }
+.t98-selectable-body, .t98-selectable-top, .t98-selectable-bottom { display: flex; min-width: 0; gap: var(--t98-space-2); }
+.t98-selectable-body { flex: 1; flex-direction: column; gap: 2px; }
+.t98-selectable-top, .t98-selectable-bottom { align-items: baseline; }
+.t98-selectable-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.t98-selectable-item--unread .t98-selectable-title { font-weight: var(--t98-weight-semibold); }
+.t98-selectable-meta, .t98-selectable-state { flex: none; color: var(--t98-muted); font-size: var(--t98-text-xs); font-variant-numeric: tabular-nums; }
+.t98-selectable-preview { flex: 1; min-width: 0; color: var(--t98-muted); display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; }
+.t98-selectable-unread { flex: none; min-inline-size: 1.25rem; padding: 0 var(--t98-space-1); border-radius: var(--t98-radius-pill); background: var(--t98-accent); color: var(--t98-on-accent); font-size: var(--t98-text-xs); font-weight: var(--t98-weight-semibold); text-align: center; }
+.t98-selectable-status, .t98-selectable-empty { margin: 0; color: var(--t98-muted); }
+@media (forced-colors: active) { .t98-selectable-item[aria-selected='true'] { outline: 2px solid Highlight; outline-offset: -2px; } .t98-selectable-unread { border: 1px solid CanvasText; } }
 
