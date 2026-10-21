@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Legacy table containment</title>
+  <link rel="stylesheet" href="/src/lib/app-tokens.css">
+  <link rel="stylesheet" href="/src/lib/app.css">
+  <link rel="stylesheet" href="/src/lib/product.css">
+</head>
+<!-- Legacy app markup that Campaign and Discover still render; library CSS must contain it at 320px. -->
+<body>
+  <div class="table-wrap" id="scroll-table">
+    <table><thead><tr><th>Domain</th><th>Status</th><th>Redirects</th><th>Verified</th></tr></thead>
+      <tbody><tr><td>www.example-long-domain-name.com</td><td>Active</td><td>3 aliases</td><td>2026-10-20</td></tr></tbody></table>
+  </div>
+  <div class="table-wrap table-cards" id="card-table">
+    <table><thead><tr><th>Domain</th><th>Status</th><th>Redirects</th><th>Verified</th></tr></thead>
+      <tbody><tr><td data-label="Domain">www.example-long-domain-name.com</td><td data-label="Status">Active</td><td data-label="Redirects">3 aliases</td><td data-label="Verified">2026-10-20</td></tr></tbody></table>
+  </div>
+</body>
+</html>

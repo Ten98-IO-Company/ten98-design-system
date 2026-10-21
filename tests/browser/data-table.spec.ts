@@ -136,3 +136,16 @@ test('row action buttons keep their label on one line, so rows stay one line tal
   expect(buttonHeight).toBeLessThan(48);
   expect(cellHeight).toBeLessThan(72);
 });
+
+test('server paging keeps a selection made on an earlier page', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/tests/data-table.html');
+  const table = page.locator('.t98-data-table').filter({ has: page.getByText('Server table') });
+  await table.locator('tbody input[type=checkbox]').first().check();
+  const selection = page.locator('#server-selection');
+  const before = await selection.textContent();
+  expect(before).not.toBe('Selected: none');
+  await table.getByRole('button', { name: /next/i }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Last callback: page' })).toBeVisible();
+  await expect(selection).toHaveText(before!);
+});

@@ -101,3 +101,12 @@ test('Badge palette replaces the tone and every emitted class is styled', () => 
   assert.match(render(h(Badge, { tone: 'success' }, 'ok')), /t98-tone--success/);
   for (const name of new Set(all)) assert.ok(styles.includes(`.${name}`), `${name} is styled`);
 });
+
+test('Field labels only its first control; later children keep their own ids', async () => {
+  const { Field, Input, Badge } = await import('../dist/index.js');
+  const html = renderToStaticMarkup(h(Field, { label: 'Amount', description: 'Before tax' }, h(Input, { name: 'amount' }), h(Badge, null, 'USD')));
+  const ids = [...html.matchAll(/ id="([^"]+)"/g)].map(match => match[1]);
+  assert.equal(new Set(ids).size, ids.length, 'ids are unique');
+  assert.match(html, /<input[^>]*aria-describedby="[^"]+-description"/);
+  assert.doesNotMatch(html, /<span[^>]*class="t98-badge[^"]*"[^>]*aria-describedby/);
+});

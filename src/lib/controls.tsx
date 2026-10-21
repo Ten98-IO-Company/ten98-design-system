@@ -26,7 +26,13 @@ export function Disclosure({ summary, children, open, onOpenChange, defaultOpen 
   const [inner, setInner] = useState(defaultOpen);
   const expanded = open ?? inner;
   return <div className={cx('t98-disclosure', `t98-disclosure--${variant}`)}>
-    <details className="t98-disclosure-details" open={expanded}>
+    <details className="t98-disclosure-details" open={expanded} onToggle={event => {
+      // Summary clicks are handled below; this syncs opens the browser makes itself, such as find-in-page.
+      const now = event.currentTarget.open;
+      if (now === expanded) return;
+      if (open === undefined) setInner(now);
+      onOpenChange?.(now);
+    }}>
       <summary className="t98-disclosure-summary" onClick={event => { event.preventDefault(); if (open === undefined) setInner(!expanded); onOpenChange?.(!expanded); }}>
         <span className="t98-disclosure-title">{summary}</span><Icon name="chevron-down" size={16} />
       </summary>
@@ -125,8 +131,12 @@ export function SegmentedControl({ label, options, value, onValueChange }: Segme
   function move(event: KeyboardEvent, index: number) {
     const position = enabled.findIndex(item => item.index === index);
     let next: number;
-    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') next = (position + 1) % enabled.length;
-    else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') next = (position - 1 + enabled.length) % enabled.length;
+    // Horizontal arrows follow the writing direction, so in RTL ArrowLeft moves to the next option.
+    const rtl = group.current ? getComputedStyle(group.current).direction === 'rtl' : false;
+    const forward = event.key === 'ArrowDown' || event.key === (rtl ? 'ArrowLeft' : 'ArrowRight');
+    const backward = event.key === 'ArrowUp' || event.key === (rtl ? 'ArrowRight' : 'ArrowLeft');
+    if (forward) next = (position + 1) % enabled.length;
+    else if (backward) next = (position - 1 + enabled.length) % enabled.length;
     else if (event.key === 'Home') next = 0;
     else if (event.key === 'End') next = enabled.length - 1;
     else return;

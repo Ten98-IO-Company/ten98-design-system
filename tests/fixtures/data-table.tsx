@@ -35,6 +35,7 @@ const wrapColumns: DataColumn<Campaign>[] = [{ ...wideColumns[0], wrap: true }, 
 function Screen() {
   const [sort, setSort] = useState<TableSort>();
   const [index, setIndex] = useState(0);
+  const [selection, setSelection] = useState<string[]>([]);
   const [log, setLog] = useState('No callbacks yet');
   const sorted = [...campaigns.slice(0, 6)];
   if (sort) sorted.sort((a, b) => (a[sort.key as 'clicks'] > b[sort.key as 'clicks'] ? 1 : -1) * (sort.direction === 'asc' ? 1 : -1));
@@ -51,10 +52,11 @@ function Screen() {
       footerCells={['Total', '', '4,000', '1,320']} rowActions={() => <Button variant="ghost" size="sm">Open</Button>} />
     <DataTable columns={stackColumns} rows={campaigns.slice(0, 3)} rowKey={row => row.id} caption="Stacked table" captionHidden={false} searchable={false} pagination={false} responsive="stack" />
     <DataTable columns={wideColumns} rows={campaigns} rowKey={row => row.id} ariaLabel="Sticky table" searchable={false} sortable={false} pagination={false} stickyHeader density="compact" />
-    <DataTable columns={serverColumns} rows={pageRows} rowKey={row => row.id} caption="Server table" searchable={false}
+    <DataTable columns={serverColumns} rows={pageRows} rowKey={row => row.id} caption="Server table" searchable={false} selectable onSelectionChange={setSelection}
       sort={sort} onSortChange={next => { setSort(next); setLog(`sort ${next.key} ${next.direction}`); }}
       page={{ index, size: 2, total: 6 }} onPageChange={changePage} />
     <Text role="status">Last callback: {log}</Text>
+    <Text id="server-selection">Selected: {selection.join(',') || 'none'}</Text>
     <DataTable columns={wrapColumns} rows={campaigns.slice(0, 2)} rowKey={row => row.id} ariaLabel="Wrapped table" searchable={false} sortable={false} pagination={false} />
     <DataTable columns={serverColumns} rows={[]} rowKey={row => row.id} caption="Loading table" searchable={false} loading />
     <DataTable columns={serverColumns} rows={[]} rowKey={row => row.id} caption="Unavailable table" searchable={false}

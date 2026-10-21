@@ -103,7 +103,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
   if (href !== undefined) {
     const inactive = disabled || loading;
     const anchor = { ...props, 'aria-pressed': pressed, 'aria-busy': loading || undefined, 'aria-disabled': inactive || undefined } as Record<string, unknown>;
-    if (!inactive && Component) return <Component {...anchor} href={href} className={classes}>{content}</Component>;
+    // React 19 passes ref as a prop, so focus management reaches the router link's anchor.
+    if (!inactive && Component) return <Component {...anchor} {...{ ref }} href={href} className={classes}>{content}</Component>;
     return <a {...anchor} ref={ref as never} href={inactive ? undefined : href} className={classes}>{content}</a>;
   }
   return <button ref={ref} type={type} className={classes} disabled={disabled || loading} aria-pressed={pressed} aria-busy={loading || undefined} {...props}>{content}</button>;
@@ -181,12 +182,14 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
 type DescribedProps = { id?: string; 'aria-describedby'?: string; 'aria-invalid'?: boolean | 'true' | 'false' | 'grammar' | 'spelling' };
 export function Field({ label, description, error, htmlFor, required, children, className, ...props }: HTMLAttributes<HTMLDivElement> & { label: ReactNode; description?: ReactNode; error?: ReactNode; /** Optional; generated and applied to the control when omitted. */ htmlFor?: string; /** Shows a visual marker only; set `required` on the control itself. */ required?: boolean }) {
   const generated = useId();
+  // Only the first element child is the labelled control; later children (units, hints) keep their own ids.
   const firstId = Children.toArray(children).find(isValidElement<DescribedProps>)?.props.id;
+  let labelled = 0;
   const id = htmlFor ?? firstId ?? generated;
   const describedBy = [description && `${id}-description`, error && `${id}-error`].filter(Boolean).join(' ');
   return <div className={cx('t98-field', className)} {...props}>
     <label className="t98-label" htmlFor={id}>{label}{required && <span className="t98-label-required" aria-hidden="true"> *</span>}</label>
-    {Children.map(children, child => isValidElement<DescribedProps>(child) ? cloneElement(child, { id: child.props.id ?? id, 'aria-describedby': cx(child.props['aria-describedby'], describedBy) || undefined, 'aria-invalid': error ? true : child.props['aria-invalid'] }) : child)}
+    {Children.map(children, child => isValidElement<DescribedProps>(child) && !(labelled++) ? cloneElement(child, { id: child.props.id ?? id, 'aria-describedby': cx(child.props['aria-describedby'], describedBy) || undefined, 'aria-invalid': error ? true : child.props['aria-invalid'] }) : child)}
     {description && <p className="t98-field-description" id={`${id}-description`}>{description}</p>}
     {error && <p className="t98-field-error" id={`${id}-error`} role="alert">{error}</p>}
   </div>;

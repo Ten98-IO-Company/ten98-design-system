@@ -153,3 +153,15 @@ for (const theme of ['light', 'dark'] as const) {
     expect(errors).toEqual([]);
   });
 }
+
+test('segmented control arrows follow the writing direction', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/tests/controls.html?theme=light');
+  await page.evaluate(() => { document.documentElement.dir = 'rtl'; });
+  const group = page.getByRole('group', { name: 'Range' });
+  const first = group.getByRole('button').first();
+  await first.click();
+  await first.press('ArrowLeft');
+  await expect(group.getByRole('button').nth(1)).toBeFocused();
+  await expect(group.getByRole('button').nth(1)).toHaveAttribute('aria-pressed', 'true');
+});

@@ -96,6 +96,7 @@ interface DataTableBaseProps<T> {
   sort?: TableSort;
   onSortChange?: (sort: TableSort) => void;
   /** Server mode: the app slices. The table shows `rows` as given. */
+  /** Server paging. Pass `total` or a cursor: without either, Next stays enabled whenever a page is full, because the table cannot know a full page is the last. */
   page?: TableIndexPage | TableCursorPage;
   onPageChange?: (change: TablePageChange) => void;
   /** Server mode: the app filters. Supplying `search` or `onSearchChange` stops local filtering. */
@@ -149,7 +150,7 @@ export function DataTable<T>({
   const offset = paged ? (currentPage - 1) * size : (serverIndex ?? 0) * serverSize;
   const visible = paged ? filtered.slice(offset, offset + size) : filtered;
   const keys = new Set(rows.map(rowKey));
-  const selectedKeys = selected.filter(key => keys.has(key));
+  const selectedKeys = controlledPage ? selected : selected.filter(key => keys.has(key));
   const selectedSet = new Set(selectedKeys);
   const visibleKeys = visible.map(rowKey);
   const selectedOnPage = visibleKeys.filter(key => selectedSet.has(key)).length;
@@ -172,13 +173,15 @@ export function DataTable<T>({
   useEffect(() => { setPage(current => Math.min(current, pageCount)); }, [pageCount]);
 
   useEffect(() => {
+    // With server paging the rows are one page, so other pages' selections stay with the app.
+    if (controlledPage) return;
     const availableKeys = new Set(rows.map(rowKey));
     const next = selected.filter(key => availableKeys.has(key));
     if (next.length !== selected.length) {
       setSelected(next);
       onSelectionChange?.(next);
     }
-  }, [rows, rowKey, selected, onSelectionChange]);
+  }, [rows, rowKey, selected, onSelectionChange, controlledPage]);
 
   function updateSelection(next: string[]) {
     setSelected(next);

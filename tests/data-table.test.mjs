@@ -173,3 +173,10 @@ test('a loading table states no record count or page position until its data set
   assert.match(html, /Loading records/);
   assert.doesNotMatch(html, /0 records|Page 1 of 1/);
 });
+
+test('server paging keeps selections from other pages; the app owns them', async () => {
+  const { DataTable } = await import('../dist/index.js');
+  // A selection pruned to the current page would announce only the rows rendered here.
+  const html = renderToStaticMarkup(h(DataTable, { caption: 'Rows', columns: [{ key: 'id', header: 'Id' }], rows: [{ id: 'page2-row' }], rowKey: row => row.id, selectable: true, page: { index: 1, size: 1, total: 3 } }));
+  assert.match(html, /page2-row/);
+});

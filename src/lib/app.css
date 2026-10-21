@@ -312,3 +312,14 @@ td{font-size:11px}
 .integration-settings-card .text-link{width:100%;margin:4px 0}
 .integration-settings-card .field>span small{font-size:9px}
 }
+/* Mobile card mode for legacy tables: add `table-cards` to a .table-wrap/.table-scroll and data-label to each td.
+   Rows become labelled cards at narrow widths instead of a 600px table that scrolls. New code uses DataTable responsive="stack". */
+@media(max-width:640px){
+:is(.table-scroll,.table-wrap).table-cards{overflow:visible}
+:is(.table-scroll,.table-wrap).table-cards table{min-width:0}
+.table-cards :is(table,tbody,tr,td){display:block;inline-size:100%}
+.table-cards thead{position:absolute;inline-size:1px;block-size:1px;overflow:hidden;clip-path:inset(50%)}
+.table-cards tr{margin-block:12px;border:1px solid var(--color-border);border-radius:7px;padding:12px}
+.table-cards td{border:0;padding:6px 0;overflow-wrap:anywhere}
+.table-cards td[data-label]::before{content:attr(data-label);display:block;color:var(--color-text-muted);font-size:11px;margin-block-end:4px}
+}
