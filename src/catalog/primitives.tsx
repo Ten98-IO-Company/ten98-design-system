@@ -118,6 +118,11 @@ const switchCode = (initial: boolean, disabled = false) => tsx(['Switch'], `<Swi
 const tooltipExample = tsx(['Button', 'Tooltip'], '<Tooltip content="Download the current report as CSV.">\n  <Button variant="secondary">Export report</Button>\n</Tooltip>');
 const accordionExample = tsx(['Accordion'], `<Accordion items={[\n  { title: 'What is shared?', content: 'Tokens, components and common interaction patterns.' },\n  { title: 'Where do business rules live?', content: 'In each consuming application.' },\n]} />`);
 
+function CountPreview() {
+  const [message, setMessage] = useState('Your studio session is confirmed for Saturday at 10:00.');
+  return <Field label="SMS message" count={{ value: message, max: 160 }}><Textarea value={message} onChange={event => setMessage(event.target.value)} /></Field>;
+}
+
 export const primitiveEntries: ComponentEntry[] = [
   {
     name: 'Button', category: 'Controls', description: 'A native button for one action, with consistent emphasis, size and pending feedback.',
@@ -187,6 +192,7 @@ export const primitiveEntries: ComponentEntry[] = [
       { name: 'required', type: 'boolean', defaultValue: 'false', description: 'Adds an aria-hidden " *" marker to the label. Set required on the control itself for validation.' },
       { name: 'description', type: 'ReactNode', description: 'Help text associated through aria-describedby.' },
       { name: 'error', type: 'ReactNode', description: 'Error text with role="alert"; sets the direct child’s aria-invalid.' },
+      { name: 'count', type: '{ value: string; max: number; measure?: (value: string) => number }', description: 'Shows "used / max characters" linked to the control, marks it invalid when over, and announces only when it nears or passes the limit. measure supplies grapheme or weighted counting; the control is not hard-capped.' },
       { name: 'children', type: 'ReactNode', description: 'Use one direct control; existing aria-describedby is preserved and extended.' },
     ], nativeProps: 'HTMLAttributes<HTMLDivElement>, including className, are applied to the wrapper. Set required (validation), disabled and value on the control; the Field required prop only adds the visual marker.',
     tokens: ['--t98-font', '--t98-text', '--t98-muted', '--t98-danger'],
@@ -196,6 +202,7 @@ export const primitiveEntries: ComponentEntry[] = [
       { name: 'Description', description: 'Visible supporting text connected to the input.', preview: <FieldPreview mode="description" />, code: fieldExample },
       { name: 'Error', description: 'The description is retained; error text and invalid state are added.', preview: <FieldPreview mode="error" />, code: tsx(['Field', 'Input'], '<Field htmlFor={id} label="Project name" description="Visible to everyone in this workspace." error="Use a name with at least three characters.">\n  <Input name="projectName" defaultValue="AB" />\n</Field>', 'const id = useId();', ['useId']) },
       { name: 'Generated ID and required marker', description: 'Without htmlFor the label is linked to the control through a generated ID.', preview: <Field label="Project name" required description="Visible to everyone in this workspace."><Input name="projectName" required /></Field>, code: tsx(['Field', 'Input'], '<Field label="Project name" required description="Visible to everyone in this workspace.">\n  <Input name="projectName" required />\n</Field>') },
+      { name: 'Character count', description: 'A 160-character limit; over the limit the counter turns red, the control is invalid and the state is announced once.', preview: <CountPreview />, code: tsx(['Field', 'Textarea'], '<Field label="SMS message" count={{ value: message, max: 160 }}>\n  <Textarea value={message} onChange={event => setMessage(event.target.value)} />\n</Field>', "const [message, setMessage] = useState('Your studio session is confirmed for Saturday at 10:00.');", ['useState']) },
       { name: 'Required composition', description: 'The label states the requirement and the native input enforces it on submission.', preview: <FieldPreview mode="required" />, code: tsx(['Field', 'Input'], '<Field htmlFor={id} label="Project name (required)" description="Visible to everyone in this workspace.">\n  <Input name="projectName" required />\n</Field>', 'const id = useId();', ['useId']) },
     ],
   },

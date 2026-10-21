@@ -125,3 +125,7 @@
 .t98-field-list-add { display: flex; flex-wrap: wrap; align-items: center; gap: var(--t98-space-2) var(--t98-space-3); min-inline-size: 0; }
 .t98-account-scope-status { display: flex; flex-wrap: wrap; align-items: center; gap: var(--t98-space-2) var(--t98-space-3); min-inline-size: 0; }
 @media (forced-colors: active) { .t98-field-list-item { border-color: CanvasText; } }
+.t98-form-body { display: contents; }
+.t98-combobox-option-text { display: grid; min-inline-size: 0; }
+.t98-combobox-option-description { color: var(--t98-muted); font-size: var(--t98-text-sm); }
+.t98-combobox-option[data-active] .t98-combobox-option-description { color: inherit; }

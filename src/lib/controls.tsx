@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useId, useRef, useState, type ChangeEvent, type DragEvent, type KeyboardEvent, type ReactNode, type Ref } from 'react';
+import { useEffect, useId, useRef, useState, type ChangeEvent, type DragEvent, type FormEvent, type FormHTMLAttributes, type KeyboardEvent, type ReactNode, type Ref } from 'react';
 import { Badge, Button, Checkbox, Field, Icon, Input, Progress, cx } from './primitives.js';
-import { Link, Stack, VisuallyHidden } from './structure.js';
+import { Link, Stack, VisuallyHidden, type Space } from './structure.js';
 import { CopyButton } from './workspace.js';
 import { formatFileSize } from './format.js';
+import { useSingleSubmit } from './flow-frame.js';
 
 /* Controls replace the raw details, fieldset, radio/checkbox list, pager, pre/code, status-line,
  * datalist and overflow wrappers that applications may not write themselves. Presentation only:
@@ -232,7 +233,12 @@ export function StatusLine({ tone = 'neutral', busy = false, live = 'polite', ch
   </p>;
 }
 
-export interface ComboboxOption { value: string; label: string }
+export interface ComboboxOption {
+  value: string;
+  label: string;
+  /** Secondary text under the label, for example a category path or an audience size. Part of the option's description. */
+  description?: string;
+}
 
 interface ComboboxAsyncProps {
   /** Called with the typed text, and with an empty string when the field closes after typing, so the app can search. */
@@ -377,7 +383,8 @@ function ComboboxControl({ id, options, text, onType, onPick, onClear, onLeave, 
           aria-selected={picked ? picked.has(option.value) : index === activeOption} className="t98-combobox-option" data-active={index === activeOption || undefined}
           // Keep focus in the input so the list does not close before the click is handled.
           onMouseDown={event => event.preventDefault()} onClick={() => accept(option)}>
-          {multiple && <Icon name="check" size={16} className="t98-combobox-check" />}{option.label}</li>)}
+          {multiple && <Icon name="check" size={16} className="t98-combobox-check" />}
+          {option.description ? <span className="t98-combobox-option-text"><span>{option.label}</span><span className="t98-combobox-option-description">{option.description}</span></span> : option.label}</li>)}
       </ul>
       {loading ? <p className="t98-combobox-empty" aria-hidden="true">Loading results…</p>
         : loadError ? <p className="t98-combobox-empty" aria-hidden="true">{loadError}</p>
@@ -563,4 +570,40 @@ export function FileField({ label, accept, multiple, name, onFiles, description,
       })}
     </ul>}
   </Field>;
+}
+
+export interface FormProps extends Omit<FormHTMLAttributes<HTMLFormElement>, 'style' | 'onSubmit'> {
+  /** Called once per submit with the form data (including the submit button's own name and value). Repeat submits are
+   * ignored until it settles. Omit it for a native form that posts and navigates. Native validation runs first. */
+  onSubmit?: (data: FormData, event: FormEvent<HTMLFormElement>) => void | Promise<void>;
+  /** Busy state owned by the app, for example while a store mutation is pending; it locks the form like a pending submit. */
+  busy?: boolean;
+  /** Vertical gap between direct children. */
+  gap?: Space;
+}
+
+/** A native form that locks its controls while a submit is pending (or `busy`) and ignores repeat submits. Focus returns
+ * to the control that submitted when the lock lifts, so keyboard users keep their place. */
+export function Form({ onSubmit, busy = false, gap = 4, className, children, ...props }: FormProps) {
+  const single = useSingleSubmit();
+  const [pending, setPending] = useState(false);
+  const returnFocus = useRef<HTMLElement | null>(null);
+  const locked = busy || pending;
+  useEffect(() => {
+    if (locked || !returnFocus.current) return;
+    if (document.activeElement === document.body || document.activeElement === null) returnFocus.current.focus();
+    returnFocus.current = null;
+  }, [locked]);
+  return <form {...props} className={cx('t98-form', 't98-stack', `t98-gap-${gap}`, className)} aria-busy={locked || undefined}
+    onSubmit={event => {
+      if (!onSubmit) { if (locked) event.preventDefault(); return; }
+      event.preventDefault();
+      if (locked) return;
+      const submitter = (event.nativeEvent as SubmitEvent).submitter as HTMLElement | null;
+      returnFocus.current = submitter ?? (document.activeElement as HTMLElement | null);
+      const data = new FormData(event.currentTarget, submitter);
+      void single(async () => { setPending(true); try { await onSubmit(data, event); } finally { setPending(false); } });
+    }}>
+    <fieldset className="t98-form-body" disabled={locked}>{children}</fieldset>
+  </form>;
 }

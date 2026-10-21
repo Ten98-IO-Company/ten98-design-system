@@ -189,17 +189,38 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
 });
 
 type DescribedProps = { id?: string; 'aria-describedby'?: string; 'aria-invalid'?: boolean | 'true' | 'false' | 'grammar' | 'spelling' };
-export function Field({ label, description, error, htmlFor, required, children, className, ...props }: HTMLAttributes<HTMLDivElement> & { label: ReactNode; description?: ReactNode; error?: ReactNode; /** Optional; generated and applied to the control when omitted. */ htmlFor?: string; /** Shows a visual marker only; set `required` on the control itself. */ required?: boolean }) {
+export interface FieldCount {
+  /** The control's current value. */
+  value: string;
+  /** The limit. The control is not hard-capped, so pasted text stays visible and can be edited down. */
+  max: number;
+  /** Custom length, for example grapheme or weighted (SMS, social) counting. Defaults to code points. */
+  measure?: (value: string) => number;
+}
+const fieldCount = ({ value, max, measure }: FieldCount) => {
+  const used = measure ? measure(value) : [...value].length;
+  const remaining = max - used;
+  // The live region changes only when the state changes, never on every keystroke; the visible counter has the numbers.
+  const state = remaining < 0 ? 'over' : remaining <= Math.max(10, Math.ceil(max * 0.1)) ? 'near' : 'ok';
+  return { used, remaining, state };
+};
+export function Field({ label, description, error, htmlFor, required, count, children, className, ...props }: HTMLAttributes<HTMLDivElement> & { label: ReactNode; description?: ReactNode; error?: ReactNode; /** Optional; generated and applied to the control when omitted. */ htmlFor?: string; /** Shows a visual marker only; set `required` on the control itself. */ required?: boolean; /** Shows "used / max" linked to the control, marks it invalid when over, and announces only near and over the limit. */ count?: FieldCount }) {
   const generated = useId();
   // Only the first element child is the labelled control; later children (units, hints) keep their own ids.
   const firstId = Children.toArray(children).find(isValidElement<DescribedProps>)?.props.id;
   let labelled = 0;
   const id = htmlFor ?? firstId ?? generated;
-  const describedBy = [description && `${id}-description`, error && `${id}-error`].filter(Boolean).join(' ');
+  const counted = count && Number.isFinite(count.max) && count.max > 0 ? fieldCount(count) : null;
+  const over = counted?.state === 'over';
+  const describedBy = [description && `${id}-description`, counted && `${id}-count`, error && `${id}-error`].filter(Boolean).join(' ');
   return <div className={cx('t98-field', className)} {...props}>
     <label className="t98-label" htmlFor={id}>{label}{required && <span className="t98-label-required" aria-hidden="true"> *</span>}</label>
-    {Children.map(children, child => isValidElement<DescribedProps>(child) && !(labelled++) ? cloneElement(child, { id: child.props.id ?? id, 'aria-describedby': cx(child.props['aria-describedby'], describedBy) || undefined, 'aria-invalid': error ? true : child.props['aria-invalid'] }) : child)}
+    {Children.map(children, child => isValidElement<DescribedProps>(child) && !(labelled++) ? cloneElement(child, { id: child.props.id ?? id, 'aria-describedby': cx(child.props['aria-describedby'], describedBy) || undefined, 'aria-invalid': error || over ? true : child.props['aria-invalid'] }) : child)}
     {description && <p className="t98-field-description" id={`${id}-description`}>{description}</p>}
+    {counted && count && <p className={cx('t98-field-count', counted.state !== 'ok' && `t98-field-count--${counted.state}`)} id={`${id}-count`}>
+      {counted.used} / {count.max} characters{over ? `, ${-counted.remaining} over the limit` : ''}
+    </p>}
+    {counted && <span className="t98-visually-hidden" role="status">{counted.state === 'over' ? 'Over the character limit' : counted.state === 'near' ? 'Approaching the character limit' : ''}</span>}
     {error && <p className="t98-field-error" id={`${id}-error`} role="alert">{error}</p>}
   </div>;
 }

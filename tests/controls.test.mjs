@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createElement as h } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { Blockquote, CheckboxGroup, CodeBlock, MediaPlayer, MultiCombobox, Combobox, DateTimeField, Disclosure, FileField, Fieldset, InlineCode, Pager, RadioGroup, Scroller, SegmentedControl, StatusLine, Button } from '../dist/index.js';
+import { Blockquote, Form, Field as UIField, Textarea, CheckboxGroup, CodeBlock, MediaPlayer, MultiCombobox, Combobox, DateTimeField, Disclosure, FileField, Fieldset, InlineCode, Pager, RadioGroup, Scroller, SegmentedControl, StatusLine, Button } from '../dist/index.js';
 
 const styles = readFileSync(new URL('../dist/styles.css', import.meta.url), 'utf8');
 const classes = html => [...html.matchAll(/class="([^"]+)"/g)].flatMap(match => match[1].split(' '));
@@ -245,4 +245,38 @@ test('MultiCombobox renders removable tags, one hidden input per value and an ar
   assert.match(empty, /role="combobox"[^>]*required=""|required=""[^>]*role="combobox"/);
   assert.doesNotMatch(empty, /t98-combobox-tags/);
   for (const name of ['t98-combobox-tags', 't98-combobox-tag', 't98-combobox-tag-label', 't98-combobox-tag-remove', 't98-combobox-check']) assert.ok(styles.includes(`.${name}`), `${name} is styled`);
+});
+
+test('Form wraps its controls in a lockable fieldset and stays a native form', () => {
+  const html = renderToStaticMarkup(h(Form, { action: '/save', method: 'post', gap: 3 }, h('input', { name: 'a' })));
+  rendered.push(html);
+  assert.match(html, /^<form class="t98-form t98-stack t98-gap-3" action="\/save" method="post"><fieldset class="t98-form-body"><input name="a"\/><\/fieldset><\/form>$/);
+  assert.match(renderToStaticMarkup(h(Form, { busy: true, onSubmit() {} }, 'x')), /<form class="t98-form t98-stack t98-gap-4" aria-busy="true"><fieldset class="t98-form-body" disabled="">/);
+  assert.ok(styles.includes('.t98-form-body'));
+});
+
+test('Field count links "used / max" to the control, counts code points, and marks it invalid only when over', () => {
+  const near = renderToStaticMarkup(h(UIField, { label: 'SMS', htmlFor: 'sms', count: { value: 'é'.repeat(155), max: 160 } }, h(Textarea, {})));
+  assert.match(near, /<textarea[^>]*id="sms"[^>]*aria-describedby="sms-count"/);
+  assert.match(near, /id="sms-count">155 \/ 160 characters</);
+  assert.match(near, /t98-field-count--near/);
+  assert.match(near, /role="status">Approaching the character limit</);
+  assert.doesNotMatch(near, /aria-invalid/);
+  const over = renderToStaticMarkup(h(UIField, { label: 'SMS', htmlFor: 'sms', count: { value: 'x'.repeat(170), max: 160 } }, h(Textarea, {})));
+  assert.match(over, /aria-invalid="true"/);
+  assert.match(over, /170 \/ 160 characters, 10 over the limit/);
+  assert.match(over, /role="status">Over the character limit</);
+  // A weighted measure (for example GSM-7 extension characters count twice).
+  const weighted = renderToStaticMarkup(h(UIField, { label: 'SMS', count: { value: '[]', max: 160, measure: value => [...value].length * 2 } }, h(Textarea, {})));
+  assert.match(weighted, />4 \/ 160/);
+  const ok = renderToStaticMarkup(h(UIField, { label: 'SMS', count: { value: 'hi', max: 160 } }, h(Textarea, {})));
+  assert.match(ok, /role="status"><\/span>/);
+  for (const name of ['t98-field-count', 't98-field-count--near', 't98-field-count--over']) assert.ok(styles.includes(`.${name}`), name);
+});
+
+test('Combobox options can carry a description under the label', () => {
+  const html = renderToStaticMarkup(h(Combobox, { label: 'Interest', options: [{ value: '1', label: 'Running', description: 'Sports › Fitness · 120M people' }, { value: '2', label: 'Cycling' }], value: '', onValueChange() {} }));
+  assert.match(html, /role="option"[^>]*><span class="t98-combobox-option-text"><span>Running<\/span><span class="t98-combobox-option-description">Sports › Fitness · 120M people<\/span><\/span><\/li>/);
+  assert.match(html, /role="option"[^>]*>Cycling<\/li>/);
+  assert.ok(styles.includes('.t98-combobox-option-description'));
 });

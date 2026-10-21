@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import {
-  AccountScopePicker, Button, CheckboxGroup, CodeBlock, Combobox, DateTimeField, Disclosure, FieldList, FileField, Fieldset, Field, Input, InlineCode, MediaPlayer, MultiCombobox, Pager, RadioGroup, Scroller, SegmentedControl, StatusLine, Text,
+  AccountScopePicker, Button, CheckboxGroup, CodeBlock, Combobox, DateTimeField, Disclosure, FieldList, FileField, Fieldset, Field, Form, FormActions, Input, InlineCode, MediaPlayer, MultiCombobox, Pager, RadioGroup, Scroller, SegmentedControl, StatusLine, Text,
 } from '../lib';
 import type { ComboboxOption, FileItem } from '../lib';
 import { tsx, type ComponentCategory, type ComponentEntry, type ComponentProp, type ComponentState } from './model';
@@ -130,6 +130,16 @@ function AccountScopePreview({ count = 3, connected = 'meta', loading = false }:
     onConnectionChange={setConnectionId} onAccountChange={setAccountId} onConnect={() => undefined} />;
 }
 
+function FormPreview() {
+  const [status, setStatus] = useState('');
+  const [count, setCount] = useState(0);
+  return <Form onSubmit={async data => { setCount(value => value + 1); await new Promise(resolve => setTimeout(resolve, 1200)); setStatus(`Saved ${String(data.get('name'))} (${count + 1} submit)`); }}>
+    <Field label="Project name"><Input name="name" required defaultValue="Spring launch" /></Field>
+    <FormActions><Button type="submit">Save</Button></FormActions>
+    <StatusLine>{status}</StatusLine>
+  </Form>;
+}
+
 export const controlEntries: ComponentEntry[] = [
   entry('Disclosure', 'Layout', 'A native details/summary section that can sit beside actions.', 'Use for optional or advanced content. Leave `open` unset for self-managed state, or pass `open` with `onOpenChange` to control it.',
     [prop('summary', 'ReactNode', 'Always-visible heading text.', true), prop('open', 'boolean', 'Controlled expanded state.'), prop('onOpenChange', '(open: boolean) => void', 'Called with the next state when the summary is activated.'), prop('defaultOpen', 'boolean', 'Initial state when uncontrolled.', false, 'false'), prop('variant', "'boxed' | 'plain'", 'Bordered panel or bare heading and body.', false, "'boxed'"), prop('actions', 'ReactNode', 'Buttons beside the summary, rendered outside the summary element.')],
@@ -138,6 +148,12 @@ export const controlEntries: ComponentEntry[] = [
     ['Fieldset', 'Button'],
     [state('Uncontrolled', 'Starts open and manages its own state.', ['Button', 'Disclosure', 'Text'], '<Disclosure\n  summary="Advanced settings"\n  defaultOpen\n  actions={<Button variant="secondary" size="sm">Reset</Button>}\n>\n  <Text tone="muted">Retry limits and delivery windows.</Text>\n</Disclosure>', <DisclosurePreview />),
       state('Controlled', 'The parent owns the open state.', ['Button', 'Disclosure', 'Text'], '<Disclosure\n  summary="Advanced settings"\n  open={open}\n  onOpenChange={setOpen}\n  actions={<Button variant="secondary" size="sm">Reset</Button>}\n>\n  <Text tone="muted">Retry limits and delivery windows.</Text>\n</Disclosure>', <DisclosurePreview controlled />, 'const [open, setOpen] = useState(true);', ['useState'])]),
+  entry('Form', 'Controls', 'A native form that locks its controls while a submit is pending and ignores repeat submits.', 'Use for every app form instead of a raw form element. With onSubmit, it prevents navigation and calls you once with FormData (including the submitter); without onSubmit it posts natively. busy locks it while app state is pending. Native validation still runs before onSubmit.',
+    [prop('onSubmit', '(data: FormData, event) => void | Promise<void>', 'Called once per submit; repeat submits are ignored until it settles.'), prop('busy', 'boolean', 'App-owned pending state; locks the form.', false, 'false'), prop('gap', 'Space', 'Gap between direct children.', false, '4')],
+    ['--t98-space-4'],
+    ['Controls are disabled through a native fieldset while pending, and the form is aria-busy.', 'Focus returns to the submitting control when the lock lifts, if focus was lost.', 'Validation messages stay the job of Field error and native constraints.'],
+    ['Field', 'FormActions', 'FormGrid'],
+    [state('Single submit', 'Submit twice quickly: the second press is ignored while the first is pending.', ['Form', 'Field', 'Input', 'Button', 'FormActions', 'StatusLine'], '<Form onSubmit={async data => { await save(data); setStatus(`Saved ${data.get(\'name\')}`); }}>\n  <Field label="Project name"><Input name="name" required defaultValue="Spring launch" /></Field>\n  <FormActions><Button type="submit">Save</Button></FormActions>\n  <StatusLine>{status}</StatusLine>\n</Form>', <FormPreview />, "const [status, setStatus] = useState('');\nconst save = (data: FormData) => new Promise(resolve => setTimeout(resolve, 1200, data));", ['useState'])]),
   entry('Fieldset', 'Layout', 'A native fieldset and legend that groups related fields.', 'Use when several fields answer one question. Hide the legend visually only when surrounding text already names the group.',
     [prop('legend', 'ReactNode', 'Group name announced with each control.', true), prop('description', 'ReactNode', 'Help text linked to the group.'), prop('disabled', 'boolean', 'Disables every control inside.'), prop('hideLegend', 'boolean', 'Keeps the legend for assistive technology but hides it visually.'), prop('layout', "'stack' | 'grid' | 'inline'", 'How children are arranged.', false, "'stack'"), prop('children', 'ReactNode', 'The grouped fields.', true)],
     ['--t98-text', '--t98-space-2', '--t98-space-3', '--t98-muted'],
