@@ -11,13 +11,13 @@ npm run check:all
 npm pack
 ```
 
-The emitted archive is `ten98-ui-0.8.0.tgz`. Copy that archive into the consuming application's `vendor` directory, then run:
+The emitted archive is `ten98-ui-0.9.0.tgz`. Copy that archive into the consuming application's `vendor` directory, then run:
 
 ```sh
-npm install ./vendor/ten98-ui-0.8.0.tgz
+npm install ./vendor/ten98-ui-0.9.0.tgz
 ```
 
-Commit the archive and updated lockfile together. Use `file:vendor/ten98-ui-0.8.0.tgz` in the application's dependency manifest. An installed archive gives the application a fixed build without requiring a sibling checkout or registry publication. Generate a new versioned archive for an update rather than changing an archive in place. See [the Campaign and Discover integration contract](INTEGRATION.md) for the application-compatible entry points and release workflow.
+Commit the archive and updated lockfile together. Use `file:vendor/ten98-ui-0.9.0.tgz` in the application's dependency manifest. An installed archive gives the application a fixed build without requiring a sibling checkout or registry publication. Generate a new versioned archive for an update rather than changing an archive in place. See [the Campaign and Discover integration contract](INTEGRATION.md) for the application-compatible entry points and release workflow.
 
 The package's public entry points are:
 
