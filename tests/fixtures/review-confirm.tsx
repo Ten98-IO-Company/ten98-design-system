@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { Button, DescriptionList, Heading, ReviewConfirm, Stack, Text } from '@ten98/ui';
 import '@ten98/ui/app-tokens.css';
 import '@ten98/ui/app.css';
+import '@ten98/ui/product.css';
 
 // Composed the way an application screen must be: library components only, no elements or styles of our own.
 declare global { interface Window { finish: () => void } }

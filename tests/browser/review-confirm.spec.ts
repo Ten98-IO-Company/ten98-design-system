@@ -8,7 +8,7 @@ test('ReviewConfirm needs every acknowledgement, resets them when the target cha
   const send = panel.getByRole('button', { name: 'Send now' });
   await expect(send).toHaveAttribute('aria-disabled', 'true');
   await expect(send).toHaveAccessibleDescription('Check all 2 items above to continue.');
-  await send.click();
+  await send.click({ force: true });
   await expect(page.locator('#sent')).toHaveText('');
   await panel.getByLabel('I reviewed the recipient list').check();
   await expect(send).toHaveAccessibleDescription('Check the remaining item above to continue.');
