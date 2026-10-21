@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, accessSync } from 'node:fs';
+import { readFileSync, readdirSync, accessSync } from 'node:fs';
 import { createElement as h } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import * as ui from '../dist/index.js';
@@ -318,4 +318,12 @@ test('the catalogue loads every stylesheet bundled into styles.css, so previews 
   const bundled = [...build.match(/writeFileSync\('dist\/styles\.css', \[([^\]]+)\]/)[1].matchAll(/'([^']+\.css)'/g)].map(match => match[1]);
   assert.ok(bundled.length > 5, 'found the bundled stylesheet list');
   for (const file of bundled.filter(file => file !== 'tokens.css')) assert.ok(main.includes(`import './lib/${file}';`), `catalogue imports ${file}`);
+});
+
+test('styles.css bundles every component stylesheet in src/lib', () => {
+  const build = readFileSync(new URL('../scripts/build.mjs', import.meta.url), 'utf8');
+  const bundled = [...build.match(/writeFileSync\('dist\/styles\.css', \[([^\]]+)\]/)[1].matchAll(/'([^']+\.css)'/g)].map(match => match[1]);
+  // auth.css is inlined into workspace.css; app, app-tokens and product are separate entry points.
+  const entryPoints = new Set(['auth.css', 'app.css', 'app-tokens.css', 'product.css']);
+  for (const file of readdirSync(new URL('../src/lib/', import.meta.url)).filter(name => name.endsWith('.css') && !entryPoints.has(name))) assert.ok(bundled.includes(file), `styles.css bundles ${file}`);
 });
