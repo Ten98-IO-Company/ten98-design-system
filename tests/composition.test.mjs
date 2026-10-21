@@ -113,3 +113,19 @@ test('MediaStrip previews a url by type and lists known facts, leaving out missi
   assert.doesNotMatch(unknown, /t98-media-facts|0 × |0:00|NaN/);
   assert.ok(styles.includes('.t98-media-facts'));
 });
+
+test('ContentPreview chrome layouts stay neutral and keep text, media and identity readable', () => {
+  const base = { label: 'Preview', destination: 'Studio main', provider: 'Social connection', text: 'Opening Saturday', media: h('img', { src: '/s.jpg', alt: 'Studio' }) };
+  const card = render(ContentPreview, base);
+  assert.match(card, /t98-content-preview-frame t98-content-preview-frame--card/);
+  assert.doesNotMatch(card, /t98-content-preview-surface|t98-avatar/);
+  const post = render(ContentPreview, { ...base, chrome: 'post' });
+  assert.match(post, /t98-content-preview-surface"><div class="t98-content-preview-identity"><span[^>]*t98-avatar/);
+  assert.ok(post.indexOf('Opening Saturday') < post.indexOf('alt="Studio"'));
+  const story = render(ContentPreview, { ...base, chrome: 'story' });
+  assert.ok(story.indexOf('alt="Studio"') < story.indexOf('Opening Saturday'), 'story media comes first, under the text');
+  const message = render(ContentPreview, { ...base, chrome: 'message' });
+  assert.match(message, /t98-content-preview-bubble"><div class="t98-content-preview-text">Opening Saturday/);
+  for (const html of [post, story, message]) assert.match(html, /Approximate preview\. Final delivery may look different\./);
+  for (const name of ['t98-content-preview-surface', 't98-content-preview-bubble', 't98-content-preview-who', 't98-content-preview-frame--story', 't98-content-preview-frame--post', 't98-content-preview-frame--message']) assert.ok(styles.includes(`.${name}`), name);
+});

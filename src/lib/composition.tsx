@@ -1,7 +1,7 @@
 'use client';
 
 import { useId, type ReactNode } from 'react';
-import { Alert, Badge, Button, Checkbox, Field, Input, Textarea, cx } from './primitives.js';
+import { Alert, Avatar, Badge, Button, Checkbox, Field, Input, Textarea, cx } from './primitives.js';
 import { MediaPlayer } from './controls.js';
 import { Image } from './structure.js';
 import { formatDuration, formatFileSize } from './format.js';
@@ -193,6 +193,9 @@ export interface ContentPreviewProps {
   text?: ReactNode;
   media?: ReactNode;
   footer?: ReactNode;
+  /** Neutral layout that approximates where the content appears: a plain card, a feed post, a 9:16 story or a direct message.
+   * No platform logos, colours or trademarks are drawn. */
+  chrome?: 'card' | 'post' | 'story' | 'message';
   pending?: boolean;
   error?: string;
   emptyMessage?: string;
@@ -200,17 +203,24 @@ export interface ContentPreviewProps {
 }
 
 /** Approximate presentation only; no provider rules, remote fetching or send behavior. */
-export function ContentPreview({ label, destination, provider, text, media, footer, pending = false, error, emptyMessage = 'No content supplied for this destination.', className }: ContentPreviewProps) {
+export function ContentPreview({ label, destination, provider, text, media, footer, chrome = 'card', pending = false, error, emptyMessage = 'No content supplied for this destination.', className }: ContentPreviewProps) {
   const id = useId();
-  return <section className={cx('t98-content-preview-frame', className)} aria-labelledby={`${id}-label`} aria-describedby={`${id}-notice`} aria-busy={pending || undefined}>
+  const empty = text == null && media == null;
+  const identity = chrome === 'card' ? <div className="t98-content-preview-identity"><strong>{destination}</strong><span>{provider}</span></div>
+    : <div className="t98-content-preview-identity"><Avatar name={destination} size="sm" /><span className="t98-content-preview-who"><strong>{destination}</strong><span>{provider}</span></span></div>;
+  const body = <>
+    {empty && <p className="t98-content-preview-empty">{emptyMessage}</p>}
+    {/* A story shows the media first with the text over its lower edge; every other layout reads text, then media. */}
+    {chrome === 'story' && media != null && <div className="t98-content-preview-media">{media}</div>}
+    {text != null && <div className="t98-content-preview-text">{text}</div>}
+    {chrome !== 'story' && media != null && <div className="t98-content-preview-media">{media}</div>}
+    {footer != null && <div className="t98-content-preview-footer">{footer}</div>}
+  </>;
+  return <section className={cx('t98-content-preview-frame', `t98-content-preview-frame--${chrome}`, className)} aria-labelledby={`${id}-label`} aria-describedby={`${id}-notice`} aria-busy={pending || undefined}>
     <h3 id={`${id}-label`} className="t98-content-preview-label">{label}</h3>
     <p id={`${id}-notice`} className="t98-content-preview-notice">Approximate preview. Final delivery may look different.</p>
-    <div className="t98-content-preview-identity"><strong>{destination}</strong><span>{provider}</span></div>
     {pending && <p className="t98-content-preview-status" role="status">Preview update pending. Previously supplied content is retained.</p>}
     {error && <Alert title="Preview needs attention" tone="danger">{error}</Alert>}
-    {text == null && media == null && <p className="t98-content-preview-empty">{emptyMessage}</p>}
-    {text != null && <div className="t98-content-preview-text">{text}</div>}
-    {media != null && <div className="t98-content-preview-media">{media}</div>}
-    {footer != null && <div className="t98-content-preview-footer">{footer}</div>}
+    {chrome === 'card' ? <>{identity}{body}</> : <div className="t98-content-preview-surface">{identity}{chrome === 'message' ? <div className="t98-content-preview-bubble">{body}</div> : body}</div>}
   </section>;
 }

@@ -1,11 +1,13 @@
 import { useId, useState } from 'react';
 import { ContentPreview, DestinationPicker, MediaStrip, SandboxedPreview, type DestinationAccount, type MediaItem } from '../lib/composition.js';
 import { Field, Select, Textarea } from '../lib/primitives.js';
+import { Image } from '../lib/structure.js';
 import { tsx, type ComponentEntry, type ComponentProp } from './model.js';
 
 const prop = (name: string, type: string, description: string, required = false, defaultValue?: string): ComponentProp => ({ name, type, description, required, defaultValue });
 const surfaceTokens = ['--t98-font', '--t98-surface', '--t98-text', '--t98-muted', '--t98-border', '--t98-radius', '--t98-space-3', '--t98-space-4'];
 type Mode = 'default' | 'empty' | 'pending' | 'error' | 'readonly';
+const storyImage = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 9 16'%3E%3Crect width='9' height='16' fill='%23f2c14e'/%3E%3Crect y='10' width='9' height='6' fill='%23ffffff'/%3E%3C/svg%3E";
 const sampleEmail = '<body style="margin:0;font-family:Georgia,serif;color:#222;background:#fff"><div style="padding:24px"><h1 style="font-size:22px;margin:0 0 12px">Spring sale starts Monday</h1><p style="margin:0 0 12px">Thirty percent off studio sessions booked this week.</p><p style="margin:0"><a href="https://example.com/book" style="color:#0a58ca">Book a session</a></p></div></body>';
 const accounts: DestinationAccount[] = [
   { id: 'studio-main', name: 'Studio — main account', provider: 'Social provider', description: 'Main account copy stays independent.' },
@@ -94,7 +96,7 @@ export const compositionEntries: ComponentEntry[] = [
   {
     name: 'ContentPreview', category: 'Data display', description: 'An approximate destination preview with supplied text, media and footer slots.',
     usage: 'Supply the effective content for the exact destination account. The component is read-only presentation; it does not count characters, fetch media, reproduce provider logos, sanitize arbitrary HTML or send content. Supply trusted React nodes and approved media rendering. The app owns validation, recipient policy, provenance, assets, scheduling and authorization; an approximate preview is not delivery evidence.',
-    props: [prop('label', 'string', 'Visible preview heading and accessible region name.', true), prop('destination', 'string', 'Exact account, sender or destination identity.', true), prop('provider', 'string', 'Visible provider or connection identity.', true), prop('text', 'ReactNode', 'App-supplied effective text/content slot. Plain strings are escaped by React.'), prop('media', 'ReactNode', 'App-supplied authorized media; no URL fetching is performed.'), prop('footer', 'ReactNode', 'App-owned context, readiness or limitations.'), prop('pending', 'boolean', 'Announces pending update while retaining supplied content.', false, 'false'), prop('error', 'string', 'App-owned preview error alongside retained content.'), prop('emptyMessage', 'string', 'Shown when neither text nor media is supplied.', false, 'No content supplied for this destination.'), prop('className', 'string', 'Additional root class.')],
+    props: [prop('label', 'string', 'Visible preview heading and accessible region name.', true), prop('destination', 'string', 'Exact account, sender or destination identity.', true), prop('provider', 'string', 'Visible provider or connection identity.', true), prop('text', 'ReactNode', 'App-supplied effective text/content slot. Plain strings are escaped by React.'), prop('media', 'ReactNode', 'App-supplied authorized media; no URL fetching is performed.'), prop('footer', 'ReactNode', 'App-owned context, readiness or limitations.'), prop('chrome', "'card' | 'post' | 'story' | 'message'", 'Neutral layout approximating where the content appears; no platform logos, colours or trademarks.', false, "'card'"), prop('pending', 'boolean', 'Announces pending update while retaining supplied content.', false, 'false'), prop('error', 'string', 'App-owned preview error alongside retained content.'), prop('emptyMessage', 'string', 'Shown when neither text nor media is supplied.', false, 'No content supplied for this destination.'), prop('className', 'string', 'Additional root class.')],
     tokens: [...surfaceTokens, '--t98-subtle', '--t98-text-sm', '--t98-leading-normal', '--t98-danger', '--t98-danger-soft'],
     accessibility: ['Labelled region links a persistent, visible approximate-preview notice.', 'Destination and provider identity are text, with no invented platform branding.', 'Plain text preserves line breaks through the preview text styling; long content and media must fit narrow screens.', 'Pending updates and errors keep supplied content readable. Media-slot authors provide meaningful alternative text.'], related: ['DestinationPicker', 'MediaStrip', 'Alert'], example: previewCode(),
     states: [
@@ -103,6 +105,9 @@ export const compositionEntries: ComponentEntry[] = [
       { name: 'Empty', description: 'A named destination without supplied content.', preview: <PreviewDemo mode="empty" />, code: previewCode('empty') },
       { name: 'Pending update', description: 'Previously supplied content stays visible while the app refreshes its preview.', preview: <PreviewDemo mode="pending" />, code: previewCode('pending') },
       { name: 'Error with retained content', description: 'The error does not erase the supplied effective copy.', preview: <PreviewDemo mode="error" />, code: previewCode('error') },
+      ...(['post', 'story', 'message'] as const).map(chrome => ({ name: chrome === 'post' ? 'Feed post layout' : chrome === 'story' ? 'Story layout (9:16)' : 'Direct message layout', description: chrome === 'story' ? 'Media fills a 9:16 frame and the text sits on a solid scrim, so its contrast never depends on the image.' : chrome === 'post' ? 'Avatar, account and provider above the copy and media, as in a feed.' : 'An outgoing message bubble aligned to the inline end.',
+        preview: <ContentPreview label="Studio preview" destination="Studio — main account" provider="Social connection" chrome={chrome} text="Our studio opens this weekend." media={<Image src={storyImage} alt="The studio entrance at dusk" fit="cover" />} />,
+        code: tsx(['ContentPreview', 'Image'], `<ContentPreview label="Studio preview" destination="Studio — main account" provider="Social connection" chrome="${chrome}"\n  text="Our studio opens this weekend." media={<Image src="/media/studio.jpg" alt="The studio entrance at dusk" fit="cover" />} />`) })),
     ],
   },
   {
