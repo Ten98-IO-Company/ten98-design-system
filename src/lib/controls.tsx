@@ -4,6 +4,7 @@ import { useEffect, useId, useRef, useState, type ChangeEvent, type DragEvent, t
 import { Badge, Button, Checkbox, Field, Icon, Input, Progress, cx } from './primitives.js';
 import { Link, Stack, VisuallyHidden } from './structure.js';
 import { CopyButton } from './workspace.js';
+import { formatFileSize } from './format.js';
 
 /* Controls replace the raw details, fieldset, radio/checkbox list, pager, pre/code, status-line,
  * datalist and overflow wrappers that applications may not write themselves. Presentation only:
@@ -490,7 +491,15 @@ export function DateTimeField({ label, type = 'datetime-local', value, onValueCh
 }
 
 export type FileStatus = 'pending' | 'uploading' | 'done' | 'error';
-export interface FileItem { id: string; name: string; size?: number; status?: FileStatus; error?: string }
+export interface FileItem {
+  id: string;
+  name: string;
+  size?: number;
+  status?: FileStatus;
+  /** Upload progress from 0 to 100 while `status` is uploading; omit it when the transfer size is unknown. */
+  progress?: number;
+  error?: string;
+}
 export interface FileFieldProps {
   label: ReactNode;
   accept?: string;
@@ -508,12 +517,6 @@ export interface FileFieldProps {
 const statusBadge: Record<Exclude<FileStatus, 'uploading'>, { tone: 'neutral' | 'success' | 'danger'; text: string }> = {
   pending: { tone: 'neutral', text: 'Pending' }, done: { tone: 'success', text: 'Uploaded' }, error: { tone: 'danger', text: 'Failed' },
 };
-function formatFileSize(bytes: number): string {
-  if (!Number.isFinite(bytes) || bytes < 0) return '';
-  if (bytes < 1024) return `${bytes} B`;
-  const [value, unit] = bytes < 1024 * 1024 ? [bytes / 1024, 'KB'] : [bytes / (1024 * 1024), 'MB'];
-  return `${value.toFixed(1).replace(/\.0$/, '')} ${unit}`;
-}
 /** A file chooser button with a drop zone and a list of the caller's files. Drag and drop is only an extra: the button works alone. */
 export function FileField({ label, accept, multiple, name, onFiles, description, error, disabled, busy, files, onRemove }: FileFieldProps) {
   const id = useId();
@@ -553,7 +556,7 @@ export function FileField({ label, accept, multiple, name, onFiles, description,
           <Icon name="file" size={18} />
           <span className="t98-file-name">{file.name}</span>
           {file.size !== undefined && <span className="t98-file-size">{formatFileSize(file.size)}</span>}
-          {file.status === 'uploading' ? <Progress label={`Uploading ${file.name}`} className="t98-file-progress" /> : file.status && <Badge tone={statusBadge[file.status].tone}>{statusBadge[file.status].text}</Badge>}
+          {file.status === 'uploading' ? <Progress value={file.progress} label={`Uploading ${file.name}`} className="t98-file-progress" /> : file.status && <Badge tone={statusBadge[file.status].tone}>{statusBadge[file.status].text}</Badge>}
           {onRemove && <Button variant="ghost" className="t98-file-remove" aria-label={`Remove ${file.name}`} aria-describedby={file.error ? errorId : undefined} icon={<Icon name="x" size={16} />} onClick={() => onRemove(file.id)} />}
           {file.error && <p className="t98-field-error t98-file-error" id={errorId}>{file.error}</p>}
         </li>;

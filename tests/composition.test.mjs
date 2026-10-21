@@ -1,8 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { createElement as h } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { DestinationPicker, MediaStrip, ContentPreview } from '../dist/composition.js';
+
+const styles = readFileSync(new URL('../dist/styles.css', import.meta.url), 'utf8');
 
 const render = (Component, props) => renderToStaticMarkup(h(Component, props));
 const accounts = [
@@ -92,4 +95,21 @@ test('unverified media metadata does not imply processing or readiness', () => {
   const html = render(MediaStrip, { label: 'Media', items: [{ id: 'unknown', name: 'image.jpg', status: 'unverified', altText: '' }], onItemsChange() {}, readOnly: true });
   assert.match(html, /Metadata unverified/);
   assert.doesNotMatch(html, /aria-busy="true"|>Processing<|>Ready</);
+});
+
+test('MediaStrip previews a url by type and lists known facts, leaving out missing or invalid ones', () => {
+  const items = [
+    { id: 'i', name: 'poster.jpg', status: 'ready', altText: 'Poster', url: '/p.jpg', type: 'image/jpeg', width: 1080, height: 1350, size: 48200 },
+    { id: 'v', name: 'tour.mp4', status: 'ready', altText: '', url: '/t.mp4', type: 'video/mp4', width: 1080, height: 1920, duration: 3725, size: 18400000 },
+    { id: 'x', name: 'unknown.bin', status: 'unverified', altText: '', url: '/u.bin', type: 'application/octet-stream', width: 0, height: Number.NaN, duration: -1, size: Number.NaN },
+  ];
+  const html = render(MediaStrip, { label: 'Draft media', items, onItemsChange() {} });
+  assert.match(html, /<img[^>]*src="\/p.jpg"[^>]*alt="Poster"|<img[^>]*alt="Poster"[^>]*src="\/p.jpg"/);
+  assert.match(html, /1080 × 1350 px · 47.1 KB/);
+  assert.match(html, /<video[^>]*aria-label="Preview of tour.mp4"/);
+  assert.match(html, /1080 × 1920 px · 1:02:05 · 17.5 MB/);
+  const unknown = html.slice(html.indexOf('data-media-id="x"'));
+  assert.match(unknown, /Preview unavailable/);
+  assert.doesNotMatch(unknown, /t98-media-facts|0 × |0:00|NaN/);
+  assert.ok(styles.includes('.t98-media-facts'));
 });

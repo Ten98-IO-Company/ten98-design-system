@@ -55,7 +55,7 @@ export function EvidenceSummary({
   </Card>;
 }
 
-export type OperationStatus = 'submitted' | 'accepted' | 'delivered' | 'observed' | 'pending' | 'unknown' | 'confirmed' | 'error';
+export type OperationStatus = 'submitted' | 'accepted' | 'delivered' | 'observed' | 'pending' | 'unknown' | 'confirmed' | 'error' | 'suppressed' | 'skipped';
 export interface OperationTargetResult {
   id: string;
   target: ReactNode;
@@ -82,6 +82,8 @@ const operationStatus: Record<OperationStatus, { label: string; tone: Tone; desc
   unknown: { label: 'Outcome unknown', tone: 'warning', description: 'The action may have completed. Check its receipt before repeating it.' },
   confirmed: { label: 'Confirmed', tone: 'success', description: 'The application has supplied a confirmed result.' },
   error: { label: 'Failed', tone: 'danger', description: 'The application reports a failure. Review its details before any retry.' },
+  suppressed: { label: 'Suppressed', tone: 'neutral', description: 'Not sent: the target is suppressed, for example unsubscribed or previously bounced.' },
+  skipped: { label: 'Skipped', tone: 'neutral', description: 'Not attempted. The application decided not to send to this target.' },
 };
 
 /** Per-target receipts; actions are caller-owned and nothing is retried automatically. */

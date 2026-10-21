@@ -174,8 +174,13 @@ test('Button defaults to a non-submit action and disables itself while loading',
   assert.doesNotMatch(submit, /disabled|aria-busy/);
 });
 
-test('Progress clamps out-of-range values and handles nonfinite input', () => {
-  for (const [value, expected] of [[-10, 0], [125, 100], [42.4, 42.4], [NaN, 0], [Infinity, 0], [-Infinity, 0]]) {
+test('Progress clamps out-of-range values and shows nonfinite input as indeterminate, never 0%', () => {
+  for (const value of [NaN, Infinity, -Infinity]) {
+    const html = render(ui.Progress, { value, label: 'Upload' });
+    assert.match(html, /<progress class="t98-progress" aria-label="Upload" aria-busy="true">/);
+    assert.doesNotMatch(html, /value=|%|NaN|Infinity/);
+  }
+  for (const [value, expected] of [[-10, 0], [125, 100], [42.4, 42.4]]) {
     const html = render(ui.Progress, { value, label: 'Upload' });
     const progress = html.match(/<progress\b[^>]*>/)?.[0];
     assert.ok(progress);

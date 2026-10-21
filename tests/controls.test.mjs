@@ -146,10 +146,16 @@ test('FileField lists files with readable sizes, statuses and labelled remove bu
     { id: 'b', name: 'report.pdf', size: 1536, status: 'done' },
     { id: 'c', name: 'video.mov', size: 5 * 1024 * 1024 + 300000, status: 'error', error: 'Unsupported type' },
     { id: 'd', name: 'hero.png', size: 2048, status: 'uploading' },
+    { id: 'e', name: 'clip.mp4', size: 4096, status: 'uploading', progress: 42.4 },
+    { id: 'f', name: 'bad.mp4', size: 4096, status: 'uploading', progress: Number.NaN },
   ];
   const html = render(h(FileField, { label: 'Attachments', files, onFiles() {}, onRemove() {} }));
   for (const text of ['512 B', '1.5 KB', '5.3 MB', '2 KB', 'Pending', 'Uploaded', 'Failed']) assert.ok(html.includes(text), text);
   assert.match(html, /<progress[^>]*aria-label="Uploading hero.png"/);
+  assert.match(html, /<span>42%<\/span><\/div><progress class="t98-progress" value="42.4" max="100" aria-label="Uploading clip.mp4"/);
+  // A non-finite progress is indeterminate, never 0%.
+  assert.match(html, /<progress class="t98-progress" aria-label="Uploading bad.mp4" aria-busy="true"/);
+  assert.doesNotMatch(html, /0%/);
   for (const { name } of files) assert.ok(html.includes('aria-label="Remove ' + name + '"'), name);
   const id = html.match(/aria-describedby="([^"]+-c-error)"/)[1];
   assert.ok(html.includes('id="' + id + '">Unsupported type'));

@@ -44,7 +44,7 @@ test('every component state page renders without browser errors or page overflow
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.goto(`${prefix}#components`);
-  await expect(page.locator('.reference-component-card')).toHaveCount(151);
+  await expect(page.locator('.reference-component-card')).toHaveCount(152);
   const links = await page.locator('.reference-component-card').evaluateAll(nodes => nodes.map(node => ({ href: node.getAttribute('href')!, name: node.querySelector('h2')!.textContent! })));
   for (const link of links) {
     await test.step(link.name, async () => {

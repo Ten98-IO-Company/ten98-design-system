@@ -2,6 +2,10 @@
 
 import { useId, type ReactNode } from 'react';
 import { Alert, Badge, Button, Checkbox, Field, Input, Textarea, cx } from './primitives.js';
+import { MediaPlayer } from './controls.js';
+import { Image } from './structure.js';
+import { formatDuration, formatFileSize } from './format.js';
+import { contentPolicyMeta, prefixDocument } from './sandbox.js';
 
 export type DestinationAccount = {
   id: string;
@@ -58,6 +62,35 @@ export interface MediaItem {
   statusLabel?: string;
   error?: string;
   altText: string;
+  /** Media URL. With `type`, the strip previews it when `preview` is not supplied. */
+  url?: string;
+  /** MIME type, such as image/jpeg or video/mp4. */
+  type?: string;
+  /** Pixel dimensions, shown as width × height. */
+  width?: number;
+  height?: number;
+  /** Length in seconds for audio and video. */
+  duration?: number;
+  /** Size in bytes. */
+  size?: number;
+}
+
+const positive = (value: number | undefined): value is number => value !== undefined && Number.isFinite(value) && value > 0;
+/** Facts known about the media; missing or invalid values are left out rather than shown as 0. */
+function mediaFacts(item: MediaItem) {
+  return [
+    positive(item.width) && positive(item.height) ? `${Math.round(item.width)} × ${Math.round(item.height)} px` : '',
+    item.duration === undefined ? '' : formatDuration(item.duration),
+    item.size === undefined ? '' : formatFileSize(item.size),
+  ].filter(Boolean);
+}
+function mediaPreview(item: MediaItem) {
+  if (item.preview != null) return item.preview;
+  if (!item.url || !item.type) return <span className="t98-media-placeholder">Preview unavailable</span>;
+  if (item.type.startsWith('image/')) return <Image src={item.url} alt={item.altText} fit="contain" width={positive(item.width) ? item.width : undefined} height={positive(item.height) ? item.height : undefined} />;
+  const kind = item.type.startsWith('video/') ? 'video' : item.type.startsWith('audio/') ? 'audio' : null;
+  if (!kind) return <span className="t98-media-placeholder">Preview unavailable</span>;
+  return <MediaPlayer kind={kind} label={`Preview of ${item.name}`} src={item.url} type={item.type} width={positive(item.width) ? item.width : undefined} height={positive(item.height) ? item.height : undefined} />;
 }
 
 export interface MediaStripProps {
@@ -95,9 +128,10 @@ export function MediaStrip({ label, items, onItemsChange, onFilesSelect, accept,
       event.currentTarget.value = '';
     }} /></Field>}
     {items.length ? <ol className="t98-media-list">{items.map((item, index) => <li key={item.id} className="t98-media-item" data-media-id={item.id} aria-busy={item.status === 'pending' || undefined}>
-      <div className="t98-media-preview">{item.preview ?? <span className="t98-media-placeholder">Preview unavailable</span>}</div>
+      <div className="t98-media-preview">{mediaPreview(item)}</div>
       <div className="t98-media-details">
         <p className="t98-media-name">{item.name}</p>
+        {mediaFacts(item).length > 0 && <p className="t98-media-facts">{mediaFacts(item).join(' · ')}</p>}
         <Badge tone={item.status === 'ready' ? 'success' : item.status === 'error' ? 'danger' : item.status === 'unverified' ? 'neutral' : 'info'}>{item.statusLabel ?? (item.status === 'ready' ? 'Ready' : item.status === 'error' ? 'Failed' : item.status === 'unverified' ? 'Metadata unverified' : 'Processing')}</Badge>
         {item.error && <p className="t98-media-error" role="alert">{item.error}</p>}
         <Field htmlFor={`${id}-alt-${encodeURIComponent(item.id)}`} label={`Alt text for ${item.name}`}>
@@ -112,6 +146,43 @@ export function MediaStrip({ label, items, onItemsChange, onFilesSelect, accept,
         </div>
       </div>
     </li>)}</ol> : <p className="t98-media-empty">{emptyMessage}</p>}
+  </section>;
+}
+
+export interface SandboxedPreviewProps {
+  /** Visible heading and the frame's accessible name, for example "Email preview: Spring sale". */
+  title: string;
+  /** Untrusted HTML document or fragment, such as a rendered email. */
+  html?: string;
+  /** Allows https images. Off by default, so opening a preview cannot fire tracking pixels or read receipts. */
+  allowRemoteImages?: boolean;
+  /** Frame width: 375px for mobile or 600px for desktop email. Wider than the space available, the frame scrolls sideways. */
+  viewport?: 'mobile' | 'desktop';
+  /** Frame height: 20, 32 or 48rem. The document scrolls inside the frame. */
+  height?: 'sm' | 'md' | 'lg';
+  /** Context shown above the frame, such as the subject, sender or an approximation notice. */
+  notice?: ReactNode;
+  /** Shown instead of the frame when there is nothing to preview or it is not authorized. */
+  unavailable?: ReactNode;
+  className?: string;
+}
+
+/** Scripts, forms and plugins never run; only inline styles and data images load (plus https images when allowed). */
+const previewPolicy = (remoteImages: boolean) => `default-src 'none'; style-src 'unsafe-inline' data:; img-src data:${remoteImages ? ' https:' : ''}; font-src data:; form-action 'none'; base-uri 'none'`;
+
+/** Renders untrusted HTML, such as an email, in a frame with every sandbox restriction and a content policy that blocks
+ * scripts and network loads. Links cannot navigate: they target a new window, which the sandbox does not allow. */
+export function SandboxedPreview({ title, html, allowRemoteImages = false, viewport = 'desktop', height = 'md', notice, unavailable, className }: SandboxedPreviewProps) {
+  const id = useId();
+  const prefix = `${contentPolicyMeta(previewPolicy(allowRemoteImages))}<base target="_blank"><meta name="color-scheme" content="light">`;
+  return <section className={cx('t98-sandboxed-preview', className)} aria-labelledby={`${id}-title`}>
+    <h3 id={`${id}-title`} className="t98-sandboxed-preview-title">{title}</h3>
+    {notice != null && <div className="t98-sandboxed-preview-notice">{notice}</div>}
+    {unavailable != null || !html ? <p className="t98-sandboxed-preview-empty">{unavailable ?? 'Nothing to preview.'}</p>
+      : <div className="t98-sandboxed-preview-scroll" role="region" aria-label={`${title}, scrollable`} tabIndex={0}>
+        <iframe className={cx('t98-sandboxed-preview-frame', `t98-sandboxed-preview-frame--${viewport}`, `t98-sandboxed-preview-frame--${height}`)}
+          title={title} sandbox="" referrerPolicy="no-referrer" srcDoc={prefixDocument(html, prefix)} />
+      </div>}
   </section>;
 }
 

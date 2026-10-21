@@ -302,9 +302,10 @@ export function Alert({ title, tone = 'info', variant = 'default', onDismiss, di
 }
 
 /** Omit `value` for an indeterminate operation of unknown length. */
+/** Task progress from 0 to 100. Without a finite value it is indeterminate, never 0%. */
 export function Progress({ value, label = 'Progress', className }: { value?: number; label?: string; className?: string }) {
-  if (value === undefined) return <div className={cx('t98-progress-group', className)}><div className="t98-progress-label"><span>{label}</span></div><progress className="t98-progress" aria-label={label} aria-busy="true" /></div>;
-  const safeValue = Number.isFinite(value) ? Math.max(0, Math.min(100, value)) : 0;
+  if (value === undefined || !Number.isFinite(value)) return <div className={cx('t98-progress-group', className)}><div className="t98-progress-label"><span>{label}</span></div><progress className="t98-progress" aria-label={label} aria-busy="true" /></div>;
+  const safeValue = Math.max(0, Math.min(100, value));
   return <div className={cx('t98-progress-group', className)}><div className="t98-progress-label"><span>{label}</span><span>{Math.round(safeValue)}%</span></div><progress className="t98-progress" value={safeValue} max={100} aria-label={label}>{Math.round(safeValue)}%</progress></div>;
 }
 

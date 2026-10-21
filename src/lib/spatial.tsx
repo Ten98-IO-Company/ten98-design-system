@@ -4,6 +4,7 @@ import { useId, useMemo, useState, type KeyboardEvent, type ReactNode } from 're
 import { Button, cx } from './primitives.js';
 import { StatusLine } from './controls.js';
 import { ReplayControls, type ReplayControlsProps } from './inspection.js';
+import { contentPolicyMeta, prefixDocument } from './sandbox.js';
 
 /** Presentation only: the app supplies geometry, data, player documents, access decisions and every explanatory message. */
 
@@ -254,15 +255,6 @@ export interface ReplayViewerProps {
 
 /** Content policy for player documents: inline player scripts and styles run, recorded media stays local, nothing reaches the network. */
 export const defaultReplayContentPolicy = "default-src 'none'; script-src 'unsafe-inline' blob:; style-src 'unsafe-inline' data: blob:; img-src data: blob:; media-src data: blob:; font-src data:";
-/** Puts a CSP meta element first in the document head (or at the start when there is no head) without changing the doctype. */
-function withContentPolicy(doc: string, policy: string) {
-  const meta = `<meta http-equiv="Content-Security-Policy" content="${policy.replace(/"/g, '&quot;')}">`;
-  const head = /<head[^>]*>/i.exec(doc);
-  if (head) return doc.slice(0, head.index + head[0].length) + meta + doc.slice(head.index + head[0].length);
-  const doctype = /^\s*<!doctype[^>]*>/i.exec(doc);
-  return doctype ? doctype[0] + meta + doc.slice(doctype[0].length) : meta + doc;
-}
-
 /** Hosts an untrusted player document in a script-only sandbox with no same-origin access and no referrer; controls stay outside it.
  * A `srcDoc` player also gets a content policy so recorded pages cannot fetch, beacon or load remote assets while replaying. */
 export function ReplayViewer({ label, context, title, srcDoc, src, controls, reason, className, contentPolicy = defaultReplayContentPolicy }: ReplayViewerProps) {
@@ -272,7 +264,7 @@ export function ReplayViewer({ label, context, title, srcDoc, src, controls, rea
     <div className="t98-replay-viewer-context">{context}</div>
     {reason != null || !hasDocument
       ? <div className="t98-replay-viewer-reason" role="status">{reason ?? 'No replay document was supplied.'}</div>
-      : <iframe className="t98-replay-frame" title={title} sandbox="allow-scripts" referrerPolicy="no-referrer" srcDoc={srcDoc === undefined ? undefined : withContentPolicy(srcDoc, contentPolicy)} src={srcDoc === undefined ? src : undefined} />}
+      : <iframe className="t98-replay-frame" title={title} sandbox="allow-scripts" referrerPolicy="no-referrer" srcDoc={srcDoc === undefined ? undefined : prefixDocument(srcDoc, contentPolicyMeta(contentPolicy))} src={srcDoc === undefined ? src : undefined} />}
     <ReplayControls {...controls} />
   </section>;
 }

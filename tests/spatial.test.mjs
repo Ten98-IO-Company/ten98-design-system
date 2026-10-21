@@ -31,9 +31,12 @@ test('the replay iframe is script-only sandboxed, never same-origin, and control
   assert.ok(html.indexOf('</iframe>') < html.indexOf('t98-replay-controls'));
 });
 
-test('a srcDoc replay carries a no-network content policy inside its head, after the doctype', () => {
+test('a srcDoc replay starts with a no-network content policy, after any doctype', () => {
   const head = render(ReplayViewer, { ...replay, srcDoc: '<!doctype html><html><head><title>p</title></head><body></body></html>' });
-  assert.match(head, /srcDoc="&lt;!doctype html&gt;&lt;html&gt;&lt;head&gt;&lt;meta http-equiv=&quot;Content-Security-Policy&quot; content=&quot;default-src &#x27;none&#x27;;[^"]*&gt;&lt;title&gt;/);
+  // The policy goes after the doctype, before the document's own head, so nothing in the document can precede it.
+  assert.match(head, /srcDoc="&lt;!doctype html&gt;&lt;meta http-equiv=&quot;Content-Security-Policy&quot; content=&quot;default-src &#x27;none&#x27;;[^"]*&gt;&lt;html&gt;&lt;head&gt;&lt;title&gt;/);
+  const commented = render(ReplayViewer, { ...replay, srcDoc: '<!--<head>--><p>x</p>' });
+  assert.match(commented, /srcDoc="&lt;meta http-equiv=&quot;Content-Security-Policy&quot;[^"]*&gt;&lt;!--&lt;head&gt;--&gt;/);
   const bare = render(ReplayViewer, { ...replay, srcDoc: '<!DOCTYPE html><p>x</p>' });
   assert.match(bare, /srcDoc="&lt;!DOCTYPE html&gt;&lt;meta http-equiv=&quot;Content-Security-Policy&quot;/);
   assert.match(render(ReplayViewer, replay), /srcDoc="&lt;meta http-equiv=&quot;Content-Security-Policy&quot;[^"]*&gt;&lt;p&gt;player/);

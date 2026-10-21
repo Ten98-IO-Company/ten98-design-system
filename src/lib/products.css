@@ -71,6 +71,20 @@
 .t98-media-preview :where(img,video,svg) { max-width:100%; max-height:160px; object-fit:contain; }
 .t98-media-placeholder { padding:var(--t98-space-2); color:var(--t98-muted); text-align:center; }
 .t98-media-name { font-weight:var(--t98-weight-semibold); margin:0; }
+.t98-sandboxed-preview { display:grid; gap:var(--t98-space-2); min-width:0; max-width:100%; color:var(--t98-text); font:var(--t98-text-sm)/var(--t98-leading-relaxed) var(--t98-font); }
+.t98-sandboxed-preview-title { margin:0; font:var(--t98-weight-semibold) var(--t98-text-md)/var(--t98-leading-tight) var(--t98-heading); overflow-wrap:anywhere; }
+.t98-sandboxed-preview-notice, .t98-sandboxed-preview-empty { margin:0; color:var(--t98-muted); overflow-wrap:anywhere; }
+.t98-sandboxed-preview-scroll { min-width:0; max-width:100%; overflow-x:auto; border:var(--t98-border-width) solid var(--t98-border); border-radius:var(--t98-radius-sm); background:var(--t98-subtle); padding:var(--t98-space-2); }
+.t98-sandboxed-preview-scroll:focus-visible { outline:var(--t98-focus-width) solid var(--t98-focus); outline-offset:var(--t98-focus-offset); }
+/* Email bodies assume a white canvas whatever the app theme, as mail clients render them. */
+.t98-sandboxed-preview-frame { display:block; margin-inline:auto; border:0; background:#fff; color-scheme:light; }
+.t98-sandboxed-preview-frame--mobile { inline-size:375px; }
+.t98-sandboxed-preview-frame--desktop { inline-size:600px; }
+.t98-sandboxed-preview-frame--sm { block-size:20rem; }
+.t98-sandboxed-preview-frame--md { block-size:32rem; }
+.t98-sandboxed-preview-frame--lg { block-size:48rem; }
+@media (forced-colors: active) { .t98-sandboxed-preview-scroll { border-color:CanvasText; } }
+.t98-media-facts { margin:0; color:var(--t98-muted); font-size:var(--t98-text-xs); font-variant-numeric:tabular-nums; }
 .t98-media-details { min-width:0; display:grid; gap:var(--t98-space-2); }
 .t98-media-details > .t98-badge { justify-self:start; }
 .t98-media-actions { display:flex; flex-wrap:wrap; gap:var(--t98-space-2); }
