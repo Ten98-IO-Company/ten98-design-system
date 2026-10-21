@@ -1,10 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { createElement as h } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { ConversationThread, DetailWorkspace, PublishingAgenda } from '../dist/coordination.js';
 
 const render = (component, props) => renderToStaticMarkup(h(component, props));
+const styles = readFileSync(new URL('../dist/styles.css', import.meta.url), 'utf8');
 
 test('agenda preserves app order, display labels and instants while retaining context through loading and errors', () => {
   const entries = Object.freeze([
@@ -42,6 +44,26 @@ test('workspace selection is explicit and deselection retains mounted draft and 
   assert.match(empty, /class="t98-detail-selected-content" hidden=""><textarea>Unsaved draft/);
   assert.match(empty, /Open conversation/);
   assert.doesNotMatch(empty, /class="[^"]*\bt98-detail-back\b/);
+});
+
+test('conversation messages show direction as text, group per-message actions and withhold removed content', () => {
+  const messages = [
+    { id: 'a', author: 'Visitor', time: '13:00', visibility: 'public', direction: 'inbound', content: 'Secret original text', attachments: h('span', null, 'Original attachment'), removed: true, removedReason: 'Hidden by a teammate.', actions: h('button', { type: 'button' }, 'Unhide') },
+    { id: 'b', author: 'Studio team', time: '13:05', visibility: 'public', direction: 'outbound', content: 'Reply', actions: h('button', { type: 'button' }, 'Copy link') },
+    { id: 'c', author: 'Legacy', time: '13:06', visibility: 'note', content: 'No direction' },
+  ];
+  const html = render(ConversationThread, { label: 'Comments', messages });
+  assert.match(html, /data-direction="inbound" data-removed="true"/);
+  assert.match(html, /data-direction="outbound"/);
+  assert.match(html, />Received</);
+  assert.match(html, />Sent</);
+  assert.match(html, /Message removed\.[\s\S]*Hidden by a teammate\./);
+  assert.doesNotMatch(html, /Secret original text|Original attachment/);
+  assert.match(html, /role="group" aria-label="Actions for the message from Visitor, 13:00"><button type="button">Unhide/);
+  assert.match(html, /aria-label="Actions for the message from Studio team, 13:05"/);
+  const legacy = html.slice(html.indexOf('data-message-id="c"'));
+  assert.doesNotMatch(legacy, /data-direction|Received|Sent<|t98-conversation-actions/);
+  for (const name of ['t98-conversation-direction', 't98-conversation-actions', 't98-conversation-removed-label', 't98-conversation-removed-reason']) assert.ok(styles.includes(`.${name}`), `${name} is styled`);
 });
 
 test('conversation distinguishes public, private and note text and never infers send success from a composer', () => {

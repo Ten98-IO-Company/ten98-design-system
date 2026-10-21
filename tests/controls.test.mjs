@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createElement as h } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { CheckboxGroup, CodeBlock, Combobox, DateTimeField, Disclosure, FileField, Fieldset, InlineCode, Pager, RadioGroup, Scroller, SegmentedControl, StatusLine, Button } from '../dist/index.js';
+import { Blockquote, CheckboxGroup, CodeBlock, MediaPlayer, MultiCombobox, Combobox, DateTimeField, Disclosure, FileField, Fieldset, InlineCode, Pager, RadioGroup, Scroller, SegmentedControl, StatusLine, Button } from '../dist/index.js';
 
 const styles = readFileSync(new URL('../dist/styles.css', import.meta.url), 'utf8');
 const classes = html => [...html.matchAll(/class="([^"]+)"/g)].flatMap(match => match[1].split(' '));
@@ -188,4 +188,55 @@ test('Fieldset links its error and marks the group invalid; RadioGroup can be re
   assert.match(group, new RegExp(`id="${describedBy}"[^>]*role="alert"[^>]*>Add at least one slot\.`));
   const radios = renderToStaticMarkup(h(RadioGroup, { legend: 'Account', name: 'account', required: true, options: [{ value: 'a', label: 'A' }, { value: 'b', label: 'B' }] }));
   assert.equal([...radios.matchAll(/<input[^>]*type="radio"[^>]*required=""/g)].length, 2);
+});
+
+test('MediaPlayer names native controls by its caption, preloads metadata only and never autoplays', () => {
+  const audio = renderToStaticMarkup(h(MediaPlayer, { kind: 'audio', label: 'Voice note, 0:42', src: '/a.m4a', type: 'audio/mp4', transcript: 'Hello there', downloadHref: '/a.m4a' }));
+  rendered.push(audio);
+  assert.match(audio, /<figcaption class="t98-media-player-label">Voice note, 0:42<\/figcaption><audio class="t98-media-player-element" controls="" preload="metadata" aria-label="Voice note, 0:42"><source src="\/a.m4a" type="audio\/mp4"\/>/);
+  assert.doesNotMatch(audio, /autoplay|autoPlay/);
+  assert.match(audio, /Transcript[\s\S]*Hello there/);
+  assert.match(audio, /<a[^>]*href="\/a.m4a"[^>]*download=""|download=""[^>]*href="\/a.m4a"/);
+  const video = renderToStaticMarkup(h(MediaPlayer, { kind: 'video', label: 'Video reply', src: '/v.mp4', width: 640, height: 360, poster: '/p.jpg', tracks: [{ src: '/v.vtt', srcLang: 'en', label: 'English', default: true }] }));
+  rendered.push(video);
+  assert.match(video, /<video[^>]*poster="\/p.jpg"[^>]*width="640"[^>]*height="360"[^>]*playsInline=""|<video[^>]*playsinline=""/i);
+  assert.match(video, /<track kind="captions" src="\/v.vtt" srcLang="en" label="English" default=""\/>|<track kind="captions" src="\/v.vtt" srclang="en" label="English" default=""\/>/);
+  const gone = renderToStaticMarkup(h(MediaPlayer, { kind: 'video', label: 'Video reply', src: '/v.mp4', unavailable: 'Expired.' }));
+  assert.match(gone, /Expired\./);
+  assert.doesNotMatch(gone, /<video/);
+  assert.match(renderToStaticMarkup(h(MediaPlayer, { kind: 'audio', label: 'Voice' })), /No audio supplied\./);
+});
+
+test('Blockquote renders a figure with a native blockquote and an optional caption', () => {
+  const html = renderToStaticMarkup(h(Blockquote, { source: 'Visitor', cite: 'https://example.test/c/1' }, 'Quoted'));
+  rendered.push(html);
+  assert.equal(html, '<figure class="t98-quote"><blockquote class="t98-quote-text" cite="https://example.test/c/1">Quoted</blockquote><figcaption class="t98-quote-source">Visitor</figcaption></figure>');
+  assert.doesNotMatch(renderToStaticMarkup(h(Blockquote, null, 'Quoted')), /figcaption/);
+  for (const name of ['t98-quote', 't98-quote-text', 't98-quote-source', 't98-media-player', 't98-media-player-label', 't98-media-player-element', 't98-media-player-reason']) assert.ok(styles.includes(`.${name}`), `${name} is styled`);
+});
+
+test('an async Combobox names a value missing from the current results and posts it', () => {
+  const html = renderToStaticMarkup(h(Combobox, { label: 'Airport', name: 'airport', options: [], filter: false, value: 'DXB', valueLabel: 'Dubai (DXB)', onValueChange() {}, allowCustom: false, loading: true }));
+  rendered.push(html);
+  assert.match(html, /value="Dubai \(DXB\)"/);
+  assert.match(html, /<input type="hidden" name="airport" value="DXB"\/>/);
+  assert.match(html, /aria-busy="true"[\s\S]*Loading results…/);
+});
+
+test('MultiCombobox renders removable tags, one hidden input per value and an aria-multiselectable list', () => {
+  const values = [{ value: 'DXB', label: 'Dubai' }, { value: 'DOH', label: 'Doha' }];
+  const html = renderToStaticMarkup(h(MultiCombobox, { label: 'Destinations', name: 'to', options: [...values, { value: 'RUH', label: 'Riyadh' }], values, onValuesChange() {}, required: true }));
+  rendered.push(html);
+  assert.match(html, /<ul class="t98-combobox-tags" aria-label="Selected Destinations">/);
+  assert.match(html, /aria-label="Remove Dubai"/);
+  assert.match(html, /aria-label="Remove Doha"/);
+  assert.match(html, /<input type="hidden" name="to" value="DXB"\/><input type="hidden" name="to" value="DOH"\/>/);
+  assert.match(html, /role="listbox"[^>]*aria-multiselectable="true"/);
+  assert.match(html, /aria-selected="true"[^>]*>(<svg[^>]*>.*?<\/svg>)Dubai/);
+  assert.match(html, /aria-selected="false"[^>]*>(<svg[^>]*>.*?<\/svg>)Riyadh/);
+  assert.doesNotMatch(html.slice(html.indexOf('role="combobox"') - 300, html.indexOf('role="combobox"') + 400), /required=""/);
+  const empty = renderToStaticMarkup(h(MultiCombobox, { label: 'Destinations', options: values, values: [], onValuesChange() {}, required: true }));
+  assert.match(empty, /role="combobox"[^>]*required=""|required=""[^>]*role="combobox"/);
+  assert.doesNotMatch(empty, /t98-combobox-tags/);
+  for (const name of ['t98-combobox-tags', 't98-combobox-tag', 't98-combobox-tag-label', 't98-combobox-tag-remove', 't98-combobox-check']) assert.ok(styles.includes(`.${name}`), `${name} is styled`);
 });

@@ -123,6 +123,19 @@ export function Image({ fit = 'cover', aspect = 'auto', rounded = true, loading 
   return <img {...props} loading={loading} decoding={decoding} className={cx('t98-image', `t98-image--${fit}`, aspect !== 'auto' && `t98-aspect-${aspect}`, rounded && 't98-image--rounded', className)} />;
 }
 
+export interface BlockquoteProps extends Omit<HTMLAttributes<HTMLElement>, 'style'> {
+  /** Visible attribution, such as the author or the message being replied to. */
+  source?: ReactNode;
+  /** URL of the quoted source, for machines; it is not shown. */
+  cite?: string;
+}
+/** Quoted text with an optional visible attribution. Use inside messages, reviews and evidence. */
+export function Blockquote({ source, cite, className, children, ...props }: BlockquoteProps) {
+  return <figure {...props} className={cx('t98-quote', className)}>
+    <blockquote className="t98-quote-text" cite={cite}>{children}</blockquote>
+    {source != null && <figcaption className="t98-quote-source">{source}</figcaption>}
+  </figure>;
+}
 
 export interface DescriptionItem { term: ReactNode; description: ReactNode; key?: string }
 /** Label/value pairs for identity, settings or review details. `columns` places pairs side by side on wide screens. */

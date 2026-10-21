@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useId, useRef, useState, type ChangeEvent, type DragEvent, type KeyboardEvent, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type ChangeEvent, type DragEvent, type KeyboardEvent, type ReactNode, type Ref } from 'react';
 import { Badge, Button, Checkbox, Field, Icon, Input, Progress, cx } from './primitives.js';
-import { Stack, VisuallyHidden } from './structure.js';
+import { Link, Stack, VisuallyHidden } from './structure.js';
 import { CopyButton } from './workspace.js';
 
 /* Controls replace the raw details, fieldset, radio/checkbox list, pager, pre/code, status-line,
@@ -163,6 +163,52 @@ export function Pager({ onPrevious, onNext, label = 'Pagination', status, previo
   </nav>;
 }
 
+export interface MediaTrack { src: string; srcLang: string; label: string; kind?: 'captions' | 'subtitles' | 'descriptions' | 'chapters'; default?: boolean }
+export interface MediaPlayerProps {
+  kind: 'audio' | 'video';
+  /** Visible caption and accessible name, for example "Voice note from Lina, 0:42". */
+  label: string;
+  src?: string;
+  /** MIME type, so the browser can skip a format it cannot play. */
+  type?: string;
+  poster?: string;
+  /** Intrinsic video size, so the frame reserves its aspect ratio before loading. */
+  width?: number;
+  height?: number;
+  /** Caption, subtitle or description tracks (WebVTT). Video with speech needs captions. */
+  tracks?: readonly MediaTrack[];
+  /** Text equivalent in a collapsed Transcript disclosure; audio-only content needs one. */
+  transcript?: ReactNode;
+  /** Offered when the browser cannot play the file. */
+  downloadHref?: string;
+  /** Replaces the player when the media is unavailable, expired, processing or not authorized. */
+  unavailable?: ReactNode;
+  className?: string;
+}
+/** Native audio or video controls with captions, a transcript and a visible fallback when the file cannot be played. Nothing autoplays; only metadata is preloaded. */
+export function MediaPlayer({ kind, label, src, type, poster, width, height, tracks = [], transcript, downloadHref, unavailable, className }: MediaPlayerProps) {
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  const failed = src !== undefined && failedSrc === src;
+  const fail = () => { if (src !== undefined) setFailedSrc(src); };
+  const download = downloadHref ? <Link href={downloadHref} download>Download {label}</Link> : null;
+  // A failing <source> reports the error on itself, not on the media element, so both listen.
+  const children = <>
+    <source src={src} type={type} onError={fail} />
+    {tracks.map(track => <track key={track.src} kind={track.kind ?? 'captions'} src={track.src} srcLang={track.srcLang} label={track.label} default={track.default} />)}
+    {download}
+  </>;
+  const shared = { className: 't98-media-player-element', controls: true, preload: 'metadata', 'aria-label': label, onError: fail } as const;
+  return <figure className={cx('t98-media-player', `t98-media-player--${kind}`, className)}>
+    <figcaption className="t98-media-player-label">{label}</figcaption>
+    {unavailable != null ? <p className="t98-media-player-reason">{unavailable}</p>
+      : src === undefined ? <p className="t98-media-player-reason">No {kind} supplied.</p>
+      : failed ? <p className="t98-media-player-reason">This {kind} cannot be played in this browser.{download && <> {download}</>}</p>
+      : kind === 'audio' ? <audio key={src} {...shared}>{children}</audio>
+      : <video key={src} {...shared} poster={poster} width={width} height={height} playsInline>{children}</video>}
+    {transcript != null && <Disclosure summary="Transcript" variant="plain">{transcript}</Disclosure>}
+  </figure>;
+}
+
 export interface CodeBlockProps { code: string; language?: string; label?: string; wrap?: boolean; maxHeight?: ScrollHeight; copy?: boolean }
 /** Preformatted code. `language` is a label only; there is no syntax highlighting. */
 export function CodeBlock({ code, language, label, wrap = false, maxHeight, copy = false }: CodeBlockProps) {
@@ -186,11 +232,25 @@ export function StatusLine({ tone = 'neutral', busy = false, live = 'polite', ch
 }
 
 export interface ComboboxOption { value: string; label: string }
-export interface ComboboxProps {
+
+interface ComboboxAsyncProps {
+  /** Called with the typed text, and with an empty string when the field closes after typing, so the app can search. */
+  onInputChange?: (text: string) => void;
+  /** False when the app already filtered `options` (for example on the server); they are then shown as supplied. */
+  filter?: boolean;
+  /** Results are being fetched. Supplied options stay visible and "Loading results" is shown and announced. */
+  loading?: boolean;
+  /** Shown in the popup, and announced, when results could not be fetched. */
+  loadError?: string;
+}
+
+export interface ComboboxProps extends ComboboxAsyncProps {
   label: ReactNode;
   options: string[] | ComboboxOption[];
   value: string;
   onValueChange: (value: string) => void;
+  /** Label for `value` when it is not among the current `options`, for example after async results change. */
+  valueLabel?: string;
   description?: ReactNode;
   /** Shown when `allowCustom` is true, or when it is false and the field was left with a value that is not an option. */
   error?: ReactNode;
@@ -210,36 +270,51 @@ export interface ComboboxProps {
  * (W3C Software and Document License; see THIRD_PARTY_NOTICES.md). Adapted to React 19 and t98 tokens.
  * DOM focus stays on the input; the highlighted option is exposed with aria-activedescendant.
  * Deviations from the example: filtering matches anywhere in the label (case-insensitive) rather than as a prefix,
- * ArrowUp moves to the previous option and wraps, and Enter on an open list with no highlighted option only closes it. */
-interface ComboboxControlProps {
+ * ArrowUp moves to the previous option and wraps, and Enter on an open list with no highlighted option only closes it.
+ * Async loading (onInputChange, filter=false, loading) follows react-aria useComboBox (Apache-2.0); multiple selection
+ * follows Downshift useMultipleSelection (MIT): picks keep the list open, Backspace in an empty input removes the last pick,
+ * and aria-selected marks picked options in an aria-multiselectable listbox. Behaviour only; no code is copied. */
+interface ComboboxControlProps extends ComboboxAsyncProps {
   id?: string;
-  /** The value the hidden input posts; empty when a list-only field holds unlisted text. */
-  submitValue: string;
   'aria-describedby'?: string;
   'aria-invalid'?: boolean;
   options: ComboboxOption[];
-  value: string;
-  onValueChange: (value: string) => void;
+  /** Input text while the user is not typing. */
+  text: string;
+  onType: (typed: string) => void;
+  onPick: (option: ComboboxOption) => void;
+  /** Escape on a closed list. */
+  onClear: () => void;
   onLeave: () => void;
   label: ReactNode;
-  name?: string;
   placeholder?: string;
   required?: boolean;
   disabled?: boolean;
   emptyMessage: string;
+  /** Multiple selection: picked values, shown as selected options; the list stays open after a pick. */
+  picked?: ReadonlySet<string>;
+  /** Backspace in an empty input (multiple selection). */
+  onRemoveLast?: () => void;
+  /** Announced in place of the result count, for example after a pick; the owner clears it when the user types. */
+  notice?: string;
+  inputRef?: Ref<HTMLInputElement>;
+  /** Rendered before the input, such as picked tags. */
+  before?: ReactNode;
+  /** Rendered after the input, such as hidden form inputs. */
+  children?: ReactNode;
 }
-function ComboboxControl({ id, options, value, submitValue, onValueChange, onLeave, label, name, placeholder, required, disabled, emptyMessage, ...described }: ComboboxControlProps) {
+function ComboboxControl({ id, options, text, onType, onPick, onClear, onLeave, label, placeholder, required, disabled, emptyMessage, picked, onRemoveLast, notice, inputRef, before, children, onInputChange, filter = true, loading = false, loadError, ...described }: ComboboxControlProps) {
   const generated = useId();
   const listId = `${generated}-list`;
   const optionId = (index: number) => `${generated}-option-${index}`;
+  const multiple = picked !== undefined;
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(-1);
   // The text typed since the field was last closed. It filters the options and is shown as typed, because a
   // typed value that happens to equal another option's value must not be rewritten to that option's label. Null shows every option.
   const [query, setQuery] = useState<string | null>(null);
   const list = useRef<HTMLUListElement>(null);
-  const text = options.find(option => option.value === value)?.label ?? value;
-  const needle = query?.toLowerCase();
+  const needle = filter ? query?.toLowerCase() : undefined;
   const shown = needle ? options.filter(option => option.label.toLowerCase().includes(needle)) : options;
   const count = shown.length;
   const activeOption = open && active >= 0 && active < count ? active : -1;
@@ -248,8 +323,13 @@ function ComboboxControl({ id, options, value, submitValue, onValueChange, onLea
     if (activeOption >= 0) list.current?.children[activeOption]?.scrollIntoView({ block: 'nearest' });
   }, [activeOption]);
 
-  function close() { setOpen(false); setActive(-1); setQuery(null); }
-  function accept(option: ComboboxOption) { onValueChange(option.value); close(); }
+  function type(typed: string | null) { setQuery(typed); onInputChange?.(typed ?? ''); }
+  function close() { setOpen(false); setActive(-1); if (query !== null) type(null); }
+  function accept(option: ComboboxOption) {
+    onPick(option);
+    if (!multiple) close();
+    else if (query) { type(null); setActive(-1); }
+  }
   function onKeyDown(event: KeyboardEvent<HTMLInputElement>) {
     switch (event.key) {
       case 'ArrowDown':
@@ -269,48 +349,107 @@ function ComboboxControl({ id, options, value, submitValue, onValueChange, onLea
         if (activeOption >= 0) accept(shown[activeOption]); else close();
         return;
       case 'Escape':
-        if (open) { event.preventDefault(); event.stopPropagation(); close(); } else if (value !== '') { event.preventDefault(); onValueChange(''); }
+        if (open) { event.preventDefault(); event.stopPropagation(); close(); } else if (text !== '') { event.preventDefault(); onClear(); }
+        return;
+      case 'Backspace':
+        if (onRemoveLast && event.currentTarget.value === '') onRemoveLast();
         return;
       case 'Tab':
         close();
         return;
     }
   }
+  const status = notice ? notice : !open ? '' : loading ? 'Loading results' : loadError ? loadError : count === 0 ? emptyMessage : `${count} ${count === 1 ? 'result' : 'results'} available`;
 
   return <div className="t98-combobox">
-    <Input id={id} {...described} role="combobox" aria-autocomplete="list" aria-expanded={open} aria-controls={listId} aria-activedescendant={activeOption >= 0 ? optionId(activeOption) : undefined}
+    {before}
+    <Input id={id} ref={inputRef} {...described} role="combobox" aria-autocomplete="list" aria-expanded={open} aria-controls={listId} aria-activedescendant={activeOption >= 0 ? optionId(activeOption) : undefined}
       value={query ?? text} placeholder={placeholder} required={required} disabled={disabled} autoComplete="off" spellCheck={false}
-      onChange={event => {
-        const typed = event.target.value;
-        onValueChange(options.find(option => option.label === typed)?.value ?? typed);
-        setQuery(typed); setActive(-1); setOpen(true);
-      }}
+      onChange={event => { onType(event.target.value); type(event.target.value); setActive(-1); setOpen(true); }}
       onKeyDown={onKeyDown}
       onBlur={() => { close(); onLeave(); }} />
-    {name && <input type="hidden" name={name} value={submitValue} />}
-    <div className="t98-combobox-popup" hidden={!open}>
-      <ul className="t98-combobox-list" id={listId} role="listbox" aria-label={typeof label === 'string' ? label : 'Options'} ref={list} hidden={count === 0}>
-        {shown.map((option, index) => <li key={option.value} id={optionId(index)} role="option" aria-selected={index === activeOption} className="t98-combobox-option"
+    {children}
+    <div className="t98-combobox-popup" hidden={!open} aria-busy={loading || undefined}>
+      <ul className="t98-combobox-list" id={listId} role="listbox" aria-label={typeof label === 'string' ? label : 'Options'} aria-multiselectable={multiple || undefined} ref={list} hidden={count === 0}>
+        {shown.map((option, index) => <li key={option.value} id={optionId(index)} role="option"
+          // Single selection marks the highlighted option (APG); multiple selection marks picks and highlights with data-active.
+          aria-selected={picked ? picked.has(option.value) : index === activeOption} className="t98-combobox-option" data-active={index === activeOption || undefined}
           // Keep focus in the input so the list does not close before the click is handled.
-          onMouseDown={event => event.preventDefault()} onClick={() => accept(option)}>{option.label}</li>)}
+          onMouseDown={event => event.preventDefault()} onClick={() => accept(option)}>
+          {multiple && <Icon name="check" size={16} className="t98-combobox-check" />}{option.label}</li>)}
       </ul>
-      {count === 0 && <p className="t98-combobox-empty" aria-hidden="true">{emptyMessage}</p>}
+      {loading ? <p className="t98-combobox-empty" aria-hidden="true">Loading results…</p>
+        : loadError ? <p className="t98-combobox-empty" aria-hidden="true">{loadError}</p>
+        : count === 0 && <p className="t98-combobox-empty" aria-hidden="true">{emptyMessage}</p>}
     </div>
-    <span role="status" className="t98-visually-hidden">{open ? (count === 0 ? emptyMessage : `${count} ${count === 1 ? 'result' : 'results'} available`) : ''}</span>
+    <span role="status" className="t98-visually-hidden">{status}</span>
   </div>;
 }
 
-/** An editable combobox with list autocomplete. The message for a value outside the list is the caller's. */
-export function Combobox({ label, options, value, onValueChange, description, error, allowCustom = true, name, placeholder, required, disabled, emptyMessage = 'No matches' }: ComboboxProps) {
+/** An editable combobox with list autocomplete, optionally fed by app-fetched results. The message for a value outside the list is the caller's. */
+export function Combobox({ label, options, value, onValueChange, valueLabel, description, error, allowCustom = true, name, placeholder, required, disabled, emptyMessage = 'No matches', ...async }: ComboboxProps) {
   const id = useId();
   const [left, setLeft] = useState(false);
   const normalized: ComboboxOption[] = options.map(option => typeof option === 'string' ? { value: option, label: option } : option);
-  const outside = !allowCustom && left && value !== '' && !normalized.some(option => option.value === value);
+  const listed = normalized.some(option => option.value === value) || (valueLabel !== undefined && value !== '');
+  const outside = !allowCustom && left && value !== '' && !listed;
   // Field passes its id, description and invalid state to the first child, which hands them to the input.
   return <Field label={label} htmlFor={id} description={description} error={allowCustom || outside ? error : undefined} required={required}>
-    <ComboboxControl options={normalized} value={value} onValueChange={onValueChange} onLeave={() => setLeft(true)} label={label} name={name}
-      // A list-only field never posts text that is not one of its options.
-      submitValue={allowCustom || normalized.some(option => option.value === value) ? value : ''} placeholder={placeholder} required={required} disabled={disabled} emptyMessage={emptyMessage} />
+    <ComboboxControl {...async} options={normalized} text={normalized.find(option => option.value === value)?.label ?? valueLabel ?? value}
+      onType={typed => onValueChange(normalized.find(option => option.label === typed)?.value ?? typed)} onPick={option => onValueChange(option.value)} onClear={() => onValueChange('')}
+      onLeave={() => setLeft(true)} label={label} placeholder={placeholder} required={required} disabled={disabled} emptyMessage={emptyMessage}>
+      {/* A list-only field never posts text that is not one of its options. */}
+      {name && <input type="hidden" name={name} value={allowCustom || listed ? value : ''} />}
+    </ComboboxControl>
+  </Field>;
+}
+
+export interface MultiComboboxProps extends ComboboxAsyncProps {
+  label: ReactNode;
+  options: ComboboxOption[];
+  /** Picked options, in pick order. Options keep their labels, so picks survive async result changes. */
+  values: readonly ComboboxOption[];
+  onValuesChange: (values: ComboboxOption[]) => void;
+  description?: ReactNode;
+  error?: ReactNode;
+  /** One hidden input per picked value, so native forms receive every value under this name. */
+  name?: string;
+  placeholder?: string;
+  /** At least one value is needed; the input is only marked required while nothing is picked. */
+  required?: boolean;
+  disabled?: boolean;
+  emptyMessage?: string;
+}
+
+/** Pick several listed options: the list stays open after each pick, picks are removable tags, and Backspace in the empty input removes the last one. */
+export function MultiCombobox({ label, options, values, onValuesChange, description, error, name, placeholder, required, disabled, emptyMessage = 'No matches', ...async }: MultiComboboxProps) {
+  const id = useId();
+  const input = useRef<HTMLInputElement>(null);
+  const [announcement, setAnnouncement] = useState('');
+  const picked = new Set(values.map(option => option.value));
+  function remove(option: ComboboxOption) {
+    onValuesChange(values.filter(current => current.value !== option.value));
+    setAnnouncement(`${option.label} removed`);
+    input.current?.focus();
+  }
+  function toggle(option: ComboboxOption) {
+    if (picked.has(option.value)) { remove(option); return; }
+    onValuesChange([...values, option]);
+    setAnnouncement(`${option.label} added`);
+  }
+  const labelText = typeof label === 'string' ? label : 'values';
+  return <Field label={label} htmlFor={id} description={description} error={error} required={required}>
+    <ComboboxControl {...async} options={options} text="" picked={picked} notice={announcement} onType={() => setAnnouncement('')} onPick={toggle} onClear={() => {}} onLeave={() => {}}
+      onRemoveLast={() => { const last = values.at(-1); if (last) remove(last); }} inputRef={input}
+      label={label} placeholder={placeholder} required={required && values.length === 0} disabled={disabled} emptyMessage={emptyMessage}
+      before={values.length > 0 && <ul className="t98-combobox-tags" aria-label={`Selected ${labelText}`}>
+        {values.map(option => <li key={option.value} className="t98-combobox-tag">
+          <span className="t98-combobox-tag-label">{option.label}</span>
+          <Button variant="ghost" className="t98-combobox-tag-remove" aria-label={`Remove ${option.label}`} disabled={disabled} onClick={() => remove(option)}><Icon name="x" size={16} /></Button>
+        </li>)}
+      </ul>}>
+      {name && values.map(option => <input key={option.value} type="hidden" name={name} value={option.value} />)}
+    </ComboboxControl>
   </Field>;
 }
 

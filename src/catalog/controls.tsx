@@ -1,8 +1,8 @@
 import { useState, type ReactNode } from 'react';
 import {
-  AccountScopePicker, Button, CheckboxGroup, CodeBlock, Combobox, DateTimeField, Disclosure, FieldList, FileField, Fieldset, Field, Input, InlineCode, Pager, RadioGroup, Scroller, SegmentedControl, StatusLine, Text,
+  AccountScopePicker, Button, CheckboxGroup, CodeBlock, Combobox, DateTimeField, Disclosure, FieldList, FileField, Fieldset, Field, Input, InlineCode, MediaPlayer, MultiCombobox, Pager, RadioGroup, Scroller, SegmentedControl, StatusLine, Text,
 } from '../lib';
-import type { FileItem } from '../lib';
+import type { ComboboxOption, FileItem } from '../lib';
 import { tsx, type ComponentCategory, type ComponentEntry, type ComponentProp, type ComponentState } from './model';
 
 const noElements = 'Applications use this instead of writing the native element, className or style.';
@@ -45,6 +45,37 @@ function ComboboxPreview({ strict = false }: { strict?: boolean }) {
   const [value, setValue] = useState(strict ? 'Dubai' : '');
   return <Combobox label="City" options={['Dubai', 'Doha', 'Riyadh']} value={value} onValueChange={setValue} allowCustom={!strict} error={strict ? 'Choose a city from the list.' : undefined} />;
 }
+const airports: ComboboxOption[] = [{ value: 'DXB', label: 'Dubai (DXB)' }, { value: 'DOH', label: 'Doha (DOH)' }, { value: 'RUH', label: 'Riyadh (RUH)' }, { value: 'AUH', label: 'Abu Dhabi (AUH)' }, { value: 'BAH', label: 'Bahrain (BAH)' }];
+/** Stands in for an app search request: results arrive after a short delay, and "zz" fails. */
+function useAirportSearch() {
+  const [results, setResults] = useState<ComboboxOption[]>(airports);
+  const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string>();
+  const [timer, setTimer] = useState<ReturnType<typeof setTimeout>>();
+  function search(text: string) {
+    clearTimeout(timer);
+    setLoading(true); setLoadError(undefined);
+    setTimer(setTimeout(() => {
+      setLoading(false);
+      if (text.toLowerCase() === 'zz') { setLoadError('Airports could not load. Try again.'); setResults([]); return; }
+      setResults(airports.filter(option => option.label.toLowerCase().includes(text.toLowerCase())));
+    }, 400));
+  }
+  return { results, loading, loadError, search };
+}
+function AsyncComboboxPreview() {
+  const [value, setValue] = useState('');
+  const { results, loading, loadError, search } = useAirportSearch();
+  return <Combobox label="Airport" options={results} filter={false} loading={loading} loadError={loadError} onInputChange={search} value={value} onValueChange={setValue}
+    valueLabel={airports.find(option => option.value === value)?.label} allowCustom={false} description='Type to search. "zz" shows a failed request.' />;
+}
+function MultiComboboxPreview({ async = false }: { async?: boolean }) {
+  const [values, setValues] = useState<ComboboxOption[]>(airports.slice(0, 2));
+  const { results, loading, loadError, search } = useAirportSearch();
+  return async ? <MultiCombobox label="Destinations" options={results} filter={false} loading={loading} loadError={loadError} onInputChange={search} values={values} onValuesChange={setValues} name="destinations" />
+    : <MultiCombobox label="Destinations" options={airports} values={values} onValuesChange={setValues} name="destinations" />;
+}
+
 function DateTimePreview({ zone = false }: { zone?: boolean }) {
   const [value, setValue] = useState('2026-10-20T09:30');
   return <DateTimeField label="Publish at" value={value} onValueChange={setValue} description="Posts go out at this time." timeZoneLabel={zone ? 'Asia/Dubai (GST)' : undefined} />;
@@ -59,6 +90,19 @@ function FilePreview({ withFiles = false }: { withFiles?: boolean }) {
     onFiles={added => setFiles([...files, ...added.map(file => ({ id: `${file.name}-${file.size}`, name: file.name, size: file.size, status: 'pending' as const }))])}
     onRemove={id => setFiles(files.filter(file => file.id !== id))} />;
 }
+/** A short silent WAV built in the browser, so the catalogue plays real audio without shipping a media file. */
+function silentWav() {
+  if (typeof URL.createObjectURL !== 'function') return undefined;
+  const samples = 8000;
+  const view = new DataView(new ArrayBuffer(44 + samples));
+  const text = (offset: number, value: string) => [...value].forEach((char, i) => view.setUint8(offset + i, char.charCodeAt(0)));
+  text(0, 'RIFF'); view.setUint32(4, 36 + samples, true); text(8, 'WAVEfmt '); view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, 1, true);
+  view.setUint32(24, 8000, true); view.setUint32(28, 8000, true); view.setUint16(32, 1, true); view.setUint16(34, 8, true); text(36, 'data'); view.setUint32(40, samples, true);
+  for (let i = 0; i < samples; i++) view.setUint8(44 + i, 128);
+  return URL.createObjectURL(new Blob([view], { type: 'audio/wav' }));
+}
+const voiceNote = typeof window === 'undefined' ? undefined : silentWav();
+
 const sample = "const total = items.reduce((sum, item) => sum + item.spend, 0);\nconsole.log(total);";
 
 type Slot = { id: string; time: string };
@@ -129,6 +173,14 @@ export const controlEntries: ComponentEntry[] = [
     ['Button', 'Breadcrumb'],
     [state('Middle page', 'Both directions are available.', ['Pager'], '<Pager status="21–40 of 132" onPrevious={() => {}} onNext={() => {}} />', <Pager status="21–40 of 132" onPrevious={() => undefined} onNext={() => undefined} />),
       state('First page', 'Previous is disabled.', ['Pager'], '<Pager status="1–20 of 132" onNext={() => {}} />', <Pager status="1–20 of 132" onNext={() => undefined} />)]),
+  entry('MediaPlayer', 'Data display', 'Native audio or video controls with a visible caption, captions tracks, a transcript and a fallback when the file cannot be played.', 'Use for voice notes, video replies and attachments in messages and asset details. Nothing autoplays and only metadata is preloaded. Supply `tracks` for video with speech and a `transcript` for audio. `unavailable` replaces the player for expired, processing or unauthorized media.',
+    [prop('kind', "'audio' | 'video'", 'Player type.', true), prop('label', 'string', 'Visible caption and accessible name.', true), prop('src', 'string', 'Media URL.'), prop('type', 'string', 'MIME type, so the browser can skip formats it cannot play.'), prop('poster', 'string', 'Video poster image.'), prop('width', 'number', 'Intrinsic video width, reserving the aspect ratio.'), prop('height', 'number', 'Intrinsic video height.'), prop('tracks', 'readonly MediaTrack[]', 'WebVTT captions, subtitles, descriptions or chapters: src, srcLang, label, optional kind and default.'), prop('transcript', 'ReactNode', 'Text equivalent in a collapsed Transcript disclosure.'), prop('downloadHref', 'string', 'Download link offered when the file cannot be played.'), prop('unavailable', 'ReactNode', 'Reason shown instead of the player.')],
+    ['--t98-text-sm', '--t98-muted', '--t98-subtle', '--t98-radius-sm'],
+    ['The browser provides keyboard-operable controls; the element is named by `label`, which is also shown as the caption.', 'A playback failure replaces the player with text and the download link, so the attachment never disappears silently.', 'Captions tracks and the transcript disclosure give text equivalents (WCAG 1.2.1 and 1.2.2).'],
+    ['ConversationThread', 'MediaStrip', 'FileField'],
+    [state('Audio with transcript', 'A voice note with a transcript.', ['MediaPlayer'], '<MediaPlayer kind="audio" label="Voice note from Lina, 0:01" src="/media/voice-note.wav" type="audio/wav"\n  transcript="Hi, can you confirm the studio opening time?" />', <MediaPlayer kind="audio" label="Voice note from Lina, 0:01" src={voiceNote} type="audio/wav" transcript="Hi, can you confirm the studio opening time?" />),
+      state('Cannot be played', 'The file failed to load, so the reason and a download link are shown.', ['MediaPlayer'], '<MediaPlayer kind="video" label="Video reply" src="/media/missing.mp4" type="video/mp4" downloadHref="/media/missing.mp4" />', <MediaPlayer kind="video" label="Video reply" src="data:video/mp4;base64,AAAA" type="video/mp4" downloadHref="#video-reply" />),
+      state('Unavailable', 'The recording expired, so no player is rendered.', ['MediaPlayer'], '<MediaPlayer kind="video" label="Video reply" unavailable="This video expired on 1 October 2026." />', <MediaPlayer kind="video" label="Video reply" unavailable="This video expired on 1 October 2026." />)]),
   entry('CodeBlock', 'Data display', 'Preformatted code in a labelled, scrollable region, with an optional copy button.', 'Use for snippets, payloads and logs. `language` is a label only; no syntax highlighting is applied.',
     [prop('code', 'string', 'The source text.', true), prop('language', 'string', 'Label shown above the block and used in its accessible name.'), prop('label', 'string', 'Overrides the accessible name.'), prop('wrap', 'boolean', 'Wraps long lines instead of scrolling sideways.', false, 'false'), height, prop('copy', 'boolean', 'Adds a copy button.', false, 'false')],
     ['--t98-mono', '--t98-subtle', '--t98-border', '--t98-radius', '--t98-text-sm'],
@@ -153,7 +205,15 @@ export const controlEntries: ComponentEntry[] = [
     ['A visible label, description and error are linked with aria-describedby.', 'Follows the WAI-ARIA editable combobox with list autocomplete: Down and Up move through options and wrap, Alt+Down opens, Enter accepts, Escape closes then clears, Tab closes without accepting.', 'DOM focus stays on the input; aria-activedescendant names the highlighted option, and a polite status announces the number of results.'],
     ['Field', 'Input', 'Select'],
     [state('Free text', 'Any value is accepted.', ['Combobox'], "<Combobox label=\"City\" options={['Dubai', 'Doha', 'Riyadh']} value={value} onValueChange={setValue} />", <ComboboxPreview />, "const [value, setValue] = useState('');", ['useState']),
-      state('List only', 'A value outside the list shows the supplied error.', ['Combobox'], "<Combobox\n  label=\"City\"\n  options={['Dubai', 'Doha', 'Riyadh']}\n  value={value}\n  onValueChange={setValue}\n  allowCustom={false}\n  error=\"Choose a city from the list.\"\n/>", <ComboboxPreview strict />, "const [value, setValue] = useState('Dubai');", ['useState'])]),
+      state('List only', 'A value outside the list shows the supplied error.', ['Combobox'], "<Combobox\n  label=\"City\"\n  options={['Dubai', 'Doha', 'Riyadh']}\n  value={value}\n  onValueChange={setValue}\n  allowCustom={false}\n  error=\"Choose a city from the list.\"\n/>", <ComboboxPreview strict />, "const [value, setValue] = useState('Dubai');", ['useState']),
+      state('Async results', 'The app searches as the user types; results load, fail or are empty, and each state is announced.', ['Combobox', 'type ComboboxOption'], "<Combobox\n  label=\"Airport\"\n  options={results}\n  filter={false}\n  loading={loading}\n  loadError={loadError}\n  onInputChange={search}\n  value={value}\n  onValueChange={next => { setValue(next); setSelectedLabel(results.find(option => option.value === next)?.label); }}\n  valueLabel={selectedLabel}\n  allowCustom={false}\n/>", <AsyncComboboxPreview />, "const [value, setValue] = useState('');\n// Keep the chosen label: it can leave the results when the user searches again.\nconst [selectedLabel, setSelectedLabel] = useState<string>();\nconst [results, setResults] = useState<ComboboxOption[]>([]);\nconst [loading, setLoading] = useState(false);\nconst [loadError, setLoadError] = useState<string>();\n// The app owns the request: debounce it, ignore stale responses and word the failure.\nasync function search(text: string) {\n  setLoading(true);\n  setLoadError(undefined);\n  try {\n    const response = await fetch(`/api/airports?q=${encodeURIComponent(text)}`);\n    setResults(await response.json());\n  } catch {\n    setLoadError('Airports could not load. Try again.');\n  } finally {\n    setLoading(false);\n  }\n}", ['useState'])]),
+  entry('MultiCombobox', 'Controls', 'Pick several listed options from a filtered list; picks show as removable tags.', 'Use for tags, destinations, audiences or recipients chosen from a known or searched list. Values are option objects, so tags keep their labels when async results change. For a short fixed list use CheckboxGroup.',
+    [prop('label', 'ReactNode', 'Field label.', true), prop('options', '{ value: string; label: string }[]', 'Options; typed text filters them unless `filter` is false.', true), prop('values', 'readonly ComboboxOption[]', 'Picked options, in pick order.', true), prop('onValuesChange', '(values: ComboboxOption[]) => void', 'Called with the new picks after an add or a removal.', true), prop('name', 'string', 'One hidden input per picked value under this name.'), prop('required', 'boolean', 'The input is marked required only while nothing is picked.'), prop('onInputChange', '(text: string) => void', 'Typed text for an app search; an empty string when the field closes after typing.'), prop('filter', 'boolean', 'False when the app already filtered `options`.', false, 'true'), prop('loading', 'boolean', 'Shows and announces Loading results; supplied options stay visible.'), prop('loadError', 'string', 'Shown and announced when results could not load.'), prop('description', 'ReactNode', 'Help text.'), prop('error', 'ReactNode', 'Error message.'), prop('emptyMessage', 'string', 'Shown when nothing matches.', false, "'No matches'")],
+    ['--t98-subtle', '--t98-border', '--t98-radius-pill', '--t98-control-touch', '--t98-accent'],
+    ['The listbox is aria-multiselectable; aria-selected and a check mark show picked options, and the highlighted option is named by aria-activedescendant.', 'Enter or a click toggles an option and keeps the list open; Backspace in the empty input removes the last pick; each tag has a Remove button named after its option.', 'Adds and removals are announced in a polite status; focus returns to the input after a removal.'],
+    ['Combobox', 'CheckboxGroup'],
+    [state('Local options', 'Two airports picked; type to filter and Enter to toggle.', ['MultiCombobox', 'type ComboboxOption'], '<MultiCombobox label="Destinations" options={airports} values={values} onValuesChange={setValues} name="destinations" />', <MultiComboboxPreview />, "const airports: ComboboxOption[] = [{ value: 'DXB', label: 'Dubai (DXB)' }, { value: 'DOH', label: 'Doha (DOH)' }];\nconst [values, setValues] = useState<ComboboxOption[]>([]);", ['useState']),
+      state('Async options', 'Results come from an app search; tags keep their labels when results change.', ['MultiCombobox', 'type ComboboxOption'], '<MultiCombobox label="Destinations" options={results} filter={false} loading={loading}\n  loadError={loadError} onInputChange={search} values={values} onValuesChange={setValues} name="destinations" />', <MultiComboboxPreview async />, "const [values, setValues] = useState<ComboboxOption[]>([]);\nconst [results, setResults] = useState<ComboboxOption[]>([]);\nconst [loading, setLoading] = useState(false);\nconst [loadError, setLoadError] = useState<string>();\n// The app owns the request: debounce it, ignore stale responses and word the failure.\nasync function search(text: string) {\n  setLoading(true);\n  setLoadError(undefined);\n  try {\n    const response = await fetch(`/api/airports?q=${encodeURIComponent(text)}`);\n    setResults(await response.json());\n  } catch {\n    setLoadError('Airports could not load. Try again.');\n  } finally {\n    setLoading(false);\n  }\n}", ['useState'])]),
   entry('DateTimeField', 'Controls', 'A labelled native date, time or date-and-time input with an optional visible time zone.', 'Values are the native strings (`2026-10-20`, `09:30`, `2026-10-20T09:30`). Use `timeZoneLabel` to say which zone the entry means; the library never converts zones, validates ranges beyond min and max, or words errors.',
     [prop('label', 'ReactNode', 'Field label.', true), prop('value', 'string', 'Native input value, or an empty string.', true), prop('onValueChange', '(value: string) => void', 'Called with the native string as it changes.', true), prop('type', "'date' | 'time' | 'datetime-local'", 'Which native input to render.', false, "'datetime-local'"), prop('min', 'string', 'Earliest native value.'), prop('max', 'string', 'Latest native value.'), prop('step', 'number | string', 'Native step in seconds (or days for date).'), prop('required', 'boolean', 'Marks the field required.'), prop('name', 'string', 'Form field name.'), prop('description', 'ReactNode', 'Help text linked to the input.'), prop('error', 'ReactNode', 'Marks the input invalid and shows this message.'), prop('disabled', 'boolean', 'Disables the input.'), prop('timeZoneLabel', 'string', 'Visible zone text such as "Asia/Dubai (GST)", linked to the input by aria-describedby.')],
     ['--t98-control-border', '--t98-danger', '--t98-muted'],

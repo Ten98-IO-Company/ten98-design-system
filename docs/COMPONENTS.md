@@ -46,6 +46,7 @@ Applications compose every screen from these instead of writing elements, `class
 | `Heading` | `level` (required), `size?` | Outline level is independent of visual size. |
 | `Link` | `href`, `variant?`, `target?`, `component?` | Navigation; pass a router link as `component`. New-tab links get `noopener noreferrer`. |
 | `Image` | `alt` (required), `fit?`, `aspect?`, `rounded?` | Lazy, async-decoded responsive image. |
+| `Blockquote` | `source?`, `cite?` | Quoted text in a figure, with the attribution as its caption; the quote rule mirrors in RTL. |
 | `List`, `ListItem` | `ordered?`, `gap?` | Prose lists with markers; use `Stack as="ul"` for unmarked layout lists. |
 | `DescriptionList` | `items`, `columns?` | Native label/value pairs. |
 | `Option`, `OptionGroup` | native option/optgroup attributes | `Select` children. |
@@ -59,8 +60,10 @@ Applications compose every screen from these instead of writing elements, `class
 | `Fieldset` | `legend`, `description?`, `disabled?`, `hideLegend?`, `layout?` | Native fieldset grouping with an optional visually hidden legend. |
 | `RadioGroup`, `CheckboxGroup` | `legend`, `name`, `options`, `value`/`defaultValue`, `onValueChange`, `error?` | Labelled 44px choice rows; checkbox lists can scroll in a labelled region (`maxHeight`). |
 | `SegmentedControl` | `label`, `options`, `value`, `onValueChange` | Single choice with aria-pressed and roving focus; arrows follow the writing direction. |
-| `Combobox` | `label`, `options`, `value`, `onValueChange`, `allowCustom?`, `name?` | Type-to-filter list ported from the WAI-ARIA APG list-autocomplete pattern (see THIRD_PARTY_NOTICES.md); announces the result count; a hidden input carries the value for native forms. |
+| `Combobox` | `label`, `options`, `value`, `onValueChange`, `valueLabel?`, `allowCustom?`, `name?`, `onInputChange?`, `filter?`, `loading?`, `loadError?` | Type-to-filter list ported from the WAI-ARIA APG list-autocomplete pattern (see THIRD_PARTY_NOTICES.md); announces the result count; a hidden input carries the value for native forms. For app-fetched results, `onInputChange` reports the typed text, `filter={false}` shows options as supplied, and `loading`/`loadError` are shown and announced; `valueLabel` names a value that is no longer among the results. |
+| `MultiCombobox` | `label`, `options`, `values`, `onValuesChange`, `name?`, `required?`, plus the async props above | Several picks from a list: aria-multiselectable listbox with check marks, Enter or click toggles and keeps the list open, removable tags, Backspace in the empty input removes the last pick, announced adds and removals. One hidden input per value. Behaviour follows Downshift `useMultipleSelection` and react-aria `useComboBox` loading. |
 | `Pager` | `onPrevious?`, `onNext?`, `status?` | Previous/next navigation with a polite status; an absent handler disables that end. |
+| `MediaPlayer` | `kind`, `label`, `src?`, `type?`, `poster?`, `width?`, `height?`, `tracks?`, `transcript?`, `downloadHref?`, `unavailable?` | Native audio or video controls named by a visible caption; nothing autoplays and only metadata preloads. Caption tracks and a collapsed transcript give text equivalents. A playback failure shows a reason and the download link; `unavailable` replaces the player. |
 | `CodeBlock`, `InlineCode` | `code`, `language?`, `wrap?`, `maxHeight?`, `copy?` | Read-only code with an optional copy button; long blocks scroll in a focusable region. |
 | `StatusLine` | `tone?`, `busy?`, `live?` | Inline loading or result status announced politely. |
 | `Scroller` | `label`, children | Focusable, labelled horizontal scroll region for wide content. |
@@ -305,7 +308,7 @@ All 28 additive exports have live props, state specimens, tokens, accessibility 
 | `EvidenceSummary`, `ReviewSummary`, `OperationResults` | App-supplied provenance, exact before/after scope and per-target receipt stages. Compact evidence keeps essential warnings visible. |
 | `DestinationPicker`, `MediaStrip`, `ContentPreview` | Controlled exact-account selection, media identity/alt text/order and approximate previews. App owns validation, uploads and provider renderers. |
 | `AppliedFilters`, `TrackerStatus`, `ComparisonMetric` | Applied scope, independent installation/receipt observations and supplied comparison values. No freshness or metric math is inferred. |
-| `PublishingAgenda`, `DetailWorkspace`, `ConversationThread` | Explicit timezone, responsive list/detail and history/composer slots. App owns schedules, navigation guards, drafts and sending. |
+| `PublishingAgenda`, `DetailWorkspace`, `ConversationThread` | Explicit timezone, responsive list/detail and history/composer slots. Messages take `direction` (shown as Received or Sent), per-message `actions` (a group named by author and time) and `removed` with `removedReason` (content and attachments withheld). App owns schedules, navigation guards, drafts, sending and moderation. |
 | `AssetDetails`, `AudienceSummary` | Provenance, versions, rights and supplied consent/suppression/import outcomes. No asset pipeline or audience authorization is implemented. |
 | `FunnelBreakdown`, `RetentionTable`, `JourneyPath`, `RankComparison` | Supplied counts, rates, cohort states, paths and nullable native ranks. Keep specialized branching graphs and counting semantics in the app. |
 | `EvidenceDetail`, `ReportPanel`, `RunCostSummary` | Payload access states, independent widgets and explicit quoted/pending/settled/uncertain accounting. No paid action is generated. |

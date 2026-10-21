@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Badge, Button, DescriptionList, FeatureControls, Field, FormActions, FormGrid, Grid, Heading, Image, Inline, Input, Link, List, ListItem, Option, OptionGroup, Select, Stack, Text, VisuallyHidden } from '../lib';
+import { Badge, Blockquote, Button, DescriptionList, FeatureControls, Field, FormActions, FormGrid, Grid, Heading, Image, Inline, Input, Link, List, ListItem, Option, OptionGroup, Select, Stack, Text, VisuallyHidden } from '../lib';
 import { tsx, type ComponentEntry, type ComponentProp } from './model';
 
 const space: ComponentProp = { name: 'gap', type: '0 | 1 | 2 | 3 | 4 | 5 | 6 | 8 | 10 | 12 | 16', description: 'Spacing token step between children (--t98-space-N).' };
@@ -57,6 +57,11 @@ export const structureEntries: ComponentEntry[] = [
     ['--t98-accent'], ['Link text names the destination; avoid “click here”.', 'Focus shows a 3px outline.'],
     ['Link', 'Text'], '<Text>Read the <Link href="/docs/billing">billing guide</Link> before changing plans.</Text>',
     <Text>Read the <Link href="#billing">billing guide</Link> before changing plans.</Text>, ['Button', 'Breadcrumb'], 'Standard anchor attributes.'),
+  entry('Blockquote', 'Quoted text with an optional visible attribution.', 'Use for a quoted message in a reply, a review excerpt or quoted evidence. Put the attribution in `source`; `cite` holds a machine-readable source URL.',
+    [{ name: 'source', type: 'ReactNode', description: 'Visible attribution below the quote.' }, { name: 'cite', type: 'string', description: 'Source URL; not shown.' }],
+    ['--t98-border', '--t98-muted', '--t98-text-xs'], ['Renders a native blockquote inside a figure, with the attribution as its figcaption.', 'The quote is marked by an inline-start rule, so it mirrors in right-to-left layouts.'],
+    ['Blockquote'], '<Blockquote source="Studio visitor, 19 October">What time does the studio open?</Blockquote>',
+    <Blockquote source="Studio visitor, 19 October">What time does the studio open?</Blockquote>, ['ConversationThread', 'Text'], 'Standard figure attributes except style.'),
   entry('Image', 'A responsive image with required alt text.', 'Use for media previews and thumbnails. Choose an aspect to reserve space before loading.',
     [{ name: 'alt', type: 'string', required: true, description: 'Text alternative; empty only for decorative images.' }, { name: 'fit', type: "'cover' | 'contain'", description: 'Object fit. Defaults to cover.' }, { name: 'aspect', type: "'auto' | 'square' | 'video' | 'portrait'", description: 'Reserved aspect ratio.' }, { name: 'rounded', type: 'boolean', description: 'Token radius. Defaults to true.' }],
     ['--t98-radius-md'], ['Describe what the image shows that the surrounding text does not.'],

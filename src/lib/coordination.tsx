@@ -102,6 +102,13 @@ export interface ConversationMessage {
   content: ReactNode;
   attachments?: ReactNode;
   status?: ReactNode;
+  /** Inbound from a contact or outbound from the team. Shown as text; outbound messages sit towards the end on wide screens. */
+  direction?: 'inbound' | 'outbound';
+  /** Per-message controls such as Reply, Hide or Delete. The app owns their behaviour and any confirmation. */
+  actions?: ReactNode;
+  /** Deleted, hidden or moderated. Content and attachments are withheld; `removedReason` says why. */
+  removed?: boolean;
+  removedReason?: ReactNode;
 }
 
 export interface ConversationThreadProps {
@@ -117,6 +124,7 @@ export interface ConversationThreadProps {
 }
 
 const visibilityLabels = { public: 'Public reply', private: 'Private message', note: 'Internal note' } as const;
+const directionLabels = { inbound: 'Received', outbound: 'Sent' } as const;
 
 /** History presentation only. App owns composer drafts, send windows, receipts and assignments. */
 export function ConversationThread({ label, messages, composer, status, loading = false, readOnly = false, error, emptyMessage = 'No messages in this conversation.', className }: ConversationThreadProps) {
@@ -126,11 +134,13 @@ export function ConversationThread({ label, messages, composer, status, loading 
     {loading && <p className="t98-conversation-loading" role="status">Loading conversation. Previously supplied messages remain visible.</p>}
     {status != null && <div className="t98-conversation-status">{status}</div>}
     {error && <Alert title="Conversation needs attention" tone="danger">{error}</Alert>}
-    {messages.length ? <ol className="t98-conversation-messages">{messages.map(message => <li className="t98-conversation-message" key={message.id} data-message-id={message.id} data-visibility={message.visibility}>
-      <div className="t98-conversation-header"><strong className="t98-conversation-author">{message.author}</strong><time className="t98-conversation-time" dateTime={message.dateTime}>{message.time}</time><span className="t98-conversation-visibility">{visibilityLabels[message.visibility]}</span></div>
-      <div className="t98-conversation-content">{message.content}</div>
-      {message.attachments != null && <div className="t98-conversation-attachments">{message.attachments}</div>}
+    {messages.length ? <ol className="t98-conversation-messages">{messages.map(message => <li className="t98-conversation-message" key={message.id} data-message-id={message.id} data-visibility={message.visibility} data-direction={message.direction} data-removed={message.removed || undefined}>
+      <div className="t98-conversation-header"><strong className="t98-conversation-author">{message.author}</strong><time className="t98-conversation-time" dateTime={message.dateTime}>{message.time}</time>{message.direction && <span className="t98-conversation-direction">{directionLabels[message.direction]}</span>}<span className="t98-conversation-visibility">{visibilityLabels[message.visibility]}</span></div>
+      {message.removed ? <div className="t98-conversation-content t98-conversation-removed"><p className="t98-conversation-removed-label">Message removed.</p>{message.removedReason != null && <div className="t98-conversation-removed-reason">{message.removedReason}</div>}</div>
+        : <div className="t98-conversation-content">{message.content}</div>}
+      {!message.removed && message.attachments != null && <div className="t98-conversation-attachments">{message.attachments}</div>}
       {message.status != null && <div className="t98-conversation-status">{message.status}</div>}
+      {message.actions != null && <div className="t98-conversation-actions" role="group" aria-label={`Actions for the message from ${message.author}, ${message.time}`}>{message.actions}</div>}
     </li>)}</ol> : !loading && <div className="t98-conversation-empty">{emptyMessage}</div>}
     {readOnly && <p className="t98-conversation-readonly">Read only. Replies are unavailable.</p>}
     {composer != null && <div className="t98-conversation-composer" hidden={readOnly}>{composer}</div>}
