@@ -1,6 +1,6 @@
 {
   "name": "@ten98/ui",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "Shared design tokens, React components and application patterns for the ten98 suite",
   "type": "module",
   "license": "MIT",
@@ -53,7 +53,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.64.1",
-    "@ten98/runtime": "file:vendor/ten98-runtime-0.1.10.tgz",
+    "@ten98/runtime": "file:vendor/ten98-runtime-0.1.11.tgz",
     "@types/react": "19.2.2",
     "@types/react-dom": "19.2.2",
     "react": "19.2.8",
