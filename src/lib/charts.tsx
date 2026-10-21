@@ -39,6 +39,17 @@ const plain = (value: number) => new Intl.NumberFormat('en').format(value);
 const toneOf = (series: ChartSeries, index: number): ChartTone => series.tone ?? ((index % 5) + 1) as ChartTone;
 const toneColor = (tone: ChartTone) => `var(--t98-chart-${tone})`;
 const DASHES = ['', '7 4', '2 4', '10 4 2 4', '1 5'];
+/** Per-tone SVG fills with a non-colour overlay (hatch, dots, stripes), referenced as `url(#${uid}-p${tone})`. */
+function tonePatterns(uid: string) {
+  return ([1, 2, 3, 4, 5] as ChartTone[]).map(tone => {
+    const overlay = [null, 'M-2 2L2 -2M0 8L8 0M6 10L10 6', null, 'M0 3H8M0 7H8', 'M0 0L8 8M8 0L0 8'][tone - 1];
+    return <pattern key={tone} id={`${uid}-p${tone}`} width="8" height="8" patternUnits="userSpaceOnUse">
+      <rect width="8" height="8" style={{ fill: toneColor(tone) }} />
+      {overlay && <path d={overlay} className="t98-chart-pattern-line" />}
+      {tone === 3 && <circle cx="4" cy="4" r="1.3" className="t98-chart-pattern-dot" />}
+    </pattern>;
+  });
+}
 
 function valueOf(series: ChartSeries, index: number): { value: number | null; state: ChartPointState } {
   const point = series.points[index];
@@ -272,14 +283,7 @@ export function TimeSeriesChart({ label, context, summary, kind, series, xScale 
     inspect(next);
   };
 
-  const patterns = ([1, 2, 3, 4, 5] as ChartTone[]).map(tone => {
-    const overlay = [null, 'M-2 2L2 -2M0 8L8 0M6 10L10 6', null, 'M0 3H8M0 7H8', 'M0 0L8 8M8 0L0 8'][tone - 1];
-    return <pattern key={tone} id={`${uid}-p${tone}`} width="8" height="8" patternUnits="userSpaceOnUse">
-      <rect width="8" height="8" style={{ fill: toneColor(tone) }} />
-      {overlay && <path d={overlay} className="t98-chart-pattern-line" />}
-      {tone === 3 && <circle cx="4" cy="4" r="1.3" className="t98-chart-pattern-dot" />}
-    </pattern>;
-  });
+  const patterns = tonePatterns(uid);
 
   const layers: ReactNode[] = [];
   const unavailableColumns = new Set<number>();
@@ -412,7 +416,8 @@ export interface BarListItem {
   share?: number | null;
   /** Why the value is partial or unavailable. */
   reason?: string;
-  secondary?: { label: string; valueText: string; share?: number | null };
+  /** A second measure under the first. `value` null reads Unavailable, as for the item itself. */
+  secondary?: { label: string; valueText: string; value?: number | null; share?: number | null };
   href?: string;
   onSelect?: () => void;
   selected?: boolean;
@@ -422,20 +427,21 @@ const clampShare = (share: number | null | undefined) => share === null || share
 const shareStyle = (share: number | null | undefined): CSSProperties => ({ '--t98-bar-share': `${(clampShare(share) ?? 0) * 100}%` } as CSSProperties);
 
 /** Ranked horizontal bars with the value always visible as text. */
-export function BarList({ label, items, emptyMessage = 'No items.' }: { label: string; items: readonly BarListItem[]; emptyMessage?: ReactNode }) {
+/** `busy` keeps selectable rows visible but inert (aria-disabled, so focus stays put) while the app applies a selection. */
+export function BarList({ label, items, emptyMessage = 'No items.', busy = false }: { label: string; items: readonly BarListItem[]; emptyMessage?: ReactNode; busy?: boolean }) {
   if (!items.length) return <p className="t98-chart-empty">{emptyMessage}</p>;
-  return <ol className="t98-bar-list" aria-label={label}>
+  return <ol className="t98-bar-list" aria-label={label} aria-busy={busy || undefined}>
     {items.map(item => {
       const share = clampShare(item.share ?? undefined);
-      const name = item.onSelect ? <button type="button" className="t98-bar-list-name t98-bar-list-button" aria-pressed={item.selected ?? false} onClick={item.onSelect}>{item.label}</button>
+      const name = item.onSelect ? <button type="button" className="t98-bar-list-name t98-bar-list-button" aria-pressed={item.selected ?? false} aria-disabled={busy || undefined} onClick={() => { if (!busy) item.onSelect?.(); }}>{item.label}</button>
         : item.href ? <a className="t98-bar-list-name" href={item.href}>{item.label}</a>
         : <span className="t98-bar-list-name">{item.label}</span>;
       return <li key={item.id} className="t98-bar-list-item" data-selected={item.selected || undefined}>
         <div className="t98-bar-list-head">{name}<span className="t98-bar-list-value">{item.value === null ? 'Unavailable' : item.valueText}</span></div>
         <span className={cx('t98-bar-track', item.value === null && 't98-bar-track--unavailable')} style={shareStyle(item.value === null ? null : share)} aria-hidden="true"><span className="t98-bar-fill" /></span>
         {item.secondary && <>
-          <div className="t98-bar-list-head t98-bar-list-secondary"><span>{item.secondary.label}</span><span className="t98-bar-list-value">{item.secondary.valueText}</span></div>
-          <span className="t98-bar-track t98-bar-track--secondary" style={shareStyle(item.secondary.share)} aria-hidden="true"><span className="t98-bar-fill" /></span>
+          <div className="t98-bar-list-head t98-bar-list-secondary"><span>{item.secondary.label}</span><span className="t98-bar-list-value">{item.secondary.value === null ? 'Unavailable' : item.secondary.valueText}</span></div>
+          <span className={cx('t98-bar-track', 't98-bar-track--secondary', item.secondary.value === null && 't98-bar-track--unavailable')} style={shareStyle(item.secondary.value === null ? null : item.secondary.share)} aria-hidden="true"><span className="t98-bar-fill" /></span>
         </>}
         {item.reason && <p className="t98-bar-list-reason">{item.reason}</p>}
       </li>;
@@ -443,9 +449,25 @@ export function BarList({ label, items, emptyMessage = 'No items.' }: { label: s
   </ol>;
 }
 
-export interface ShareSegment { id: string; label: string; count: number; tone: ChartTone }
+export interface ShareSegment {
+  id: string;
+  label: string;
+  /** Null when this segment's count is unavailable: it reads Unavailable and is left out of the graphic, never drawn as 0. */
+  count: number | null;
+  tone: ChartTone;
+}
 
-const percent = (count: number, total: number) => `${Math.round(count / total * 1000) / 10}%`;
+const known = (count: number | null): count is number => count !== null && Number.isFinite(count);
+const percent = (count: number | null, total: number) => known(count) ? `${Math.round(count / total * 1000) / 10}%` : 'Unavailable';
+/** Visible text for a segment's count and share. */
+const segmentText = (part: ShareSegment, total: number, formatCount: (count: number) => string, shareFirst: boolean) => {
+  if (!known(part.count)) return <strong>Unavailable</strong>;
+  return shareFirst ? <><strong>{percent(part.count, total)}</strong> ({formatCount(part.count)})</> : <><strong>{formatCount(part.count)}</strong> ({percent(part.count, total)})</>;
+};
+const missingNote = (parts: readonly ShareSegment[]) => {
+  const missing = parts.filter(part => !known(part.count)).map(part => part.label);
+  return missing.length ? <p className="t98-chart-notice" role="note">{`Unavailable: ${missing.join(', ')}. The graphic shows only segments with a known count.`}</p> : null;
+};
 
 /** One bar split by count, with a legend that states each count. `total` null is Unavailable; 0 shows `emptyMessage`. */
 export function ProportionBar({ label, segments: parts, total, formatCount = plain, emptyMessage = 'No samples' }: { label: string; segments: readonly ShareSegment[]; total: number | null; formatCount?: (count: number) => string; emptyMessage?: ReactNode }) {
@@ -455,11 +477,12 @@ export function ProportionBar({ label, segments: parts, total, formatCount = pla
       : total === 0 ? <p className="t98-chart-empty">{emptyMessage}</p>
       : <>
         <div className="t98-proportion-bar" aria-hidden="true">
-          {parts.filter(part => part.count > 0).map(part => <span key={part.id} className={`t98-proportion-segment t98-chart-fill-${part.tone}`} style={{ flexGrow: part.count }} />)}
+          {parts.filter(part => known(part.count) && part.count > 0).map(part => <span key={part.id} className={`t98-proportion-segment t98-chart-fill-${part.tone}`} style={{ flexGrow: part.count! }} />)}
         </div>
         <ul className="t98-chart-legend t98-proportion-legend" aria-label={`${label} breakdown`}>
-          {parts.map(part => <li key={part.id}><span className={`t98-chart-swatch t98-chart-fill-${part.tone}`} aria-hidden="true" /><span>{part.label}: <strong>{formatCount(part.count)}</strong> ({percent(part.count, total)})</span></li>)}
+          {parts.map(part => <li key={part.id}><span className={`t98-chart-swatch t98-chart-fill-${part.tone}`} aria-hidden="true" /><span>{part.label}: {segmentText(part, total, formatCount, false)}</span></li>)}
         </ul>
+        {missingNote(parts)}
       </>}
   </div>;
 }
@@ -469,9 +492,9 @@ export function ShareChart({ label, context, summary, segments: parts, total, fo
   const uid = useId().replace(/:/g, '');
   const summaryId = `${uid}-summary`;
   let angle = 0;
-  const arcs = total ? parts.filter(part => part.count > 0).map(part => {
+  const arcs = total ? parts.filter(part => known(part.count) && part.count > 0).map(part => {
     const start = angle;
-    angle += Math.min(1, part.count / total) * 2 * Math.PI;
+    angle += Math.min(1, part.count! / total) * 2 * Math.PI;
     return { part, d: arcPath(38, 66, start, angle) };
   }) : [];
   return <figure className="t98-chart t98-share-chart" aria-describedby={summary ? summaryId : undefined}>
@@ -482,12 +505,15 @@ export function ShareChart({ label, context, summary, segments: parts, total, fo
       : <>
         <div className="t98-share-body">
           <svg className="t98-share-donut" viewBox="-70 -70 140 140" aria-hidden="true" focusable="false">
-            {arcs.map(({ part, d }) => <path key={part.id} d={d} fillRule="evenodd" className={`t98-share-slice t98-chart-fill-${part.tone}`} />)}
+            <defs>{tonePatterns(uid)}</defs>
+            {/* The same hatch, dot and stripe fills as the legend swatches, so slices never differ by colour alone. */}
+            {arcs.map(({ part, d }) => <path key={part.id} d={d} fillRule="evenodd" className="t98-share-slice" fill={`url(#${uid}-p${part.tone})`} />)}
           </svg>
           <ul className="t98-chart-legend t98-share-legend" aria-label={`${label} breakdown`}>
-            {parts.map(part => <li key={part.id}><span className={`t98-chart-swatch t98-chart-fill-${part.tone}`} aria-hidden="true" /><span>{part.label}: <strong>{percent(part.count, total)}</strong> ({formatCount(part.count)})</span></li>)}
+            {parts.map(part => <li key={part.id}><span className={`t98-chart-swatch t98-chart-fill-${part.tone}`} aria-hidden="true" /><span>{part.label}: {segmentText(part, total, formatCount, true)}</span></li>)}
           </ul>
         </div>
+        {missingNote(parts)}
         {summary && <p id={summaryId} className="t98-chart-summary">{summary}</p>}
         <details className="t98-chart-data">
           <summary>View data table</summary>
@@ -495,7 +521,7 @@ export function ShareChart({ label, context, summary, segments: parts, total, fo
             <table className="t98-table t98-chart-table">
               <caption className="t98-visually-hidden">{label}: counts and shares</caption>
               <thead><tr><th scope="col">Segment</th><th scope="col">Count</th><th scope="col">Share</th></tr></thead>
-              <tbody>{parts.map(part => <tr key={part.id}><th scope="row">{part.label}</th><td className="t98-table-cell--numeric">{formatCount(part.count)}</td><td className="t98-table-cell--numeric">{percent(part.count, total)}</td></tr>)}</tbody>
+              <tbody>{parts.map(part => <tr key={part.id}><th scope="row">{part.label}</th><td className="t98-table-cell--numeric">{known(part.count) ? formatCount(part.count) : 'Unavailable'}</td><td className="t98-table-cell--numeric">{percent(part.count, total)}</td></tr>)}</tbody>
               <tfoot><tr><th scope="row">Total</th><td className="t98-table-cell--numeric">{formatCount(total)}</td><td className="t98-table-cell--numeric">100%</td></tr></tfoot>
             </table>
           </div>

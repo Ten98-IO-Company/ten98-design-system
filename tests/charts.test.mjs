@@ -120,3 +120,36 @@ test('every emitted chart class is styled in the shipped stylesheet', () => {
   const classes = html => [...html.matchAll(/class="([^"]+)"/g)].flatMap(match => match[1].split(' '));
   for (const name of new Set(rendered.flatMap(classes))) if (!/^t98-button--(md|secondary)$/.test(name)) assert.ok(styles.includes(`.${name}`), `${name} is styled`);
 });
+
+test('a segment with an unavailable count reads Unavailable and is never drawn or counted as 0', () => {
+  const parts = [{ id: 'a', label: 'Opened', count: 30, tone: 1 }, { id: 'b', label: 'Bounced', count: null, tone: 2 }, { id: 'c', label: 'Ignored', count: 10, tone: 3 }];
+  const share = render(h(ShareChart, { label: 'Outcomes', segments: parts, total: 40 }));
+  assert.match(share, /Opened: <strong>75%<\/strong> \(30\)/);
+  assert.match(share, /Bounced: <strong>Unavailable<\/strong>/);
+  assert.equal((share.match(/t98-share-slice/g) ?? []).length, 2);
+  assert.match(share, /<th scope="row">Bounced<\/th><td class="t98-table-cell--numeric">Unavailable<\/td><td class="t98-table-cell--numeric">Unavailable<\/td>/);
+  assert.match(share, /role="note">Unavailable: Bounced\. The graphic shows only segments with a known count\./);
+  assert.doesNotMatch(share, /Bounced: <strong>0|>0%</);
+  const bar = render(h(ProportionBar, { label: 'Split', segments: parts, total: 40 }));
+  assert.equal((bar.match(/t98-proportion-segment /g) ?? []).length, 2);
+  assert.match(bar, /Bounced: <strong>Unavailable<\/strong>/);
+  const list = render(h(BarList, { label: 'Pages', items: [{ id: 'p', label: '/home', value: 5, valueText: '5', share: 1, secondary: { label: 'Exits', valueText: '0', value: null, share: 0.4 } }] }));
+  assert.match(list, /t98-bar-list-secondary"><span>Exits<\/span><span class="t98-bar-list-value">Unavailable</);
+  assert.match(list, /t98-bar-track t98-bar-track--secondary t98-bar-track--unavailable" style="--t98-bar-share:0%"/);
+});
+
+test('ShareChart slices use the tone pattern fills, and a busy BarList keeps rows focusable but inert', () => {
+  const share = render(h(ShareChart, { label: 'Outcomes', segments: [{ id: 'a', label: 'A', count: 2, tone: 2 }, { id: 'b', label: 'B', count: 1, tone: 3 }], total: 3 }));
+  const ids = [...share.matchAll(/class="t98-share-slice" fill="url\(#([^)]+)\)"/g)].map(match => match[1]);
+  assert.equal(ids.length, 2);
+  for (const id of ids) assert.match(share, new RegExp(`<pattern id="${id}"[^>]*>.*?(<path|<circle)`));
+  assert.doesNotMatch(share, /t98-share-slice t98-chart-fill/);
+  let calls = 0;
+  const items = [{ id: 'p', label: '/home', value: 5, valueText: '5', onSelect: () => { calls++; } }];
+  const busy = render(h(BarList, { label: 'Pages', items, busy: true }));
+  assert.match(busy, /<ol class="t98-bar-list" aria-label="Pages" aria-busy="true">/);
+  assert.match(busy, /<button type="button" class="t98-bar-list-name t98-bar-list-button" aria-pressed="false" aria-disabled="true">/);
+  assert.doesNotMatch(busy, / disabled=""/);
+  assert.doesNotMatch(render(h(BarList, { label: 'Pages', items })), /aria-disabled|aria-busy/);
+  assert.equal(calls, 0);
+});

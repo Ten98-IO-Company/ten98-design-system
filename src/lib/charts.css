@@ -62,6 +62,7 @@
 .t98-share-body { display: flex; flex-wrap: wrap; gap: var(--t98-space-4); align-items: center; }
 .t98-share-donut { flex: none; inline-size: 9rem; block-size: 9rem; }
 .t98-share-slice { stroke: var(--t98-surface); stroke-width: 1.5; }
+.t98-bar-list-button[aria-disabled='true'] { cursor: not-allowed; opacity: .6; }
 .t98-share-legend { flex: 1 1 12rem; flex-direction: column; align-items: flex-start; }
 
 .t98-bar-list { display: grid; gap: var(--t98-space-3); margin: 0; padding: 0; list-style: none; }
