@@ -41,6 +41,10 @@ export interface CountryMapProps {
   /** Required boundary, data and licence attribution for the geometry. */
   attribution: ReactNode;
   unmappedSummary: CountryMapSummary;
+  /** The geometry is simplified; a visible note says the map is approximate. */
+  approximate?: boolean;
+  /** Values are overlapping estimates (one visitor can count in several countries), so no mapped total is shown or implied. */
+  overlapping?: boolean;
   selectedCode?: string | null;
   /** Makes countries with rows activatable with Enter or Space. */
   onSelect?: (code: string) => void;
@@ -59,7 +63,7 @@ function parseViewBox(viewBox: string): [number, number, number, number] {
 }
 
 /** Choropleth over app-supplied shapes. Countries with rows form one roving tab stop; the details table is always present. */
-export function CountryMap({ label, context, summary, shapes, viewBox, rows, metricLabel, attribution, unmappedSummary, selectedCode, onSelect, className }: CountryMapProps) {
+export function CountryMap({ label, context, summary, shapes, viewBox, rows, metricLabel, attribution, unmappedSummary, approximate = false, overlapping = false, selectedCode, onSelect, className }: CountryMapProps) {
   const id = useId();
   const patternId = `${id.replace(/:/g, '')}-nodata`;
   const [zoom, setZoom] = useState(MIN_ZOOM);
@@ -160,6 +164,8 @@ export function CountryMap({ label, context, summary, shapes, viewBox, rows, met
       <span className="t98-map-legend-title">{metricLabel}</span>
       <span className="t98-map-legend-scale" aria-hidden="true">{Array.from({ length: SCALE_STEPS }, (_, step) => <span key={step} className={`t98-map-swatch t98-map-swatch--step-${step}`} />)}</span>
       {numbers.length > 0 ? <span className="t98-map-legend-range">Lowest {lowRow?.valueText} · highest {highRow?.valueText}</span> : <span className="t98-map-legend-range">No values to scale</span>}
+      {approximate && <span className="t98-map-note">Approximate map: boundaries are simplified and not authoritative.</span>}
+      {overlapping && <span className="t98-map-note">Values are overlapping estimates, so they do not add up to a total.</span>}
       <span className="t98-map-legend-nodata"><svg className="t98-map-swatch-nodata" viewBox="0 0 6 6" aria-hidden="true"><rect className="t98-map-pattern-base" width="6" height="6" /><path className="t98-map-pattern-line" d="M-1 7L7 -1" /></svg> No data</span>
     </div>
     <div className="t98-map-details" role="region" tabIndex={0} aria-label={`${label} details`}>
@@ -174,7 +180,7 @@ export function CountryMap({ label, context, summary, shapes, viewBox, rows, met
           {rowOnly.sort().map(code => <tr key={code}><th scope="row">{code}</th><td className="t98-map-table-value">{rows.get(code)!.valueText}</td></tr>)}
         </tbody>
         <tfoot>
-          <tr><th scope="row">Mapped total</th><td className="t98-map-table-value">{text(unmappedSummary.mapped)}</td></tr>
+          <tr><th scope="row">Mapped total</th><td className="t98-map-table-value">{overlapping ? 'Not summed: estimates overlap' : text(unmappedSummary.mapped)}</td></tr>
           <tr><th scope="row">Unknown</th><td className="t98-map-table-value">{text(unmappedSummary.unknown)}</td></tr>
           <tr><th scope="row">Not recorded</th><td className="t98-map-table-value">{text(unmappedSummary.notRecorded)}</td></tr>
         </tfoot>

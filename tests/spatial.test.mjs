@@ -111,6 +111,16 @@ test('a calendar day name states its entry count so the grid cell is not announc
   assert.doesNotMatch(two, /21 October 2026, today, \d/);
 });
 
+test('an approximate map says so, and overlapping estimates never show a mapped total', () => {
+  const plain = capture(render(CountryMap, map));
+  assert.doesNotMatch(plain, /Approximate map|overlapping estimates/);
+  const html = capture(render(CountryMap, { ...map, approximate: true, overlapping: true, unmappedSummary: { ...map.unmappedSummary, mapped: '999 sessions' } }));
+  assert.match(html, /Approximate map: boundaries are simplified and not authoritative\./);
+  assert.match(html, /Values are overlapping estimates, so they do not add up to a total\./);
+  assert.match(html, /Mapped total<\/th><td class="t98-map-table-value">Not summed: estimates overlap</);
+  assert.doesNotMatch(html, /999 sessions/);
+});
+
 test('every t98 class emitted by the spatial components is styled', () => {
   for (const html of emitted) for (const name of new Set([...html.matchAll(/class="([^"]+)"/g)].flatMap(match => match[1].split(' '))))
     // ReplayControls and Button classes belong to their own components and tests.

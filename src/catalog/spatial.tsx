@@ -25,7 +25,7 @@ const mapProps = `label="Sessions by country · sample shapes"
   attribution="Sample rectangles drawn for this demonstration; no real boundaries."
   unmappedSummary={{ mapped: '1,500 sessions', unknown: '40 sessions', notRecorded: null }}`;
 
-function MapDemo() {
+function MapDemo({ estimates = false }: { estimates?: boolean }) {
   const [selected, setSelected] = useState<string | null>(null);
   const shapes = [
     { code: 'AA', name: 'Sample shape A', d: 'M5 5H55V55H5Z' }, { code: 'BB', name: 'Sample shape B', d: 'M65 5H115V55H65Z' }, { code: 'CC', name: 'Sample shape C (no row)', d: 'M35 65H85V95H35Z' },
@@ -34,7 +34,7 @@ function MapDemo() {
   return <CountryMap label="Sessions by country · sample shapes" context="Synthetic demonstration · sessions · 1–18 October 2026 · UTC"
     summary="Sample shape A has the most sessions. Sample shape C has no data." shapes={shapes} viewBox="0 0 120 100" rows={rows} metricLabel="Sessions"
     attribution="Sample rectangles drawn for this demonstration; no real boundaries." selectedCode={selected} onSelect={setSelected}
-    unmappedSummary={{ mapped: '1,500 sessions', unknown: '40 sessions', notRecorded: null }} />;
+    unmappedSummary={{ mapped: '1,500 sessions', unknown: '40 sessions', notRecorded: null }} approximate={estimates} overlapping={estimates} />;
 }
 
 const heatPoints = `const points = [
@@ -101,7 +101,8 @@ export const spatialEntries: ComponentEntry[] = [
     tokens: [...surfaceTokens, ...controlTokens],
     accessibility: ['Countries with rows share one tab stop; arrow keys move between them in name order, Home and End jump, Shift with arrows pans, plus and minus zoom.', 'Zoom and pan also have labelled buttons. A polite status line reads the focused or hovered country.', 'The details table carries every value, no-data label and total, so the map is never the only source.'],
     related: ['HeatmapPlane', 'DataTable', 'StatusLine'], example: tsx(['CountryMap'], `<CountryMap\n  ${mapProps} />`, shapeCode),
-    states: [{ name: 'Choropleth with no-data shape', description: 'Two valued shapes and one without a row.', preview: <MapDemo />, code: mapCode }],
+    states: [{ name: 'Choropleth with no-data shape', description: 'Two valued shapes and one without a row.', preview: <MapDemo />, code: mapCode },
+      { name: 'Approximate map with overlapping estimates', description: 'Simplified boundaries are labelled, and non-additive estimates show no mapped total.', preview: <MapDemo estimates />, code: mapCode.replace('/>', 'approximate overlapping />') }],
   },
   {
     name: 'HeatmapPlane', category: 'Data display', description: 'An image-role click-density or scroll-band overlay for VisualEvidenceFrame, with a companion HeatmapRankedList table.',
