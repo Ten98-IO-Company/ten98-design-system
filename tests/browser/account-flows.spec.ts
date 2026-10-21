@@ -175,3 +175,11 @@ test('an error that arrives without a submit does not take focus from a field be
   await expect(page.getByText('Preferences could not be refreshed.')).toBeVisible();
   await expect(field).toBeFocused();
 });
+
+test('a profile without language or time zone submits only name and theme', async ({ page }) => {
+  await open(page, 'profile-minimal');
+  await expect(page.getByLabel('Time zone')).toHaveCount(0);
+  await page.getByLabel('Name').fill('Sam R.');
+  await page.getByRole('button', { name: 'Save changes' }).click();
+  await expect(page.locator('#log')).toHaveText('{"name":"Sam R.","theme":"system"}');
+});

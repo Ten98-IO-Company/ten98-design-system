@@ -51,6 +51,7 @@ const screens: Record<string, ReactNode> = {
   'profile': <Probe render={log => <AccountProfileFlow email="member@example.test" emailHref="#email" defaultValues={{ name: 'Sam Rivera', theme: 'system', locale: 'en', timeZone: 'Asia/Dubai' }} localeOptions={locales} timeZones={zones} onDetectTimeZone={() => 'Europe/London'} onSubmit={values => log(JSON.stringify(values))} onDirtyChange={dirty => log(`dirty:${dirty}`)} />} />,
   'profile-disabled': <AccountProfileFlow email="member@example.test" defaultValues={{ name: 'Sam Rivera', theme: 'dark', locale: 'ar', timeZone: 'Asia/Qatar' }} localeOptions={locales} timeZones={zones} onSubmit={noop} disabled notice={{ tone: 'info', text: 'Only owners can edit profiles.' }} />,
   'late-error': <LateError />,
+  'profile-minimal': <Probe render={log => <AccountProfileFlow email="member@example.test" defaultValues={{ name: 'Sam Rivera', theme: 'system' }} onSubmit={values => log(JSON.stringify(values))} />} />,
   'password': <Probe render={log => <PasswordChangeFlow hasPassword onSubmit={values => log(JSON.stringify(values))} />} />,
   'password-error': <PasswordChangeFlow hasPassword onSubmit={noop} error="The password could not be changed." fieldErrors={{ currentPassword: 'The current password is incorrect.' }} unconfirmed="We could not confirm whether your password changed. Reload this page before trying again." />,
   'password-none': <PasswordChangeFlow hasPassword={false} setPasswordHref="#set-password" onSubmit={noop} />,

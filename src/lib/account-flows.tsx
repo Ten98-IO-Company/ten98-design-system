@@ -16,7 +16,8 @@ import type { FlowState, Submit } from './settings-base.js';
 /* ---------------------------------------------------------------- Profile */
 
 export type AccountTheme = 'system' | 'light' | 'dark';
-export interface AccountProfileValues { name: string; theme: AccountTheme; locale: string; timeZone: string }
+/** `locale` and `timeZone` are present only when the flow offers them (see `localeOptions` and `timeZones`). */
+export interface AccountProfileValues { name: string; theme: AccountTheme; locale?: string; timeZone?: string }
 export interface AccountProfileMessages {
   name: string; email: string; emailChange: string; theme: string; themeSystem: string; themeLight: string; themeDark: string; locale: string; timeZone: string;
   timeZoneInvalid: string; detect: string; detected: string; detectFailed: string; save: string; saving: string;
@@ -31,8 +32,10 @@ export interface AccountProfileFlowProps extends FlowState {
   email: string;
   emailHref?: string;
   defaultValues: AccountProfileValues;
-  localeOptions: SelectOption[];
-  timeZones: string[];
+  /** Omit when the application stores no language preference: the field is not rendered or submitted. */
+  localeOptions?: SelectOption[];
+  /** Omit when the application stores no time zone: the field, its validation and detection are not rendered or submitted. */
+  timeZones?: string[];
   /** Returns the device time zone, or null when it cannot be determined. */
   onDetectTimeZone?: () => string | null;
   onSubmit: Submit<AccountProfileValues>;
@@ -60,14 +63,18 @@ export function AccountProfileFlow({ email, emailHref, defaultValues, localeOpti
   const set = <K extends keyof AccountProfileValues>(key: K, value: AccountProfileValues[K]) => setValues(current => ({ ...current, [key]: value }));
   function detect() {
     const zone = onDetectTimeZone?.() ?? null;
-    if (zone && timeZones.includes(zone)) { set('timeZone', zone); setZoneError(undefined); setDetectStatus({ tone: 'success', text: copy.detected }); }
+    if (zone && timeZones?.includes(zone)) { set('timeZone', zone); setZoneError(undefined); setDetectStatus({ tone: 'success', text: copy.detected }); }
     else setDetectStatus({ tone: 'warning', text: copy.detectFailed });
   }
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!timeZones.includes(values.timeZone)) { setZoneError(copy.timeZoneInvalid); return; }
+    if (timeZones && !timeZones.includes(values.timeZone ?? '')) { setZoneError(copy.timeZoneInvalid); return; }
     setZoneError(undefined);
-    void single(() => onSubmit({ ...values, name: values.name.trim() }));
+    // Only offered fields are submitted, so an application never receives values it has no home for.
+    const submitted: AccountProfileValues = { name: values.name.trim(), theme: values.theme };
+    if (localeOptions) submitted.locale = values.locale ?? '';
+    if (timeZones) submitted.timeZone = values.timeZone ?? '';
+    void single(() => onSubmit(submitted));
   }
   return <SettingsFlow {...state} title={title} description={description} onSubmit={submit} submitLabel={copy.save} busyLabel={state.busyLabel ?? copy.saving} submitDisabled={!dirty && !state.busy}>
     <Field label={copy.email} htmlFor={`${id}-email`}>
@@ -79,11 +86,11 @@ export function AccountProfileFlow({ email, emailHref, defaultValues, localeOpti
     </Field>
     <RadioGroup name="theme" legend={copy.theme} orientation="horizontal" value={values.theme} onValueChange={value => set('theme', value as AccountTheme)} error={fieldErrors?.theme}
       options={[{ value: 'system', label: copy.themeSystem }, { value: 'light', label: copy.themeLight }, { value: 'dark', label: copy.themeDark }]} />
-    <Field label={copy.locale} htmlFor={`${id}-locale`} error={fieldErrors?.locale}>
-      <Select id={`${id}-locale`} name="locale" options={localeOptions} value={values.locale} onChange={event => set('locale', event.target.value)} />
-    </Field>
-    <Combobox name="timeZone" label={copy.timeZone} options={timeZones} value={values.timeZone} onValueChange={value => { set('timeZone', value); setZoneError(undefined); }} allowCustom={false} required error={zoneError ?? fieldErrors?.timeZone} />
-    {onDetectTimeZone && <Stack gap={2}>
+    {localeOptions && <Field label={copy.locale} htmlFor={`${id}-locale`} error={fieldErrors?.locale}>
+      <Select id={`${id}-locale`} name="locale" options={localeOptions} value={values.locale ?? ''} onChange={event => set('locale', event.target.value)} />
+    </Field>}
+    {timeZones && <Combobox name="timeZone" label={copy.timeZone} options={timeZones} value={values.timeZone ?? ''} onValueChange={value => { set('timeZone', value); setZoneError(undefined); }} allowCustom={false} required error={zoneError ?? fieldErrors?.timeZone} />}
+    {timeZones && onDetectTimeZone && <Stack gap={2}>
       <Button type="button" variant="secondary" onClick={detect}>{copy.detect}</Button>
       {detectStatus && <StatusLine tone={detectStatus.tone}>{detectStatus.text}</StatusLine>}
     </Stack>}

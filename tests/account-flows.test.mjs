@@ -99,3 +99,15 @@ test('outcomes use alert roles and every emitted class is styled', () => {
   const emitted = new Set(screens.flatMap(classes));
   for (const name of emitted) if (/^t98-/.test(name) && !['t98-button--md', 't98-button--secondary', 't98-description-list--1'].includes(name)) assert.ok(styles.includes(`.${name}`), `${name} is styled`);
 });
+
+test('AccountProfileFlow omits language and time zone when the app stores neither', async () => {
+  const { AccountProfileFlow } = await import('../dist/index.js');
+  const minimal = renderToStaticMarkup(h(AccountProfileFlow, { email: 'a@example.test', defaultValues: { name: 'Sam', theme: 'system' }, onSubmit() {} }));
+  assert.doesNotMatch(minimal, /name="locale"|name="timeZone"|Use my time zone/);
+  assert.match(minimal, /name="name"/);
+  const full = renderToStaticMarkup(h(AccountProfileFlow, { email: 'a@example.test', defaultValues: { name: 'Sam', theme: 'system', locale: 'en', timeZone: 'Asia/Dubai' },
+    localeOptions: [{ value: 'en', label: 'English' }], timeZones: ['Asia/Dubai'], onDetectTimeZone: () => 'Asia/Dubai', onSubmit() {} }));
+  assert.match(full, /name="locale"/);
+  assert.match(full, /name="timeZone"/);
+  assert.match(full, /Use my time zone/);
+});
