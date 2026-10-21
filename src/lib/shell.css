@@ -157,7 +157,7 @@
 .t98-app-topbar__menu:hover { background: var(--t98-subtle); }
 .t98-app-topbar__menu:focus-visible { outline: var(--t98-focus-width) solid var(--t98-focus); outline-offset: var(--t98-focus-offset); }
 .t98-app-topbar__breadcrumb { flex: 1 1 0; min-width: 0; }
-.t98-app-topbar__crumbs { display: flex; align-items: center; gap: var(--t98-space-2); min-width: 0; margin: 0; padding: 0; list-style: none; font-size: var(--t98-text-md); }
+.t98-app-topbar__crumbs { display: flex; align-items: center; gap: var(--t98-space-2); min-width: 0; margin: 0; padding: 0; list-style: none; font-size: var(--t98-text-md); line-height: var(--t98-leading-normal); }
 .t98-app-topbar__crumb { display: inline-flex; align-items: center; gap: var(--t98-space-2); min-width: 0; color: var(--t98-muted); }
 .t98-app-topbar__scope,
 .t98-app-topbar__current { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
