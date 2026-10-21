@@ -135,3 +135,69 @@ test('tab arrows follow the writing direction', async ({ page }) => {
   await expect(tabs.nth(2)).toBeFocused();
   await expect(tabs.nth(2)).toHaveAttribute('aria-selected', 'true');
 });
+
+test('Dialog onBeforeClose intercepts Escape, backdrop and close button and can veto', async ({ page }) => {
+  await page.goto('/tests/primitives-extensions.html?theme=light');
+  const dialog = page.getByRole('dialog', { name: 'Edit draft' });
+  const reasons = page.locator('#close-reasons');
+  await page.locator('#open-guarded').click();
+  await expect(dialog).toBeVisible();
+  await page.locator('#draft-title').focus();
+
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeVisible();
+  await expect(reasons).toHaveText('escape');
+  await expect(page.locator('#draft-title')).toBeFocused();
+
+  await dialog.getByRole('button', { name: 'Close dialog' }).click();
+  await expect(dialog).toBeVisible();
+  await expect(reasons).toHaveText('escape,close-button');
+
+  // Click the backdrop: the dialog element itself, outside its box.
+  const box = (await dialog.boundingBox())!;
+  await page.mouse.click(Math.max(2, box.x / 2), Math.max(2, box.y / 2));
+  await expect(dialog).toBeVisible();
+  await expect(reasons).toHaveText('escape,close-button,backdrop');
+  expect(await dialog.evaluate(node => node.contains(document.activeElement)), 'focus stays inside after a veto').toBe(true);
+
+  await page.locator('#allow-close').click();
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeHidden();
+  await expect(reasons).toHaveText('escape,close-button,backdrop,escape');
+  await expect(page.locator('#open-guarded')).toBeFocused();
+});
+
+test('ConfirmDialog acknowledgement and typed text both gate confirmation, with body content', async ({ page }) => {
+  await page.goto('/tests/primitives-extensions.html?theme=light');
+  await page.locator('#open-confirm').click();
+  const dialog = page.getByRole('dialog', { name: 'Delete project?' });
+  const confirm = dialog.getByRole('button', { name: 'Delete', exact: true });
+  await expect(dialog.locator('#confirm-body a')).toHaveAttribute('href', '/campaigns');
+  await expect(confirm).toBeDisabled();
+  await dialog.getByLabel('Type DELETE to confirm').fill('DELETE');
+  await expect(confirm).toBeDisabled();
+  await dialog.getByRole('checkbox', { name: 'I understand all campaigns will be removed' }).check();
+  await expect(confirm).toBeEnabled();
+  await dialog.getByLabel('Type DELETE to confirm').fill('delete');
+  await expect(confirm).toBeDisabled();
+  await dialog.getByLabel('Type DELETE to confirm').fill('DELETE');
+  await confirm.click();
+  await expect(dialog).toBeHidden();
+  await expect(page.locator('#confirm-result')).toHaveText('deleted');
+  // Reopening resets both gates.
+  await page.locator('#open-confirm').click();
+  await expect(dialog.getByRole('checkbox')).not.toBeChecked();
+  await expect(confirm).toBeDisabled();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth), 'no page overflow').toBeLessThanOrEqual(1);
+});
+
+test('a guarded Dialog that the browser closes on its own reopens and asks the guard', async ({ page }) => {
+  await page.goto('/tests/primitives-extensions.html?theme=light');
+  const dialog = page.getByRole('dialog', { name: 'Edit draft' });
+  await page.locator('#open-guarded').click();
+  await expect(dialog).toBeVisible();
+  // Chrome's close watcher can close a modal without a cancelable cancel event (Escape twice without interaction).
+  await page.evaluate(() => document.querySelector<HTMLDialogElement>('dialog[open]')!.close());
+  await expect(dialog).toBeVisible();
+  await expect(page.locator('#close-reasons')).toHaveText('escape');
+});

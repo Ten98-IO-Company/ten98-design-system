@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createElement as h } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { Alert, Badge, Button, Card, Field, Icon, Input, Meter, Progress, Select, Tabs } from '../dist/index.js';
+import { Alert, Badge, Button, Card, ConfirmDialog, Dialog, EmptyState, ActivityFeed, ResourceCard, Field, Icon, Input, Meter, Progress, Select, Tabs } from '../dist/index.js';
 
 const styles = readFileSync(new URL('../dist/styles.css', import.meta.url), 'utf8');
 const classes = html => [...html.matchAll(/class="([^"]+)"/g)].flatMap(match => match[1].split(' ')).filter(name => name.startsWith('t98-'));
@@ -139,4 +139,18 @@ test('Tabs keep a keyboard stop when the active tab is disabled', async () => {
   const tabs = [...html.matchAll(/<button[^>]*role="tab"[^>]*>/g)].map(match => match[0]);
   assert.match(tabs[0], /tabindex="-1"/i);
   assert.match(tabs[1], /tabindex="0"/i);
+});
+
+test('Dialog, ConfirmDialog and the description slots accept the new props and rich content', () => {
+  const dialog = render(h(Dialog, { open: false, onOpenChange() {}, onBeforeClose: () => false, title: 'T' }, 'Body'));
+  assert.match(dialog, /<dialog[^>]*class="t98-dialog"/);
+  const confirm = render(h(ConfirmDialog, { open: true, onOpenChange() {}, onConfirm() {}, title: 'T', description: 'D', confirmationText: 'GO', acknowledgement: 'I agree' }, h('p', { id: 'extra' }, 'Extra body')));
+  assert.match(confirm, /id="extra"/);
+  assert.match(confirm, /type="checkbox"[^>]* required=""/);
+  assert.match(confirm, /<button[^>]*disabled=""[^>]*>[^<]*(<[^>]+>)*Confirm/);
+  assert.doesNotMatch(confirm, /Review this action/);
+  const link = h('a', { href: '/x' }, 'link');
+  assert.match(render(h(EmptyState, { title: 'E', description: link })), /<p><a href="\/x">link<\/a><\/p>/);
+  assert.match(render(h(ResourceCard, { title: 'R', description: link })), /<p class="t98-resource-description"><a href="\/x">link<\/a><\/p>/);
+  assert.match(render(h(ActivityFeed, { items: [{ id: '1', title: 'A', time: 'now', description: link }] })), /<p><a href="\/x">link<\/a><\/p>/);
 });

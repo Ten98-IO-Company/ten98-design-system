@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Alert, Badge, Button, Card, Field, Heading, Inline, Input, Meter, Progress, Select, Stack, Tabs } from '@ten98/ui';
+import { Alert, Badge, Button, Card, ConfirmDialog, Dialog, Field, Heading, Inline, Input, Meter, Progress, Select, Stack, Tabs } from '@ten98/ui';
 import '@ten98/ui/styles.css';
 
 // Composed from library components only, the way an application screen must be.
@@ -19,6 +19,33 @@ function LazyTabs() {
     { value: 'three', label: 'Three', content: 'Third panel' },
     { value: 'four', label: 'Four', content: 'Fourth panel' },
   ]} /></div>;
+}
+
+function GuardedDialog() {
+  const [open, setOpen] = useState(false);
+  const [veto, setVeto] = useState(true);
+  const [reasons, setReasons] = useState<string[]>([]);
+  return <div id="guarded">
+    <Button id="open-guarded" variant="secondary" onClick={() => setOpen(true)}>Edit draft</Button>
+    <p id="close-reasons" role="status">{reasons.join(',')}</p>
+    <Dialog open={open} onOpenChange={setOpen} title="Edit draft" onBeforeClose={reason => { setReasons(list => [...list, reason]); return veto ? false : undefined; }}
+      footer={<Button id="allow-close" variant="secondary" onClick={() => setVeto(false)}>Allow closing</Button>}>
+      <Field label="Draft title"><Input id="draft-title" /></Field>
+    </Dialog>
+  </div>;
+}
+
+function AcknowledgedConfirm() {
+  const [open, setOpen] = useState(false);
+  const [done, setDone] = useState(false);
+  return <div id="acknowledged">
+    <Button id="open-confirm" variant="secondary" onClick={() => { setDone(false); setOpen(true); }}>Delete project</Button>
+    <p id="confirm-result" role="status">{done ? 'deleted' : ''}</p>
+    <ConfirmDialog open={open} onOpenChange={setOpen} title="Delete project?" description="This cannot be undone." danger confirmLabel="Delete" confirmationText="DELETE"
+      acknowledgement="I understand all campaigns will be removed" onConfirm={() => setDone(true)}>
+      <p id="confirm-body">Linked <a href="/campaigns">campaigns</a> are deleted too.</p>
+    </ConfirmDialog>
+  </div>;
 }
 
 function Screen() {
@@ -46,6 +73,8 @@ function Screen() {
     <Progress label="Files uploaded" value={64} />
     <Meter label="Storage used" value={72} valueLabel="72 GB of 100 GB" low={60} high={85} optimum={10} />
     <LazyTabs />
+    <GuardedDialog />
+    <AcknowledgedConfirm />
     <Inline id="palettes">{palettes.map(palette => <Badge key={palette} palette={palette}>{palette}</Badge>)}</Inline>
   </Stack>;
 }

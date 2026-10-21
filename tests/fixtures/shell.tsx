@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Button, AccountMenu, AppShell, AppTopbar, Banner, Card, Grid, Heading, Link, SearchField, SidebarFooter, SidebarNav, SidebarStatus, Stack, Text, WorkspaceProjectSwitcher, type NavLinkComponent, type SidebarNavGroup } from '@ten98/ui';
+import { Button, AccountMenu, AppShell, AppTopbar, Banner, Card, Grid, Heading, Link, SearchField, SectionNav, SidebarFooter, SidebarNav, SidebarStatus, Stack, Text, WorkspaceProjectSwitcher, type NavLinkComponent, type SidebarNavGroup } from '@ten98/ui';
 import '@ten98/ui/app-tokens.css';
 import '@ten98/ui/app.css';
 import '@ten98/ui/product.css';
@@ -63,6 +63,19 @@ function GuardedNav() {
   </Stack>;
 }
 
+function Sections() {
+  const [dirty, setDirty] = useState(true);
+  const [current, setCurrent] = useState('overview');
+  const [log, setLog] = useState('none');
+  const items = ['overview', 'audience', 'creative assets', 'delivery schedule', 'reports', 'billing and invoices', 'settings'].map(label => ({ id: label, label: label[0].toUpperCase() + label.slice(1), href: label, current: current === label, badge: label === 'reports' ? 3 : undefined }));
+  return <Stack gap={3}>
+    <SectionNav label="Page sections" items={items} linkComponent={RouterLink}
+      onSelect={(item, event) => { setLog(`select ${item.id}`); if (dirty) event.preventDefault(); else setCurrent(item.id); }} />
+    <Button variant="secondary" onClick={() => setDirty(value => !value)}>{dirty ? 'Discard section draft' : 'Restore section draft'}</Button>
+    <Text as="p" role="status" aria-label="Section log" size="sm" tone="muted">{log}</Text>
+  </Stack>;
+}
+
 function Switchers() {
   const [workspace, setWorkspace] = useState('acme');
   const [project, setProject] = useState<string | null>('launch');
@@ -90,6 +103,7 @@ function Fixture() {
       <Card title="Discover (link component)"><DiscoverNav /></Card>
       <Card title="Campaign (guarded callbacks)"><CampaignNav /></Card>
       <Card title="Guarded links"><GuardedNav /></Card>
+      <Card title="Sections"><Sections /></Card>
       <Card title="Workspace and project"><Switchers /></Card>
       <Card title="Search"><Searches /></Card>
     </Grid>

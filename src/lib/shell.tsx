@@ -47,6 +47,14 @@ export interface SidebarNavProps {
   emptyFilter?: (query: string) => ReactNode;
 }
 
+/** The click guard shared by every navigation list: modified and non-primary clicks on links keep the browser default;
+ * otherwise `onSelect` runs first and `onNavigate` only when it did not prevent a link's navigation. */
+function runSelect<Item extends { href?: string }>(item: Item, event: MouseEvent<HTMLElement>, onSelect?: (item: Item, event: MouseEvent<HTMLElement>) => void, onNavigate?: (item: Item) => void) {
+  if (item.href != null && (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)) return;
+  onSelect?.(item, event);
+  if (item.href == null || !event.defaultPrevented) onNavigate?.(item);
+}
+
 function matches(item: SidebarNavItem, query: string) {
   if (item.hidden) return false;
   if (!query) return true;
@@ -76,11 +84,7 @@ export function SidebarNav({ label, groups, linkComponent: LinkComponent, filter
         <ul className="t98-sidebar-nav__list" aria-labelledby={group.label ? headingId : undefined}>
           {group.items.map(item => {
             const aria = item.current ? 'page' as const : undefined;
-            const select = (event: MouseEvent<HTMLElement>) => {
-              if (item.href != null && (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)) return;
-              item.onSelect?.(item, event);
-              if (item.href == null || !event.defaultPrevented) onNavigate?.(item);
-            };
+            const select = (event: MouseEvent<HTMLElement>) => runSelect(item, event, item.onSelect, onNavigate);
             let control: ReactNode;
             if (item.disabled) control = <span className="t98-sidebar-nav__item" aria-disabled="true" aria-current={aria}><NavItemContent item={item} /></span>;
             else if (item.href != null) {
@@ -94,6 +98,30 @@ export function SidebarNav({ label, groups, linkComponent: LinkComponent, filter
       </div>;
     })}
     {query && nothing && emptyFilter && <div className="t98-sidebar-nav__empty">{emptyFilter(filter.trim())}</div>}
+  </nav>;
+}
+
+export interface SectionNavItem { id: string; label: string; href: string; /** Exposed as aria-current="page". */ current?: boolean; badge?: ReactNode }
+export interface SectionNavProps {
+  /** Accessible name of the navigation landmark. */
+  label: string;
+  items: SectionNavItem[];
+  /** Renders each `href`, for example a TanStack Router link. `href` is then a key your component resolves. */
+  linkComponent?: NavLinkComponent;
+  /** Runs first on a plain primary click; `event.preventDefault()` cancels navigation (for example to guard an unsaved draft). Modified clicks skip it. */
+  onSelect?: (item: SectionNavItem, event: MouseEvent<HTMLElement>) => void;
+}
+
+/** A URL-bound strip of sibling sections: tabs without panels. These are links in a navigation landmark, so they use Tab, not arrow keys. */
+export function SectionNav({ label, items, linkComponent: LinkComponent, onSelect }: SectionNavProps) {
+  return <nav aria-label={label} className="t98-section-nav">
+    <ul className="t98-section-nav__list">
+      {items.map(item => {
+        const content = <>{item.label}{item.badge != null && item.badge !== false && <Badge>{item.badge}</Badge>}</>;
+        const props = { href: item.href, className: 't98-section-nav__link', 'aria-current': item.current ? 'page' as const : undefined, onClick: (event: MouseEvent<HTMLElement>) => runSelect(item, event, onSelect) };
+        return <li key={item.id} className="t98-section-nav__entry">{LinkComponent ? <LinkComponent {...props}>{content}</LinkComponent> : <a {...props}>{content}</a>}</li>;
+      })}
+    </ul>
   </nav>;
 }
 

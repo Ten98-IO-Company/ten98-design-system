@@ -375,7 +375,7 @@ export function PageHeader({ eyebrow, title, description, actions }: { eyebrow?:
   </div>{actions && <div className="t98-page-actions">{actions}</div>}</header>;
 }
 
-export function EmptyState({ title, description, icon = 'inbox', action }: { title: string; description: string; icon?: string; action?: ReactNode }) {
+export function EmptyState({ title, description, icon = 'inbox', action }: { title: string; description: ReactNode; icon?: string; action?: ReactNode }) {
   return <div className="t98-empty-state"><span className="t98-empty-icon"><Icon name={icon} size={23} /></span>
     <h3>{title}</h3><p>{description}</p>{action && <div className="t98-empty-action">{action}</div>}
   </div>;
@@ -384,7 +384,7 @@ export function EmptyState({ title, description, icon = 'inbox', action }: { tit
 export interface ActivityItem {
   id: string;
   title: string;
-  description?: string;
+  description?: ReactNode;
   time: string;
   icon?: string;
   tone?: 'neutral' | 'success' | 'warning' | 'danger' | 'info';
@@ -400,7 +400,7 @@ export function ActivityFeed({ items }: { items: readonly ActivityItem[] }) {
 }
 
 export function ResourceCard({ title, description, icon = 'box', status, children, actions }: {
-  title: string; description: string; icon?: string; status?: ReactNode; children?: ReactNode; actions?: ReactNode;
+  title: string; description: ReactNode; icon?: string; status?: ReactNode; children?: ReactNode; actions?: ReactNode;
 }) {
   return <article className="t98-resource-card"><div className="t98-resource-topline">
     <span className="t98-resource-icon"><Icon name={icon} size={21} /></span>{status && <div>{typeof status === 'string' ? <Badge>{status}</Badge> : status}</div>}

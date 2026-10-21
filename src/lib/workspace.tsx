@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useCallback, useContext, useEffect, useId, useRef, useState, type ReactNode } from 'react';
-import { Alert, Button, Dialog, Field, Icon, Input, Select, type Tone } from './primitives.js';
+import { Alert, Button, Checkbox, Dialog, Field, Icon, Input, Select, type Tone } from './primitives.js';
 
 export interface ProductOption { id: string; name: string; description?: string }
 /** Native scope selection; the consumer handles navigation and data changes. */
@@ -75,18 +75,25 @@ export function SecretField({ label, value }: { label: string; value: string }) 
 export interface ConfirmDialogProps {
   open: boolean; onOpenChange: (open: boolean) => void; title: string; description: string;
   onConfirm: () => void | Promise<void>; confirmLabel?: string; danger?: boolean; confirmationText?: string;
+  /** Body content shown above the actions. */
+  children?: ReactNode;
+  /** Adds a required checkbox with this label; confirm stays disabled until it is checked. */
+  acknowledgement?: string;
 }
 /** Blocks closing while a mutation is pending; rejected mutations stay open for retry. */
-export function ConfirmDialog({ open, onOpenChange, title, description, onConfirm, confirmLabel = 'Confirm', danger = false, confirmationText }: ConfirmDialogProps) {
-  const id = useId(); const [input, setInput] = useState(''); const [pending, setPending] = useState(false); const [error, setError] = useState(''); const busy = useRef(false);
-  useEffect(() => { if (open) { setInput(''); setError(''); } }, [open]);
+export function ConfirmDialog({ open, onOpenChange, title, description, onConfirm, confirmLabel = 'Confirm', danger = false, confirmationText, children, acknowledgement }: ConfirmDialogProps) {
+  const id = useId(); const [input, setInput] = useState(''); const [acknowledged, setAcknowledged] = useState(false); const [pending, setPending] = useState(false); const [error, setError] = useState(''); const busy = useRef(false);
+  useEffect(() => { if (open) { setInput(''); setAcknowledged(false); setError(''); } }, [open]);
+  const blocked = (!!confirmationText && input !== confirmationText) || (!!acknowledgement && !acknowledged);
   async function confirm() {
-    if (busy.current || (confirmationText && input !== confirmationText)) return;
+    if (busy.current || blocked) return;
     busy.current = true; setPending(true); setError('');
     try { await onConfirm(); onOpenChange(false); } catch { setError('The action could not be completed. Try again.'); } finally { busy.current = false; setPending(false); }
   }
-  return <Dialog open={open} onOpenChange={next => { if (!busy.current) onOpenChange(next); }} closeDisabled={pending} title={title} description={description} footer={<><Button variant="secondary" disabled={pending} onClick={() => onOpenChange(false)}>Cancel</Button><Button variant={danger ? 'danger' : 'primary'} loading={pending} disabled={!!confirmationText && input !== confirmationText} onClick={confirm}>{confirmLabel}</Button></>}>
-    {confirmationText ? <Field label={`Type ${confirmationText} to confirm`} htmlFor={id}><Input value={input} autoComplete="off" disabled={pending} onChange={event => setInput(event.target.value)}/></Field> : <p className="t98-confirm-hint">Review this action before continuing.</p>}
+  return <Dialog open={open} onOpenChange={next => { if (!busy.current) onOpenChange(next); }} closeDisabled={pending} title={title} description={description} footer={<><Button variant="secondary" disabled={pending} onClick={() => onOpenChange(false)}>Cancel</Button><Button variant={danger ? 'danger' : 'primary'} loading={pending} disabled={blocked} onClick={confirm}>{confirmLabel}</Button></>}>
+    {children}
+    {acknowledgement && <Checkbox label={acknowledgement} required checked={acknowledged} disabled={pending} onChange={event => setAcknowledged(event.target.checked)}/>}
+    {confirmationText ? <Field label={`Type ${confirmationText} to confirm`} htmlFor={id}><Input value={input} autoComplete="off" disabled={pending} onChange={event => setInput(event.target.value)}/></Field> : !children && !acknowledgement && <p className="t98-confirm-hint">Review this action before continuing.</p>}
     {error && <Alert tone="danger" title={error}/>}
   </Dialog>;
 }

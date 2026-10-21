@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createElement as h } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { AccountProfileFlow, LinkedIdentitiesFlow, PasswordChangeFlow, SessionListFlow, TwoFactorSetupFlow } from '../dist/index.js';
+import { AccountProfileFlow, LinkedIdentitiesFlow, PasswordChangeFlow, SessionListFlow, SettingsPanel, TwoFactorSetupFlow } from '../dist/index.js';
 
 const styles = readFileSync(new URL('../dist/styles.css', import.meta.url), 'utf8');
 const classes = html => [...html.matchAll(/class="([^"]+)"/g)].flatMap(match => match[1].split(' '));
@@ -110,4 +110,30 @@ test('AccountProfileFlow omits language and time zone when the app stores neithe
   assert.match(full, /name="locale"/);
   assert.match(full, /name="timeZone"/);
   assert.match(full, /Use my time zone/);
+});
+
+const panel = props => renderToStaticMarkup(h(SettingsPanel, { title: 'Webhook', description: 'Where events go.', ...props }, h('input', { name: 'url', defaultValue: 'x' })));
+
+test('SettingsPanel renders the heading, outcome alerts and a locking fieldset', () => {
+  const html = panel({ submitLabel: 'Save', onSubmit: noop, error: 'Could not save.', unconfirmed: 'Reload first.', notice: { tone: 'success', text: 'Saved.' } });
+  assert.match(html, /<section class="t98-settings-flow" aria-label="Webhook">/);
+  assert.match(html, /<h2[^>]*>Webhook<\/h2>/);
+  assert.ok(html.includes('Where events go.') && html.includes('Could not save.') && html.includes('Reload first.') && html.includes('Saved.'));
+  assert.match(html, /role="alert"[^>]*>.*Could not save\./s);
+  assert.match(html, /<form[^>]*>/);
+  assert.match(html, /<button[^>]*type="submit"/);
+  assert.doesNotMatch(html, /<fieldset[^>]*disabled/);
+  assert.match(panel({ onSubmit: noop, disabled: true }), /<fieldset[^>]*disabled=""/);
+  const busy = panel({ onSubmit: noop, submitLabel: 'Save', busy: true, busyLabel: 'Saving…' });
+  assert.match(busy, /<form[^>]*aria-busy="true"/);
+  assert.match(busy, /<fieldset[^>]*disabled=""/);
+  assert.ok(busy.includes('Saving…'));
+  for (const name of new Set(classes(html))) if (/^t98-/.test(name) && !['t98-button--md', 't98-button--primary'].includes(name)) assert.ok(styles.includes(`.${name}`), `${name} is styled`);
+});
+
+test('SettingsPanel posts natively with action, renders no form without a handler and adds extra actions', () => {
+  const native = panel({ action: '/save', method: 'post', submitLabel: 'Save' });
+  assert.match(native, /<form[^>]*action="\/save"[^>]*method="post"|<form[^>]*method="post"[^>]*action="\/save"/);
+  assert.doesNotMatch(panel({ submitLabel: 'Save' }), /<form/);
+  assert.match(panel({ onSubmit: noop, actions: h('a', { href: '/cancel' }, 'Cancel') }), /<a href="\/cancel">Cancel<\/a>/);
 });

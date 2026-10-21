@@ -25,3 +25,4 @@ export * from './workspace-flows.js';
 export * from './charts.js';
 export * from './spatial.js';
 export * from './calendar.js';
+export * from './settings-panel.js';

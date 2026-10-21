@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createElement as h } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { AppShell, AppTopbar, Banner, SearchField, SidebarNav, SidebarStatus, WorkspaceProjectSwitcher } from '../dist/index.js';
+import { AppShell, AppTopbar, Banner, SearchField, SectionNav, SidebarNav, SidebarStatus, WorkspaceProjectSwitcher } from '../dist/index.js';
 
 const styles = readFileSync(new URL('../dist/styles.css', import.meta.url), 'utf8');
 const classes = html => [...html.matchAll(/class="([^"]+)"/g)].flatMap(match => match[1].split(' '));
@@ -185,4 +185,40 @@ test('AppTopbar truncates by default and wraps long labels only with wrap', () =
   assert.doesNotMatch(renderToStaticMarkup(h(AppTopbar, { breadcrumb: crumb })), /t98-app-topbar--wrap/);
   assert.match(renderToStaticMarkup(h(AppTopbar, { breadcrumb: crumb, wrap: true })), /class="t98-app-topbar t98-app-topbar--wrap"/);
   assert.match(styles, /\.t98-app-topbar--wrap \.t98-app-topbar__current[^{]*\{[^}]*white-space: normal/);
+});
+
+const sections = [{ id: 'overview', label: 'Overview', href: 'overview', current: true }, { id: 'reports', label: 'Reports', href: 'reports', badge: 2 }];
+
+test('SectionNav is a labelled nav of links with aria-current and no tab semantics', () => {
+  const html = renderToStaticMarkup(h(SectionNav, { label: 'Campaign sections', items: sections }));
+  assert.match(html, /<nav aria-label="Campaign sections" class="t98-section-nav"><ul/);
+  assert.equal((html.match(/aria-current="page"/g) ?? []).length, 1);
+  assert.match(html, /<a href="overview" class="t98-section-nav__link" aria-current="page">Overview<\/a>/);
+  assert.match(html, /Reports<span[^>]*>2<\/span>/);
+  assert.doesNotMatch(html, /role="tab|tablist|tabindex/);
+  for (const name of new Set(classes(html))) if (/^t98-/.test(name) && name !== 't98-badge--neutral') assert.ok(styles.includes(`.${name}`), `${name} is styled`);
+});
+
+test('SectionNav renders links through linkComponent and guards clicks like SidebarNav', () => {
+  const seen = [];
+  const Route = props => { seen.push(props); return h('a', { href: `/app/${props.href}`, className: props.className, 'aria-current': props['aria-current'] }, props.children); };
+  const selected = [];
+  renderToStaticMarkup(h(SectionNav, { label: 'S', items: sections, linkComponent: Route, onSelect: (item, event) => { selected.push(item.id); event.preventDefault(); } }));
+  assert.deepEqual(seen.map(props => props.href), ['overview', 'reports']);
+  let prevented = 0;
+  const click = extra => ({ button: 0, defaultPrevented: false, preventDefault() { prevented += 1; this.defaultPrevented = true; }, ...extra });
+  seen[1].onClick(click());
+  assert.deepEqual(selected, ['reports']);
+  assert.equal(prevented, 1);
+  seen[1].onClick(click({ ctrlKey: true }));
+  seen[1].onClick(click({ button: 1 }));
+  assert.deepEqual(selected, ['reports']);
+});
+
+test('SectionNav is one scrollable row with logical, touch-sized styles', () => {
+  const rule = name => styles.match(new RegExp(`\\.${name}\\s*\\{[^}]*\\}`))?.[0] ?? '';
+  assert.match(rule('t98-section-nav__list'), /overflow-x:\s*auto/);
+  assert.match(rule('t98-section-nav__link'), /min-block-size:\s*var\(--t98-control-touch\)/);
+  assert.match(rule('t98-section-nav__link'), /border-block-end/);
+  assert.doesNotMatch(rule('t98-section-nav__link') + rule('t98-section-nav__list'), /(?:margin|padding|border)-(?:left|right)|text-align:\s*(?:left|right)/);
 });

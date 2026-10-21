@@ -3,7 +3,7 @@ import { resolve } from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
 
 const evidence = resolve('.qa/account-flows');
-const screens = ['profile', 'profile-disabled', 'password', 'password-error', 'password-none', '2fa-off', '2fa-enrolling', '2fa-codes', '2fa-on', 'sessions', 'identities', 'identities-last', 'identities-proof'];
+const screens = ['profile', 'profile-disabled', 'password', 'password-error', 'password-none', '2fa-off', '2fa-enrolling', '2fa-codes', '2fa-on', 'sessions', 'identities', 'identities-last', 'identities-proof', 'panel', 'panel-error'];
 
 async function doubleText(page: Page) {
   // Snapshot first: changing a parent before measuring its child would compound inheritance.
@@ -182,4 +182,29 @@ test('a profile without language or time zone submits only name and theme', asyn
   await page.getByLabel('Name').fill('Sam R.');
   await page.getByRole('button', { name: 'Save changes' }).click();
   await expect(page.locator('#log')).toHaveText('{"name":"Sam R.","theme":"system"}');
+});
+
+test('SettingsPanel submits once on a double activation and passes the form values', async ({ page }, info) => {
+  await open(page, 'panel', 'light', widthOf(info.project.name));
+  await expect(page.getByRole('region', { name: 'Webhook' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 2, name: 'Webhook' })).toBeVisible();
+  await page.getByLabel('Endpoint URL').fill('https://example.test/next');
+  await page.getByRole('button', { name: 'Save' }).dblclick();
+  await expect(page.locator('#log')).toHaveText('save:https://example.test/next');
+  await page.getByRole('button', { name: 'Cancel' }).click();
+  await expect(page.locator('#log')).toHaveText('save:https://example.test/next | cancel');
+});
+
+test('SettingsPanel moves focus to a failure that follows a submit', async ({ page }, info) => {
+  await open(page, 'panel-error', 'light', widthOf(info.project.name));
+  await expect(page.locator('.t98-flow-error')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Save' }).click();
+  await expect(page.getByText('The endpoint could not be saved.')).toBeVisible();
+  await expect(page.locator('.t98-flow-error')).toBeFocused();
+});
+
+test('SettingsPanel posts natively when only action is given', async ({ page }, info) => {
+  await open(page, 'panel-native', 'light', widthOf(info.project.name));
+  await page.getByLabel('Endpoint URL').fill('https://example.test/native');
+  await Promise.all([page.waitForURL(/url=https%3A%2F%2Fexample\.test%2Fnative/), page.getByRole('button', { name: 'Save' }).click()]);
 });

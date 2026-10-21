@@ -1,4 +1,4 @@
-import { AccountProfileFlow, LinkedIdentitiesFlow, PasswordChangeFlow, SessionListFlow, TwoFactorSetupFlow } from '../lib';
+import { AccountProfileFlow, Field, Input, LinkedIdentitiesFlow, PasswordChangeFlow, SessionListFlow, SettingsPanel, TwoFactorSetupFlow } from '../lib';
 import { tsx, type ComponentEntry, type ComponentProp } from './model';
 
 const prop = (name: string, type: string, description: string, required = false, defaultValue?: string): ComponentProp => ({ name, type, description, required, defaultValue });
@@ -72,7 +72,21 @@ const enrolmentSetup = `${twoFactorSetup}\nconst enrolment = { qrDataUrl: 'data:
 const twoFactorJsx = (stage: string, extra = '') => `<TwoFactorSetupFlow\n  stage="${stage}"${extra}\n  onStart={({ password }) => startEnrolment(password)}\n  onVerify={({ code }) => verifyCode(code)}\n  onAcknowledgeCodes={() => closeCodes()}\n  onRegenerate={({ password }) => regenerateCodes(password)}\n  onDisable={({ password }) => disableTwoFactor(password)}\n/>`;
 const twoFactorHandlers = { onStart: nothing, onVerify: nothing, onAcknowledgeCodes: nothing, onRegenerate: nothing, onDisable: nothing };
 
+const panelSetup = "const fieldErrors: Record<string, string> = {};\nconst saveWebhook = (form: FormData) => console.log(form.get('url'));";
+const panelJsx = (extra = '') => `<SettingsPanel\n  title="Webhook"\n  description="Where campaign events are sent."\n  submitLabel="Save"${extra}\n  onSubmit={form => saveWebhook(form)}\n>\n  <Field label="Endpoint URL" htmlFor="url" error={fieldErrors.url}>\n    <Input id="url" name="url" type="url" defaultValue="https://example.test/hook" required />\n  </Field>\n</SettingsPanel>`;
+
 export const accountFlowEntries: ComponentEntry[] = [
+  {
+    name: 'SettingsPanel', category: 'Application adapters', description: 'The section frame of the library settings flows, for your own settings screens.',
+    usage: `Wrap your own fields. onSubmit(form: FormData) runs once at a time (a double submit sends one request) and the panel prevents the default post; omit onSubmit and pass action and method for a native post. Outcome alerts, the busy and read-only lock, and focus on a new error or invalid field behave as in the built-in flows, which use the same implementation. Pass each message from fieldErrors to the matching Field's error prop. Use actions for extra buttons beside submitLabel. ${ownership}`,
+    props: [prop('onSubmit', '(form: FormData) => void | Promise<void>', 'Receives the form values; omit for read-mostly panels or native posts.'), prop('action', 'string', 'Native post target when onSubmit is omitted.'), prop('method', "'get' | 'post'", 'Native method.'), prop('submitLabel', 'string', 'Submit button label; omit when actions holds the buttons.'), prop('submitDisabled', 'boolean', 'Disables the submit button.'), prop('actions', 'ReactNode', 'Extra buttons or links beside the submit button.'), prop('children', 'ReactNode', 'The fields.', true), ...stateProps.filter(item => item.name !== 'messages')],
+    tokens, accessibility, related: ['AccountProfileFlow', 'SettingsSection', 'SettingsTemplate'],
+    example: tsx(['Field', 'Input', 'SettingsPanel'], panelJsx(), panelSetup),
+    states: [
+      { name: 'Default', description: 'Heading, fields and a submit button.', preview: <SettingsPanel title="Webhook" description="Where campaign events are sent." submitLabel="Save" onSubmit={nothing}><Field label="Endpoint URL" htmlFor="url"><Input id="url" name="url" type="url" defaultValue="https://example.test/hook" required /></Field></SettingsPanel>, code: tsx(['Field', 'Input', 'SettingsPanel'], panelJsx(), panelSetup) },
+      { name: 'Error', description: 'A failure appears as an alert and takes focus after a submit.', preview: <SettingsPanel title="Webhook" submitLabel="Save" onSubmit={nothing} error="The endpoint could not be saved."><Field label="Endpoint URL" htmlFor="url"><Input id="url" name="url" type="url" defaultValue="https://example.test/hook" /></Field></SettingsPanel>, code: tsx(['Field', 'Input', 'SettingsPanel'], panelJsx('\n  error="The endpoint could not be saved."'), panelSetup) },
+    ],
+  },
   {
     name: 'AccountProfileFlow', category: 'Application adapters', description: 'Profile settings: name, theme, language and time zone.',
     usage: `Shows the email read-only, with an optional emailHref to where it is changed. onSubmit receives { name, theme, locale, timeZone }; the time zone is chosen from timeZones (no custom values) and onDetectTimeZone powers a "Use my time zone" button. onDirtyChange reports unsaved edits so the app can guard navigation. fieldErrors keys: name, theme, locale, timeZone. ${ownership}`,

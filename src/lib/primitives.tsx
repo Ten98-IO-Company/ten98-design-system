@@ -246,8 +246,12 @@ export function Tabs({ items, value, onValueChange, label = 'Sections', classNam
   </div>{items.map((item, index) => (keepMounted || active === item.value) && <div key={item.value} role="tabpanel" id={`${id}-panel-${index}`} aria-labelledby={`${id}-tab-${index}`} hidden={active !== item.value} tabIndex={0} className="t98-tab-panel">{item.content}</div>)}</div>;
 }
 
-export interface DialogProps { open: boolean; onOpenChange: (open: boolean) => void; title: ReactNode; description?: ReactNode; children: ReactNode; footer?: ReactNode; className?: string; closeDisabled?: boolean }
-export function Dialog({ open, onOpenChange, title, description, children, footer, className, closeDisabled = false }: DialogProps) {
+export interface DialogProps { open: boolean; onOpenChange: (open: boolean) => void; title: ReactNode; description?: ReactNode; children: ReactNode; footer?: ReactNode; className?: string; closeDisabled?: boolean;
+  /** Called before Escape, backdrop and close-button closes; return false to keep the dialog open (for example to show a discard prompt). */
+  onBeforeClose?: (reason: DialogCloseReason) => boolean | void }
+export type DialogCloseReason = 'escape' | 'backdrop' | 'close-button';
+/* Behaviour follows the WAI-ARIA APG Modal Dialog pattern and react-aria's useOverlay close interception (Apache-2.0); no code is copied. */
+export function Dialog({ open, onOpenChange, title, description, children, footer, className, closeDisabled = false, onBeforeClose }: DialogProps) {
   const id = useId();
   const ref = useRef<HTMLDialogElement>(null);
   const trigger = useRef<HTMLElement | null>(null);
@@ -260,8 +264,27 @@ export function Dialog({ open, onOpenChange, title, description, children, foote
     } else if (!open && dialog.open) dialog.close();
   }, [open]);
   useEffect(() => () => { trigger.current?.focus(); }, []);
-  return <dialog ref={ref} className={cx('t98-dialog', className)} aria-labelledby={`${id}-title`} aria-describedby={description ? `${id}-description` : undefined} onCancel={event => { event.preventDefault(); if (!closeDisabled) onOpenChange(false); }} onClose={() => { if (open) onOpenChange(false); trigger.current?.focus(); trigger.current = null; }} onClick={event => { if (!closeDisabled && event.target === event.currentTarget) { const bounds = event.currentTarget.getBoundingClientRect(); if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) onOpenChange(false); } }}>
-    <div className="t98-dialog-header"><div><h2 id={`${id}-title`} className="t98-dialog-title">{title}</h2>{description && <p id={`${id}-description`} className="t98-dialog-description">{description}</p>}</div><Button variant="ghost" aria-label="Close dialog" disabled={closeDisabled} className="t98-icon-button" onClick={() => onOpenChange(false)} icon={<Icon name="x" />} /></div>
+  function requestClose(reason: DialogCloseReason) {
+    if (closeDisabled) return;
+    if (onBeforeClose?.(reason) === false) {
+      const dialog = ref.current;
+      if (dialog && !dialog.contains(document.activeElement)) dialog.querySelector<HTMLElement>('[autofocus], input, select, textarea, button:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])')?.focus();
+      return;
+    }
+    onOpenChange(false);
+  }
+  return <dialog ref={ref} className={cx('t98-dialog', className)} aria-labelledby={`${id}-title`} aria-describedby={description ? `${id}-description` : undefined} onCancel={event => { event.preventDefault(); requestClose('escape'); }} onClose={() => {
+    // Chrome's close watcher closes the dialog without a cancelable cancel event when Escape is pressed twice without
+    // other interaction. If the app still wants it open and guards closing, reopen it and ask the guard first.
+    const dialog = ref.current;
+    if (open && onBeforeClose && dialog && !closeDisabled) {
+      dialog.showModal();
+      requestClose('escape');
+      return;
+    }
+    if (open) onOpenChange(false); trigger.current?.focus(); trigger.current = null;
+  }} onClick={event => { if (!closeDisabled && event.target === event.currentTarget) { const bounds = event.currentTarget.getBoundingClientRect(); if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) requestClose('backdrop'); } }}>
+    <div className="t98-dialog-header"><div><h2 id={`${id}-title`} className="t98-dialog-title">{title}</h2>{description && <p id={`${id}-description`} className="t98-dialog-description">{description}</p>}</div><Button variant="ghost" aria-label="Close dialog" disabled={closeDisabled} className="t98-icon-button" onClick={() => requestClose('close-button')} icon={<Icon name="x" />} /></div>
     <div className="t98-dialog-body">{children}</div>{footer && <div className="t98-dialog-footer">{footer}</div>}
   </dialog>;
 }

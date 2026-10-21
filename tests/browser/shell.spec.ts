@@ -107,6 +107,53 @@ test('right-to-left mirrors the layout without overflow', async ({ page }, info)
   await page.screenshot({ path: `${evidence}/${info.project.name}-rtl.png`, fullPage: true });
 });
 
+test('SectionNav: landmark of links, aria-current, no tab roles, guard, 44px targets and one scrolling row', async ({ page }) => {
+  const nav = page.getByRole('navigation', { name: 'Page sections' });
+  await expect(nav.getByRole('list')).toBeVisible();
+  await expect(nav.getByRole('link')).toHaveCount(7);
+  await expect(nav.getByRole('tab')).toHaveCount(0);
+  await expect(nav.locator('[aria-current="page"]')).toHaveCount(1);
+  await expect(nav.getByRole('link', { name: 'Overview' })).toHaveAttribute('aria-current', 'page');
+  await expect(nav.getByRole('link', { name: /Reports/ })).toContainText('3');
+  expect((await nav.getByRole('link', { name: 'Overview' }).boundingBox())?.height).toBeGreaterThanOrEqual(44);
+  const log = page.getByRole('status', { name: 'Section log' });
+  await nav.getByRole('link', { name: 'Audience' }).click();
+  await expect(log).toHaveText('select audience');
+  await expect(nav.getByRole('link', { name: 'Overview' })).toHaveAttribute('aria-current', 'page');
+  await page.getByRole('button', { name: 'Discard section draft' }).click();
+  await nav.getByRole('link', { name: 'Audience' }).click();
+  await expect(nav.getByRole('link', { name: 'Audience' })).toHaveAttribute('aria-current', 'page');
+  // Links are Tab stops; arrow keys do not move focus between them.
+  await nav.getByRole('link', { name: 'Audience' }).focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(nav.getByRole('link', { name: 'Audience' })).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(nav.getByRole('link', { name: 'Creative assets' })).toBeFocused();
+  const row = await nav.evaluate(element => {
+    const list = element.querySelector('ul')!;
+    const tops = new Set([...list.querySelectorAll('a')].map(link => Math.round(link.getBoundingClientRect().top)));
+    return { rows: tops.size, document: document.documentElement.scrollWidth - innerWidth, scrolls: list.scrollWidth > list.clientWidth, contained: list.getBoundingClientRect().right <= innerWidth + 1 };
+  });
+  expect(row.rows).toBe(1);
+  expect(row.document).toBeLessThanOrEqual(1);
+  expect(row.contained).toBe(true);
+  if (page.viewportSize()!.width <= 400) expect(row.scrolls).toBe(true);
+});
+
+test('SectionNav mirrors in right-to-left without page overflow', async ({ page }) => {
+  const nav = page.getByRole('navigation', { name: 'Page sections' });
+  const edge = () => nav.getByRole('link', { name: 'Overview' }).evaluate(link => {
+    const box = link.getBoundingClientRect(), strip = link.closest('nav')!.getBoundingClientRect();
+    return { fromStart: box.left - strip.left, fromEnd: strip.right - box.right };
+  });
+  const ltr = await edge();
+  expect(ltr.fromStart).toBeLessThan(ltr.fromEnd);
+  await page.locator('html').evaluate(element => { element.setAttribute('dir', 'rtl'); });
+  const rtl = await edge();
+  expect(rtl.fromEnd).toBeLessThan(rtl.fromStart);
+  await expectNoOverflow(page);
+});
+
 /* Full application frame (?view=app), composed only from library components. */
 const appUrl = (theme: string) => `/tests/shell.html?view=app&theme=${theme}`;
 const narrowOnly = (name: string) => { test.skip(name !== 'narrow-dark', 'Drawer behaviour is exercised at 320px.'); };

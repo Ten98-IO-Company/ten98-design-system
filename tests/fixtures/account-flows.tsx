@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { AccountProfileFlow, LinkedIdentitiesFlow, PasswordChangeFlow, SessionListFlow, Stack, Text, TwoFactorSetupFlow, type TwoFactorSetupStage } from '@ten98/ui';
+import { AccountProfileFlow, Button, Field, Input, LinkedIdentitiesFlow, PasswordChangeFlow, SessionListFlow, SettingsPanel, Stack, Text, TwoFactorSetupFlow, type TwoFactorSetupStage } from '@ten98/ui';
 import '@ten98/ui/app-tokens.css';
 import '@ten98/ui/app.css';
 import '@ten98/ui/product.css';
@@ -47,7 +47,22 @@ function TwoFactor({ initial }: { initial: TwoFactorSetupStage }) {
     onAcknowledgeCodes={() => { log('acknowledged'); setStage('on'); }} onRegenerate={({ password }) => { log(`regenerate:${password}`); setStage('codes'); }} onDisable={({ password }) => { log(`disable:${password}`); setStage('off'); }} />} />;
 }
 
+function FailingPanel() {
+  const [failed, setFailed] = useState(false);
+  return <SettingsPanel title="Webhook" submitLabel="Save" onSubmit={() => setFailed(true)} error={failed ? 'The endpoint could not be saved.' : undefined} fieldErrors={failed ? { url: 'Enter a valid URL.' } : undefined}>
+    <Field label="Endpoint URL" htmlFor="panel-url" error={failed ? 'Enter a valid URL.' : undefined}><Input id="panel-url" name="url" defaultValue="nope" /></Field>
+  </SettingsPanel>;
+}
+
 const screens: Record<string, ReactNode> = {
+  'panel': <Probe render={log => <SettingsPanel title="Webhook" description="Where campaign events are sent." submitLabel="Save" actions={<Button type="button" variant="secondary" onClick={() => log('cancel')}>Cancel</Button>}
+    onSubmit={async form => { log(`save:${String(form.get('url'))}`); await new Promise(resolve => setTimeout(resolve, 300)); }}>
+    <Field label="Endpoint URL" htmlFor="panel-url"><Input id="panel-url" name="url" type="url" defaultValue="https://example.test/hook" required /></Field>
+  </SettingsPanel>} />,
+  'panel-error': <FailingPanel />,
+  'panel-native': <SettingsPanel title="Webhook" action="/tests/account-flows.html" method="get" submitLabel="Save">
+    <Field label="Endpoint URL" htmlFor="panel-url"><Input id="panel-url" name="url" defaultValue="https://example.test/hook" /></Field>
+  </SettingsPanel>,
   'profile': <Probe render={log => <AccountProfileFlow email="member@example.test" emailHref="#email" defaultValues={{ name: 'Sam Rivera', theme: 'system', locale: 'en', timeZone: 'Asia/Dubai' }} localeOptions={locales} timeZones={zones} onDetectTimeZone={() => 'Europe/London'} onSubmit={values => log(JSON.stringify(values))} onDirtyChange={dirty => log(`dirty:${dirty}`)} />} />,
   'profile-disabled': <AccountProfileFlow email="member@example.test" defaultValues={{ name: 'Sam Rivera', theme: 'dark', locale: 'ar', timeZone: 'Asia/Qatar' }} localeOptions={locales} timeZones={zones} onSubmit={noop} disabled notice={{ tone: 'info', text: 'Only owners can edit profiles.' }} />,
   'late-error': <LateError />,

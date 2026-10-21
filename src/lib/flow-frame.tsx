@@ -103,20 +103,24 @@ export interface SettingsFlowProps extends FlowState {
   children: ReactNode;
   /** Wraps the content in a form; omit for read-mostly flows. */
   onSubmit?: (event: FormEvent<HTMLFormElement>) => void;
+  /** Native post targets for a form handled by `onSubmit` without `preventDefault`. */
+  action?: string;
+  method?: 'get' | 'post';
   /** Submit label; omit when the flow has its own action buttons. */
   submitLabel?: string;
   submitDisabled?: boolean;
   extraActions?: ReactNode;
 }
-/** A labelled settings section: heading and description above the shared frame, with an optional submit row. */
-export function SettingsFlow({ title, description, busyLabel, onSubmit, submitLabel, submitDisabled, extraActions, children, ...state }: SettingsFlowProps) {
+/** A labelled settings section: heading and description above the shared frame, with an optional submit row.
+ * The public `SettingsPanel` delegates here, so applications and the library's own flows share this one implementation. */
+export function SettingsFlow({ title, description, busyLabel, onSubmit, action, method, submitLabel, submitDisabled, extraActions, children, ...state }: SettingsFlowProps) {
   return <section className="t98-settings-flow" aria-label={title}>
     <Stack gap={4}>
       <Stack gap={1}>
         <Heading level={2} size="md">{title}</Heading>
         {description && <Text tone="muted" size="sm">{description}</Text>}
       </Stack>
-      <FlowFrame {...state} onSubmit={onSubmit}>
+      <FlowFrame {...state} onSubmit={onSubmit} action={action} method={method}>
         <Stack gap={4}>
           {children}
           {(submitLabel || extraActions) && <FormActions>

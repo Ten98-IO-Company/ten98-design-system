@@ -320,6 +320,7 @@ export const primitiveEntries: ComponentEntry[] = [
       { name: 'children', type: 'ReactNode', required: true, description: 'Dialog body; provide labelled controls where applicable.' },
       { name: 'footer', type: 'ReactNode', description: 'Optional action area beneath the body.' },
       { name: 'className', type: 'string', description: 'Additional class on the native dialog.' },
+      { name: 'onBeforeClose', type: "(reason: 'escape' | 'backdrop' | 'close-button') => boolean | void", description: 'Called before Escape, backdrop or close-button closes. Return false to keep the dialog open (for example to show a discard-changes prompt); focus stays inside. Not called while closeDisabled.' },
       { name: 'closeDisabled', type: 'boolean', defaultValue: 'false', description: 'Disables close button and suppresses Escape/backdrop close requests. Parent code can still set open=false.' },
     ], nativeProps: 'No general native dialog attribute spread. Do not force the open attribute or use CSS to simulate a modal. Native showModal requires browser support.',
     tokens: ['--t98-font', '--t98-border', '--t98-surface', '--t98-text', '--t98-muted', '--t98-bg', '--t98-overlay'],

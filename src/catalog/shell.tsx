@@ -1,5 +1,5 @@
 import { AccountMenu } from '../lib/account-menu';
-import { AppTopbar, Banner, SearchField, SidebarNav, SidebarStatus, WorkspaceProjectSwitcher } from '../lib';
+import { AppTopbar, Banner, SearchField, SectionNav, SidebarNav, SidebarStatus, WorkspaceProjectSwitcher } from '../lib';
 import { tsx, type ComponentEntry } from './model';
 
 const noop = () => undefined;
@@ -58,7 +58,40 @@ const statusCode = tsx(['SidebarStatus', 'SidebarFooter'], `<SidebarFooter versi
   <SidebarStatus tone="connected" label="Channels connected" action={{ label: 'Manage', href: 'connections' }} />
 </SidebarFooter>`);
 
+const sectionCode = tsx(['SectionNav'], `<SectionNav
+  label="Campaign sections"
+  items={[
+    { id: 'overview', label: 'Overview', href: '/campaigns/spring', current: true },
+    { id: 'audience', label: 'Audience', href: '/campaigns/spring/audience' },
+    { id: 'reports', label: 'Reports', href: '/campaigns/spring/reports', badge: 2 },
+  ]}
+  onSelect={(item, event) => { if (hasDraft) event.preventDefault(); }}
+/>`, 'const hasDraft = false;');
+
 export const shellEntries: ComponentEntry[] = [
+  {
+    name: 'SectionNav', category: 'Navigation',
+    description: 'A URL-bound strip of sibling sections: tabs without panels.',
+    usage: `Use when each section has its own URL and the page below changes with it. Use Tabs when panels share one page and state. Items are links in a navigation landmark, so people move between them with Tab, not arrow keys. On narrow screens the strip scrolls horizontally in one row, like Tabs; its links are focusable, so keyboard users reach every one. onSelect(item, event) runs first on a plain primary click; event.preventDefault() cancels navigation, for example while a draft is unsaved. ${linkContract} ${presentation}`,
+    props: [
+      { name: 'label', type: 'string', required: true, description: 'Accessible name of the navigation landmark.' },
+      { name: 'items', type: '{ id; label; href; current?; badge? }[]', required: true, description: 'Sections in order. The current one exposes aria-current="page".' },
+      { name: 'linkComponent', type: 'ComponentType<{ href; className?; children?; aria-current?; onClick? }>', description: 'Router link used for every item. Defaults to a native anchor.' },
+      { name: 'onSelect', type: '(item, event) => void', description: 'Guard that runs before navigation; modified clicks skip it.' },
+    ],
+    tokens: ['--t98-control-touch', '--t98-accent', '--t98-muted', '--t98-border', '--t98-focus'],
+    accessibility: ['A labelled nav landmark containing a list of links; no tab roles.', 'The current link exposes aria-current="page" and an underline.', 'Links are at least 44px tall and use logical properties, so the strip mirrors in right-to-left.'],
+    related: ['Tabs', 'SidebarNav'],
+    example: sectionCode,
+    states: [{
+      name: 'Default', description: 'Current section and a badge.', code: sectionCode,
+      preview: <SectionNav label="Campaign sections" items={[
+        { id: 'overview', label: 'Overview', href: '#overview', current: true },
+        { id: 'audience', label: 'Audience', href: '#audience' },
+        { id: 'reports', label: 'Reports', href: '#reports', badge: 2 },
+      ]} />,
+    }],
+  },
   {
     name: 'SidebarNav', category: 'Navigation',
     description: 'Grouped navigation list with current-page state, badges and a client-side filter.',
