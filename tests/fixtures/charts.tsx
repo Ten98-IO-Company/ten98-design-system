@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { BarList, Heading, ProportionBar, ShareChart, Stack, Text, TimeSeriesChart, type ChartSeries, type ShareSegment } from '@ten98/ui';
+import { BarList, Heading, ProportionBar, ShareChart, Stack, Text, TimeSeriesChart, WeekdayHourGrid, type ChartSeries, type ShareSegment } from '@ten98/ui';
 import '@ten98/ui/app-tokens.css';
 import '@ten98/ui/app.css';
 import '@ten98/ui/product.css';
@@ -18,10 +18,13 @@ const target: ChartSeries = { id: 'target', label: 'Target', role: 'comparison',
 const dense: ChartSeries = { id: 'dense', label: 'Daily', points: Array.from({ length: 60 }, (_, index) => ({ x: index, xLabel: `Day number ${index + 1} of the campaign`, y: 10 + (index * 7) % 23 })) };
 const segments: ShareSegment[] = [{ id: 'a', label: 'Opened', count: 30, tone: 1 }, { id: 'b', label: 'Clicked', count: 8, tone: 2 }, { id: 'c', label: 'Unopened', count: 12, tone: 3 }];
 
+const weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const hourValues = weekdays.map((_, day) => Array.from({ length: 24 }, (__, hour) => day === 6 && hour === 3 ? null : Math.round(40 * Math.exp(-((hour - 10) ** 2) / 18))));
 function Screen() {
   const [inspected, setInspected] = useState(-1);
   const [chosen, setChosen] = useState('search');
   return <Stack as="main" gap={6} id="charts">
+    <WeekdayHourGrid label="Sessions by hour" context="Asia/Dubai" summary="Weekday mornings are busiest." weekdays={weekdays} values={hourValues} />
     <Heading level={1}>Charts</Heading>
     <TimeSeriesChart label="Weekly visits" context="Eight weeks" summary="Visits grew to 30; week three is unavailable." kind="bars" series={[visits]} baselineLabel="Zero" onInspect={setInspected} tableColumns={[{ header: 'Source', values: labels.map((_, index) => `Source ${index + 1}`) }]} />
     <Text id="inspected">Inspected: {inspected}</Text>

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createElement as h } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { BarList, MetricCard, ProportionBar, ShareChart, Sparkline, TimeSeriesChart } from '../dist/index.js';
+import { BarList, MetricCard, ProportionBar, ShareChart, Sparkline, TimeSeriesChart, WeekdayHourGrid } from '../dist/index.js';
 
 const styles = readFileSync(new URL('../dist/styles.css', import.meta.url), 'utf8');
 const rendered = [];
@@ -152,4 +152,21 @@ test('ShareChart slices use the tone pattern fills, and a busy BarList keeps row
   assert.doesNotMatch(busy, / disabled=""/);
   assert.doesNotMatch(render(h(BarList, { label: 'Pages', items })), /aria-disabled|aria-busy/);
   assert.equal(calls, 0);
+});
+
+test('WeekdayHourGrid is a table with every value as text, square-root shading and hatched unavailable cells', () => {
+  const values = [Array.from({ length: 24 }, (_, hour) => hour === 9 ? 100 : hour === 10 ? 25 : hour === 3 ? null : 0), [5]];
+  const html = render(h(WeekdayHourGrid, { label: 'Sessions by hour', summary: 'Busiest Monday 09:00.', values, weekdays: ['Monday', 'Tuesday'] }));
+  assert.match(html, /<th scope="row">Monday<\/th>/);
+  assert.equal((html.match(/<th scope="col"/g) ?? []).length, 25);
+  assert.equal((html.match(/<td class="t98-hour-cell/g) ?? []).length, 48);
+  assert.match(html, /t98-hour-cell--4">100</);
+  // sqrt(25/100) = 0.5 -> step 2, where a linear scale would give step 1.
+  assert.match(html, /t98-hour-cell--2">25</);
+  assert.match(html, /t98-hour-cell--0">0</);
+  // Monday 03:00 is null and every Tuesday hour after the first is missing: Unavailable, never 0.
+  assert.equal((html.match(/t98-hour-cell t98-hour-cell--unavailable"><span aria-hidden="true">–<\/span><span class="t98-visually-hidden">Unavailable/g) ?? []).length, 1 + 23);
+  assert.match(html, /role="region" aria-label="Sessions by hour table"/);
+  assert.match(html, /Hatched: unavailable, not zero/);
+  for (const name of ['t98-hour-grid', 't98-hour-grid-table', 't98-hour-cell', 't98-hour-cell--4', 't98-hour-cell--unavailable']) assert.ok(styles.includes(`.${name}`), name);
 });

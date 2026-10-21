@@ -1,4 +1,4 @@
-import { BarList, ProportionBar, ShareChart, TimeSeriesChart, type ChartSeries, type ShareSegment } from '../lib';
+import { BarList, ProportionBar, ShareChart, TimeSeriesChart, WeekdayHourGrid, type ChartSeries, type ShareSegment } from '../lib';
 import { tsx, type ComponentEntry, type ComponentProp, type ComponentState } from './model';
 
 const prop = (name: string, type: string, description: string, required = false, defaultValue?: string): ComponentProp => ({ name, type, description, ...(required && { required }), ...(defaultValue && { defaultValue }) });
@@ -50,6 +50,10 @@ const shareState = (component: 'ProportionBar' | 'ShareChart', name: string, des
   return { name, description, preview, code: tsx([component, 'type ShareSegment'], jsx, shareCode) };
 };
 const barItems = "[\n  { id: 'search', label: 'Search', value: 90, valueText: 'AED 90', share: 0.9, secondary: { label: 'Remaining', valueText: 'AED 10', share: 0.1 } },\n  { id: 'email', label: 'Email', value: null, valueText: '', reason: 'No spend report yet.' },\n]";
+
+const hourWeekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const hourValues = hourWeekdays.map((_, day) => Array.from({ length: 24 }, (__, hour) => day === 6 && hour === 3 ? null : Math.round((day < 5 ? 40 : 15) * Math.exp(-((hour - 10) ** 2) / 18))));
+const hourSetup = "const weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];\n// One row of 24 hourly values per weekday; null where the hour could not be measured.\nconst values: (number | null)[][] = weekdays.map(() => Array.from({ length: 24 }, () => 0));";
 
 export const chartEntries: ComponentEntry[] = [
   {
@@ -156,5 +160,24 @@ export const chartEntries: ComponentEntry[] = [
       shareState('ShareChart', 'Unavailable', 'The total could not be obtained.', null),
       shareState('ShareChart', 'No samples', 'A total of 0.', 0),
     ],
+  },
+  {
+    name: 'WeekdayHourGrid', category: 'Data display',
+    description: 'A weekday by hour density table: every cell states its value, shaded in square-root steps.',
+    usage: `Use for when-do-people-act views such as sessions or sends by weekday and hour. Supply seven rows of 24 values in the order of weekdays and say the time zone in context. ${missing}`,
+    props: [
+      prop('label', 'string', 'Caption and table name.', true),
+      prop('context', 'ReactNode', 'Date range, metric and time zone.'),
+      prop('summary', 'ReactNode', 'The application\'s own reading of the grid.', true),
+      prop('values', '(number | null)[][]', 'One row of 24 values per weekday; null or missing reads Unavailable.', true),
+      prop('weekdays', 'string[]', 'Row names in the order of values.', true),
+      prop('formatValue', '(value: number) => string', 'Cell text.'),
+      prop('hourLabels', 'string[]', 'Column headers; defaults to 00 to 23.'),
+    ],
+    tokens: [...chartTokens, '--t98-on-accent'],
+    accessibility: ['A real table with weekday row headers and hour column headers, inside a focusable scroll region; it stays left to right in RTL.', 'Each cell shows its value as text with at least 4.5:1 contrast at every shade; shading is supplementary.', 'Unavailable cells are hatched and read "Unavailable", never 0.'],
+    related: ['TimeSeriesChart', 'HeatmapPlane'],
+    example: tsx(['WeekdayHourGrid'], '<WeekdayHourGrid label="Sessions by hour" context="1-21 October 2026 · Asia/Dubai"\n  summary="Weekday mornings are busiest." values={values} weekdays={weekdays} />', hourSetup),
+    states: [{ name: 'Week of sessions', description: 'Weekday mornings peak; Sunday 03:00 is unavailable.', preview: <WeekdayHourGrid label="Sessions by hour" context="1-21 October 2026 · Asia/Dubai" summary="Weekday mornings are busiest." values={hourValues} weekdays={hourWeekdays} />, code: tsx(['WeekdayHourGrid'], '<WeekdayHourGrid label="Sessions by hour" context="1-21 October 2026 · Asia/Dubai"\n  summary="Weekday mornings are busiest." values={values} weekdays={weekdays} />', hourSetup) }],
   },
 ];

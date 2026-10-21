@@ -97,3 +97,22 @@ a.t98-bar-list-name { color: var(--t98-accent); }
 }
 .t98-share-chart { max-inline-size: 44rem; }
 .t98-proportion-legend { margin-block-start: var(--t98-space-1); }
+.t98-hour-grid-scroll { max-inline-size: 100%; overflow-x: auto; }
+.t98-hour-grid-scroll:focus-visible { outline: var(--t98-focus-width) solid var(--t98-focus); outline-offset: var(--t98-focus-offset); }
+.t98-hour-grid-table { border-collapse: separate; border-spacing: 2px; font-size: var(--t98-text-xs); font-variant-numeric: tabular-nums; }
+.t98-hour-grid-table th { padding: 2px 4px; color: var(--t98-muted); font-weight: var(--t98-weight-medium); text-align: center; white-space: nowrap; }
+.t98-hour-grid-table th[scope=row] { text-align: start; color: var(--t98-text); }
+.t98-hour-cell { min-inline-size: 2.25rem; block-size: 2rem; padding: 0 2px; border-radius: var(--t98-radius-sm); text-align: center; color: var(--t98-text); background: var(--t98-subtle); }
+.t98-hour-cell--1 { background: color-mix(in srgb, var(--t98-chart-1) 18%, var(--t98-surface)); }
+.t98-hour-cell--2 { background: color-mix(in srgb, var(--t98-chart-1) 30%, var(--t98-surface)); }
+/* Mixes stop at 45% so default text keeps 4.5:1 in both themes; the top step switches to on-accent text. */
+.t98-hour-cell--3 { background: color-mix(in srgb, var(--t98-chart-1) 45%, var(--t98-surface)); }
+.t98-hour-cell--4 { background: var(--t98-chart-1); color: var(--t98-on-accent); }
+.t98-hour-cell--unavailable { color: var(--t98-muted); background: repeating-linear-gradient(45deg, var(--t98-surface) 0 3px, var(--t98-border) 3px 5px); }
+.t98-hour-grid-scale { display: inline-flex; gap: 2px; }
+.t98-hour-grid-legend .t98-hour-cell { display: inline-block; min-inline-size: 1rem; block-size: 1rem; }
+@media (forced-colors: active) {
+  .t98-hour-cell { forced-color-adjust: none; background: Canvas; color: CanvasText; border: 1px solid CanvasText; }
+  .t98-hour-cell--4 { background: Highlight; color: HighlightText; }
+  .t98-hour-cell--unavailable { background: repeating-linear-gradient(45deg, Canvas 0 3px, CanvasText 3px 5px); }
+}

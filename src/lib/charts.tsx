@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react';
 import { cx } from './primitives.js';
 import { StatusLine } from './controls.js';
+import { VisuallyHidden } from './structure.js';
 import { arcPath, bandScale, linearScale, niceDomain, segments, stackSigned, ticks, type ChartValue } from './chart-scale.js';
 
 // Presentation only: applications compute the data. A null or unavailable value is never drawn as 0.
@@ -527,5 +528,55 @@ export function ShareChart({ label, context, summary, segments: parts, total, fo
           </div>
         </details>
       </>}
+  </figure>;
+}
+
+export interface WeekdayHourGridProps {
+  label: string;
+  /** Date range, metric and time zone shown beside the label. */
+  context?: ReactNode;
+  /** The application's own reading of the grid. */
+  summary: ReactNode;
+  /** One row of 24 hourly values per weekday, in `weekdays` order. Null or a missing cell is Unavailable, never 0. */
+  values: readonly (readonly ChartValue[])[];
+  /** Row names in the order of `values`, for example Monday to Sunday. */
+  weekdays: readonly string[];
+  formatValue?: (value: number) => string;
+  /** Column headers; defaults to 00 to 23. */
+  hourLabels?: readonly string[];
+  className?: string;
+}
+
+const HOURS = Array.from({ length: 24 }, (_, hour) => String(hour).padStart(2, '0'));
+
+/** A weekday × hour density table. Every cell states its value as text; shading uses square-root steps, so a few
+ * busy hours do not wash out the rest, and an unavailable cell is hatched rather than drawn as empty. */
+export function WeekdayHourGrid({ label, context, summary, values, weekdays, formatValue = plain, hourLabels = HOURS, className }: WeekdayHourGridProps) {
+  const cellOf = (day: number, hour: number) => { const value = values[day]?.[hour]; return value != null && Number.isFinite(value) ? value : null; };
+  const known = weekdays.flatMap((_, day) => HOURS.map((__, hour) => cellOf(day, hour))).filter((value): value is number => value !== null);
+  const max = known.length ? Math.max(...known) : 0;
+  const step = (value: number) => value <= 0 || max <= 0 ? 0 : Math.min(4, 1 + Math.floor(Math.sqrt(value / max) * 3.999));
+  return <figure className={cx('t98-chart', 't98-hour-grid', className)}>
+    <figcaption className="t98-chart-caption"><strong>{label}</strong>{context && <span className="t98-chart-context">{context}</span>}</figcaption>
+    <p className="t98-chart-summary">{summary}</p>
+    <div className="t98-table-scroll t98-hour-grid-scroll" dir="ltr" tabIndex={0} role="region" aria-label={`${label} table`}>
+      <table className="t98-hour-grid-table">
+        <caption className="t98-visually-hidden">{label}: values by weekday and hour</caption>
+        <thead><tr><th scope="col" className="t98-hour-grid-corner">Day</th>{HOURS.map((_, hour) => <th key={hour} scope="col">{hourLabels[hour] ?? HOURS[hour]}</th>)}</tr></thead>
+        <tbody>{weekdays.map((weekday, day) => <tr key={weekday}>
+          <th scope="row">{weekday}</th>
+          {HOURS.map((_, hour) => {
+            const value = cellOf(day, hour);
+            return value === null
+              ? <td key={hour} className="t98-hour-cell t98-hour-cell--unavailable"><span aria-hidden="true">–</span><VisuallyHidden>Unavailable</VisuallyHidden></td>
+              : <td key={hour} className={`t98-hour-cell t98-hour-cell--${step(value)}`}>{formatValue(value)}</td>;
+          })}
+        </tr>)}</tbody>
+      </table>
+    </div>
+    <ul className="t98-chart-legend t98-hour-grid-legend" aria-label={`${label} key`}>
+      <li><span className="t98-hour-grid-scale" aria-hidden="true">{[0, 1, 2, 3, 4].map(level => <span key={level} className={`t98-hour-cell t98-hour-cell--${level}`} />)}</span><span>Darker cells: more ({max > 0 ? `up to ${formatValue(max)}` : 'no values above 0'})</span></li>
+      <li><span className="t98-hour-cell t98-hour-cell--unavailable" aria-hidden="true" /><span>Hatched: unavailable, not zero</span></li>
+    </ul>
   </figure>;
 }

@@ -173,3 +173,36 @@ test('the plot stays left to right in a right to left page', async ({ page }) =>
   await page.keyboard.press('ArrowRight');
   await expect(readoutOf(plot)).toHaveText('Week two of the launch · Visits: 18');
 });
+
+for (const theme of ['light', 'dark'] as const) {
+  test(`WeekdayHourGrid cell text keeps 4.5:1 contrast at every shade and scrolls inside its region in ${theme}`, async ({ page }, info) => {
+    const width = info.project.name === 'narrow-dark' ? 320 : 1440;
+    await page.setViewportSize({ width, height: 900 });
+    await page.emulateMedia({ colorScheme: theme });
+    await page.goto(`/tests/charts.html?theme=${theme}`);
+    const grid = page.getByRole('region', { name: 'Sessions by hour table' });
+    await expect(grid.getByRole('row')).toHaveCount(8);
+    await expect(grid.getByRole('cell', { name: 'Unavailable' })).toHaveCount(1);
+    const ratios = await grid.locator('td.t98-hour-cell:not(.t98-hour-cell--unavailable)').evaluateAll(cells => {
+      const rgb = (value: string) => value.match(/[\d.]+/g)!.slice(0, 3).map(Number);
+      const lum = ([r, g, b]: number[]) => [r, g, b].map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }).reduce((sum, v, i) => sum + v * [0.2126, 0.7152, 0.0722][i], 0);
+      // Paint each background over the page surface so translucent mixes are measured as seen.
+      const probe = document.createElement('canvas').getContext('2d')!;
+      return cells.map(cell => {
+        const style = getComputedStyle(cell);
+        probe.fillStyle = getComputedStyle(document.body).backgroundColor; probe.fillRect(0, 0, 1, 1);
+        probe.fillStyle = style.backgroundColor; probe.fillRect(0, 0, 1, 1);
+        const bg = [...probe.getImageData(0, 0, 1, 1).data].slice(0, 3);
+        const [a, b] = [lum(rgb(style.color)), lum(bg)].sort((x, y) => y - x);
+        return (a + 0.05) / (b + 0.05);
+      });
+    });
+    expect(Math.min(...ratios)).toBeGreaterThanOrEqual(4.5);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
+    if (width === 320) {
+      await grid.focus();
+      await page.keyboard.press('ArrowRight');
+      await expect.poll(() => grid.evaluate(node => node.scrollLeft)).toBeGreaterThan(0);
+    }
+  });
+}
