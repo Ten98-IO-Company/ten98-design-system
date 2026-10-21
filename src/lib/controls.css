@@ -104,3 +104,12 @@
   .t98-combobox-popup { border-color: CanvasText; }
   .t98-combobox-option[aria-selected='true'] { background: Highlight; color: HighlightText; forced-color-adjust: none; }
 }
+
+.t98-field-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--t98-space-3); min-inline-size: 0; font-family: var(--t98-font); }
+.t98-field-list-item { display: grid; gap: var(--t98-space-2); min-inline-size: 0; padding: var(--t98-space-3); border: 1px solid var(--t98-border); border-radius: var(--t98-radius); background: var(--t98-surface); }
+.t98-field-list-body { display: grid; gap: var(--t98-space-3); min-inline-size: 0; }
+.t98-field-list-actions { justify-content: flex-end; }
+.t98-field-list-actions .t98-button, .t98-field-list-add .t98-button, .t98-account-scope-status .t98-button { min-block-size: 44px; min-inline-size: 44px; }
+.t98-field-list-add { display: flex; flex-wrap: wrap; align-items: center; gap: var(--t98-space-2) var(--t98-space-3); min-inline-size: 0; }
+.t98-account-scope-status { display: flex; flex-wrap: wrap; align-items: center; gap: var(--t98-space-2) var(--t98-space-3); min-inline-size: 0; }
+@media (forced-colors: active) { .t98-field-list-item { border-color: CanvasText; } }

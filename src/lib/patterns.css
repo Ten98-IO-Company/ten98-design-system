@@ -34,6 +34,12 @@
 .t98-table .t98-table-cell--sm { min-width: 8rem; }.t98-table .t98-table-cell--md { min-width: 12rem; }.t98-table .t98-table-cell--lg { min-width: 16rem; }
 .t98-table .t98-table-actions { width: 1%; text-align: end; }
 .t98-table .t98-table-actions .t98-button { white-space: nowrap; overflow-wrap: normal; }
+.t98-table .t98-table-expand { width: 1rem; padding-right: 0; }
+.t98-table .t98-table-row--interactive { cursor: pointer; }
+.t98-table .t98-table-row--interactive:focus-visible { outline: 2px solid var(--t98-accent); outline-offset: -2px; }
+.t98-table tbody tr[aria-current='true'] { background: var(--t98-accent-soft); box-shadow: inset 3px 0 0 var(--t98-accent); }
+.t98-table tbody tr.t98-table-detail, .t98-table tbody tr.t98-table-detail:hover { background: var(--t98-subtle); }
+.t98-table .t98-table-detail td { white-space: normal; }
 .t98-table tbody th[scope='row'], .t98-table tfoot th[scope='row'] { background: transparent; color: var(--t98-text); font-size: inherit; font-weight: 600; text-align: start; border-top: 0; border-bottom: 1px solid var(--t98-border); }
 .t98-table tbody tr:last-child th[scope='row'] { border-bottom: 0; }
 .t98-table tfoot th, .t98-table tfoot td { background: var(--t98-subtle); border-top: 1px solid var(--t98-border); border-bottom: 0; font-weight: 600; }
@@ -46,7 +52,7 @@
   .t98-data-table--stack .t98-table, .t98-data-table--stack .t98-table thead, .t98-data-table--stack .t98-table tbody, .t98-data-table--stack .t98-table tfoot { display: block; }
   .t98-data-table--stack .t98-table thead tr { display: flex; flex-wrap: wrap; gap: .25rem .75rem; padding: .5rem 1.125rem; background: var(--t98-subtle); border-bottom: 1px solid var(--t98-border); }
   .t98-data-table--stack .t98-table thead th { padding: 0; border: 0; background: transparent; box-shadow: none; }
-  .t98-data-table--stack .t98-table thead .t98-table-actions { display: none; }
+  .t98-data-table--stack .t98-table thead .t98-table-actions, .t98-data-table--stack .t98-table thead .t98-table-expand { display: none; }
   .t98-data-table--stack .t98-table tbody tr, .t98-data-table--stack .t98-table tfoot tr { display: block; padding: .5rem 0; border-bottom: 1px solid var(--t98-border); }
   .t98-data-table--stack .t98-table tbody tr:last-child { border-bottom: 0; }
   .t98-data-table--stack .t98-table tbody td, .t98-data-table--stack .t98-table tbody th[scope='row'], .t98-data-table--stack .t98-table tfoot td, .t98-data-table--stack .t98-table tfoot th[scope='row'] {

@@ -1,6 +1,6 @@
 'use client';
 
-import { Children, useEffect, useId, useRef, useState, type HTMLAttributes, type ReactNode, type RefObject, type SyntheticEvent } from 'react';
+import { Children, Fragment, useEffect, useId, useRef, useState, type HTMLAttributes, type KeyboardEvent, type MouseEvent, type ReactNode, type RefObject, type SyntheticEvent } from 'react';
 import { Badge, Button, Icon, Input, cx } from './primitives.js';
 import { Pager, StatusLine } from './controls.js';
 import { linearScale, segments } from './chart-scale.js';
@@ -89,7 +89,18 @@ interface DataTableBaseProps<T> {
   searchPlaceholder?: string;
   pageSize?: number;
   selectable?: boolean;
+  /** Controlled selection: the table keeps no selection state and the app owns pruning. Report changes through `onSelectionChange`. */
+  selectedKeys?: readonly string[];
   onSelectionChange?: (keys: string[]) => void;
+  /** The row shown as current for a list-detail layout (`aria-current`). Independent of checkbox selection. */
+  activeKey?: string;
+  /** Makes rows activatable: a click on a cell (not an inner control) or Enter/Space on the focused row. Rows become one roving tab stop. */
+  onRowActivate?: (row: T, key: string) => void;
+  /** Detail content for an expanded row, rendered in a following full-width row with a disclosure button per row. */
+  rowDetail?: (row: T) => ReactNode;
+  /** Controlled expansion; without it the table keeps its own. */
+  expandedKeys?: readonly string[];
+  onExpandedChange?: (keys: string[]) => void;
   emptyTitle?: string;
   /** Replaces the default empty state. */
   emptyState?: ReactNode;
@@ -119,10 +130,12 @@ interface DataTableBaseProps<T> {
 export type DataTableProps<T> = DataTableBaseProps<T> & TableName;
 
 const isMissing = (value: unknown) => value == null || (typeof value === 'number' && Number.isNaN(value));
+// Clicks on these inside a row belong to the control, never to row activation.
+const interactiveTarget = 'a[href],button,input,select,textarea,label,summary,[role="button"],[role="link"],[contenteditable="true"]';
 
 export function DataTable<T>({
   columns, rows, rowKey, caption, captionHidden = true, ariaLabel, searchable = true, sortable = true, pagination = true,
-  searchPlaceholder = 'Search records…', pageSize = 5, selectable = false, onSelectionChange, emptyTitle = 'No records found', emptyState,
+  searchPlaceholder = 'Search records…', pageSize = 5, selectable = false, selectedKeys: selectedKeysProp, onSelectionChange, activeKey, onRowActivate, rowDetail, expandedKeys: expandedKeysProp, onExpandedChange, emptyTitle = 'No records found', emptyState,
   sort: sortProp, onSortChange, page: pageProp, onPageChange, search: searchProp, onSearchChange, rowActions, rowActionsLabel = 'Actions',
   loading = false, unavailable, stickyHeader = false, footerCells, density = 'comfortable', responsive = 'scroll',
 }: DataTableProps<T>) {
@@ -130,6 +143,9 @@ export function DataTable<T>({
   const [localSort, setSort] = useState<TableSort>();
   const [localPage, setPage] = useState(1);
   const [selected, setSelected] = useState<string[]>([]);
+  const [localExpanded, setLocalExpanded] = useState<string[]>([]);
+  const [focusKey, setFocusKey] = useState<string>();
+  const rowRefs = useRef(new Map<string, HTMLTableRowElement>());
   const selectAll = useRef<HTMLInputElement>(null);
   const searchId = useId();
   const name = caption ?? ariaLabel;
@@ -151,14 +167,20 @@ export function DataTable<T>({
   const offset = paged ? (currentPage - 1) * size : (serverIndex ?? 0) * serverSize;
   const visible = paged ? filtered.slice(offset, offset + size) : filtered;
   const keys = new Set(rows.map(rowKey));
-  const selectedKeys = controlledPage ? selected : selected.filter(key => keys.has(key));
+  const controlledSelection = selectedKeysProp !== undefined;
+  const selectedKeys = controlledSelection ? [...selectedKeysProp] : controlledPage ? selected : selected.filter(key => keys.has(key));
   const selectedSet = new Set(selectedKeys);
   const visibleKeys = visible.map(rowKey);
   const selectedOnPage = visibleKeys.filter(key => selectedSet.has(key)).length;
   const allChecked = visible.length > 0 && selectedOnPage === visible.length;
   const hasUnavailable = unavailable != null && unavailable !== false;
   const stack = responsive === 'stack';
-  const columnCount = Math.max(1, shown.length + (selectable ? 1 : 0) + (rowActions ? 1 : 0));
+  const columnCount = Math.max(1, shown.length + (selectable ? 1 : 0) + (rowDetail ? 1 : 0) + (rowActions ? 1 : 0));
+  const detailBase = useId();
+  const expandedSet = new Set(expandedKeysProp ?? localExpanded);
+  const activatable = onRowActivate !== undefined;
+  // One roving tab stop: the last focused row, else the active row, else the first.
+  const tabKey = [focusKey, activeKey].find(key => key !== undefined && visibleKeys.includes(key)) ?? visibleKeys[0];
   const alignOf = (column: DataColumn<T>) => column.align ?? (column.numeric ? 'end' : 'start');
   const cellClass = (column: DataColumn<T>) => cx(
     alignOf(column) !== 'start' && `t98-table-cell--${alignOf(column)}`, column.numeric && 't98-table-cell--numeric',
@@ -175,17 +197,17 @@ export function DataTable<T>({
 
   useEffect(() => {
     // With server paging the rows are one page, so other pages' selections stay with the app.
-    if (controlledPage) return;
+    if (controlledPage || controlledSelection) return;
     const availableKeys = new Set(rows.map(rowKey));
     const next = selected.filter(key => availableKeys.has(key));
     if (next.length !== selected.length) {
       setSelected(next);
       onSelectionChange?.(next);
     }
-  }, [rows, rowKey, selected, onSelectionChange, controlledPage]);
+  }, [rows, rowKey, selected, onSelectionChange, controlledPage, controlledSelection]);
 
   function updateSelection(next: string[]) {
-    setSelected(next);
+    if (!controlledSelection) setSelected(next);
     onSelectionChange?.(next);
   }
 
@@ -197,6 +219,36 @@ export function DataTable<T>({
 
   function toggleRow(key: string) {
     updateSelection(selectedSet.has(key) ? selectedKeys.filter(item => item !== key) : [...selectedKeys, key]);
+  }
+
+  function toggleExpanded(key: string) {
+    const current = expandedKeysProp ?? localExpanded;
+    const next = current.includes(key) ? current.filter(item => item !== key) : [...current, key];
+    if (expandedKeysProp === undefined) setLocalExpanded(next);
+    onExpandedChange?.(next);
+  }
+
+  // Row activation and roving focus follow the WAI-ARIA APG grid/table keyboard guidance and the
+  // react-aria useTable row-action model (Apache-2.0); a behaviour-only port, no code is copied.
+  function onRowClick(event: MouseEvent<HTMLTableRowElement>, row: T) {
+    const control = (event.target as Element).closest(interactiveTarget);
+    if (control && event.currentTarget.contains(control)) return;
+    onRowActivate?.(row, rowKey(row));
+  }
+
+  function onRowKeyDown(event: KeyboardEvent<HTMLTableRowElement>, row: T, index: number) {
+    if (event.target !== event.currentTarget || event.altKey || event.ctrlKey || event.metaKey) return;
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      onRowActivate?.(row, rowKey(row));
+      return;
+    }
+    const last = visibleKeys.length - 1;
+    const target = event.key === 'ArrowDown' ? Math.min(index + 1, last) : event.key === 'ArrowUp' ? Math.max(index - 1, 0)
+      : event.key === 'Home' ? 0 : event.key === 'End' ? last : undefined;
+    if (target === undefined) return;
+    event.preventDefault();
+    rowRefs.current.get(visibleKeys[target])?.focus();
   }
 
   function changeQuery(value: string) {
@@ -241,6 +293,7 @@ export function DataTable<T>({
             <label className="t98-table-checkbox-target"><input ref={selectAll} type="checkbox" checked={allChecked} disabled={visible.length === 0}
               aria-label="Select all rows on this page" onChange={togglePage} /></label>
           </th>}
+          {rowDetail && <th scope="col" className="t98-table-expand" role={role('columnheader')}><span className="t98-visually-hidden">Details</span></th>}
           {shown.map(column => {
             const sorts = sortable && column.sortable !== false;
             return <th key={column.key} scope="col" className={cellClass(column)} role={role('columnheader')}
@@ -254,10 +307,26 @@ export function DataTable<T>({
           {rowActions && <th scope="col" className="t98-table-actions" role={role('columnheader')}><span className="t98-visually-hidden">{rowActionsLabel}</span></th>}
         </tr></thead>
         <tbody role={role('rowgroup')}>
-          {!hasUnavailable && visible.map((row, index) => <tr key={rowKey(row)} role={role('row')} data-selected={selectedSet.has(rowKey(row)) || undefined}>
+          {!hasUnavailable && visible.map((row, index) => {
+            const key = rowKey(row);
+            const expanded = rowDetail !== undefined && expandedSet.has(key);
+            const detailId = `${detailBase}-detail-${offset + index}`;
+            return <Fragment key={key}><tr role={role('row')} data-selected={selectedSet.has(key) || undefined}
+              // aria-current rather than aria-selected: aria-selected is not supported on a row of a native table and would blur with checkbox selection.
+              aria-current={activeKey === key ? 'true' : undefined} className={activatable ? 't98-table-row--interactive' : undefined}
+              ref={activatable ? node => { if (node) rowRefs.current.set(key, node); else rowRefs.current.delete(key); } : undefined}
+              tabIndex={activatable ? (key === tabKey ? 0 : -1) : undefined}
+              onFocus={activatable ? event => { if (event.target === event.currentTarget) setFocusKey(key); } : undefined}
+              onClick={activatable ? event => onRowClick(event, row) : undefined}
+              onKeyDown={activatable ? event => onRowKeyDown(event, row, index) : undefined}>
             {selectable && <td className="t98-table-check" role={role('cell')}>
-              <label className="t98-table-checkbox-target"><input type="checkbox" aria-label={`Select row ${offset + index + 1}`} checked={selectedSet.has(rowKey(row))}
-                onChange={() => toggleRow(rowKey(row))} /></label>
+              <label className="t98-table-checkbox-target"><input type="checkbox" aria-label={`Select row ${offset + index + 1}`} checked={selectedSet.has(key)}
+                onChange={() => toggleRow(key)} /></label>
+            </td>}
+            {rowDetail && <td className="t98-table-expand" role={role('cell')}>
+              <Button variant="ghost" size="sm" aria-label={`Details for row ${offset + index + 1}`} aria-expanded={expanded} aria-controls={detailId} onClick={() => toggleExpanded(key)}>
+                <Icon name={expanded ? 'chevron-down' : 'chevron-right'} size={16} />
+              </Button>
             </td>}
             {shown.map(column => {
               const content = column.render ? column.render(row) : cellValue(row, column);
@@ -270,7 +339,10 @@ export function DataTable<T>({
                 : <td key={column.key} className={cellClass(column)} data-label={label} role={role('cell')}>{children}</td>;
             })}
             {rowActions && <td className="t98-table-actions" data-label={stack ? rowActionsLabel : undefined} role={role('cell')}>{rowActions(row)}</td>}
-          </tr>)}
+          </tr>
+          {expanded && <tr id={detailId} className="t98-table-detail" role={role('row')}><td colSpan={columnCount} role={role('cell')}>{rowDetail(row)}</td></tr>}
+          </Fragment>;
+          })}
           {hasUnavailable && <tr role={role('row')}><td colSpan={columnCount} role={role('cell')}><div className="t98-table-state">{unavailable}</div></td></tr>}
           {!hasUnavailable && !loading && visible.length === 0 && <tr role={role('row')}><td colSpan={columnCount} role={role('cell')}>
             {emptyState ?? <EmptyState title={emptyTitle} description={query ? 'Try a different search or clear your search to see all records.' : 'New records will appear here.'}
@@ -279,6 +351,7 @@ export function DataTable<T>({
         </tbody>
         {footerCells && <tfoot role={role('rowgroup')}><tr role={role('row')}>
           {selectable && <td className="t98-table-check" role={role('cell')} />}
+          {rowDetail && <td className="t98-table-expand" role={role('cell')} />}
           {columns.flatMap((column, index) => column.hidden ? [] : [column.rowHeader
             ? <th key={column.key} scope="row" className={cellClass(column)} data-label={stack ? column.header : undefined} role={role('rowheader')}>{footerCells[index]}</th>
             : <td key={column.key} className={cellClass(column)} data-label={stack ? column.header : undefined} role={role('cell')}>{footerCells[index]}</td>])}

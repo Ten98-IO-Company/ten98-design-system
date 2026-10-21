@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import {
-  Button, CheckboxGroup, CodeBlock, Combobox, DateTimeField, Disclosure, FileField, Fieldset, Field, Input, InlineCode, Pager, RadioGroup, Scroller, SegmentedControl, StatusLine, Text,
+  AccountScopePicker, Button, CheckboxGroup, CodeBlock, Combobox, DateTimeField, Disclosure, FieldList, FileField, Fieldset, Field, Input, InlineCode, Pager, RadioGroup, Scroller, SegmentedControl, StatusLine, Text,
 } from '../lib';
 import type { FileItem } from '../lib';
 import { tsx, type ComponentCategory, type ComponentEntry, type ComponentProp, type ComponentState } from './model';
@@ -60,6 +60,31 @@ function FilePreview({ withFiles = false }: { withFiles?: boolean }) {
     onRemove={id => setFiles(files.filter(file => file.id !== id))} />;
 }
 const sample = "const total = items.reduce((sum, item) => sum + item.spend, 0);\nconsole.log(total);";
+
+type Slot = { id: string; time: string };
+function FieldListPreview({ bounded = false }: { bounded?: boolean }) {
+  const [slots, setSlots] = useState<Slot[]>([{ id: 'a', time: '09:00' }, { id: 'b', time: '13:30' }]);
+  const [next, setNext] = useState(3);
+  const move = (from: number, to: number) => setSlots(current => { const copy = [...current]; copy.splice(to, 0, ...copy.splice(from, 1)); return copy; });
+  return <FieldList legend="Posting times" name="slots" items={slots} getKey={slot => slot.id} addLabel="Add time" removeLabel={index => `Remove time ${index + 1}`}
+    min={bounded ? 2 : 0} max={bounded ? 2 : undefined} emptyMessage="No posting times yet."
+    onAdd={() => { setSlots(current => [...current, { id: `n${next}`, time: '' }]); setNext(next + 1); }}
+    onRemove={index => setSlots(current => current.filter((_, position) => position !== index))} onMove={move}
+    renderItem={(slot, index, { name, id }) => <Field label={`Time ${index + 1}`} htmlFor={id('time')}>
+      <Input id={id('time')} name={name('time')} type="time" defaultValue={slot.time} />
+    </Field>} />;
+}
+const scopeConnections = [
+  { id: 'meta', label: 'Meta Business', detail: 'Connected 3 March' },
+  { id: 'google', label: 'Google Ads', status: 'expired' as const },
+];
+const scopeAccounts = (count: number) => Array.from({ length: count }, (_, index) => ({ id: `acct-${index + 1}`, label: `Ad account ${index + 1}`, detail: index === 0 ? 'Primary' : undefined, disabled: index === 1, disabledReason: index === 1 ? 'Suspended by the provider' : undefined }));
+function AccountScopePreview({ count = 3, connected = 'meta', loading = false }: { count?: number; connected?: string; loading?: boolean }) {
+  const [connectionId, setConnectionId] = useState(connected);
+  const [accountId, setAccountId] = useState('');
+  return <AccountScopePicker name="scope" connections={scopeConnections} accounts={loading ? null : scopeAccounts(count)} connectionId={connectionId} accountId={accountId}
+    onConnectionChange={setConnectionId} onAccountChange={setAccountId} onConnect={() => undefined} />;
+}
 
 export const controlEntries: ComponentEntry[] = [
   entry('Disclosure', 'Layout', 'A native details/summary section that can sit beside actions.', 'Use for optional or advanced content. Leave `open` unset for self-managed state, or pass `open` with `onOpenChange` to control it.',
@@ -147,4 +172,26 @@ export const controlEntries: ComponentEntry[] = [
     [prop('label', 'string', 'Accessible name for the region.', true), prop('children', 'ReactNode', 'The wide content.', true)],
     ['--t98-accent'], ['A labelled region that takes keyboard focus so arrow keys scroll it.'], ['CodeBlock', 'CheckboxGroup'],
     [state('Wide content', 'Content wider than the region scrolls sideways.', ['Scroller', 'Text'], '<Scroller label="Monthly spend">\n  <Text>Jan 1,204 · Feb 1,310 · Mar 1,198 · Apr 1,420 · May 1,377 · Jun 1,502 · Jul 1,466 · Aug 1,389</Text>\n</Scroller>', <Scroller label="Monthly spend"><Text>Jan 1,204 · Feb 1,310 · Mar 1,198 · Apr 1,420 · May 1,377 · Jun 1,502 · Jul 1,466 · Aug 1,389</Text></Scroller>)]),
+  entry('FieldList', 'Controls', 'A fieldset of repeatable rows with add, remove and optional move buttons, focus management and a polite status.', 'Use for lists of the same small group of fields, such as posting times or links. The caller owns the items and every value; the list renders each row with `renderItem` and uses `helpers.name(field)` so native forms post `name.0.field`. Moving uses buttons, not drag.',
+    [prop('legend', 'ReactNode', 'Group name.', true), prop('name', 'string', 'Prefix of the native field names.', true), prop('items', 'T[]', 'The rows.', true), prop('getKey', '(item: T) => string', 'Stable key of a row.', true), prop('renderItem', '(item: T, index: number, helpers: { index; count; name(field); id(field) }) => ReactNode', 'The fields of one row.', true), prop('onAdd', '() => void', 'Append a row.', true), prop('onRemove', '(index: number) => void', 'Remove a row.', true), prop('addLabel', 'string', 'Add button text.', true), prop('removeLabel', '(index: number) => string', 'Remove button text for a row.', true), prop('onMove', '(from: number, to: number) => void', 'Adds Move up and Move down buttons.'), prop('min', 'number', 'Fewest rows; Remove is disabled at the bound and the reason is shown.', false, '0'), prop('max', 'number', 'Most rows; Add is disabled at the bound and the reason is shown.'), prop('emptyMessage', 'string', 'Shown when there are no rows.', false, "'No items yet.'"), prop('error', 'ReactNode', 'Group-level message.'), prop('description', 'ReactNode', 'Help text.'), prop('disabled', 'boolean', 'Disables every control.'), prop('labels', 'Partial<FieldListLabels>', 'Replaces the built-in English status text, row headings and move labels.')],
+    ['--t98-border', '--t98-surface', '--t98-space-3', '--t98-radius'],
+    ['Built on a native fieldset and legend; each row is a list item with a visually hidden heading such as "Item 2 of 5".', 'After Add, focus moves to the new row’s first field; after Remove, to the next row’s first field or the Add button. A polite status announces "Item added", "Item removed" and "Moved to position N".', 'Move keeps focus on the moved row’s button. Every button is at least 44px.'],
+    ['Fieldset', 'Field', 'Button'],
+    [state('Reorderable', 'Add, remove and move rows.', ['Field', 'FieldList', 'Input'], "<FieldList\n  legend=\"Posting times\"\n  name=\"slots\"\n  items={slots}\n  getKey={slot => slot.id}\n  addLabel=\"Add time\"\n  removeLabel={index => `Remove time ${index + 1}`}\n  onAdd={() => setSlots([...slots, { id: String(slots.length + 1), time: '' }])}\n  onRemove={index => setSlots(slots.filter((_, position) => position !== index))}\n  onMove={(from, to) => setSlots(move(slots, from, to))}\n  renderItem={(slot, index, { name, id }) => (\n    <Field label={`Time ${index + 1}`} htmlFor={id('time')}>\n      <Input id={id('time')} name={name('time')} type=\"time\" defaultValue={slot.time} />\n    </Field>\n  )}\n/>", <FieldListPreview />,
+      "type Slot = { id: string; time: string };\nconst [slots, setSlots] = useState<Slot[]>([{ id: 'a', time: '09:00' }, { id: 'b', time: '13:30' }]);\nconst move = (items: Slot[], from: number, to: number) => { const copy = [...items]; copy.splice(to, 0, ...copy.splice(from, 1)); return copy; };", ['useState']),
+      state('At its bounds', 'With min and max of 2, Add and Remove are disabled and say why.', ['Field', 'FieldList', 'Input'], "<FieldList\n  legend=\"Posting times\"\n  name=\"slots\"\n  items={slots}\n  getKey={slot => slot.id}\n  min={2}\n  max={2}\n  addLabel=\"Add time\"\n  removeLabel={index => `Remove time ${index + 1}`}\n  onAdd={() => undefined}\n  onRemove={() => undefined}\n  renderItem={(slot, index, { name, id }) => (\n    <Field label={`Time ${index + 1}`} htmlFor={id('time')}>\n      <Input id={id('time')} name={name('time')} type=\"time\" defaultValue={slot.time} />\n    </Field>\n  )}\n/>", <FieldListPreview bounded />,
+      "type Slot = { id: string; time: string };\nconst slots: Slot[] = [{ id: 'a', time: '09:00' }, { id: 'b', time: '13:30' }];")]),
+  entry('AccountScopePicker', 'Controls', 'Choose a provider connection, then the account or ad account inside it.', 'The caller loads the accounts of the chosen connection (pass `null` while loading) and decides any default; changing the connection calls `onAccountChange("")` first. Up to six accounts are radio buttons; more use a list-only combobox, which leaves out disabled accounts.',
+    [prop('connections', "{ id: string; label: string; status?: 'connected' | 'expired' | 'error'; detail?: ReactNode }[]", 'Available connections.', true), prop('accounts', '{ id: string; label: string; detail?: ReactNode; disabled?: boolean; disabledReason?: string }[] | null', 'Accounts of the chosen connection; null while loading.', true), prop('connectionId', 'string | null', 'Chosen connection.', true), prop('accountId', 'string | null', 'Chosen account.', true), prop('onConnectionChange', '(id: string) => void', 'Called with the new connection.', true), prop('onAccountChange', '(id: string) => void', 'Called with the chosen account, or an empty string when cleared.', true), prop('connectHref', 'string', 'Link shown when there are no connections, or to reconnect an expired one.'), prop('onConnect', '() => void', 'Button handler used instead of a link.'), prop('labels', 'Partial<AccountScopeLabels>', 'Replaces the built-in English text.'), prop('required', 'boolean', 'Marks the connection and the combobox required.'), prop('error', 'ReactNode', 'Message shown below the picker.'), prop('name', 'string', 'Native names `${name}.connection` and `${name}.account`.')],
+    ['--t98-muted', '--t98-warning', '--t98-danger', '--t98-space-3'],
+    ['Connection is a native select; an expired or errored connection shows a Badge with words and an explanation, and no accounts until it is fixed.', 'Loading is a polite status. Accounts are a native radio group or a list-only combobox with the standard keyboard model; disabled accounts show their reason.'],
+    ['Select', 'RadioGroup', 'Combobox', 'StatusLine'],
+    [state('Accounts', 'Three accounts as radio buttons, one disabled with a reason.', ['AccountScopePicker'], "<AccountScopePicker\n  name=\"scope\"\n  connections={connections}\n  accounts={accounts}\n  connectionId={connectionId}\n  accountId={accountId}\n  onConnectionChange={setConnectionId}\n  onAccountChange={setAccountId}\n/>", <AccountScopePreview />,
+      "const connections = [{ id: 'meta', label: 'Meta Business', detail: 'Connected 3 March' }, { id: 'google', label: 'Google Ads', status: 'expired' as const }];\nconst accounts = [{ id: 'a1', label: 'Ad account 1' }, { id: 'a2', label: 'Ad account 2', disabled: true, disabledReason: 'Suspended by the provider' }, { id: 'a3', label: 'Ad account 3' }];\nconst [connectionId, setConnectionId] = useState('meta');\nconst [accountId, setAccountId] = useState('');", ['useState']),
+      state('Many accounts', 'More than six accounts use the combobox.', ['AccountScopePicker'], "<AccountScopePicker\n  name=\"scope\"\n  connections={connections}\n  accounts={accounts}\n  connectionId=\"meta\"\n  accountId={accountId}\n  onConnectionChange={() => undefined}\n  onAccountChange={setAccountId}\n/>", <AccountScopePreview count={9} />,
+      "const connections = [{ id: 'meta', label: 'Meta Business' }];\nconst accounts = Array.from({ length: 9 }, (_, index) => ({ id: `a${index + 1}`, label: `Ad account ${index + 1}` }));\nconst [accountId, setAccountId] = useState('');", ['useState']),
+      state('Loading', 'Accounts are loading.', ['AccountScopePicker'], "<AccountScopePicker\n  connections={connections}\n  accounts={null}\n  connectionId=\"meta\"\n  accountId=\"\"\n  onConnectionChange={() => undefined}\n  onAccountChange={() => undefined}\n/>", <AccountScopePreview loading />,
+      "const connections = [{ id: 'meta', label: 'Meta Business' }];"),
+      state('Expired connection', 'The badge explains why no accounts are shown.', ['AccountScopePicker'], "<AccountScopePicker\n  connections={connections}\n  accounts={[]}\n  connectionId=\"google\"\n  accountId=\"\"\n  onConnectionChange={() => undefined}\n  onAccountChange={() => undefined}\n  onConnect={() => undefined}\n/>", <AccountScopePreview connected="google" />,
+      "const connections = [{ id: 'google', label: 'Google Ads', status: 'expired' as const }];")]),
 ];

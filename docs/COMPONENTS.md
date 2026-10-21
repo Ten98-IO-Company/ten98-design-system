@@ -64,6 +64,8 @@ Applications compose every screen from these instead of writing elements, `class
 | `CodeBlock`, `InlineCode` | `code`, `language?`, `wrap?`, `maxHeight?`, `copy?` | Read-only code with an optional copy button; long blocks scroll in a focusable region. |
 | `StatusLine` | `tone?`, `busy?`, `live?` | Inline loading or result status announced politely. |
 | `Scroller` | `label`, children | Focusable, labelled horizontal scroll region for wide content. |
+| `FieldList` | `legend`, `name`, `items`, `getKey`, `renderItem(item, index, {name, id})`, `onAdd`, `onRemove`, `onMove?`, `addLabel`, `removeLabel`, `min?`, `max?`, `emptyMessage?`, `error?` | Repeatable field rows in a fieldset; each row is a list item with a hidden "Item N of M" heading and `helpers.name('time')` yields `slots.0.time`. Add focuses the new row, Remove the next row or Add; a polite status announces added, removed and moved. Move up/down buttons only (no drag); min/max disable Remove/Add with the reason shown. Behaviour credited to react-aria reordering announcements (Apache-2.0) and APG dynamic-content guidance. |
+| `AccountScopePicker` | `connections`, `accounts` (`null` = loading), `connectionId`, `accountId`, `onConnectionChange`, `onAccountChange`, `connectHref?`/`onConnect?`, `labels?`, `required?`, `error?`, `name?` | Choose a connection (Select, with an Expired/Error badge and explanation), then the account: radio buttons for up to six, a list-only Combobox for more. Changing the connection calls `onAccountChange('')` before the app sets any default. `name` yields `${name}.connection` and `${name}.account` for native forms. |
 | `DateTimeField` | `label`, `type?`, `value`, `onValueChange`, `timeZoneLabel?` | Native date/time input that shows the app's time zone; the app converts zones. |
 | `FileField` | `label`, `onFiles`, `files?`, `onRemove?`, `accept?`, `multiple?` | Keyboard file chooser plus a drop zone with an announced status; listed files show size, progress and a labelled remove button. |
 | `Meter` | `label`, `value`, `min?`, `max?`, `low?`, `high?`, `optimum?` | Native meter with a visible value. |
@@ -183,6 +185,9 @@ export function ProjectsTable({ projects }: { projects: Project[] }) {
 | `pageSize` | Defaults to `5`; invalid values fall back to 5 |
 | `selectable` | Defaults to `false`; enables row checkboxes |
 | `onSelectionChange` | Receives the selected row keys |
+| `selectedKeys` | Controlled selection. The table keeps no selection state, reflects the set in the row and select-all checkboxes, and does not prune it; the app updates it from `onSelectionChange` |
+| `activeKey`, `onRowActivate(row, key)` | List-detail. `activeKey` marks one row `aria-current="true"` (not `aria-selected`, which a native table row does not support and which would blur with checkbox selection). With `onRowActivate`, a click on a cell or Enter/Space on the focused row activates it; clicks on checkboxes, buttons, links and other controls do not. Rows become one roving tab stop: ArrowUp/ArrowDown move between rows, Home/End jump |
+| `rowDetail(row)`, `expandedKeys`, `onExpandedChange(keys)` | Adds a leading disclosure column. The button has `aria-expanded` and `aria-controls`; an expanded row's detail renders in a following full-width row (`colSpan`), also when stacked. Expansion is uncontrolled unless `expandedKeys` is given |
 | `emptyTitle` | Defaults to “No records found” |
 | `emptyState` | Replaces the default empty state |
 | `searchable`, `sortable`, `pagination` | Each `false` removes that feature; all three `false` is a plain table with no toolbar. Per column, `sortable: false` removes one sort button |
@@ -198,6 +203,8 @@ export function ProjectsTable({ projects }: { projects: Project[] }) {
 Column options: `align` (`start | end | center`), `numeric` (end-aligned, tabular numerals), `wrap`, `minWidth` (`sm | md | lg`), `rowHeader` (`th scope="row"`), `hidden`. A missing cell value (`null`, `undefined`, `NaN`, or a `render` result of those) shows “—” with hidden text “Not available”; it is never shown as 0.
 
 Search and sort use the raw property matching `column.key`, or `sortValue` when supplied. A custom `render` changes the display only; provide `sortValue` for derived or formatted cells. Numbers sort numerically and other values use an `Intl.Collator`. Source rows are not mutated.
+
+Row keyboard behaviour is a behaviour-only port of the WAI-ARIA APG grid/table guidance and react-aria's `useTable` row actions (Apache-2.0). The scroll region stays a separate tab stop so a wide table can be scrolled by keyboard.
 
 Selection persists across filtering and pages. The header checkbox selects or clears the current page only, with a mixed state for partial page selection. Removed rows are pruned from selection. The app owns bulk actions, access checks and result feedback; it should explain the selection scope before an operation.
 

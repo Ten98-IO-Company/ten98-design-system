@@ -180,3 +180,35 @@ test('server paging keeps selections from other pages; the app owns them', async
   const html = renderToStaticMarkup(h(DataTable, { caption: 'Rows', columns: [{ key: 'id', header: 'Id' }], rows: [{ id: 'page2-row' }], rowKey: row => row.id, selectable: true, page: { index: 1, size: 1, total: 3 } }));
   assert.match(html, /page2-row/);
 });
+
+test('controlled selectedKeys renders checked boxes and the select-all state', () => {
+  const partial = table({ selectable: true, selectedKeys: ['a'], onSelectionChange() {} });
+  assert.equal([...partial.matchAll(/<input type="checkbox" aria-label="Select row \d+" checked=""/g)].length, 1);
+  assert.match(partial, /<tr data-selected="true"><td class="t98-table-check"/);
+  assert.doesNotMatch(partial.match(/<input[^>]*Select all rows[^>]*>/)[0], /checked=""/);
+  const all = table({ selectable: true, selectedKeys: ['a', 'b', 'c'], onSelectionChange() {} });
+  assert.match(all.match(/<input[^>]*Select all rows[^>]*>/)[0], /checked=""/);
+  assert.match(all, /3 selected/);
+  const none = table({ selectable: true, selectedKeys: [], onSelectionChange() {} });
+  assert.doesNotMatch(none, /checked=""/);
+});
+
+test('activeKey marks one row current and onRowActivate gives rows a single tab stop', () => {
+  const html = table({ activeKey: 'a', onRowActivate() {} });
+  assert.equal([...html.matchAll(/aria-current="true"/g)].length, 1);
+  assert.equal([...html.matchAll(/<tr[^>]*tabindex="0"/g)].length, 1);
+  assert.match(html, /<tr aria-current="true"[^>]*tabindex="0"/, 'the active row is the tab stop');
+  assert.equal(table({ activeKey: 'a' }).includes('tabindex="-1"'), false, 'no roving without onRowActivate');
+  assert.match(table({ onRowActivate() {} }), /<tr class="t98-table-row--interactive" tabindex="0"><td>Beta/, 'first row is the stop without an active row');
+});
+
+test('rowDetail renders only for expanded keys with the disclosure wired to the detail row', () => {
+  const closed = table({ rowDetail: row => `Detail ${row.name}` });
+  assert.doesNotMatch(closed, /Detail Alpha|t98-table-detail/);
+  assert.equal([...closed.matchAll(/aria-expanded="false"/g)].length, 3);
+  const open = table({ rowDetail: row => `Detail ${row.name}`, expandedKeys: ['a'], onExpandedChange() {} });
+  assert.equal([...open.matchAll(/Detail (Alpha|Beta|Gamma)/g)].length, 1);
+  const controls = open.match(/aria-expanded="true" aria-controls="([^"]+)"/)[1];
+  assert.match(open, new RegExp(`<tr id="${controls}" class="t98-table-detail"><td colSpan="3">Detail Alpha`));
+  assert.match(open, /<th scope="col" class="t98-table-expand"><span class="t98-visually-hidden">Details/);
+});

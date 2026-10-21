@@ -179,3 +179,13 @@ test('a list-only Combobox never posts text that is not one of its options', asy
   const custom = renderToStaticMarkup(h(Combobox, { label: 'Tag', name: 'tag', options: ['a'], value: 'new', onValueChange() {} }));
   assert.match(custom, /<input type="hidden" name="tag" value="new"/);
 });
+
+test('Fieldset links its error and marks the group invalid; RadioGroup can be required', async () => {
+  const { Fieldset, RadioGroup } = await import('../dist/index.js');
+  const group = renderToStaticMarkup(h(Fieldset, { legend: 'Slots', error: 'Add at least one slot.' }, 'x'));
+  const describedBy = group.match(/<fieldset[^>]*aria-describedby="([^"]+)"/)[1];
+  assert.match(group, /<fieldset[^>]*aria-invalid="true"/);
+  assert.match(group, new RegExp(`id="${describedBy}"[^>]*role="alert"[^>]*>Add at least one slot\.`));
+  const radios = renderToStaticMarkup(h(RadioGroup, { legend: 'Account', name: 'account', required: true, options: [{ value: 'a', label: 'A' }, { value: 'b', label: 'B' }] }));
+  assert.equal([...radios.matchAll(/<input[^>]*type="radio"[^>]*required=""/g)].length, 2);
+});

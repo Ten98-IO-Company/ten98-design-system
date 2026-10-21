@@ -149,3 +149,59 @@ test('server paging keeps a selection made on an earlier page', async ({ page })
   await expect(page.getByRole('status').filter({ hasText: 'Last callback: page' })).toBeVisible();
   await expect(selection).toHaveText(before!);
 });
+
+for (const width of [1440, 320]) {
+  test(`list-detail rows activate, move focus and expand at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 1000 });
+    await page.goto('/tests/data-table.html');
+    const inbox = page.getByRole('table', { name: 'Inbox table' });
+    const state = page.locator('#inbox-state');
+    await expect(state).toHaveText('Active: none Picked: c2');
+    const rows = inbox.locator('tbody tr[tabindex]');
+    await expect(rows.nth(1).getByRole('checkbox')).toBeChecked();
+    await expect(rows.locator('xpath=self::*[@tabindex="0"]')).toHaveCount(1);
+
+    // A click on a cell activates; checkbox, disclosure and action clicks do not.
+    await rows.nth(2).locator('td').nth(3).click();
+    await expect(state).toHaveText('Active: c3 Picked: c2');
+    await expect(rows.nth(2)).toHaveAttribute('aria-current', 'true');
+    await rows.nth(0).getByRole('checkbox').check();
+    await rows.nth(0).getByRole('button', { name: 'Reply' }).click();
+    await rows.nth(0).getByRole('button', { name: /Details for row 1/ }).click();
+    await expect(state).toHaveText('Active: c3 Picked: c2,c1');
+
+    // Keyboard: roving focus, Home/End, Enter and Space.
+    await rows.nth(2).focus();
+    await page.keyboard.press('ArrowDown');
+    await expect(rows.nth(3)).toBeFocused();
+    await page.keyboard.press('ArrowUp');
+    await page.keyboard.press('ArrowUp');
+    await expect(rows.nth(1)).toBeFocused();
+    await page.keyboard.press('End');
+    await expect(rows.nth(3)).toBeFocused();
+    await page.keyboard.press('Home');
+    await expect(rows.nth(0)).toBeFocused();
+    await page.keyboard.press('Enter');
+    await expect(state).toHaveText('Active: c1 Picked: c2,c1');
+    await page.keyboard.press('ArrowDown');
+    await page.keyboard.press('Space');
+    await expect(state).toHaveText('Active: c2 Picked: c2,c1');
+
+    // Expand and collapse through the disclosure button.
+    const toggle = inbox.getByRole('button', { name: /Details for row 1/ });
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    const detail = inbox.getByText(/Detail for Campaign 1 with/);
+    await expect(detail).toBeVisible();
+    await expect(inbox.locator(`#${await toggle.getAttribute('aria-controls')}`)).toBeVisible();
+    await toggle.click();
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await expect(detail).toHaveCount(0);
+    expect(await overflow(page)).toBeLessThanOrEqual(1);
+
+    // Stacked layout keeps the disclosure and the detail row.
+    const stacked = page.getByRole('table', { name: 'Stacked detail table' });
+    await stacked.getByRole('button', { name: /Details for row 1/ }).click();
+    await expect(stacked.getByText('Stacked detail for c1')).toBeVisible();
+    expect(await overflow(page)).toBeLessThanOrEqual(1);
+  });
+}

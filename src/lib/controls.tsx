@@ -64,10 +64,11 @@ function FieldsetBase({ legend, description, error, disabled, hideLegend, layout
   </fieldset>;
 }
 
-export type FieldsetProps = Pick<FieldsetBaseProps, 'legend' | 'description' | 'disabled' | 'hideLegend' | 'layout' | 'children'>;
+export type FieldsetProps = Pick<FieldsetBaseProps, 'legend' | 'description' | 'error' | 'disabled' | 'hideLegend' | 'layout' | 'children'>;
 /** Native fieldset/legend grouping for related fields. */
 export function Fieldset(props: FieldsetProps) {
-  return <FieldsetBase {...props} />;
+  // An error is linked to the group and marks it invalid, so composed controls need no error paragraph of their own.
+  return <FieldsetBase {...props} invalid={Boolean(props.error)} />;
 }
 
 export interface ChoiceOption { value: string; label: ReactNode; description?: ReactNode; disabled?: boolean }
@@ -86,15 +87,17 @@ export interface RadioGroupProps extends ChoiceGroupProps {
   value?: string;
   defaultValue?: string;
   onValueChange?: (value: string) => void;
+  /** Native required: a choice must be made before a form submits. */
+  required?: boolean;
 }
 /** Single choice from a native radio list; arrow keys move the selection. */
-export function RadioGroup({ legend, description, options, disabled, orientation = 'vertical', error, name, value, defaultValue, onValueChange }: RadioGroupProps) {
+export function RadioGroup({ legend, description, options, disabled, orientation = 'vertical', error, name, value, defaultValue, onValueChange, required }: RadioGroupProps) {
   const [inner, setInner] = useState(defaultValue ?? '');
   const current = value ?? inner;
   return <FieldsetBase legend={legend} description={description} error={error} disabled={disabled} role="radiogroup" invalid={!!error}>
     <div className={orientation === 'horizontal' ? 't98-choice-row' : 't98-choice-column'}>
       {options.map(option => <label key={option.value} className={cx('t98-checkbox-label', 't98-choice', option.disabled && 't98-disabled')}>
-        <input type="radio" className="t98-checkbox" name={name} value={option.value} checked={current === option.value} disabled={option.disabled}
+        <input type="radio" required={required} className="t98-checkbox" name={name} value={option.value} checked={current === option.value} disabled={option.disabled}
           onChange={() => { if (value === undefined) setInner(option.value); onValueChange?.(option.value); }} />
         {choiceText(option)}
       </label>)}
