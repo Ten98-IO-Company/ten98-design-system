@@ -307,3 +307,9 @@ test('ResourceCard takes a media slot in place of its icon and lists tags', () =
   assert.match(renderToStaticMarkup(h(ResourceCard, { title: 'T', description: 'D' })), /t98-resource-icon/);
   for (const name of ['t98-resource-media', 't98-resource-tags', 't98-image-fallback']) assert.ok(styles.includes(`.${name}`), name);
 });
+
+test('field descriptions keep their own rule: the counter styles never leak into it', () => {
+  // Regression: inserting the counter rule split this selector list, right-aligning every description (0.11.0 gate).
+  assert.ok(styles.includes('.t98-field-description, .t98-field-error { margin: 0; font-size: 11px; line-height: 17px; }'));
+  assert.doesNotMatch(styles, /\.t98-field-description,\s*\.t98-field-count/);
+});
