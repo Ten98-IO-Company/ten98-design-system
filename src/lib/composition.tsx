@@ -1,6 +1,6 @@
 'use client';
 
-import { useId, type ReactNode } from 'react';
+import { useId, useState, type ReactNode } from 'react';
 import { Alert, Avatar, Badge, Button, Checkbox, Field, Input, Textarea, cx } from './primitives.js';
 import { MediaPlayer } from './controls.js';
 import { Image } from './structure.js';
@@ -196,14 +196,31 @@ export interface ContentPreviewProps {
   /** Neutral layout that approximates where the content appears: a plain card, a feed post, a 9:16 story or a direct message.
    * No platform logos, colours or trademarks are drawn. */
   chrome?: 'card' | 'post' | 'story' | 'message';
+  /** Later posts of a thread, shown after the first one and numbered as a sequence. */
+  thread?: readonly { id: string; text?: ReactNode; media?: ReactNode }[];
+  /** Characters of a plain-text caption shown before "Show full caption", as feeds truncate long captions. */
+  captionLimit?: number;
+  /** A poll attached to the post. */
+  poll?: { question?: ReactNode; options: readonly string[]; duration?: ReactNode };
+  /** The first comment posted with the content. */
+  firstComment?: ReactNode;
   pending?: boolean;
   error?: string;
   emptyMessage?: string;
   className?: string;
 }
 
+/** A plain-text caption cut at a limit, with a toggle that names what it does and states its state. */
+function Caption({ text, limit }: { text: string; limit: number }) {
+  const [expanded, setExpanded] = useState(false);
+  const chars = [...text];
+  if (chars.length <= limit) return <>{text}</>;
+  return <>{expanded ? text : `${chars.slice(0, limit).join('').trimEnd()}…`}{' '}
+    <button type="button" className="t98-content-preview-more" aria-expanded={expanded} onClick={() => setExpanded(value => !value)}>{expanded ? 'Show less' : 'Show full caption'}</button></>;
+}
+
 /** Approximate presentation only; no provider rules, remote fetching or send behavior. */
-export function ContentPreview({ label, destination, provider, text, media, footer, chrome = 'card', pending = false, error, emptyMessage = 'No content supplied for this destination.', className }: ContentPreviewProps) {
+export function ContentPreview({ label, destination, provider, text, media, footer, chrome = 'card', thread, captionLimit, poll, firstComment, pending = false, error, emptyMessage = 'No content supplied for this destination.', className }: ContentPreviewProps) {
   const id = useId();
   const empty = text == null && media == null;
   const identity = chrome === 'card' ? <div className="t98-content-preview-identity"><strong>{destination}</strong><span>{provider}</span></div>
@@ -212,8 +229,21 @@ export function ContentPreview({ label, destination, provider, text, media, foot
     {empty && <p className="t98-content-preview-empty">{emptyMessage}</p>}
     {/* A story shows the media first with the text over its lower edge; every other layout reads text, then media. */}
     {chrome === 'story' && media != null && <div className="t98-content-preview-media">{media}</div>}
-    {text != null && <div className="t98-content-preview-text">{text}</div>}
+    {text != null && <div className="t98-content-preview-text">{typeof text === 'string' && captionLimit !== undefined && captionLimit > 0 ? <Caption text={text} limit={captionLimit} /> : text}</div>}
     {chrome !== 'story' && media != null && <div className="t98-content-preview-media">{media}</div>}
+    {poll && poll.options.length > 0 && <div className="t98-content-preview-poll">
+      {poll.question != null && <p className="t98-content-preview-poll-question">{poll.question}</p>}
+      <ul className="t98-content-preview-poll-options" aria-label="Poll options">{poll.options.map(option => <li key={option}>{option}</li>)}</ul>
+      {poll.duration != null && <p className="t98-content-preview-poll-duration">{poll.duration}</p>}
+    </div>}
+    {thread && thread.length > 0 && <ol className="t98-content-preview-thread" aria-label={`Thread, ${thread.length + 1} posts`}>
+      {thread.map((entry, index) => <li key={entry.id} className="t98-content-preview-thread-item">
+        <span className="t98-content-preview-thread-index">{index + 2} / {thread.length + 1}</span>
+        {entry.text != null && <div className="t98-content-preview-text">{entry.text}</div>}
+        {entry.media != null && <div className="t98-content-preview-media">{entry.media}</div>}
+      </li>)}
+    </ol>}
+    {firstComment != null && <div className="t98-content-preview-comment"><p className="t98-content-preview-comment-label">First comment</p><div className="t98-content-preview-text">{firstComment}</div></div>}
     {footer != null && <div className="t98-content-preview-footer">{footer}</div>}
   </>;
   return <section className={cx('t98-content-preview-frame', `t98-content-preview-frame--${chrome}`, className)} aria-labelledby={`${id}-label`} aria-describedby={`${id}-notice`} aria-busy={pending || undefined}>

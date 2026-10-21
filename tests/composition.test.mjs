@@ -129,3 +129,19 @@ test('ContentPreview chrome layouts stay neutral and keep text, media and identi
   for (const html of [post, story, message]) assert.match(html, /Approximate preview\. Final delivery may look different\./);
   for (const name of ['t98-content-preview-surface', 't98-content-preview-bubble', 't98-content-preview-who', 't98-content-preview-frame--story', 't98-content-preview-frame--post', 't98-content-preview-frame--message']) assert.ok(styles.includes(`.${name}`), name);
 });
+
+test('ContentPreview shows a numbered thread, a poll, a first comment and a truncated caption with a stateful toggle', () => {
+  const caption = 'Our studio opens this weekend with a full programme of workshops, talks and late-night viewings for everyone.';
+  const html = render(ContentPreview, { label: 'Preview', destination: 'Studio', provider: 'Social connection', chrome: 'post', text: caption, captionLimit: 40,
+    thread: [{ id: 't2', text: 'Saturday: workshops from 10:00.' }, { id: 't3', text: 'Sunday: talks.' }],
+    poll: { question: 'Which day will you come?', options: ['Saturday', 'Sunday'], duration: 'Poll closes in 1 day' }, firstComment: 'Tickets: example.com/studio' });
+  assert.match(html, /Our studio opens this weekend with a ful… <button type="button" class="t98-content-preview-more" aria-expanded="false">Show full caption<\/button>/);
+  assert.doesNotMatch(html, /late-night viewings/);
+  assert.match(html, /<ol class="t98-content-preview-thread" aria-label="Thread, 3 posts">/);
+  assert.match(html, />2 \/ 3<\/span>[\s\S]*Saturday: workshops[\s\S]*>3 \/ 3</);
+  assert.match(html, /<ul class="t98-content-preview-poll-options" aria-label="Poll options"><li>Saturday<\/li><li>Sunday<\/li><\/ul>/);
+  assert.match(html, />First comment<\/p><div class="t98-content-preview-text">Tickets: example.com\/studio</);
+  // A caption under the limit, or a non-string caption, is shown whole.
+  assert.doesNotMatch(render(ContentPreview, { label: 'P', destination: 'S', provider: 'p', text: 'Short', captionLimit: 40 }), /Show full caption/);
+  for (const name of ['t98-content-preview-more', 't98-content-preview-thread', 't98-content-preview-poll', 't98-content-preview-comment']) assert.ok(styles.includes(`.${name}`), name);
+});
