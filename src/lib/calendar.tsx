@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { Button, cx } from './primitives.js';
+import { addDays, toIso, toTime } from './dates.js';
 
 /** Month grid only: the app owns schedules, creation rules and navigation. Keyboard model ported from the WAI-ARIA APG date-picker grid. */
 
@@ -32,11 +33,6 @@ export interface CalendarMonthProps {
   className?: string;
 }
 
-const DAY = 86_400_000;
-const ISO = /^(\d{4})-(\d{2})-(\d{2})$/;
-const toTime = (iso: string) => { const m = ISO.exec(iso); return m ? Date.UTC(+m[1], +m[2] - 1, +m[3]) : NaN; };
-const toIso = (time: number) => new Date(time).toISOString().slice(0, 10);
-const addDays = (iso: string, days: number) => toIso(toTime(iso) + days * DAY);
 const dayOfWeek = (iso: string) => new Date(toTime(iso)).getUTCDay();
 const monthOf = (iso: string) => iso.slice(0, 7);
 const daysInMonth = (year: number, month: number) => new Date(Date.UTC(year, month, 0)).getUTCDate();

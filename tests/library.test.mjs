@@ -84,6 +84,26 @@ test('DateRangeField labels both dates and supplies native range boundaries', ()
   assert.match(html, /max="2026-10-19"/);
   assert.match(html, /min="2026-10-01"/);
   assert.equal([...html.matchAll(/<label\b/g)].length, 2);
+  assert.doesNotMatch(html, /aria-invalid|role="alert"/);
+});
+
+test('DateRangeField explains an invalid range instead of blocking it, and shows an exclusive end as the last included day', () => {
+  const error = (props) => render(ui.DateRangeField, { label: 'Period', onChange() {}, ...props }).match(/role="alert">([^<]+)</)?.[1];
+  assert.equal(error({ start: '2026-10-19', end: '2026-10-01' }), 'End date must be on or after the start date.');
+  assert.equal(error({ start: '2025-12-30', end: '2026-01-05', min: '2026-01-01' }), 'Start on or after 2026-01-01.');
+  assert.equal(error({ start: '2026-10-01', end: '2026-10-30', max: '2026-10-21' }), 'End on or before 2026-10-21.');
+  assert.equal(error({ start: '2026-10-01', end: '2026-11-01', maxDays: 31 }), 'Choose at most 31 days; this range has 32.');
+  assert.equal(error({ start: '2026-10-01', end: '2026-10-31', maxDays: 31 }), undefined);
+  // Half-open end: [1 Oct, 1 Nov) is 31 days and the field shows 31 Oct.
+  const exclusive = render(ui.DateRangeField, { label: 'Period', start: '2026-10-01', end: '2026-11-01', endExclusive: true, maxDays: 31, onChange() {} });
+  assert.match(exclusive, /Last day included/);
+  assert.match(exclusive, /value="2026-10-31"/);
+  assert.doesNotMatch(exclusive, /role="alert"/);
+  assert.equal(error({ start: '2026-10-01', end: '2026-10-01', error: 'Server says no.' }), 'Server says no.');
+  const invalid = render(ui.DateRangeField, { label: 'Period', start: '2026-10-19', end: '2026-10-01', onChange() {} });
+  assert.equal([...invalid.matchAll(/aria-invalid="true"/g)].length, 2);
+  const id = invalid.match(/id="([^"]+-error)"/)[1];
+  assert.equal([...invalid.matchAll(new RegExp(`aria-describedby="${id}"`, 'g'))].length, 3);
 });
 
 test('PermissionMatrix handles inherited role names and labels every grant', () => {

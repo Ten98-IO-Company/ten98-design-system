@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { Alert, Button, Checkbox, Dialog, Field, Icon, Input, Select, type Tone } from './primitives.js';
+import { addDays, inclusiveDays } from './dates.js';
 
 export interface ProductOption { id: string; name: string; description?: string }
 /** Native scope selection; the consumer handles navigation and data changes. */
@@ -11,15 +12,48 @@ export function ProductSwitcher({ products, value, onValueChange, label = 'Produ
 }
 
 export interface DateRange { start: string; end: string }
-/** ISO date-only values; no timezone conversion or invented presets. */
-export function DateRangeField({ label, start, end, onChange, disabled }: DateRange & { label: string; onChange: (range: DateRange) => void; disabled?: boolean }) {
+export interface DateRangeFieldProps extends DateRange {
+  label: string;
+  /** Called on every edit, even with an invalid range; `problem` is the message the field shows, or null when the range is valid. */
+  onChange: (range: DateRange, problem: string | null) => void;
+  disabled?: boolean;
+  /** Earliest and latest selectable dates (ISO). */
+  min?: string;
+  max?: string;
+  /** Longest allowed range in days, counting both the first and last day. */
+  maxDays?: number;
+  /** `end` is the day after the last included day, as in half-open [start, end) APIs. The field shows and edits the last included day. */
+  endExclusive?: boolean;
+  /** App message shown in place of the built-in checks, for example from server validation. */
+  error?: ReactNode;
+}
+type RangeLimits = Pick<DateRangeFieldProps, 'min' | 'max' | 'maxDays'>;
+/** Why a range with an inclusive end is invalid, or null. */
+function rangeProblem(start: string, lastDay: string, { min, max, maxDays }: RangeLimits) {
+  const days = start && lastDay ? inclusiveDays(start, lastDay) : NaN;
+  if (start && lastDay && start > lastDay) return 'End date must be on or after the start date.';
+  if (min && start && start < min) return `Start on or after ${min}.`;
+  if (max && lastDay && lastDay > max) return `End on or before ${max}.`;
+  if (maxDays !== undefined && Number.isFinite(days) && days > maxDays) return `Choose at most ${maxDays} ${maxDays === 1 ? 'day' : 'days'}; this range has ${days}.`;
+  return null;
+}
+/** ISO date-only values; no timezone conversion or invented presets. Every edit is reported, even an invalid range: the
+ * field then shows why it is invalid and marks the inputs, and the app decides whether to accept it. */
+export function DateRangeField({ label, start, end, onChange, disabled, min, max, maxDays, endExclusive = false, error }: DateRangeFieldProps) {
   const id = useId();
-  const [error, setError] = useState('');
-  function update(range: DateRange) {
-    if (range.start && range.end && range.start > range.end) { setError('End date must be on or after the start date.'); return; }
-    setError(''); onChange(range);
-  }
-  return <fieldset className="t98-date-range"><legend>{label}</legend><div className="t98-date-range-fields"><Field label="Start date" htmlFor={`${id}-start`}><Input type="date" value={start} max={end || undefined} disabled={disabled} aria-describedby={error ? `${id}-error` : undefined} onChange={event => update({ start: event.target.value, end })}/></Field><Field label="End date" htmlFor={`${id}-end`}><Input type="date" value={end} min={start || undefined} disabled={disabled} aria-describedby={error ? `${id}-error` : undefined} onChange={event => update({ start, end: event.target.value })}/></Field></div>{error && <p className="t98-field-error" id={`${id}-error`} role="alert">{error}</p>}</fieldset>;
+  const limits = { min, max, maxDays };
+  // The visible end is always the last included day.
+  const lastDayOf = (value: string) => endExclusive && value ? addDays(value, -1) : value;
+  const shownEnd = lastDayOf(end);
+  const problem = error ?? rangeProblem(start, shownEnd, limits);
+  function report(range: DateRange) { onChange(range, rangeProblem(range.start, lastDayOf(range.end), limits)); }
+  const errorId = `${id}-error`;
+  const invalid = problem != null || undefined;
+  return <fieldset className="t98-date-range" aria-describedby={problem != null ? errorId : undefined}><legend>{label}</legend><div className="t98-date-range-fields">
+    <Field label="Start date" htmlFor={`${id}-start`}><Input type="date" value={start} min={min} max={shownEnd || max} disabled={disabled} aria-invalid={invalid} aria-describedby={problem != null ? errorId : undefined} onChange={event => report({ start: event.target.value, end })}/></Field>
+    <Field label={endExclusive ? 'Last day included' : 'End date'} htmlFor={`${id}-end`}><Input type="date" value={shownEnd} min={start || min} max={max} disabled={disabled} aria-invalid={invalid} aria-describedby={problem != null ? errorId : undefined}
+      onChange={event => { const value = event.target.value; report({ start, end: endExclusive && value ? addDays(value, 1) : value }); }}/></Field>
+  </div>{problem != null && <p className="t98-field-error" id={errorId} role="alert">{problem}</p>}</fieldset>;
 }
 
 export interface CopyButtonMessages {
