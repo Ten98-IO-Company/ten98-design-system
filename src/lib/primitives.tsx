@@ -277,10 +277,12 @@ export interface DialogProps { open: boolean; onOpenChange: (open: boolean) => v
   onSubmit?: (data: FormData, event: FormEvent<HTMLFormElement>) => void | Promise<void>;
   /** There are unsaved changes: Escape, the backdrop and the close button ask before discarding them. */
   dirty?: boolean;
-  discardMessage?: ReactNode }
+  discardMessage?: ReactNode;
+  /** `wide` fits editors such as a post composer (up to 880px). */
+  size?: 'default' | 'wide' }
 export type DialogCloseReason = 'escape' | 'backdrop' | 'close-button';
 /* Behaviour follows the WAI-ARIA APG Modal Dialog pattern and react-aria's useOverlay close interception (Apache-2.0); no code is copied. */
-export function Dialog({ open, onOpenChange, title, description, children, footer, className, closeDisabled = false, onBeforeClose, eyebrow, onSubmit, dirty = false, discardMessage = 'Your changes have not been saved.' }: DialogProps) {
+export function Dialog({ open, onOpenChange, title, description, children, footer, className, closeDisabled = false, onBeforeClose, eyebrow, onSubmit, dirty = false, discardMessage = 'Your changes have not been saved.', size = 'default' }: DialogProps) {
   const id = useId();
   const ref = useRef<HTMLDialogElement>(null);
   const trigger = useRef<HTMLElement | null>(null);
@@ -312,7 +314,7 @@ export function Dialog({ open, onOpenChange, title, description, children, foote
     if (dirty) { setConfirmingDiscard(true); return; }
     onOpenChange(false);
   }
-  return <dialog ref={ref} className={cx('t98-dialog', className)} aria-labelledby={`${id}-title`} aria-describedby={description ? `${id}-description` : undefined} onCancel={event => { event.preventDefault(); requestClose('escape'); }} onClose={() => {
+  return <dialog ref={ref} className={cx('t98-dialog', size === 'wide' && 't98-dialog--wide', className)} aria-labelledby={`${id}-title`} aria-describedby={description ? `${id}-description` : undefined} onCancel={event => { event.preventDefault(); requestClose('escape'); }} onClose={() => {
     // Chrome's close watcher closes the dialog without a cancelable cancel event when Escape is pressed twice without
     // other interaction. If the app still wants it open and guards closing, reopen it and ask the guard first.
     const dialog = ref.current;

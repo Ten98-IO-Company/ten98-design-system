@@ -211,12 +211,14 @@ export interface MediaPlayerProps {
   transcript?: ReactNode;
   /** Offered when the browser cannot play the file. */
   downloadHref?: string;
+  /** `none` fetches nothing until play, for long lists of voice notes; defaults to `metadata`. */
+  preload?: 'none' | 'metadata';
   /** Replaces the player when the media is unavailable, expired, processing or not authorized. */
   unavailable?: ReactNode;
   className?: string;
 }
 /** Native audio or video controls with captions, a transcript and a visible fallback when the file cannot be played. Nothing autoplays; only metadata is preloaded. */
-export function MediaPlayer({ kind, label, src, type, poster, width, height, tracks = [], transcript, downloadHref, unavailable, className }: MediaPlayerProps) {
+export function MediaPlayer({ kind, label, src, type, poster, width, height, tracks = [], transcript, downloadHref, unavailable, preload = 'metadata', className }: MediaPlayerProps) {
   const [failedSrc, setFailedSrc] = useState<string | null>(null);
   const failed = src !== undefined && failedSrc === src;
   const fail = () => { if (src !== undefined) setFailedSrc(src); };
@@ -227,7 +229,7 @@ export function MediaPlayer({ kind, label, src, type, poster, width, height, tra
     {tracks.map(track => <track key={track.src} kind={track.kind ?? 'captions'} src={track.src} srcLang={track.srcLang} label={track.label} default={track.default} />)}
     {download}
   </>;
-  const shared = { className: 't98-media-player-element', controls: true, preload: 'metadata', 'aria-label': label, onError: fail } as const;
+  const shared = { className: 't98-media-player-element', controls: true, preload, 'aria-label': label, onError: fail } as const;
   return <figure className={cx('t98-media-player', `t98-media-player--${kind}`, className)}>
     <figcaption className="t98-media-player-label">{label}</figcaption>
     {unavailable != null ? <p className="t98-media-player-reason">{unavailable}</p>

@@ -113,13 +113,13 @@ export interface SettingsFlowProps extends FlowState {
 }
 /** A labelled settings section: heading and description above the shared frame, with an optional submit row.
  * The public `SettingsPanel` delegates here, so applications and the library's own flows share this one implementation. */
-export function SettingsFlow({ title, description, busyLabel, onSubmit, action, method, submitLabel, submitDisabled, extraActions, children, ...state }: SettingsFlowProps) {
+export function SettingsFlow({ title, description, busyLabel, onSubmit, action, method, submitLabel, submitDisabled, extraActions, children, hideTitle = false, ...state }: SettingsFlowProps) {
   return <section className="t98-settings-flow" aria-label={title}>
     <Stack gap={4}>
-      <Stack gap={1}>
-        <Heading level={2} size="md">{title}</Heading>
+      {(!hideTitle || description) && <Stack gap={1}>
+        {!hideTitle && <Heading level={2} size="md">{title}</Heading>}
         {description && <Text tone="muted" size="sm">{description}</Text>}
-      </Stack>
+      </Stack>}
       <FlowFrame {...state} onSubmit={onSubmit} action={action} method={method}>
         <Stack gap={4}>
           {children}

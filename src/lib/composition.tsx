@@ -95,6 +95,8 @@ function mediaPreview(item: MediaItem) {
 
 export interface MediaStripProps {
   label: string;
+  /** Longest alt text a destination accepts; the field stops at it and shows a counter. */
+  altMaxLength?: number;
   items: readonly MediaItem[];
   onItemsChange: (items: MediaItem[]) => void;
   onFilesSelect?: (files: File[]) => void;
@@ -107,7 +109,7 @@ export interface MediaStripProps {
 }
 
 /** Controlled draft media; the app supplies previews and owns upload, validation and rights. */
-export function MediaStrip({ label, items, onItemsChange, onFilesSelect, accept, pending = false, readOnly = false, error, emptyMessage = 'No media attached.', className }: MediaStripProps) {
+export function MediaStrip({ label, altMaxLength, items, onItemsChange, onFilesSelect, accept, pending = false, readOnly = false, error, emptyMessage = 'No media attached.', className }: MediaStripProps) {
   const id = useId();
   const locked = pending || readOnly;
   function move(index: number, target: number) {
@@ -134,8 +136,8 @@ export function MediaStrip({ label, items, onItemsChange, onFilesSelect, accept,
         {mediaFacts(item).length > 0 && <p className="t98-media-facts">{mediaFacts(item).join(' · ')}</p>}
         <Badge tone={item.status === 'ready' ? 'success' : item.status === 'error' ? 'danger' : item.status === 'unverified' ? 'neutral' : 'info'}>{item.statusLabel ?? (item.status === 'ready' ? 'Ready' : item.status === 'error' ? 'Failed' : item.status === 'unverified' ? 'Metadata unverified' : 'Processing')}</Badge>
         {item.error && <p className="t98-media-error" role="alert">{item.error}</p>}
-        <Field htmlFor={`${id}-alt-${encodeURIComponent(item.id)}`} label={`Alt text for ${item.name}`}>
-          <Textarea rows={2} value={item.altText} readOnly={readOnly} disabled={pending} onChange={event => {
+        <Field htmlFor={`${id}-alt-${encodeURIComponent(item.id)}`} label={`Alt text for ${item.name}`} count={altMaxLength ? { value: item.altText, max: altMaxLength } : undefined}>
+          <Textarea rows={2} value={item.altText} readOnly={readOnly} disabled={pending} maxLength={altMaxLength} onChange={event => {
             if (!locked) onItemsChange(items.map(current => current.id === item.id ? { ...current, altText: event.target.value } : current));
           }} />
         </Field>
@@ -196,6 +198,8 @@ export interface ContentPreviewProps {
   /** Neutral layout that approximates where the content appears: a plain card, a feed post, a 9:16 story or a direct message.
    * No platform logos, colours or trademarks are drawn. */
   chrome?: 'card' | 'post' | 'story' | 'message';
+  /** Width of the previewed device: `mobile` (375px) or `desktop` (600px). Omit to fill the space. */
+  device?: 'mobile' | 'desktop';
   /** Later posts of a thread, shown after the first one and numbered as a sequence. */
   thread?: readonly { id: string; text?: ReactNode; media?: ReactNode }[];
   /** Characters of a plain-text caption shown before "Show full caption", as feeds truncate long captions. */
@@ -220,7 +224,7 @@ function Caption({ text, limit }: { text: string; limit: number }) {
 }
 
 /** Approximate presentation only; no provider rules, remote fetching or send behavior. */
-export function ContentPreview({ label, destination, provider, text, media, footer, chrome = 'card', thread, captionLimit, poll, firstComment, pending = false, error, emptyMessage = 'No content supplied for this destination.', className }: ContentPreviewProps) {
+export function ContentPreview({ label, destination, provider, text, media, footer, chrome = 'card', device, thread, captionLimit, poll, firstComment, pending = false, error, emptyMessage = 'No content supplied for this destination.', className }: ContentPreviewProps) {
   const id = useId();
   const empty = text == null && media == null;
   const identity = chrome === 'card' ? <div className="t98-content-preview-identity"><strong>{destination}</strong><span>{provider}</span></div>
@@ -246,7 +250,7 @@ export function ContentPreview({ label, destination, provider, text, media, foot
     {firstComment != null && <div className="t98-content-preview-comment"><p className="t98-content-preview-comment-label">First comment</p><div className="t98-content-preview-text">{firstComment}</div></div>}
     {footer != null && <div className="t98-content-preview-footer">{footer}</div>}
   </>;
-  return <section className={cx('t98-content-preview-frame', `t98-content-preview-frame--${chrome}`, className)} aria-labelledby={`${id}-label`} aria-describedby={`${id}-notice`} aria-busy={pending || undefined}>
+  return <section className={cx('t98-content-preview-frame', `t98-content-preview-frame--${chrome}`, device && `t98-content-preview-frame--${device}`, className)} aria-labelledby={`${id}-label`} aria-describedby={`${id}-notice`} aria-busy={pending || undefined}>
     <h3 id={`${id}-label`} className="t98-content-preview-label">{label}</h3>
     <p id={`${id}-notice`} className="t98-content-preview-notice">Approximate preview. Final delivery may look different.</p>
     {pending && <p className="t98-content-preview-status" role="status">Preview update pending. Previously supplied content is retained.</p>}

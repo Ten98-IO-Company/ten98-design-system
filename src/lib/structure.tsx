@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type ComponentType, type HTMLAttributes, type ImgHTMLAttributes, type LiHTMLAttributes, type ReactNode } from 'react';
+import { useState, type ComponentType, type HTMLAttributes, type Ref, type ImgHTMLAttributes, type LiHTMLAttributes, type ReactNode } from 'react';
 import { Icon, cx } from './primitives.js';
 
 /* Layout and text primitives let applications compose screens without authoring elements or styles.
@@ -13,6 +13,8 @@ type BlockTag = 'div' | 'section' | 'article' | 'aside' | 'header' | 'footer' | 
 
 interface BoxProps extends Omit<HTMLAttributes<HTMLElement>, 'style'> {
   as?: BlockTag;
+  /** Forwarded to the rendered element (React 19 ref as a prop), for example a host for a third-party map. */
+  ref?: Ref<HTMLElement>;
   gap?: Space;
   align?: Align;
   /** Native form attributes, applied when `as="form"`. */
@@ -28,14 +30,17 @@ function layoutClasses(base: string, gap: Space | undefined, align: Align | unde
 }
 
 /** Vertical rhythm: children stacked with one token gap. */
-export function Stack({ as: Tag = 'div', gap = 4, align, className, ...props }: BoxProps) {
-  return <Tag {...props} className={cx(layoutClasses('t98-stack', gap, align), className)} />;
+// Tag is a union of elements, so TypeScript wants a ref valid for all of them at once; every one is an HTMLElement, so the
+// element-agnostic ref is passed through unchanged with this single cast.
+const boxRef = (ref: Ref<HTMLElement> | undefined) => ref as never;
+export function Stack({ as: Tag = 'div', gap = 4, align, className, ref, ...props }: BoxProps) {
+  return <Tag {...props} ref={boxRef(ref)} className={cx(layoutClasses('t98-stack', gap, align), className)} />;
 }
 
 export interface InlineProps extends BoxProps { justify?: Justify; wrap?: boolean }
 /** Horizontal run that wraps by default, for actions, badges and metadata. */
-export function Inline({ as: Tag = 'div', gap = 2, align = 'center', justify, wrap = true, className, ...props }: InlineProps) {
-  return <Tag {...props} className={cx(layoutClasses('t98-inline', gap, align), justify && `t98-justify-${justify}`, !wrap && 't98-nowrap', className)} />;
+export function Inline({ as: Tag = 'div', gap = 2, align = 'center', justify, wrap = true, className, ref, ...props }: InlineProps) {
+  return <Tag {...props} ref={boxRef(ref)} className={cx(layoutClasses('t98-inline', gap, align), justify && `t98-justify-${justify}`, !wrap && 't98-nowrap', className)} />;
 }
 
 export interface GridProps extends BoxProps {
@@ -43,8 +48,8 @@ export interface GridProps extends BoxProps {
   columns?: 1 | 2 | 3 | 4 | 6 | 'auto';
   minItemWidth?: 'sm' | 'md' | 'lg';
 }
-export function Grid({ as: Tag = 'div', gap = 4, align, columns = 'auto', minItemWidth = 'md', className, ...props }: GridProps) {
-  return <Tag {...props} className={cx(layoutClasses('t98-grid', gap, align), `t98-grid--${columns}`, columns === 'auto' && `t98-grid--min-${minItemWidth}`, className)} />;
+export function Grid({ as: Tag = 'div', gap = 4, align, columns = 'auto', minItemWidth = 'md', className, ref, ...props }: GridProps) {
+  return <Tag {...props} ref={boxRef(ref)} className={cx(layoutClasses('t98-grid', gap, align), `t98-grid--${columns}`, columns === 'auto' && `t98-grid--min-${minItemWidth}`, className)} />;
 }
 
 /** Field layout for forms: responsive columns with the shared form spacing. */
@@ -82,6 +87,7 @@ export function Text({ as: Tag = 'p', size, tone = 'default', weight, align, mon
 export interface HeadingProps extends Omit<HTMLAttributes<HTMLHeadingElement>, 'style'> {
   /** Document outline level. Choose it from the page structure, not the desired size. */
   level: 1 | 2 | 3 | 4 | 5 | 6;
+  ref?: Ref<HTMLHeadingElement>;
   size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
 }
 const headingSize = { 1: '2xl', 2: 'xl', 3: 'lg', 4: 'md', 5: 'sm', 6: 'sm' } as const;
@@ -91,8 +97,8 @@ export function Heading({ level, size = headingSize[level], className, ...props 
 }
 
 /** Text only screen readers announce, for icon-only context or table captions. */
-export function VisuallyHidden({ as: Tag = 'span', ...props }: Omit<HTMLAttributes<HTMLElement>, 'className' | 'style'> & { as?: 'span' | 'div' | 'h2' | 'h3' | 'caption' }) {
-  return <Tag {...props} className="t98-visually-hidden" />;
+export function VisuallyHidden({ as: Tag = 'span', ref, ...props }: Omit<HTMLAttributes<HTMLElement>, 'className' | 'style'> & { as?: 'span' | 'div' | 'h2' | 'h3' | 'caption'; ref?: Ref<HTMLElement> }) {
+  return <Tag {...props} ref={boxRef(ref)} className="t98-visually-hidden" />;
 }
 
 export interface LinkProps extends Omit<HTMLAttributes<HTMLAnchorElement>, 'style'> {

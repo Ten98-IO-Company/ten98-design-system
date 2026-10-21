@@ -62,13 +62,15 @@ export interface AccountScopePickerProps {
   onConnect?: () => void;
   labels?: Partial<AccountScopeLabels>;
   required?: boolean;
+  /** Read-only: both choices are shown but cannot change, for example without permission or while saving. */
+  disabled?: boolean;
   error?: ReactNode;
   /** Native form names: `${name}.connection` and `${name}.account`. */
   name?: string;
 }
 
 /** A connection Select followed by the accounts inside it, as radio buttons or a list-only combobox. */
-export function AccountScopePicker({ connections, accounts, connectionId, accountId, onConnectionChange, onAccountChange, connectHref, onConnect, labels: custom, required, error, name }: AccountScopePickerProps) {
+export function AccountScopePicker({ connections, accounts, connectionId, accountId, onConnectionChange, onAccountChange, connectHref, onConnect, labels: custom, required, disabled = false, error, name }: AccountScopePickerProps) {
   const labels = { ...defaultLabels, ...custom };
   const fallbackName = useId();
   const [typed, setTyped] = useState('');
@@ -94,7 +96,7 @@ export function AccountScopePicker({ connections, accounts, connectionId, accoun
   const chosen = accountId ?? '';
   return <Fieldset legend={labels.legend} error={error}>
     <Field label={labels.connection} description={connection?.detail} required={required}>
-      <Select name={name && `${name}.connection`} value={connectionId ?? ''} required={required} placeholder={labels.chooseConnection}
+      <Select name={name && `${name}.connection`} value={connectionId ?? ''} required={required} disabled={disabled} placeholder={labels.chooseConnection}
         options={connections.map(item => ({ value: item.id, label: item.status && item.status !== 'connected' ? `${item.label} (${statusText(item.status)})` : item.label }))}
         onChange={event => choose(event.target.value)} />
     </Field>
@@ -109,11 +111,11 @@ export function AccountScopePicker({ connections, accounts, connectionId, accoun
       : accounts.length === 0
         ? <Text tone="muted">{labels.noAccounts}</Text>
         : accounts.length <= ACCOUNT_RADIO_LIMIT
-          ? <RadioGroup legend={labels.account} required={required} name={name ? `${name}.account` : `${fallbackName}-account`} value={chosen} onValueChange={onAccountChange}
+          ? <RadioGroup legend={labels.account} required={required} disabled={disabled} name={name ? `${name}.account` : `${fallbackName}-account`} value={chosen} onValueChange={onAccountChange}
             options={accounts.map(item => ({ value: item.id, label: item.label, disabled: item.disabled,
               description: item.disabled && item.disabledReason ? item.disabledReason : item.detail }))} />
           // The combobox keeps unlisted text as its value, so typing clears the account until a listed one is accepted.
-          : <Combobox label={labels.account} required={required} allowCustom={false} name={name && `${name}.account`}
+          : <Combobox label={labels.account} required={required} disabled={disabled} allowCustom={false} name={name && `${name}.account`}
             options={accounts.filter(item => !item.disabled).map(item => ({ value: item.id, label: item.label }))}
             value={chosen || typed}
             onValueChange={value => {

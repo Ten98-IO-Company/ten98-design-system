@@ -76,6 +76,9 @@
 .t98-dialog-title { margin: 0; font-size: 18px; font-weight: 650; line-height: 27px; letter-spacing: -.4px; }
 .t98-dialog-description { margin: 5px 0 0; color: var(--t98-muted); font-size: 13px; line-height: 20px; }
 .t98-dialog-body { padding: 24px; }
+.t98-dialog--wide { width: min(880px, calc(100vw - 32px)); }
+/* The footer stays visible while a long body scrolls, so save and cancel are always reachable. */
+.t98-dialog-footer { position: sticky; bottom: 0; z-index: 1; background: var(--t98-surface); }
 .t98-dialog-eyebrow { margin: 0 0 2px; color: var(--t98-muted); font-size: 12px; line-height: 18px; }
 .t98-dialog-form, .t98-dialog-fieldset { display: contents; }
 .t98-dialog-fieldset { margin: 0; padding: 0; border: 0; min-inline-size: 0; }

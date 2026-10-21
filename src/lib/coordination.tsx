@@ -61,11 +61,15 @@ export interface DetailWorkspaceProps {
   onBack: () => void;
   backLabel?: string;
   emptyMessage?: ReactNode;
+  /** Level of the workspace heading; the pane headings use the next level. Default 3. */
+  headingLevel?: 2 | 3 | 4 | 5;
   className?: string;
 }
 
 /** Both slots stay mounted. Recover hidden focus to a pane heading; app guards, routes and drafts remain app-owned. */
-export function DetailWorkspace({ label, listLabel, detailLabel, list, detail, selected, onBack, backLabel = 'Back to list', emptyMessage = 'Select an item to see its details.', className }: DetailWorkspaceProps) {
+export function DetailWorkspace({ label, listLabel, detailLabel, list, detail, selected, onBack, backLabel = 'Back to list', emptyMessage = 'Select an item to see its details.', headingLevel = 3, className }: DetailWorkspaceProps) {
+  const Title = `h${headingLevel}` as const;
+  const Pane = `h${headingLevel + 1}` as 'h3' | 'h4' | 'h5' | 'h6';
   const id = useId();
   const previousSelected = useRef(selected);
   const lastFocus = useRef<HTMLElement | null>(null);
@@ -82,11 +86,11 @@ export function DetailWorkspace({ label, listLabel, detailLabel, list, detail, s
   return <section className={cx('t98-detail-root', className)} aria-labelledby={`${id}-title`} data-selected={selected ? 'true' : 'false'}
     onFocusCapture={event => { lastFocus.current = event.target; }}
     onBlurCapture={event => { if (event.target.getClientRects().length && !event.currentTarget.contains(event.relatedTarget)) lastFocus.current = null; }}>
-    <h3 id={`${id}-title`} className="t98-detail-title">{label}</h3>
+    <Title id={`${id}-title`} className="t98-detail-title">{label}</Title>
     <div className="t98-detail-panes">
-      <section className="t98-detail-list-pane" aria-labelledby={`${id}-list`}><h4 id={`${id}-list`} className="t98-detail-pane-title" tabIndex={-1}>{listLabel}</h4>{list}</section>
+      <section className="t98-detail-list-pane" aria-labelledby={`${id}-list`}><Pane id={`${id}-list`} className="t98-detail-pane-title" tabIndex={-1}>{listLabel}</Pane>{list}</section>
       <section className="t98-detail-detail-pane" aria-labelledby={`${id}-detail`}>
-        <div className="t98-detail-header">{selected && <Button className="t98-detail-back" variant="secondary" onClick={onBack}>{backLabel}</Button>}<h4 id={`${id}-detail`} className="t98-detail-pane-title" tabIndex={-1}>{detailLabel}</h4></div>
+        <div className="t98-detail-header">{selected && <Button className="t98-detail-back" variant="secondary" onClick={onBack}>{backLabel}</Button>}<Pane id={`${id}-detail`} className="t98-detail-pane-title" tabIndex={-1}>{detailLabel}</Pane></div>
         <div className="t98-detail-selected-content" hidden={!selected}>{detail}</div>
         {!selected && <div className="t98-detail-empty">{emptyMessage}</div>}
       </section>
@@ -131,6 +135,8 @@ export interface ConversationThreadProps {
   olderLoading?: boolean;
   /** Older messages exist but cannot be loaded, for example the provider returned no cursor. */
   olderUnavailableReason?: ReactNode;
+  /** Level of the thread heading. Default 3. */
+  headingLevel?: 2 | 3 | 4 | 5 | 6;
 }
 
 const visibilityLabels = { public: 'Public reply', private: 'Private message', note: 'Internal note' } as const;
@@ -152,10 +158,11 @@ function MessageItem({ message, depth }: { message: ConversationMessage; depth: 
   </li>;
 }
 
-export function ConversationThread({ label, messages, composer, status, loading = false, readOnly = false, error, emptyMessage = 'No messages in this conversation.', className, hasOlder = false, onLoadOlder, olderLoading = false, olderUnavailableReason }: ConversationThreadProps) {
+export function ConversationThread({ label, messages, composer, status, loading = false, readOnly = false, error, emptyMessage = 'No messages in this conversation.', className, hasOlder = false, onLoadOlder, olderLoading = false, olderUnavailableReason, headingLevel = 3 }: ConversationThreadProps) {
   const id = useId();
+  const Title = `h${headingLevel}` as const;
   return <section className={cx('t98-conversation-root', className)} aria-labelledby={`${id}-title`} aria-busy={loading || undefined}>
-    <h3 id={`${id}-title`} className="t98-conversation-title">{label}</h3>
+    <Title id={`${id}-title`} className="t98-conversation-title">{label}</Title>
     {loading && <p className="t98-conversation-loading" role="status">Loading conversation. Previously supplied messages remain visible.</p>}
     {status != null && <div className="t98-conversation-status">{status}</div>}
     {error && <Alert title="Conversation needs attention" tone="danger">{error}</Alert>}

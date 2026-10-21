@@ -126,13 +126,17 @@ export interface ReviewConfirmProps {
   disabledReason?: ReactNode;
   /** Outcome of a failed confirm, shown in the panel. */
   error?: ReactNode;
+  /** Moves focus to the panel's heading when it mounts, for a review step that replaces the control that opened it. */
+  autoFocus?: boolean;
   className?: string;
 }
 
 /** An inline, non-modal review step before a consequential action. Confirm stays focusable (aria-disabled) and always
  * says why it is unavailable; checks are bound to `reviewKey`, so changing the target forces a fresh review. */
-export function ReviewConfirm({ title, children, acknowledgements, reviewKey, confirmLabel, onConfirm, onCancel, cancelLabel = 'Cancel', tone = 'default', busy = false, disabledReason, error, className }: ReviewConfirmProps) {
+export function ReviewConfirm({ title, children, acknowledgements, reviewKey, confirmLabel, onConfirm, onCancel, cancelLabel = 'Cancel', tone = 'default', busy = false, disabledReason, error, autoFocus = false, className }: ReviewConfirmProps) {
   const id = useId();
+  const heading = useRef<HTMLHeadingElement>(null);
+  useEffect(() => { if (autoFocus) heading.current?.focus(); }, [autoFocus]);
   const [review, setReview] = useState<{ key: string; checked: ReadonlySet<string> }>({ key: reviewKey, checked: new Set() });
   const [pending, setPending] = useState(false);
   const running = useRef(false);
@@ -152,7 +156,7 @@ export function ReviewConfirm({ title, children, acknowledgements, reviewKey, co
     try { await onConfirm(); } finally { running.current = false; setPending(false); }
   }
   return <section className={cx('t98-review-confirm', tone === 'danger' && 't98-review-confirm--danger', className)} aria-labelledby={`${id}-title`} aria-busy={locked || undefined}>
-    <h3 className="t98-review-confirm-title" id={`${id}-title`}>{title}</h3>
+    <h3 className="t98-review-confirm-title" id={`${id}-title`} ref={heading} tabIndex={autoFocus ? -1 : undefined}>{title}</h3>
     {children != null && <div className="t98-review-confirm-summary">{children}</div>}
     {acknowledgements.length > 0 && <fieldset className="t98-review-confirm-checks" disabled={locked}>
       <legend className="t98-visually-hidden">Confirm before continuing</legend>
@@ -179,9 +183,11 @@ export interface ConfirmDialogProps {
   children?: ReactNode;
   /** Adds a required checkbox with this label; confirm stays disabled until it is checked. */
   acknowledgement?: string;
+  /** Label of the button that closes without confirming, for example "Keep editing". */
+  cancelLabel?: string;
 }
 /** Blocks closing while a mutation is pending; rejected mutations stay open for retry. */
-export function ConfirmDialog({ open, onOpenChange, title, description, onConfirm, confirmLabel = 'Confirm', danger = false, confirmationText, children, acknowledgement }: ConfirmDialogProps) {
+export function ConfirmDialog({ open, onOpenChange, title, description, onConfirm, confirmLabel = 'Confirm', danger = false, confirmationText, children, acknowledgement, cancelLabel = 'Cancel' }: ConfirmDialogProps) {
   const id = useId(); const [input, setInput] = useState(''); const [acknowledged, setAcknowledged] = useState(false); const [pending, setPending] = useState(false); const [error, setError] = useState(''); const busy = useRef(false);
   useEffect(() => { if (open) { setInput(''); setAcknowledged(false); setError(''); } }, [open]);
   const blocked = (!!confirmationText && input !== confirmationText) || (!!acknowledgement && !acknowledged);
@@ -190,7 +196,7 @@ export function ConfirmDialog({ open, onOpenChange, title, description, onConfir
     busy.current = true; setPending(true); setError('');
     try { await onConfirm(); onOpenChange(false); } catch { setError('The action could not be completed. Try again.'); } finally { busy.current = false; setPending(false); }
   }
-  return <Dialog open={open} onOpenChange={next => { if (!busy.current) onOpenChange(next); }} closeDisabled={pending} title={title} description={description} footer={<><Button variant="secondary" disabled={pending} onClick={() => onOpenChange(false)}>Cancel</Button><Button variant={danger ? 'danger' : 'primary'} loading={pending} disabled={blocked} onClick={confirm}>{confirmLabel}</Button></>}>
+  return <Dialog open={open} onOpenChange={next => { if (!busy.current) onOpenChange(next); }} closeDisabled={pending} title={title} description={description} footer={<><Button variant="secondary" disabled={pending} onClick={() => onOpenChange(false)}>{cancelLabel}</Button><Button variant={danger ? 'danger' : 'primary'} loading={pending} disabled={blocked} onClick={confirm}>{confirmLabel}</Button></>}>
     {children}
     {acknowledgement && <Checkbox label={acknowledgement} required checked={acknowledged} disabled={pending} onChange={event => setAcknowledged(event.target.checked)}/>}
     {confirmationText ? <Field label={`Type ${confirmationText} to confirm`} htmlFor={id}><Input value={input} autoComplete="off" disabled={pending} onChange={event => setInput(event.target.value)}/></Field> : !children && !acknowledgement && <p className="t98-confirm-hint">Review this action before continuing.</p>}
