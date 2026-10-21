@@ -1,7 +1,8 @@
 'use client';
 
 import { useId, type ReactNode } from 'react';
-import { Alert, Badge, Card, cx, type Tone } from './primitives.js';
+import { Alert, Badge, Button, Card, cx, type Tone } from './primitives.js';
+import { Link } from './structure.js';
 
 export interface EvidenceTimestamp { label: ReactNode; dateTime?: string }
 export interface EvidenceFreshness { status: 'current' | 'stale' | 'unknown'; reason: ReactNode }
@@ -133,3 +134,68 @@ export function ReviewSummary({ title = 'Review change', description, scope, res
     {actions != null && <div className="t98-review-actions">{actions}</div>}
   </Card>;
 }
+
+export type ValidationStatus = 'error' | 'warning' | 'ok';
+export interface ValidationMessage {
+  id: string;
+  text: ReactNode;
+  /** Link to the field or section to fix, for example "#caption". */
+  href?: string;
+}
+export interface ValidationTarget {
+  id: string;
+  /** The destination or section checked, for example an account or a channel. */
+  target: ReactNode;
+  status: ValidationStatus;
+  messages?: readonly ValidationMessage[];
+}
+export interface ValidationSummaryProps {
+  title?: string;
+  items: readonly ValidationTarget[];
+  /** The content changed after these results: they are kept but marked out of date. */
+  stale?: boolean;
+  /** When the check ran, as app-formatted text. */
+  checkedAt?: ReactNode;
+  onRecheck?: () => void;
+  recheckLabel?: string;
+  /** A check is running; results stay visible. */
+  busy?: boolean;
+  emptyMessage?: ReactNode;
+  className?: string;
+}
+
+const validationLabel: Record<ValidationStatus, { label: string; tone: Tone }> = {
+  error: { label: 'Needs a fix', tone: 'danger' },
+  warning: { label: 'Check this', tone: 'warning' },
+  ok: { label: 'Ready', tone: 'success' },
+};
+const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
+
+/** Per-destination preflight results with links to what to fix. Counts are a polite status, so a new run is announced;
+ * an out-of-date result says so instead of silently passing for content that changed. */
+export function ValidationSummary({ title = 'Checks', items, stale = false, checkedAt, onRecheck, recheckLabel = 'Check again', busy = false, emptyMessage = 'Nothing has been checked yet.', className }: ValidationSummaryProps) {
+  const id = useId();
+  const errors = items.filter(item => item.status === 'error').length;
+  const warnings = items.filter(item => item.status === 'warning').length;
+  const counts = busy ? 'Checking…'
+    : items.length === 0 ? ''
+    : errors + warnings === 0 ? `All ${plural(items.length, 'destination is', 'destinations are')} ready.`
+    : [errors && plural(errors, 'destination needs a fix', 'destinations need a fix'), warnings && plural(warnings, 'destination to check', 'destinations to check')].filter(Boolean).join(', ') + '.';
+  return <section className={cx('t98-validation', stale && 't98-validation--stale', className)} aria-labelledby={`${id}-title`} aria-busy={busy || undefined}>
+    <div className="t98-validation-header">
+      <h3 className="t98-validation-title" id={`${id}-title`}>{title}</h3>
+      {checkedAt != null && <span className="t98-validation-time">Checked {checkedAt}</span>}
+    </div>
+    <p className="t98-validation-counts" role="status">{counts}</p>
+    {stale && <Alert tone="warning" title="Changed since the last check" actions={onRecheck ? <Button variant="secondary" disabled={busy} onClick={onRecheck}>{recheckLabel}</Button> : undefined}>These results are for an earlier version. Check again before publishing.</Alert>}
+    {items.length === 0 ? !busy && <p className="t98-validation-empty">{emptyMessage}</p>
+      : <ul className="t98-validation-list">{items.map(item => <li key={item.id} className={`t98-validation-item t98-validation-item--${item.status}`}>
+        <div className="t98-validation-target"><span className="t98-validation-name">{item.target}</span><Badge tone={validationLabel[item.status].tone}>{validationLabel[item.status].label}</Badge></div>
+        {item.messages && item.messages.length > 0 && <ul className="t98-validation-messages">{item.messages.map(message => <li key={message.id}>
+          {message.href ? <Link href={message.href}>{message.text}</Link> : message.text}
+        </li>)}</ul>}
+      </li>)}</ul>}
+    {!stale && onRecheck && items.length > 0 && <div className="t98-validation-actions"><Button variant="secondary" disabled={busy} onClick={onRecheck}>{recheckLabel}</Button></div>}
+  </section>;
+}
+

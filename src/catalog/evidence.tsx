@@ -2,7 +2,7 @@
 
 import { useId, useState } from 'react';
 import { Button, Field, Input, Select } from '../lib/primitives.js';
-import { EvidenceSummary, OperationResults, ReviewSummary, type EvidenceSummaryProps, type OperationTargetResult } from '../lib/evidence.js';
+import { EvidenceSummary, OperationResults, ReviewSummary, ValidationSummary, type EvidenceSummaryProps, type OperationTargetResult, type ValidationTarget } from '../lib/evidence.js';
 import { tsx, type ComponentEntry, type ComponentProp } from './model.js';
 
 const prop = (name: string, type: string, description: string, required = false, defaultValue?: string): ComponentProp => ({ name, type, description, required, defaultValue });
@@ -112,6 +112,26 @@ const reviewCode = (mode: ReviewMode) => tsx(['ReviewSummary', 'Button', 'Field'
   <p role="status">{reviewed ? 'Local review recorded. Nothing was submitted.' : 'No local review recorded.'}</p>
 </>`, "const id = useId();\nconst [budget, setBudget] = useState('AED 150 / day');\nconst [reviewed, setReviewed] = useState(false);", ['useId', 'useState']);
 
+const validationItems: ValidationTarget[] = [
+  { id: 'ig', target: 'Instagram · Studio', status: 'error', messages: [{ id: 'caption', text: 'Caption is longer than 2,200 characters.', href: '#caption' }] },
+  { id: 'li', target: 'LinkedIn · Studio', status: 'warning', messages: [{ id: 'image', text: 'The link preview image is missing.' }] },
+  { id: 'fb', target: 'Facebook · Studio', status: 'ok' },
+];
+function ValidationDemo({ stale = false }: { stale?: boolean }) {
+  const [busy, setBusy] = useState(false);
+  const [checkedAt, setCheckedAt] = useState('10:42');
+  return <ValidationSummary title="Before publishing" items={validationItems} stale={stale} checkedAt={checkedAt} busy={busy}
+    onRecheck={() => { setBusy(true); setTimeout(() => { setBusy(false); setCheckedAt('10:44'); }, 900); }} />;
+}
+const validationCode = tsx(['ValidationSummary', 'type ValidationTarget'], `<ValidationSummary title="Before publishing" items={items} stale={changedSinceCheck}
+  checkedAt="10:42" busy={checking} onRecheck={recheck} />`, `const items: ValidationTarget[] = [
+  { id: 'ig', target: 'Instagram · Studio', status: 'error', messages: [{ id: 'caption', text: 'Caption is longer than 2,200 characters.', href: '#caption' }] },
+  { id: 'fb', target: 'Facebook · Studio', status: 'ok' },
+];
+const changedSinceCheck = false;
+const checking = false;
+const recheck = () => {};`);
+
 export const evidenceEntries: ComponentEntry[] = [
   {
     name: 'EvidenceSummary', category: 'Data display', description: 'Source, observation time, measurement basis, freshness and coverage beside an app-supplied result.',
@@ -119,6 +139,14 @@ export const evidenceEntries: ComponentEntry[] = [
     props: [prop('variant', "'full' | 'compact'", 'Full investigation card or compact report-header evidence. Essential quality warnings remain visible.', false, 'full'), prop('details', 'ReactNode', 'Optional app-owned definitions and limitations; compact renders these in Measurement details disclosure.'), prop('title', 'ReactNode', 'Region heading.', false, 'Evidence summary'), prop('source', 'ReactNode', 'Source identity, provenance text or permitted source link.', true), prop('observedAt', 'EvidenceTimestamp', 'Visible timestamp label and optional machine-readable dateTime; omitted time is explicitly unavailable.'), prop('basis', 'ReactNode', 'Optional supplied basis, counting unit, scope and limits; never inferred.'), prop('availability', "'ready' | 'loading' | 'empty' | 'unavailable'", 'Controls the result state; non-ready states never display value.', false, 'ready'), prop('reason', 'ReactNode', 'Text explaining availability or result limitations.'), prop('value', 'ReactNode', 'Preformatted measured value. Numeric zero is retained; missing values are never converted to zero.'), prop('freshness', 'EvidenceFreshness', 'Optional app-supplied current/stale/unknown status and reason; omitted means no freshness claim.'), prop('coverage', 'EvidenceCoverage', 'Optional complete/partial/unavailable status with reason for the stated scope.'), prop('actions', 'ReactNode', 'App-owned inspection or refresh actions.'), prop('className', 'string', 'Additional root classes.')],
     tokens, accessibility: ['Named region and semantic definition list keep evidence attached to its context.', 'Quality is expressed with text and reasons as well as tone.', 'Loading has a busy state and readable status. Source links/actions use native keyboard behavior.', 'Labels, values and reasons must wrap at narrow widths; use the product stylesheet.'], related: ['Badge', 'Alert', 'OperationResults', 'MetricCard'], example: evidenceCode('partial'),
     states: [{ name: 'Compact report evidence', description: 'Source/time and essential partial/stale warning stay visible; detailed definitions use a labelled disclosure.', preview: <EvidenceSummary variant="compact" source="Synthetic analytics" observedAt={{ label: 'Calculated 09:00 UTC', dateTime: '2026-10-19T09:00:00Z' }} coverage={{ status: 'partial', reason: 'Only accepted events in the retained interval are included.' }} basis="Observed page-view events; identities are estimated." details={<p>No missing-traffic denominator is inferred.</p>} />, code: tsx(['EvidenceSummary'], '<EvidenceSummary variant="compact" source="Synthetic analytics" observedAt={{ label: "Calculated 09:00 UTC", dateTime: "2026-10-19T09:00:00Z" }} coverage={{ status: "partial", reason: "Only accepted events in the retained interval are included." }} basis="Observed page-view events; identities are estimated." details={<p>No missing-traffic denominator is inferred.</p>} />') }, ...(['measured', 'zero', 'loading', 'empty', 'unavailable', 'partial', 'stale'] as const).map(mode => ({ name: mode === 'zero' ? 'Measured zero' : mode === 'unavailable' ? 'Unavailable / error' : mode === 'empty' ? 'Filtered empty' : mode[0].toUpperCase() + mode.slice(1), description: 'Use the labelled native selector to compare local evidence states. No query is executed.', preview: <EvidenceDemo initial={mode} />, code: evidenceCode(mode) }))],
+  },
+  {
+    name: 'ValidationSummary', category: 'Feedback', description: 'Per-destination preflight results with links to what to fix, a counted status and an out-of-date state.',
+    usage: 'Use before publishing or sending to several destinations. The app runs the checks; supply one item per destination with its status and messages, linking each message to the field to fix. Set stale when the content changed after the check so old results are not trusted.',
+    props: [prop('items', 'readonly ValidationTarget[]', 'id, target, status (error | warning | ok) and messages { id, text, href? }.', true), prop('title', 'string', 'Heading.', false, "'Checks'"), prop('stale', 'boolean', 'Content changed after the check; results stay but are marked out of date.', false, 'false'), prop('checkedAt', 'ReactNode', 'When the check ran.'), prop('onRecheck / recheckLabel', '() => void / string', 'Runs the check again.'), prop('busy', 'boolean', 'A check is running.'), prop('emptyMessage', 'ReactNode', 'Shown before any check.')],
+    tokens, accessibility: ['The counts are a polite status, so each new run is announced.', 'Each message links to the field to fix; statuses are text (Needs a fix, Check this, Ready), not colour alone.', 'An out-of-date result is stated in a warning with its own Check again action.'],
+    related: ['OperationResults', 'Alert', 'Field'], example: validationCode,
+    states: [{ name: 'Mixed results', description: 'One destination needs a fix, one has a warning, one is ready.', preview: <ValidationDemo />, code: validationCode }, { name: 'Changed since the last check', description: 'Results are kept but marked out of date.', preview: <ValidationDemo stale />, code: validationCode }],
   },
   {
     name: 'OperationResults', category: 'Feedback', description: 'Per-target outcomes with receipt references, error details and explicit app-owned recovery actions.',
