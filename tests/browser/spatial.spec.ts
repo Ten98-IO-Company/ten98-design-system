@@ -29,7 +29,10 @@ for (const theme of ['light', 'dark'] as const) {
   test(`maps, heatmaps, replay and calendar are operable and reflow in ${theme}`, async ({ page }, info) => {
     const width = info.project.name === 'narrow-dark' ? 320 : 1440;
     const errors: string[] = [];
+    const probes: string[] = [];
     page.on('pageerror', error => errors.push(error.message));
+    // Chromium reports a CSP-blocked load as a request that fails with ERR_BLOCKED_BY_CSP, so watch responses.
+    page.on('response', response => { if (response.url().includes('replay-probe')) probes.push(response.url()); });
     await page.setViewportSize({ width, height: 1000 });
     await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
     await page.goto(`/tests/spatial.html?theme=${theme}`);
@@ -41,6 +44,8 @@ for (const theme of ['light', 'dark'] as const) {
     const frame = screen.locator('iframe');
     await expect(frame).toHaveAttribute('sandbox', 'allow-scripts');
     await expect(frame).toHaveAttribute('referrerpolicy', 'no-referrer');
+    await expect(frame.contentFrame().getByText(/^Synthetic replay document/)).toBeVisible();
+    expect(probes, 'the replay content policy blocks network loads').toEqual([]);
 
     // Map: one tab stop, arrows rove in name order, Shift+arrows pan, +/- and buttons zoom.
     const map = screen.locator('section[aria-label="Sessions by country"]');
@@ -114,6 +119,31 @@ for (const theme of ['light', 'dark'] as const) {
     expect(errors).toEqual([]);
   });
 }
+
+test('calendar and map arrows follow the writing direction in right-to-left layouts', async ({ page }) => {
+  await page.goto('/tests/spatial.html');
+  await page.evaluate(() => { document.documentElement.dir = 'rtl'; });
+  const screen = page.locator('#spatial');
+  const calendar = screen.locator('section[aria-label$="calendar"]');
+  await calendar.locator('td[data-date="2026-10-21"]').focus();
+  await page.keyboard.press('ArrowLeft');
+  expect(await activeDate(page)).toBe('2026-10-22');
+  await page.keyboard.press('ArrowRight');
+  expect(await activeDate(page)).toBe('2026-10-21');
+
+  const map = screen.locator('section[aria-label="Sessions by country"]');
+  await map.locator('path[tabindex="0"]').focus();
+  await page.keyboard.press('ArrowLeft');
+  await expect(map.locator('path[data-code="BB"]')).toBeFocused();
+  await page.keyboard.press('ArrowRight');
+  await expect(map.locator('path[data-code="AA"]')).toBeFocused();
+  await page.keyboard.press('+');
+  const svg = map.locator('svg.t98-map-svg');
+  const zoomed = (await svg.getAttribute('viewBox'))!.split(' ').map(Number);
+  await page.keyboard.press('Shift+ArrowLeft');
+  const panned = (await svg.getAttribute('viewBox'))!.split(' ').map(Number);
+  expect(panned[0], 'Shift+ArrowLeft pans forward (towards larger x) in RTL').toBeGreaterThan(zoomed[0]);
+});
 
 test('spatial components stay visible in forced colors', async ({ page }, info) => {
   await page.setViewportSize({ width: info.project.name === 'narrow-dark' ? 320 : 1440, height: 1000 });

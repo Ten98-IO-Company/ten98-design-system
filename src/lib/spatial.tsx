@@ -100,11 +100,14 @@ export function CountryMap({ label, context, summary, shapes, viewBox, rows, met
     const { key } = event;
     if (key === '+' || key === '=') { event.preventDefault(); changeZoom(zoom + 1); return; }
     if (key === '-' || key === '_') { event.preventDefault(); changeZoom(zoom - 1); return; }
-    const arrow: Record<string, [number, number]> = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
+    // Horizontal keys follow the writing direction: in RTL, ArrowLeft means "forward" and pans the other way.
+    const rtl = getComputedStyle(event.currentTarget).direction === 'rtl';
+    const forwardKey = rtl ? 'ArrowLeft' : 'ArrowRight', backwardKey = rtl ? 'ArrowRight' : 'ArrowLeft';
+    const arrow: Record<string, [number, number]> = { [backwardKey]: [-1, 0], [forwardKey]: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
     if (arrow[key] && (event.shiftKey || navigable.length === 0)) { event.preventDefault(); movePan(...arrow[key]); return; }
     const index = navigable.findIndex(shape => shape.code === stop);
     if (index < 0) return;
-    const next = key === 'ArrowRight' || key === 'ArrowDown' ? index + 1 : key === 'ArrowLeft' || key === 'ArrowUp' ? index - 1 : key === 'Home' ? 0 : key === 'End' ? navigable.length - 1 : null;
+    const next = key === forwardKey || key === 'ArrowDown' ? index + 1 : key === backwardKey || key === 'ArrowUp' ? index - 1 : key === 'Home' ? 0 : key === 'End' ? navigable.length - 1 : null;
     if (next == null) return;
     event.preventDefault();
     const target = navigable[clamp(next, 0, navigable.length - 1)];
@@ -245,17 +248,31 @@ export interface ReplayViewerProps {
   /** Shown instead of the frame when the recording is unavailable, expired, loading or not authorized. */
   reason?: ReactNode;
   className?: string;
+  /** CSP applied to a `srcDoc` player; defaults to `defaultReplayContentPolicy`, which blocks all network access. */
+  contentPolicy?: string;
 }
 
-/** Hosts an untrusted player document in a script-only sandbox with no same-origin access and no referrer; controls stay outside it. */
-export function ReplayViewer({ label, context, title, srcDoc, src, controls, reason, className }: ReplayViewerProps) {
+/** Content policy for player documents: inline player scripts and styles run, recorded media stays local, nothing reaches the network. */
+export const defaultReplayContentPolicy = "default-src 'none'; script-src 'unsafe-inline' blob:; style-src 'unsafe-inline' data: blob:; img-src data: blob:; media-src data: blob:; font-src data:";
+/** Puts a CSP meta element first in the document head (or at the start when there is no head) without changing the doctype. */
+function withContentPolicy(doc: string, policy: string) {
+  const meta = `<meta http-equiv="Content-Security-Policy" content="${policy.replace(/"/g, '&quot;')}">`;
+  const head = /<head[^>]*>/i.exec(doc);
+  if (head) return doc.slice(0, head.index + head[0].length) + meta + doc.slice(head.index + head[0].length);
+  const doctype = /^\s*<!doctype[^>]*>/i.exec(doc);
+  return doctype ? doctype[0] + meta + doc.slice(doctype[0].length) : meta + doc;
+}
+
+/** Hosts an untrusted player document in a script-only sandbox with no same-origin access and no referrer; controls stay outside it.
+ * A `srcDoc` player also gets a content policy so recorded pages cannot fetch, beacon or load remote assets while replaying. */
+export function ReplayViewer({ label, context, title, srcDoc, src, controls, reason, className, contentPolicy = defaultReplayContentPolicy }: ReplayViewerProps) {
   const hasDocument = srcDoc !== undefined || src !== undefined;
   return <section className={cx('t98-replay-viewer', className)} aria-label={label}>
     <h3 className="t98-replay-viewer-title">{label}</h3>
     <div className="t98-replay-viewer-context">{context}</div>
     {reason != null || !hasDocument
       ? <div className="t98-replay-viewer-reason" role="status">{reason ?? 'No replay document was supplied.'}</div>
-      : <iframe className="t98-replay-frame" title={title} sandbox="allow-scripts" referrerPolicy="no-referrer" srcDoc={srcDoc} src={srcDoc === undefined ? src : undefined} />}
+      : <iframe className="t98-replay-frame" title={title} sandbox="allow-scripts" referrerPolicy="no-referrer" srcDoc={srcDoc === undefined ? undefined : withContentPolicy(srcDoc, contentPolicy)} src={srcDoc === undefined ? src : undefined} />}
     <ReplayControls {...controls} />
   </section>;
 }

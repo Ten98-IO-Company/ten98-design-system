@@ -54,6 +54,26 @@ test('negative stacks extend below the baseline and loading, empty and notice st
   assert.match(chart('line'), /dir="ltr"/);
 });
 
+test('axis labels are thinned, truncated with a title and can be shortened by formatXTick', () => {
+  const many = Array.from({ length: 12 }, (_, i) => ({ x: i, xLabel: `Week number ${i + 1} of the launch`, y: i }));
+  const html = render(h(TimeSeriesChart, { label: 'Long', summary: 's', kind: 'line', series: [{ id: 'a', label: 'A', points: many }] }));
+  const ticks = [...html.matchAll(/<text[^>]*t98-chart-axis-text[^>]*>(?:<title>([^<]*)<\/title>)?([^<]*)<\/text>/g)].filter(m => /Week|…/.test(m[2]));
+  assert.ok(ticks.length >= 2 && ticks.length < 12, 'thinned');
+  assert.ok(ticks.some(m => m[1] && m[2].endsWith('…')), 'truncated with full text in a title');
+  assert.ok(ticks[0][2].startsWith('Week'), 'first kept');
+  assert.match(ticks.at(-1)[1] ?? ticks.at(-1)[2], /Week number 12 of the launch/, 'last kept');
+  assert.match(html, /<th scope="row">Week number 7 of the launch<\/th>/, 'table keeps full text');
+  const short = render(h(TimeSeriesChart, { label: 'Short', summary: 's', kind: 'line', series: [{ id: 'a', label: 'A', points: many }], formatXTick: (_, i) => `W${i + 1}` }));
+  assert.match(short, />W12</);
+  assert.doesNotMatch(short, /<title>Week number/);
+});
+
+test('the SVG fills a deterministic fallback width and keeps a per-point minimum', () => {
+  assert.match(chart('line'), /<svg[^>]*class="t98-chart-svg" width="640" height="240" viewBox="0 0 640 240"/);
+  const dense = Array.from({ length: 60 }, (_, i) => ({ x: i, xLabel: `D${i}`, y: i }));
+  assert.match(render(h(TimeSeriesChart, { label: 'D', summary: 's', kind: 'line', series: [{ id: 'a', label: 'A', points: dense }] })), /width="2952"/);
+});
+
 test('ShareChart and ProportionBar state Unavailable, empty and totals', () => {
   const parts = [{ id: 'a', label: 'Opened', count: 30, tone: 1 }, { id: 'b', label: 'Unopened', count: 10, tone: 2 }];
   const share = render(h(ShareChart, { label: 'Opens', segments: parts, total: 40 }));

@@ -15,6 +15,7 @@ const make = (values: (number | null)[], states: Record<number, 'partial'> = {})
 const visits: ChartSeries = { id: 'visits', label: 'Visits', points: make([12, 18, null, 25, 21, -4, 30, 28], { 4: 'partial' }) };
 const signups: ChartSeries = { id: 'signups', label: 'Sign-ups', points: make([5, 9, 7, 12, 10, 8, 14, 13]) };
 const target: ChartSeries = { id: 'target', label: 'Target', role: 'comparison', points: make([15, 15, 20, 20, 25, 25, 30, 30]) };
+const dense: ChartSeries = { id: 'dense', label: 'Daily', points: Array.from({ length: 60 }, (_, index) => ({ x: index, xLabel: `Day number ${index + 1} of the campaign`, y: 10 + (index * 7) % 23 })) };
 const segments: ShareSegment[] = [{ id: 'a', label: 'Opened', count: 30, tone: 1 }, { id: 'b', label: 'Clicked', count: 8, tone: 2 }, { id: 'c', label: 'Unopened', count: 12, tone: 3 }];
 
 function Screen() {
@@ -24,6 +25,7 @@ function Screen() {
     <Heading level={1}>Charts</Heading>
     <TimeSeriesChart label="Weekly visits" context="Eight weeks" summary="Visits grew to 30; week three is unavailable." kind="bars" series={[visits]} baselineLabel="Zero" onInspect={setInspected} tableColumns={[{ header: 'Source', values: labels.map((_, index) => `Source ${index + 1}`) }]} />
     <Text id="inspected">Inspected: {inspected}</Text>
+    <TimeSeriesChart label="Sixty days" summary="A dense series scrolls inside its region." kind="line" series={[dense]} formatXTick={(_, index) => `D${index + 1}`} />
     <TimeSeriesChart label="Visits and sign-ups" summary="Sign-ups follow visits." kind="line" series={[visits, signups]} />
     <TimeSeriesChart label="Visits against target" summary="Visits missed the target in most weeks." kind="grouped-bars" series={[signups, target]} />
     <TimeSeriesChart label="Visits trend" summary="Area of visits." kind="area" series={[signups, target]} />

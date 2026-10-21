@@ -15,7 +15,8 @@ const shapes = [
 const rows = new Map([['AA', { value: 1200, valueText: '1,200 sessions' }], ['BB', { value: 300, valueText: '300 sessions' }], ['DD', { value: null, valueText: 'Unavailable' }]]);
 const points = [{ x: 480, y: 150, count: 12, label: 'Add to cart' }, { x: 200, y: 160, count: 8, label: 'Product details' }, { x: 320, y: 300, count: null, label: 'Footer link' }];
 const bands = [{ from: 0, to: 180, share: 0.9, label: 'Top half' }, { from: 180, to: 360, share: null, label: 'Bottom half' }];
-const doc = '<!doctype html><body><p>Synthetic replay document with a deliberately long unbroken sentence to test wrapping inside the sandbox.</p></body>';
+// The probe image must stay blocked: replayed pages may not reach the network from the viewer's browser.
+const doc = '<!doctype html><body><p>Synthetic replay document with a deliberately long unbroken sentence to test wrapping inside the sandbox.</p><img alt="" src="/tests/replay-probe.png"></body>';
 const days = new Map([
   ['2026-10-21', [{ id: 'launch', label: 'Launch the quarterly campaign post', time: '09:30', onSelect: () => {} }]],
   ['2026-10-23', [{ id: 'review', label: 'Review draft' }]],

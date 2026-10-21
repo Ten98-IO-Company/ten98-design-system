@@ -1,6 +1,6 @@
 'use client';
 
-import { useId, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react';
 import { cx } from './primitives.js';
 import { StatusLine } from './controls.js';
 import { arcPath, bandScale, linearScale, niceDomain, segments, stackSigned, ticks, type ChartValue } from './chart-scale.js';
@@ -118,6 +118,8 @@ export interface TimeSeriesChartProps {
   baselineLabel?: string;
   /** Header of the first data-table column. */
   xHeader?: string;
+  /** Short axis label for a point, for example "W7". The data table and announcements keep the full `xLabel`. */
+  formatXTick?: (point: ChartPoint, index: number) => string;
   tableColumns?: readonly ChartTableColumn[];
   onInspect?: (index: number) => void;
   notice?: ReactNode;
@@ -128,25 +130,62 @@ export interface TimeSeriesChartProps {
 const HEIGHT = 240;
 const MARGIN = { top: 14, right: 14, bottom: 52, left: 58 };
 
-function wrapLabel(text: string) {
-  const words = text.split(/\s+/).filter(Boolean);
-  const lines: string[] = [];
-  for (const word of words) {
-    const last = lines.at(-1);
-    if (last !== undefined && last.length + word.length < 9 && lines.length < 3) lines[lines.length - 1] = `${last} ${word}`;
-    else lines.push(word);
+/** Width of the plot before it is measured; server and first client render both use it so the markup agrees. */
+const FALLBACK_WIDTH = 640;
+const CHAR_WIDTH = 6.5;
+const TICK_GAP = 8;
+const PREFERRED_TICK_WIDTH = 64;
+
+/**
+ * Axis labels that never overlap. Ports the label-skipping idea of d3-axis (ISC) and the
+ * Recharts/visx `interval: preserveStartEnd` behaviour (MIT): show every Nth tick, always keep the
+ * first and last, and truncate a label that still does not fit its slot.
+ */
+function planTicks(texts: readonly string[], centres: readonly number[], width: number) {
+  const count = texts.length;
+  if (!count) return [];
+  let pitch = Infinity;
+  for (let i = 1; i < count; i++) pitch = Math.min(pitch, Math.abs(centres[i] - centres[i - 1]));
+  if (!Number.isFinite(pitch) || pitch <= 0) pitch = width;
+  const widest = Math.max(...texts.map(text => text.length * CHAR_WIDTH));
+  const wanted = Math.min(widest, PREFERRED_TICK_WIDTH);
+  let every = 1;
+  while (every < count - 1 && every * pitch - TICK_GAP < wanted) every++;
+  const shown: number[] = [];
+  for (let i = 0; i < count; i += every) shown.push(i);
+  if (shown.at(-1) !== count - 1) {
+    if (count - 1 - shown.at(-1)! < every && shown.length > 1) shown.pop();
+    shown.push(count - 1);
   }
-  return lines.slice(0, 3);
+  const slot = every * pitch - TICK_GAP;
+  return shown.map(index => {
+    const edge = 2 * Math.min(centres[index], width - centres[index]) - 2;
+    const room = Math.max(CHAR_WIDTH * 2, Math.min(slot, edge));
+    const text = texts[index];
+    if (text.length * CHAR_WIDTH <= room) return { index, text, full: null as string | null };
+    const keep = Math.max(1, Math.floor(room / CHAR_WIDTH) - 1);
+    return { index, text: `${text.slice(0, keep).trimEnd()}…`, full: text as string | null };
+  });
 }
 
 /** Bars, grouped or stacked bars, a line or an area over time. Keyboard: arrows move between points and series, Home/End jump. */
-export function TimeSeriesChart({ label, context, summary, kind, series, xScale = 'band', xDomain, formatY = plain, yDomain = 'nice', baselineLabel, xHeader = 'Point', tableColumns = [], onInspect, notice, loading, emptyMessage }: TimeSeriesChartProps) {
+export function TimeSeriesChart({ label, context, summary, kind, series, xScale = 'band', xDomain, formatY = plain, yDomain = 'nice', baselineLabel, xHeader = 'Point', formatXTick, tableColumns = [], onInspect, notice, loading, emptyMessage }: TimeSeriesChartProps) {
   const uid = useId().replace(/:/g, '');
   const summaryId = `${uid}-summary`;
   const statsId = `${uid}-stats`;
   const scrollRef = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState<{ index: number; series: number } | null>(null);
   const [announcement, setAnnouncement] = useState('');
+  const [available, setAvailable] = useState(FALLBACK_WIDTH);
+  useEffect(() => {
+    const box = scrollRef.current;
+    if (!box || typeof ResizeObserver === 'undefined') return;
+    const measure = () => { if (box.clientWidth > 0) setAvailable(Math.round(box.clientWidth)); };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(box);
+    return () => observer.disconnect();
+  }, [loading, series.length > 0 && series.some(item => item.points.length > 0)]);
   const count = Math.max(0, ...series.map(item => item.points.length));
   const stacked = kind === 'stacked-bars';
   const isBars = kind === 'bars' || kind === 'grouped-bars' || stacked;
@@ -176,7 +215,8 @@ export function TimeSeriesChart({ label, context, summary, kind, series, xScale 
   }
 
   const step = isBars && kind === 'grouped-bars' ? Math.max(48, series.length * 16 + 14) : 48;
-  const width = Math.max(320, MARGIN.left + MARGIN.right + count * step);
+  // Fill the figure, but keep a minimum width per point so dense series scroll inside the region.
+  const width = Math.max(available, MARGIN.left + MARGIN.right + count * step);
   const plotLeft = MARGIN.left;
   const plotRight = width - MARGIN.right;
   const plotTop = MARGIN.top;
@@ -345,12 +385,12 @@ export function TimeSeriesChart({ label, context, summary, kind, series, xScale 
         {domain[0] <= 0 && domain[1] >= 0 && <g><line className="t98-chart-baseline" x1={plotLeft} x2={plotRight} y1={yAt(0)} y2={yAt(0)} />
           {baselineLabel && <text x={plotRight} y={yAt(0) - 4} textAnchor="end" className="t98-chart-axis-text">{baselineLabel}</text>}</g>}
         {columns}
-        {Array.from({ length: count }, (_, i) => {
-          const c = centre(i) ?? 0;
-          return <text key={i} x={c} y={plotBottom + 14} textAnchor="middle" className="t98-chart-axis-text">
-            {wrapLabel(xLabelAt(i)).map((line, n) => <tspan key={n} x={c} dy={n ? 11 : 0}>{line}</tspan>)}
-          </text>;
-        })}
+        {planTicks(Array.from({ length: count }, (_, i) => {
+          const point = series.find(item => item.points[i])?.points[i];
+          return point && formatXTick ? formatXTick(point, i) : xLabelAt(i);
+        }), Array.from({ length: count }, (_, i) => centre(i) ?? 0), width).map(tick => <text key={tick.index} x={centre(tick.index) ?? 0} y={plotBottom + 14} textAnchor="middle" className="t98-chart-axis-text t98-chart-x-tick">
+          {tick.full !== null && <title>{tick.full}</title>}{tick.text}
+        </text>)}
         {layers}
         {active && activeX !== null && <g className="t98-chart-active" aria-hidden="true">
           <line x1={activeX} x2={activeX} y1={plotTop} y2={plotBottom} />

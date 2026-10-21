@@ -98,6 +98,50 @@ for (const theme of ['light', 'dark'] as const) {
   });
 }
 
+test('axis labels never overlap, responsive width fills the figure and dense series scroll inside', async ({ page }, info) => {
+  const width = info.project.name === 'narrow-dark' ? 320 : 1440;
+  await mkdir(evidence, { recursive: true });
+  await page.setViewportSize({ width, height: 1000 });
+  await page.goto('/tests/charts.html');
+  const screen = page.locator('#charts');
+  const labelled = async (name: RegExp) => {
+    const plot = screen.getByRole('group', { name });
+    return { plot, ticks: await plot.locator('svg text.t98-chart-x-tick').evaluateAll(nodes => nodes.map(node => { const box = node.getBoundingClientRect(); return { text: node.textContent ?? '', left: box.left, right: box.right, title: node.querySelector('title')?.textContent ?? null }; })) };
+  };
+  for (const name of [/Weekly visits plot/, /Visits and sign-ups plot/, /Sixty days plot/]) {
+    const { ticks } = await labelled(name);
+    expect(ticks.length).toBeGreaterThanOrEqual(2);
+    for (let i = 1; i < ticks.length; i++) expect(ticks[i].left, `${name} ticks ${i - 1}/${i}`).toBeGreaterThanOrEqual(ticks[i - 1].right);
+  }
+  const weekly = await labelled(/Weekly visits plot/);
+  expect(weekly.ticks[0].text).toMatch(/^Week one/);
+  const lastTick = weekly.ticks.at(-1)!;
+  expect(lastTick.title ?? lastTick.text).toBe('Week eight of the launch');
+  if (width === 320) expect(weekly.ticks.some(tick => tick.text.endsWith('…') && tick.title)).toBe(true);
+  const visits = screen.locator('figure', { hasText: 'Weekly visits' }).first();
+  await visits.getByText('View data table').click();
+  await expect(visits.getByRole('rowheader', { name: 'Week seven of the launch' })).toHaveCount(1);
+
+  const sixty = await labelled(/Sixty days plot/);
+  expect(sixty.ticks[0].text).toBe('D1');
+  expect(sixty.ticks.at(-1)!.text).toBe('D60');
+  const dims = await sixty.plot.evaluate(node => ({ visible: node.clientWidth, content: node.scrollWidth }));
+  expect(dims.content, 'sixty points scroll inside the region').toBeGreaterThan(dims.visible);
+  expect(await overflow(page)).toBeLessThanOrEqual(1);
+
+  const fill = await weekly.plot.evaluate(node => ({ svg: node.querySelector('svg')!.getBoundingClientRect().width, figure: (() => { const figure = node.closest('figure')!; const style = getComputedStyle(figure); return figure.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight); })() }));
+  if (width === 1440) expect(fill.svg).toBeGreaterThanOrEqual(fill.figure * 0.9);
+
+  // Resizing re-measures and keyboard inspection keeps working.
+  await page.setViewportSize({ width: width === 1440 ? 600 : 700, height: 1000 });
+  await expect.poll(() => weekly.plot.evaluate(node => Math.round(node.querySelector('svg')!.getBoundingClientRect().width))).not.toBe(Math.round(fill.svg));
+  await weekly.plot.focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(readoutOf(weekly.plot)).toHaveText('Week two of the launch · Visits: 18');
+  expect(await overflow(page)).toBeLessThanOrEqual(1);
+  await page.screenshot({ path: resolve(evidence, `charts-ticks-${width}.png`), fullPage: true });
+});
+
 test('forced colors keep chart strokes and hatching visible', async ({ page }) => {
   await page.emulateMedia({ forcedColors: 'active' });
   await page.goto('/tests/charts.html');

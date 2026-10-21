@@ -31,6 +31,16 @@ test('the replay iframe is script-only sandboxed, never same-origin, and control
   assert.ok(html.indexOf('</iframe>') < html.indexOf('t98-replay-controls'));
 });
 
+test('a srcDoc replay carries a no-network content policy inside its head, after the doctype', () => {
+  const head = render(ReplayViewer, { ...replay, srcDoc: '<!doctype html><html><head><title>p</title></head><body></body></html>' });
+  assert.match(head, /srcDoc="&lt;!doctype html&gt;&lt;html&gt;&lt;head&gt;&lt;meta http-equiv=&quot;Content-Security-Policy&quot; content=&quot;default-src &#x27;none&#x27;;[^"]*&gt;&lt;title&gt;/);
+  const bare = render(ReplayViewer, { ...replay, srcDoc: '<!DOCTYPE html><p>x</p>' });
+  assert.match(bare, /srcDoc="&lt;!DOCTYPE html&gt;&lt;meta http-equiv=&quot;Content-Security-Policy&quot;/);
+  assert.match(render(ReplayViewer, replay), /srcDoc="&lt;meta http-equiv=&quot;Content-Security-Policy&quot;[^"]*&gt;&lt;p&gt;player/);
+  assert.match(render(ReplayViewer, { ...replay, contentPolicy: "default-src 'self'" }), /content=&quot;default-src/);
+  assert.doesNotMatch(render(ReplayViewer, { ...replay, srcDoc: undefined, src: '/player.html' }), /Content-Security-Policy/);
+});
+
 test('an unavailable replay shows the reason and no iframe', () => {
   const html = capture(render(ReplayViewer, { ...replay, reason: 'The recording expired.' }));
   assert.match(html, /The recording expired\./);
@@ -88,6 +98,14 @@ test('the calendar is a grid with weekday headers, today and outside states and 
   assert.match(render(CalendarMonth, { ...calendar, weekStartsOn: 0 }), /abbr="Sunday"[^>]*>Sun<\/th>/);
   assert.match(render(CalendarMonth, { ...calendar, month: { year: 2026, month: 13 } }), /Month unavailable/);
   assert.doesNotMatch(render(CalendarMonth, calendar), /t98-calendar-create/);
+});
+
+test('a calendar day name states its entry count so the grid cell is not announced as just a date', () => {
+  const html = render(CalendarMonth, calendar);
+  assert.match(html, /aria-label="[^"]*21 October 2026, today, 1 entry"/);
+  const two = render(CalendarMonth, { ...calendar, days: new Map([['2026-10-22', [{ id: 'a', label: 'A' }, { id: 'b', label: 'B' }]]]) });
+  assert.match(two, /aria-label="[^"]*22 October 2026, 2 entries"/);
+  assert.doesNotMatch(two, /21 October 2026, today, \d/);
 });
 
 test('every t98 class emitted by the spatial components is styled', () => {

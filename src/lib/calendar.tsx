@@ -90,8 +90,10 @@ export function CalendarMonth({ month, weekStartsOn, locale, today, days, onPrev
     const current = cell?.dataset.date;
     if (!current) return;
     const offset = (dayOfWeek(current) - weekStartsOn + 7) % 7;
+    const rtl = getComputedStyle(event.currentTarget).direction === 'rtl';
     const next: Record<string, string> = {
-      ArrowLeft: addDays(current, -1), ArrowRight: addDays(current, 1), ArrowUp: addDays(current, -7), ArrowDown: addDays(current, 7),
+      // Day order follows the writing direction (APG): in RTL, ArrowLeft moves to the next day.
+      [rtl ? 'ArrowRight' : 'ArrowLeft']: addDays(current, -1), [rtl ? 'ArrowLeft' : 'ArrowRight']: addDays(current, 1), ArrowUp: addDays(current, -7), ArrowDown: addDays(current, 7),
       Home: addDays(current, -offset), End: addDays(current, 6 - offset),
       // Month paging keeps the day number relative to the displayed month, as in the APG example.
       PageUp: shiftMonth(current, -1), PageDown: shiftMonth(current, 1),
@@ -125,7 +127,9 @@ export function CalendarMonth({ month, weekStartsOn, locale, today, days, onPrev
           const isToday = iso === today;
           const isActive = iso === active;
           const entries = days.get(iso) ?? [];
-          const name = `${fullDate.format(toTime(iso))}${isToday ? ', today' : ''}${outside ? ', outside this month' : ''}`;
+          // The label replaces the cell's content in its name, so it states how many entries the day holds.
+          const count = entries.length ? `, ${entries.length} ${entries.length === 1 ? 'entry' : 'entries'}` : '';
+          const name = `${fullDate.format(toTime(iso))}${isToday ? ', today' : ''}${outside ? ', outside this month' : ''}${count}`;
           return <td key={iso} role="gridcell" data-date={iso} tabIndex={isActive ? 0 : -1} aria-label={name} aria-current={isToday ? 'date' : undefined}
             className={cx('t98-calendar-cell', outside && 't98-calendar-cell--outside', isToday && 't98-calendar-cell--today')}
             onFocus={() => setFocused(iso)}>

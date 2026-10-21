@@ -12,6 +12,7 @@
 .t98-chart-scroll:focus-visible, .t98-chart-table-scroll:focus-visible, .t98-bar-list-button:focus-visible { outline: var(--t98-focus-width) solid var(--t98-focus); outline-offset: var(--t98-focus-offset); }
 .t98-chart-svg { display: block; max-inline-size: none; overflow: visible; }
 .t98-chart-axis-text { fill: var(--t98-muted); font: 400 11px/1 var(--t98-font); }
+.t98-chart-x-tick { font-variant-numeric: tabular-nums; }
 .t98-chart-grid line { stroke: var(--t98-border); stroke-width: 1; }
 .t98-chart-baseline { stroke: var(--t98-text); stroke-width: 1.5; }
 .t98-chart-bar { stroke-width: 1.5; }

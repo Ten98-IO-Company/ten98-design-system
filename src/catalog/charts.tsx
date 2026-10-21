@@ -68,6 +68,7 @@ export const chartEntries: ComponentEntry[] = [
       prop('yDomain', "readonly [number, number] | 'nice'", 'Fixed y range, or a rounded extent of the data.', false, "'nice'"),
       prop('baselineLabel', 'string', 'Text on the zero line.'),
       prop('xHeader', 'string', 'Header of the first data-table column.', false, "'Point'"),
+      prop('formatXTick', '(point: ChartPoint, index: number) => string', 'Short axis label for a point, for example "W7". The table and announcements keep the full xLabel.'),
       prop('tableColumns', '{ header: string; values: ReactNode[] }[]', 'Extra exact columns in the data table, one value per x position.'),
       prop('onInspect', '(index: number) => void', 'Called when the keyboard moves to another x position.'),
       prop('notice', 'ReactNode', 'A note such as a late-data warning.'),
@@ -75,7 +76,7 @@ export const chartEntries: ComponentEntry[] = [
       prop('emptyMessage', 'ReactNode', 'Shown when there are no points.'),
     ],
     tokens: chartTokens,
-    accessibility: ['The plot is a focusable labelled region: ArrowLeft/Right move between points, Home/End jump to the ends, ArrowUp/Down switch series; a polite live region announces "x · series: value (partial|unavailable)".', 'The plot stays left-to-right in right-to-left pages and scrolls inside its region without widening the page.', 'A computed "N points, minimum, maximum, N unavailable" line and a table of every point are always available; the table is a focusable scroll region.', 'Series differ by pattern, dash and marker as well as colour; forced-colors mode uses system colours.'],
+    accessibility: ['The plot is a focusable labelled region: ArrowLeft/Right move between points, Home/End jump to the ends, ArrowUp/Down switch series; a polite live region announces "x · series: value (partial|unavailable)".', 'The plot fills its figure, keeps a minimum width per point and scrolls inside its region without widening the page; it stays left-to-right in right-to-left pages.', 'Axis labels never overlap: ticks are thinned to every Nth point (first and last always shown) and a long label is truncated with the full text in a hover title and the data table.', 'A computed "N points, minimum, maximum, N unavailable" line and a table of every point are always available; the table is a focusable scroll region.', 'Series differ by pattern, dash and marker as well as colour; forced-colors mode uses system colours.'],
     related: ['BarList', 'ShareChart', 'Sparkline', 'DataTable'],
     example: chartCode('bars'),
     states: [
