@@ -10,6 +10,9 @@ import '@ten98/ui/product.css';
 const lead = '\u00a0';
 const controls = { playing: false, onPlayingChange: () => {}, currentTime: 0, duration: 10, onSeek: () => {}, playbackRate: 1, allowedRates: [1], onRateChange: () => {} };
 
+// A fresh, unpredictable nonce for this render, as callers must generate.
+const nonce = [...crypto.getRandomValues(new Uint8Array(18))].map(byte => byte.toString(16).padStart(2, '0')).join('');
+
 function Screen() {
   return <Stack as="main" gap={6} id="sandbox-boundary">
     <Heading level={1}>Sandbox boundary</Heading>
@@ -18,8 +21,8 @@ function Screen() {
       srcDoc={`${lead}<!doctype html><p>Replay body</p><script>fetch('/tests/probe-boundary-fetch').catch(() => {});</script>`} />
     <ReplayViewer label="Navigating replay" context="Bypass check" title="Navigating replay frame" controls={controls}
       srcDoc={`<!doctype html><p>Navigating replay</p><script>setTimeout(() => { location.href = '/tests/probe-boundary-navigation?recorded=secret'; }, 50);</script>`} />
-    <ReplayViewer label="Pinned replay" context="Opt-in check" title="Pinned replay frame" controls={controls} contentPolicy="default-src 'none'; script-src 'nonce-player1'"
-      srcDoc={`<!doctype html><p>Pinned replay</p><script nonce="player1">document.body.dataset.player = 'ran';</script><script>location.href = '/tests/probe-boundary-optin?recorded=secret';</script>`} />
+    <ReplayViewer label="Pinned replay" context="Opt-in check" title="Pinned replay frame" controls={controls} contentPolicy={`default-src 'none'; script-src 'nonce-${nonce}'`}
+      srcDoc={`<!doctype html><p>Pinned replay</p><script nonce="${nonce}">document.body.dataset.player = 'ran';</script><script>location.href = '/tests/probe-boundary-optin?recorded=secret';</script>`} />
     <ReplayViewer label="Loose replay" context="Opt-in check" title="Loose replay frame" controls={controls} contentPolicy="default-src 'none'; script-src 'unsafe-inline'"
       srcDoc={`<!doctype html><script>location.href = '/tests/probe-boundary-optin-loose?recorded=secret';</script>`} />
   </Stack>;

@@ -28,11 +28,12 @@ test('the replay iframe is script-only sandboxed, never same-origin, and control
   assert.match(html, /<iframe[^>]*sandbox=""/);
   assert.match(html, /script-src &#x27;none&#x27;/);
   assert.match(capture(render(ReplayViewer, { ...replay, srcDoc: undefined, src: '/player.html' })), /<iframe[^>]*sandbox="allow-scripts"/);
-  assert.match(capture(render(ReplayViewer, { ...replay, contentPolicy: "default-src 'none'; script-src 'nonce-abc'" })), /<iframe[^>]*sandbox="allow-scripts"/);
+  assert.match(capture(render(ReplayViewer, { ...replay, contentPolicy: "default-src 'none'; script-src 'nonce-q7Zr2Kx9VbT4mNw8LcPa1Ye5'" })), /<iframe[^>]*sandbox="allow-scripts"/);
   // A policy that allows scripts without pinning them is refused outright.
   const loose = capture(render(ReplayViewer, { ...replay, contentPolicy: "default-src 'none'; script-src 'unsafe-inline'" }));
   assert.doesNotMatch(loose, /<iframe/);
   assert.match(loose, /its content policy allows scripts without pinning them to a nonce or hash/);
+  assert.doesNotMatch(capture(render(ReplayViewer, { ...replay, contentPolicy: "script-src 'nonce-player1'" })), /<iframe/);
   assert.doesNotMatch(html, /allow-same-origin/);
   assert.match(html, /referrerPolicy="no-referrer"|referrerpolicy="no-referrer"/);
   assert.match(html, /title="Synthetic replay"/);

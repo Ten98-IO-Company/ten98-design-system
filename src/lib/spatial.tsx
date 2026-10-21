@@ -259,7 +259,8 @@ export interface ReplayViewerProps {
   reason?: ReactNode;
   className?: string;
   /** CSP applied to a `srcDoc` document; defaults to `defaultReplayContentPolicy`, which runs no scripts and loads nothing from the
-   * network. A policy that allows scripts must pin them with 'nonce-…' or 'sha256-…' sources ('strict-dynamic' allowed); one that
+   * network. A policy that allows scripts must pin them with 'sha256-…' sources or a fresh, unpredictable 'nonce-…' of at least 22
+   * characters generated on every render ('strict-dynamic' allowed); one that
    * allows them any other way ('unsafe-inline', hosts, *) is refused, because running script can navigate its own frame to send data
    * out, which no CSP prevents. A pinned policy enables `allow-scripts`. Run scripted players on hostile data in `IsolatedPlayerFrame`. */
   contentPolicy?: string;

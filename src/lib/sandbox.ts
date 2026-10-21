@@ -24,14 +24,17 @@ export function policyAllowsScripts(policy: string) {
   return sources === null || !(sources.length === 1 && sources[0].toLowerCase() === "'none'");
 }
 /**
- * Whether scripts allowed by a policy are limited to ones the app vouches for. Only nonce and hash sources (optionally with
- * 'strict-dynamic') qualify: 'unsafe-inline', hosts, schemes and * would let recorded markup run script, and a running script
- * can navigate its own frame to send data out, which no content policy blocks.
+ * Whether scripts allowed by a policy are limited to ones the app vouches for. Only hash sources and nonces of at least
+ * 22 characters (about 128 bits; optionally with 'strict-dynamic') qualify: 'unsafe-inline', hosts, schemes and * would let
+ * recorded markup run script, and a running script can navigate its own frame to send data out, which no content policy
+ * blocks. A nonce must also be fresh and unpredictable on every render: a recorded document can carry its own
+ * <script nonce="…">, so a constant, build-derived or recording-derived nonce lets recorded script run. Prefer hashes.
  */
 export function policyScriptsArePinned(policy: string) {
   const sources = scriptSources(policy);
   if (sources === null) return false;
-  const pinned = sources.filter(source => /^'(nonce-[A-Za-z0-9+/_=-]+|sha(256|384|512)-[A-Za-z0-9+/_=-]+)'$/.test(source));
+  // The length floor rejects obviously static nonces such as 'nonce-player1'; freshness is the caller's duty (see above).
+  const pinned = sources.filter(source => /^'(nonce-[A-Za-z0-9+/_=-]{22,}|sha(256|384|512)-[A-Za-z0-9+/_=-]+)'$/.test(source));
   return pinned.length > 0 && sources.every(source => pinned.includes(source) || source.toLowerCase() === "'strict-dynamic'");
 }
 

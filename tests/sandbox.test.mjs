@@ -16,6 +16,9 @@ test('scripts are pinned only by nonce or hash sources', () => {
   assert.equal(policyAllowsScripts("default-src 'none'"), false);
   assert.equal(policyAllowsScripts("script-src 'none'"), false);
   assert.equal(policyAllowsScripts("img-src data:"), true);
-  for (const pinned of ["script-src 'nonce-abc123'", "script-src 'sha256-AbC+/=' 'strict-dynamic'", "default-src 'nonce-x9'"]) assert.equal(policyScriptsArePinned(pinned), true, pinned);
-  for (const loose of ["script-src 'unsafe-inline'", "script-src 'nonce-abc' 'unsafe-inline'", "script-src 'nonce-abc' https:", "script-src *", "script-src 'self'", "img-src data:", "script-src 'strict-dynamic'"]) assert.equal(policyScriptsArePinned(loose), false, loose);
+  const fresh = 'q7Zr2Kx9VbT4mNw8LcPa1Ye5';
+  for (const pinned of [`script-src 'nonce-${fresh}'`, "script-src 'sha256-AbC+/=' 'strict-dynamic'", `default-src 'nonce-${fresh}'`]) assert.equal(policyScriptsArePinned(pinned), true, pinned);
+  // Obviously static nonces (short constants) are refused; a recording can carry its own <script nonce>.
+  for (const weak of ["script-src 'nonce-player1'", "script-src 'nonce-abc123'", "default-src 'nonce-x9'"]) assert.equal(policyScriptsArePinned(weak), false, weak);
+  for (const loose of ["script-src 'unsafe-inline'", `script-src 'nonce-${fresh}' 'unsafe-inline'`, `script-src 'nonce-${fresh}' https:`, "script-src *", "script-src 'self'", "img-src data:", "script-src 'strict-dynamic'"]) assert.equal(policyScriptsArePinned(loose), false, loose);
 });
