@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { Alert, Button, cx } from './primitives.js';
+import { LoadMore } from './controls.js';
 
 export interface PublishingAgendaEntry {
   id: string;
@@ -109,6 +110,8 @@ export interface ConversationMessage {
   /** Deleted, hidden or moderated. Content and attachments are withheld; `removedReason` says why. */
   removed?: boolean;
   removedReason?: ReactNode;
+  /** Replies to this message, for example comment replies; nested up to three levels deep, deeper replies stay at the third level. */
+  replies?: readonly ConversationMessage[];
 }
 
 export interface ConversationThreadProps {
@@ -121,27 +124,45 @@ export interface ConversationThreadProps {
   error?: ReactNode;
   emptyMessage?: ReactNode;
   className?: string;
+  /** Older messages exist before the first one shown. */
+  hasOlder?: boolean;
+  onLoadOlder?: () => void;
+  /** Older messages are loading; the control keeps focus. */
+  olderLoading?: boolean;
+  /** Older messages exist but cannot be loaded, for example the provider returned no cursor. */
+  olderUnavailableReason?: ReactNode;
 }
 
 const visibilityLabels = { public: 'Public reply', private: 'Private message', note: 'Internal note' } as const;
 const directionLabels = { inbound: 'Received', outbound: 'Sent' } as const;
 
 /** History presentation only. App owns composer drafts, send windows, receipts and assignments. */
-export function ConversationThread({ label, messages, composer, status, loading = false, readOnly = false, error, emptyMessage = 'No messages in this conversation.', className }: ConversationThreadProps) {
+const MAX_DEPTH = 3;
+function MessageItem({ message, depth }: { message: ConversationMessage; depth: number }) {
+  return <li className="t98-conversation-message" data-message-id={message.id} data-visibility={message.visibility} data-direction={message.direction} data-removed={message.removed || undefined} data-depth={depth > 0 ? depth : undefined}>
+    <div className="t98-conversation-header"><strong className="t98-conversation-author">{message.author}</strong><time className="t98-conversation-time" dateTime={message.dateTime}>{message.time}</time>{message.direction && <span className="t98-conversation-direction">{directionLabels[message.direction]}</span>}<span className="t98-conversation-visibility">{visibilityLabels[message.visibility]}</span></div>
+    {message.removed ? <div className="t98-conversation-content t98-conversation-removed"><p className="t98-conversation-removed-label">Message removed.</p>{message.removedReason != null && <div className="t98-conversation-removed-reason">{message.removedReason}</div>}</div>
+      : <div className="t98-conversation-content">{message.content}</div>}
+    {!message.removed && message.attachments != null && <div className="t98-conversation-attachments">{message.attachments}</div>}
+    {message.status != null && <div className="t98-conversation-status">{message.status}</div>}
+    {message.actions != null && <div className="t98-conversation-actions" role="group" aria-label={`Actions for the message from ${message.author}, ${message.time}`}>{message.actions}</div>}
+    {message.replies && message.replies.length > 0 && <ol className="t98-conversation-replies" aria-label={`${message.replies.length} ${message.replies.length === 1 ? 'reply' : 'replies'} to ${message.author}`} data-flat={depth + 1 >= MAX_DEPTH || undefined}>
+      {message.replies.map(reply => <MessageItem key={reply.id} message={reply} depth={Math.min(depth + 1, MAX_DEPTH)} />)}
+    </ol>}
+  </li>;
+}
+
+export function ConversationThread({ label, messages, composer, status, loading = false, readOnly = false, error, emptyMessage = 'No messages in this conversation.', className, hasOlder = false, onLoadOlder, olderLoading = false, olderUnavailableReason }: ConversationThreadProps) {
   const id = useId();
   return <section className={cx('t98-conversation-root', className)} aria-labelledby={`${id}-title`} aria-busy={loading || undefined}>
     <h3 id={`${id}-title`} className="t98-conversation-title">{label}</h3>
     {loading && <p className="t98-conversation-loading" role="status">Loading conversation. Previously supplied messages remain visible.</p>}
     {status != null && <div className="t98-conversation-status">{status}</div>}
     {error && <Alert title="Conversation needs attention" tone="danger">{error}</Alert>}
-    {messages.length ? <ol className="t98-conversation-messages">{messages.map(message => <li className="t98-conversation-message" key={message.id} data-message-id={message.id} data-visibility={message.visibility} data-direction={message.direction} data-removed={message.removed || undefined}>
-      <div className="t98-conversation-header"><strong className="t98-conversation-author">{message.author}</strong><time className="t98-conversation-time" dateTime={message.dateTime}>{message.time}</time>{message.direction && <span className="t98-conversation-direction">{directionLabels[message.direction]}</span>}<span className="t98-conversation-visibility">{visibilityLabels[message.visibility]}</span></div>
-      {message.removed ? <div className="t98-conversation-content t98-conversation-removed"><p className="t98-conversation-removed-label">Message removed.</p>{message.removedReason != null && <div className="t98-conversation-removed-reason">{message.removedReason}</div>}</div>
-        : <div className="t98-conversation-content">{message.content}</div>}
-      {!message.removed && message.attachments != null && <div className="t98-conversation-attachments">{message.attachments}</div>}
-      {message.status != null && <div className="t98-conversation-status">{message.status}</div>}
-      {message.actions != null && <div className="t98-conversation-actions" role="group" aria-label={`Actions for the message from ${message.author}, ${message.time}`}>{message.actions}</div>}
-    </li>)}</ol> : !loading && <div className="t98-conversation-empty">{emptyMessage}</div>}
+    {onLoadOlder && messages.length > 0 && <div className="t98-conversation-older">
+      <LoadMore hasMore={hasOlder} busy={olderLoading} onLoadMore={onLoadOlder} itemLabel="older messages" label="Load older messages" unavailableReason={olderUnavailableReason} endMessage="This is the start of the conversation." />
+    </div>}
+    {messages.length ? <ol className="t98-conversation-messages">{messages.map(message => <MessageItem key={message.id} message={message} depth={0} />)}</ol> : !loading && <div className="t98-conversation-empty">{emptyMessage}</div>}
     {readOnly && <p className="t98-conversation-readonly">Read only. Replies are unavailable.</p>}
     {composer != null && <div className="t98-conversation-composer" hidden={readOnly}>{composer}</div>}
   </section>;

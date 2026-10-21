@@ -233,4 +233,8 @@
 .t98-selectable-unread { flex: none; min-inline-size: 1.25rem; padding: 0 var(--t98-space-1); border-radius: var(--t98-radius-pill); background: var(--t98-accent); color: var(--t98-on-accent); font-size: var(--t98-text-xs); font-weight: var(--t98-weight-semibold); text-align: center; }
 .t98-selectable-status, .t98-selectable-empty { margin: 0; color: var(--t98-muted); }
 @media (forced-colors: active) { .t98-selectable-item[aria-selected='true'] { outline: 2px solid Highlight; outline-offset: -2px; } .t98-selectable-unread { border: 1px solid CanvasText; } }
+.t98-conversation-replies { display: grid; gap: var(--t98-space-2); margin: var(--t98-space-2) 0 0; padding: 0; list-style: none; border-inline-start: 2px solid var(--t98-border); padding-inline-start: var(--t98-space-3); }
+.t98-conversation-replies[data-flat] { padding-inline-start: 0; border-inline-start: 0; }
+.t98-conversation-replies > .t98-conversation-message { background: var(--t98-surface); }
+.t98-conversation-older { margin-block: var(--t98-space-2); }
 

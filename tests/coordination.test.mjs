@@ -98,3 +98,21 @@ test('SelectableList is one listbox with a roving stop on the selection and stat
   assert.match(render(SelectableList, { label: 'C', items: [{ id: 'x', title: 'X', unread: 250 }], onSelect() {} }), />99\+</);
   for (const name of ['t98-selectable', 't98-selectable-item', 't98-selectable-unread', 't98-selectable-preview']) assert.ok(styles.includes(`.${name}`), name);
 });
+
+test('conversation threads nest replies up to three levels and offer older messages through LoadMore', () => {
+  const reply = (id, depth, replies) => ({ id, author: `Author ${id}`, time: `t${id}`, visibility: 'public', content: `Reply ${id} at ${depth}`, ...(replies ? { replies } : {}) });
+  const messages = [{ id: 'root', author: 'Visitor', time: '10:00', visibility: 'public', content: 'Love this!', replies: [reply('r1', 1, [reply('r2', 2, [reply('r3', 3, [reply('r4', 4)])])])] }];
+  const html = render(ConversationThread, { label: 'Comments', messages, hasOlder: true, onLoadOlder() {} });
+  assert.match(html, /<ol class="t98-conversation-replies" aria-label="1 reply to Visitor">/);
+  assert.match(html, /data-message-id="r1"[^>]*data-depth="1"/);
+  assert.match(html, /data-message-id="r3"[^>]*data-depth="3"/);
+  // Deeper replies stay at the third level instead of indenting further.
+  assert.match(html, /data-message-id="r4"[^>]*data-depth="3"/);
+  assert.match(html, /aria-label="1 reply to Author r2" data-flat="true"/);
+  assert.match(html, />Load older messages</);
+  assert.ok(html.indexOf('Load older messages') < html.indexOf('data-message-id="root"'));
+  assert.match(render(ConversationThread, { label: 'C', messages, hasOlder: false, onLoadOlder() {} }), /This is the start of the conversation\./);
+  assert.match(render(ConversationThread, { label: 'C', messages, hasOlder: true, onLoadOlder() {}, olderUnavailableReason: 'The provider only returns the last 50 messages.' }), /The provider only returns the last 50 messages\./);
+  assert.doesNotMatch(render(ConversationThread, { label: 'C', messages }), /Load older|start of the conversation/);
+  for (const name of ['t98-conversation-replies', 't98-conversation-older']) assert.ok(styles.includes(`.${name}`), name);
+});
