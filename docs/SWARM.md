@@ -29,6 +29,6 @@ Research workers produce evidence, observed flows and recommendations inside the
 
 ## Current development wave
 
-Bounded workers completed the shared Campaign C1–C8 and Discover D1–D17 presentation components, fixed templates and interactive reference flows. The coordinator reviewed research decisions and consumer contracts, compiled all copied TSX, obtained independent reviews and ran the full Playwright gate. Reference flows use synthetic data; actual app integration and behavior evidence are tracked separately in the [completion ledger](CAMPAIGN-DISCOVER-COMPLETION.md). App owners continue bounded adoption and report concrete shared-UI gaps to this project.
+Bounded workers completed the shared Campaign C1–C8 and Discover D1–D17 presentation components, fixed templates and interactive reference flows. The coordinator reviewed research decisions and consumer contracts, compiled all copied TSX, obtained independent reviews and ran the full Playwright gate. Reference flows use synthetic data; actual app integration and behavior evidence are tracked separately in the [release validation](VALIDATION.md). App owners continue bounded adoption and report concrete shared-UI gaps to this project.
 
 Completion means the assigned outcome and checks are done. Passing work stops; repeated testing needs a new failure or a concrete unresolved concern. There is no background polling, recurring work or automatic new task dispatch after completion.

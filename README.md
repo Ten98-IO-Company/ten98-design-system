@@ -68,7 +68,6 @@ React and React DOM are peer dependencies; the supported range for each is `^18.
 - [Competitive research](docs/research/README.md): suite coverage, source evidence and proposed flow decisions.
 - [Fixed layouts and usage](docs/LAYOUTS-AND-USAGE.md): template selection, hierarchy, slot order and consistent behavior.
 - [Component, flow and template critique](docs/reviews/2026-10-19/README.md): exhaustive review, modern SaaS references and verified remediation.
-- [Campaign and Discover completion](docs/CAMPAIGN-DISCOVER-COMPLETION.md): flow coverage and consumer acceptance.
 - [Release validation](docs/VALIDATION.md): automated and browser checks, package verification and integration limits.
 
 Start with the shared shell, field, button, table and state patterns. Keep routing, data fetching, permissions enforcement and product-specific business logic in each application. Add a new shared pattern when a real tool needs it and its behavior can be named clearly.
