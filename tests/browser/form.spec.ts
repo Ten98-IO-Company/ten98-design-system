@@ -8,7 +8,7 @@ test('Form submits once while pending, locks its controls and returns focus to t
   await page.keyboard.press('Enter');
   await save.click({ force: true }).catch(() => {});
   await expect(page.locator('#calls')).toHaveText('Spring launch via save');
-  await expect(page.locator('form')).toHaveAttribute('aria-busy', 'true');
+  await expect(page.locator('form.t98-form')).toHaveAttribute('aria-busy', 'true');
   await expect(page.getByLabel('Project name')).toBeDisabled();
   await page.evaluate(() => window.finish());
   await expect(page.getByLabel('Project name')).toBeEnabled();
@@ -64,7 +64,15 @@ test('a dirty Dialog asks before discarding, Escape keeps editing, and submittin
   await page.getByRole('button', { name: 'Edit placement' }).click();
   await dialog.getByLabel('Placement name').fill('Changed');
   await dialog.getByRole('button', { name: 'Close dialog' }).click();
+  // The prompt is inside the modal dialog; Discard closes it and returns focus to the opener.
+  await expect(dialog.getByRole('button', { name: 'Keep editing' })).toBeFocused();
+  await page.keyboard.press('Shift+Tab');
+  await expect(dialog.getByRole('button', { name: 'Discard changes' })).toBeFocused();
+  // A native modal makes the rest of the page inert: Tab cycles the dialog and the browser's own controls, never page content.
+  for (let i = 0; i < 6; i++) { await page.keyboard.press('Tab'); expect(await dialog.evaluate(element => element.contains(document.activeElement) || document.activeElement === document.body)).toBe(true); }
+  await dialog.getByRole('button', { name: 'Keep editing' }).focus();
   await dialog.getByRole('button', { name: 'Discard changes' }).click();
   await expect(dialog).toBeHidden();
+  await expect(page.getByRole('button', { name: 'Edit placement' })).toBeFocused();
   await expect(page.locator('#saved')).toHaveText('Dubai Marina billboard, north face');
 });
