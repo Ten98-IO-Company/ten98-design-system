@@ -30,3 +30,10 @@ test('the character counter announces near and over the limit once, not on every
   await expect(sms).toHaveAttribute('aria-invalid', 'true');
   await expect(page.getByText('23 / 20 characters, 3 over the limit')).toBeVisible();
 });
+
+test('an image that fails to load is replaced by a named fallback, and a decorative one stays hidden', async ({ page }) => {
+  await page.goto('/tests/form.html');
+  await expect(page.getByRole('img', { name: 'Spring launch hero' })).toContainText('Image unavailable');
+  await expect(page.locator('img[src="/tests/missing-image.png"]')).toHaveCount(0);
+  await expect(page.locator('.t98-image-fallback[aria-hidden="true"]')).toHaveCount(1);
+});

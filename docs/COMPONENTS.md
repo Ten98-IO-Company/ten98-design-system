@@ -45,7 +45,7 @@ Applications compose every screen from these instead of writing elements, `class
 | `Text` | `as?`, `size?`, `tone?`, `weight?`, `align?`, `mono?`, `numeric?`, `truncate?` | Body text, values and inline emphasis; `as="time"` takes `dateTime`. |
 | `Heading` | `level` (required), `size?` | Outline level is independent of visual size. |
 | `Link` | `href`, `variant?`, `target?`, `component?` | Navigation; pass a router link as `component`. New-tab links get `noopener noreferrer`. |
-| `Image` | `alt` (required), `fit?`, `aspect?`, `rounded?` | Lazy, async-decoded responsive image. |
+| `Image` | `alt` (required), `fit?`, `aspect?`, `rounded?`, `fallback?` | Lazy, async-decoded responsive image. When it fails to load, `fallback` (default "Image unavailable") replaces it, never a broken-image glyph; a described image keeps its alt text as the fallback's name. |
 | `Blockquote` | `source?`, `cite?` | Quoted text in a figure, with the attribution as its caption; the quote rule mirrors in RTL. |
 | `List`, `ListItem` | `ordered?`, `gap?` | Prose lists with markers; use `Stack as="ul"` for unmarked layout lists. |
 | `DescriptionList` | `items`, `columns?` | Native label/value pairs. |
@@ -64,6 +64,7 @@ Applications compose every screen from these instead of writing elements, `class
 | `Form` | `onSubmit?(data, event)`, `busy?`, `gap?`, native form attributes | A native form whose controls sit in a fieldset that is disabled while a submit is pending or `busy`; repeat submits are ignored, `FormData` includes the submitter, native validation runs first, and focus returns to the submitting control. Without `onSubmit` it posts natively. Use it instead of a raw `form`. |
 | `MultiCombobox` | `label`, `options`, `values`, `onValuesChange`, `name?`, `required?`, plus the async props above | Several picks from a list: aria-multiselectable listbox with check marks, Enter or click toggles and keeps the list open, removable tags, Backspace in the empty input removes the last pick, announced adds and removals. One hidden input per value. Behaviour follows Downshift `useMultipleSelection` and react-aria `useComboBox` loading. |
 | `Pager` | `onPrevious?`, `onNext?`, `status?` | Previous/next navigation with a polite status; an absent handler disables that end. |
+| `LoadMore` | `onLoadMore`, `hasMore`, `busy?`, `shown?`, `total?`, `itemLabel?`, `unavailableReason?`, `endMessage?` | Cursor "load more": a polite count status ("Showing 50 of 120 messages"), a button that stays focusable while busy, an explicit reason when more exist but cannot be loaded, and an end message. |
 | `MediaPlayer` | `kind`, `label`, `src?`, `type?`, `poster?`, `width?`, `height?`, `tracks?`, `transcript?`, `downloadHref?`, `unavailable?` | Native audio or video controls named by a visible caption; nothing autoplays and only metadata preloads. Caption tracks and a collapsed transcript give text equivalents. A playback failure shows a reason and the download link; `unavailable` replaces the player. |
 | `CodeBlock`, `InlineCode` | `code`, `language?`, `wrap?`, `maxHeight?`, `copy?` | Read-only code with an optional copy button; long blocks scroll in a focusable region. |
 | `StatusLine` | `tone?`, `busy?`, `live?` | Inline loading or result status announced politely. |
@@ -136,7 +137,7 @@ Each flow renders the whole screen on `AuthLayout` with one `main` and one `h1`,
 | `Sparkline` | `values`, `label`, `color?` | Display-only SVG trend; ignores nonfinite values. Include text/tabular detail when exact values matter. |
 | `EmptyState` | `title`, `description: ReactNode`, `icon?`, `action?` | Empty or filtered-empty explanation and next action. |
 | `ActivityFeed` | `items` (`description?` is ReactNode) | Ordered activity presentation. Application supplies readable timestamps and sanitized event content. |
-| `ResourceCard` | `title`, `description: ReactNode`, `icon?`, `status?`, children, `actions?` | Shared presentation for a connection, server, property, campaign or other resource. |
+| `ResourceCard` | `title`, `description: ReactNode`, `icon?`, `status?`, children, `actions?`, `media?`, `tags?` | Shared presentation for a connection, server, property, campaign or other resource. `media` puts a thumbnail at the top in place of the icon; `tags` lists short labels as badges. |
 | `SettingsSection` | `title`, `description`, children | Labelled section with explanation and fields; stacks at narrow widths. |
 | `SettingsPanel` | `title`, `description?`, `onSubmit?(form: FormData)` or native `action`/`method`, `submitLabel?`, `submitDisabled?`, `actions?`, children, plus `busy`, `busyLabel`, `error`, `unconfirmed`, `notice`, `fieldErrors`, `disabled` | The section frame the library's own settings flows use, for an app's own settings screens: heading, outcome alerts, a fieldset that locks busy or read-only content, single-submit (a double submit calls `onSubmit` once) and focus on a new error or invalid field. Built-in flows share this implementation. |
 | `Stepper` | `steps`, `current` | Display-only ordered progress; `current` is a valid zero-based active step. The application owns navigation and validation. |

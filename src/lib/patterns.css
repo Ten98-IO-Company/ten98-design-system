@@ -96,6 +96,10 @@
 .t98-resource-topline > div { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
 .t98-resource-topline .t98-badge { white-space: normal; }
 .t98-resource-icon { display: grid; place-items: center; flex-shrink: 0; width: 2.75rem; height: 2.75rem; background: var(--t98-subtle); border: 1px solid var(--t98-border); border-radius: var(--t98-radius); }
+.t98-resource-media { margin: -1.25rem -1.25rem .75rem; overflow: hidden; border-radius: var(--t98-radius) var(--t98-radius) 0 0; background: var(--t98-subtle); }
+.t98-resource-media :where(img, .t98-image-fallback) { display: block; inline-size: 100%; border-radius: 0; }
+.t98-resource-card--media .t98-resource-topline:empty { display: none; }
+.t98-resource-tags { display: flex; flex-wrap: wrap; gap: var(--t98-space-1); margin: .5rem 0 0; padding: 0; list-style: none; }
 .t98-resource-card h3 { margin: 0; font-size: .9375rem; font-weight: 600; letter-spacing: -.02em; }
 .t98-resource-description { margin: .5rem 0 0; color: var(--t98-muted); font-size: .75rem; line-height: 1.7; }
 .t98-resource-content { margin-top: 1rem; font-size: .75rem; }

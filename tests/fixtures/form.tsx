@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Button, Field, Form, FormActions, Heading, Input, Stack, Text, Textarea } from '@ten98/ui';
+import { Button, Field, Form, FormActions, Heading, Image, Input, Stack, Text, Textarea } from '@ten98/ui';
 import '@ten98/ui/app-tokens.css';
 import '@ten98/ui/app.css';
 
@@ -17,6 +17,8 @@ function Screen() {
       <FormActions><Button type="submit" name="intent" value="save">Save</Button></FormActions>
     </Form>
     <Text id="calls">{calls.join(' | ')}</Text>
+    <Image src="/tests/missing-image.png" alt="Spring launch hero" aspect="video" />
+    <Image src="/tests/missing-decorative.png" alt="" />
   </Stack>;
 }
 createRoot(document.getElementById('form-fixture')!).render(<Screen />);

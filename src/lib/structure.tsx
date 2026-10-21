@@ -1,7 +1,7 @@
 'use client';
 
-import type { ComponentType, HTMLAttributes, ImgHTMLAttributes, LiHTMLAttributes, ReactNode } from 'react';
-import { cx } from './primitives.js';
+import { useState, type ComponentType, type HTMLAttributes, type ImgHTMLAttributes, type LiHTMLAttributes, type ReactNode } from 'react';
+import { Icon, cx } from './primitives.js';
 
 /* Layout and text primitives let applications compose screens without authoring elements or styles.
  * Spacing, size and tone props accept design-token steps only, so a screen cannot introduce ad-hoc values. */
@@ -118,9 +118,20 @@ export interface ImageProps extends Omit<ImgHTMLAttributes<HTMLImageElement>, 's
   fit?: 'cover' | 'contain';
   aspect?: 'auto' | 'square' | 'video' | 'portrait';
   rounded?: boolean;
+  /** Shown in place of the image when it cannot load (never a broken-image glyph). Defaults to "Image unavailable". */
+  fallback?: ReactNode;
 }
-export function Image({ fit = 'cover', aspect = 'auto', rounded = true, loading = 'lazy', decoding = 'async', className, ...props }: ImageProps) {
-  return <img {...props} loading={loading} decoding={decoding} className={cx('t98-image', `t98-image--${fit}`, aspect !== 'auto' && `t98-aspect-${aspect}`, rounded && 't98-image--rounded', className)} />;
+export function Image({ fit = 'cover', aspect = 'auto', rounded = true, loading = 'lazy', decoding = 'async', fallback = 'Image unavailable', className, onError, ...props }: ImageProps) {
+  const [failedSrc, setFailedSrc] = useState<string | undefined>();
+  const classes = cx('t98-image', `t98-image--${fit}`, aspect !== 'auto' && `t98-aspect-${aspect}`, rounded && 't98-image--rounded', className);
+  if (props.src !== undefined && failedSrc === props.src) {
+    // A described image keeps its alternative text as the fallback's name; a decorative one stays hidden.
+    return <span className={cx(classes, 't98-image-fallback')} role={props.alt ? 'img' : undefined} aria-label={props.alt || undefined} aria-hidden={props.alt ? undefined : true}
+      style={props.width && props.height ? { aspectRatio: `${props.width} / ${props.height}` } : undefined}>
+      <Icon name="image" size={20} aria-hidden="true" /><span aria-hidden={props.alt ? true : undefined}>{fallback}</span>
+    </span>;
+  }
+  return <img {...props} loading={loading} decoding={decoding} className={classes} onError={event => { setFailedSrc(props.src); onError?.(event); }} />;
 }
 
 export interface BlockquoteProps extends Omit<HTMLAttributes<HTMLElement>, 'style'> {

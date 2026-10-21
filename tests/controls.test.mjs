@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createElement as h } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { Blockquote, Form, Field as UIField, Textarea, CheckboxGroup, CodeBlock, MediaPlayer, MultiCombobox, Combobox, DateTimeField, Disclosure, FileField, Fieldset, InlineCode, Pager, RadioGroup, Scroller, SegmentedControl, StatusLine, Button } from '../dist/index.js';
+import { Blockquote, LoadMore, ResourceCard, Image, Form, Field as UIField, Textarea, CheckboxGroup, CodeBlock, MediaPlayer, MultiCombobox, Combobox, DateTimeField, Disclosure, FileField, Fieldset, InlineCode, Pager, RadioGroup, Scroller, SegmentedControl, StatusLine, Button } from '../dist/index.js';
 
 const styles = readFileSync(new URL('../dist/styles.css', import.meta.url), 'utf8');
 const classes = html => [...html.matchAll(/class="([^"]+)"/g)].flatMap(match => match[1].split(' '));
@@ -279,4 +279,31 @@ test('Combobox options can carry a description under the label', () => {
   assert.match(html, /role="option"[^>]*><span class="t98-combobox-option-text"><span>Running<\/span><span class="t98-combobox-option-description">Sports › Fitness · 120M people<\/span><\/span><\/li>/);
   assert.match(html, /role="option"[^>]*>Cycling<\/li>/);
   assert.ok(styles.includes('.t98-combobox-option-description'));
+});
+
+test('LoadMore states the count, keeps a busy button focusable and explains when more cannot load', () => {
+  const more = renderToStaticMarkup(h(LoadMore, { hasMore: true, shown: 50, total: 120, itemLabel: 'messages', onLoadMore() {} }));
+  rendered.push(more);
+  assert.match(more, /role="status">Showing 50 of 120 messages</);
+  assert.match(more, />Load more</);
+  const busy = renderToStaticMarkup(h(LoadMore, { hasMore: true, busy: true, shown: 50, onLoadMore() {} }));
+  assert.match(busy, /role="status">Loading more items…</);
+  assert.match(busy, /aria-busy="true" aria-disabled="true">Loading…</);
+  assert.doesNotMatch(busy, /<button[^>]* disabled=""/);
+  const blocked = renderToStaticMarkup(h(LoadMore, { hasMore: true, shown: 50, unavailableReason: 'No cursor.', onLoadMore() {} }));
+  assert.match(blocked, /No cursor\./);
+  assert.doesNotMatch(blocked, /<button/);
+  assert.match(renderToStaticMarkup(h(LoadMore, { hasMore: false, shown: 12, total: 12, onLoadMore() {} })), /Everything is shown\./);
+  assert.match(renderToStaticMarkup(h(LoadMore, { hasMore: true, shown: 5, total: null, onLoadMore() {} })), /Showing 5 items</);
+  for (const name of ['t98-load-more', 't98-load-more-status', 't98-load-more-reason', 't98-load-more-end']) assert.ok(styles.includes(`.${name}`), name);
+});
+
+test('ResourceCard takes a media slot in place of its icon and lists tags', () => {
+  const html = renderToStaticMarkup(h(ResourceCard, { title: 'Hero', description: 'Image', tags: ['Image', 'Spring'], media: h(Image, { src: '/h.jpg', alt: 'Hero art', aspect: 'video' }) }));
+  rendered.push(html);
+  assert.match(html, /class="t98-resource-card t98-resource-card--media"><div class="t98-resource-media"><img/);
+  assert.doesNotMatch(html, /t98-resource-icon/);
+  assert.match(html, /<ul class="t98-resource-tags" aria-label="Tags for Hero"><li><span class="t98-badge[^"]*">Image<\/span><\/li><li>/);
+  assert.match(renderToStaticMarkup(h(ResourceCard, { title: 'T', description: 'D' })), /t98-resource-icon/);
+  for (const name of ['t98-resource-media', 't98-resource-tags', 't98-image-fallback']) assert.ok(styles.includes(`.${name}`), name);
 });

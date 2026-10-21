@@ -155,6 +155,34 @@ export function SegmentedControl({ label, options, value, onValueChange }: Segme
   </div>;
 }
 
+export interface LoadMoreProps {
+  onLoadMore: () => void;
+  /** More items exist after the ones shown. */
+  hasMore: boolean;
+  /** A page is loading; the button stays focusable and shows progress. */
+  busy?: boolean;
+  /** Items shown so far, and the total when known (null when unknown). */
+  shown?: number;
+  total?: number | null;
+  /** Noun for the count, for example "messages". */
+  itemLabel?: string;
+  /** More exist but cannot be loaded (for example no cursor or no permission): shown instead of the button. */
+  unavailableReason?: ReactNode;
+  label?: string;
+  endMessage?: ReactNode;
+}
+/** Cursor-based "load more" with a count status. Previous/next page navigation is Pager. While busy the button is
+ * aria-disabled rather than disabled, so focus stays on it through the load. */
+export function LoadMore({ onLoadMore, hasMore, busy = false, shown, total, itemLabel = 'items', unavailableReason, label = 'Load more', endMessage = 'Everything is shown.' }: LoadMoreProps) {
+  const count = shown === undefined ? null : total != null && Number.isFinite(total) ? `Showing ${shown} of ${total} ${itemLabel}` : `Showing ${shown} ${itemLabel}`;
+  return <div className="t98-load-more">
+    <span className="t98-load-more-status" role="status">{busy ? `Loading more ${itemLabel}…` : count}</span>
+    {hasMore ? unavailableReason != null ? <p className="t98-load-more-reason">{unavailableReason}</p>
+      : <Button variant="secondary" aria-disabled={busy || undefined} aria-busy={busy || undefined} onClick={() => { if (!busy) onLoadMore(); }}>{busy ? 'Loading…' : label}</Button>
+      : <p className="t98-load-more-end">{endMessage}</p>}
+  </div>;
+}
+
 export interface PagerProps { onPrevious?: () => void; onNext?: () => void; label?: string; status?: ReactNode; previousLabel?: string; nextLabel?: string }
 /** Previous/next navigation; an absent handler disables that end. */
 export function Pager({ onPrevious, onNext, label = 'Pagination', status, previousLabel = 'Previous', nextLabel = 'Next' }: PagerProps) {

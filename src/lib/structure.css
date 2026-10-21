@@ -55,6 +55,8 @@ span.t98-truncate, strong.t98-truncate, em.t98-truncate, small.t98-truncate, cod
 .t98-image { display: block; max-width: 100%; height: auto; }
 .t98-image--cover { object-fit: cover; } .t98-image--contain { object-fit: contain; }
 .t98-image--rounded { border-radius: var(--t98-radius-md); }
+.t98-image-fallback { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--t98-space-1); min-block-size: 4rem; padding: var(--t98-space-2); background: var(--t98-subtle); color: var(--t98-muted); font: var(--t98-text-xs)/var(--t98-leading-normal) var(--t98-font); text-align: center; overflow-wrap: anywhere; }
+@media (forced-colors: active) { .t98-image-fallback { border: 1px solid CanvasText; } }
 .t98-quote { min-width: 0; margin: 0; display: grid; gap: var(--t98-space-1); }
 .t98-quote-text { margin: 0; padding-inline-start: var(--t98-space-3); border-inline-start: 0.25rem solid var(--t98-border); color: var(--t98-text); font: inherit; overflow-wrap: anywhere; }
 .t98-quote-source { padding-inline-start: var(--t98-space-4); color: var(--t98-muted); font-size: var(--t98-text-xs); }

@@ -472,12 +472,19 @@ export function ActivityFeed({ items }: { items: readonly ActivityItem[] }) {
   </li>)}</ol>;
 }
 
-export function ResourceCard({ title, description, icon = 'box', status, children, actions }: {
+export function ResourceCard({ title, description, icon = 'box', status, children, actions, media, tags }: {
   title: string; description: ReactNode; icon?: string; status?: ReactNode; children?: ReactNode; actions?: ReactNode;
+  /** A thumbnail or preview (for example an Image with an aspect) shown at the top in place of the icon. */
+  media?: ReactNode;
+  /** Short labels such as asset type or campaign, listed under the description. */
+  tags?: readonly string[];
 }) {
-  return <article className="t98-resource-card"><div className="t98-resource-topline">
-    <span className="t98-resource-icon"><Icon name={icon} size={21} /></span>{status && <div>{typeof status === 'string' ? <Badge>{status}</Badge> : status}</div>}
-  </div><h3>{title}</h3><p className="t98-resource-description">{description}</p>
+  return <article className={cx('t98-resource-card', media != null && 't98-resource-card--media')}>
+    {media != null && <div className="t98-resource-media">{media}</div>}
+    <div className="t98-resource-topline">
+      {media == null && <span className="t98-resource-icon"><Icon name={icon} size={21} /></span>}{status && <div>{typeof status === 'string' ? <Badge>{status}</Badge> : status}</div>}
+    </div><h3>{title}</h3><p className="t98-resource-description">{description}</p>
+    {tags && tags.length > 0 && <ul className="t98-resource-tags" aria-label={`Tags for ${title}`}>{tags.map(tag => <li key={tag}><Badge>{tag}</Badge></li>)}</ul>}
     {children && <div className="t98-resource-content">{children}</div>}{actions && <div className="t98-resource-actions">{actions}</div>}
   </article>;
 }

@@ -66,7 +66,7 @@ export const structureEntries: ComponentEntry[] = [
     [{ name: 'alt', type: 'string', required: true, description: 'Text alternative; empty only for decorative images.' }, { name: 'fit', type: "'cover' | 'contain'", description: 'Object fit. Defaults to cover.' }, { name: 'aspect', type: "'auto' | 'square' | 'video' | 'portrait'", description: 'Reserved aspect ratio.' }, { name: 'rounded', type: 'boolean', description: 'Token radius. Defaults to true.' }],
     ['--t98-radius-md'], ['Describe what the image shows that the surrounding text does not.'],
     ['Image'], '<Image src="/media/launch.jpg" alt="Launch poster on a Dubai billboard" aspect="video" />',
-    <Image src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 9'%3E%3Crect width='16' height='9' fill='%23ddd'/%3E%3C/svg%3E" alt="Placeholder" aspect="video" />, ['MediaStrip'], 'Standard img attributes; loading defaults to lazy and decoding to async.'),
+    <Image src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 9'%3E%3Crect width='16' height='9' fill='%23ddd'/%3E%3C/svg%3E" alt="Placeholder" aspect="video" />, ['MediaStrip', 'ResourceCard'], 'Standard img attributes; loading defaults to lazy and decoding to async. fallback (default "Image unavailable") replaces an image that fails to load; a described image keeps its alt text as the fallback\'s name.'),
   entry('Option', 'A choice inside Select.', 'Use as Select children; group related choices with OptionGroup.',
     [], [], ['Option text is the accessible name; keep values stable and labels readable.'],
     ['Option', 'Select'], '<Select aria-label="Channel">\n  <Option value="all">All channels</Option>\n  <Option value="social">Social</Option>\n</Select>',

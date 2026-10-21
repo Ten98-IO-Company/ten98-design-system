@@ -129,3 +129,6 @@
 .t98-combobox-option-text { display: grid; min-inline-size: 0; }
 .t98-combobox-option-description { color: var(--t98-muted); font-size: var(--t98-text-sm); }
 .t98-combobox-option[data-active] .t98-combobox-option-description { color: inherit; }
+.t98-load-more { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--t98-space-2) var(--t98-space-3); min-inline-size: 0; font-family: var(--t98-font); color: var(--t98-text); }
+.t98-load-more-status, .t98-load-more-reason, .t98-load-more-end { margin: 0; color: var(--t98-muted); font-size: var(--t98-text-sm); overflow-wrap: anywhere; }
+.t98-load-more-status:empty { display: none; }
