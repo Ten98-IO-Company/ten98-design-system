@@ -24,6 +24,7 @@ function Screen() {
   const [inspected, setInspected] = useState(-1);
   const [chosen, setChosen] = useState('search');
   return <Stack as="main" gap={6} id="charts">
+    <TimeSeriesChart label="Ninety days compressed" summary="Every day fits in the figure." kind="bars" fit="compress" series={[{ id: 'days', label: 'Visits', points: Array.from({ length: 90 }, (_, i) => ({ x: i, xLabel: `Day ${i + 1}`, y: i % 11 === 0 ? null : 20 + (i % 9) * 5 })) }]} />
     <WeekdayHourGrid label="Sessions by hour" context="Asia/Dubai" summary="Weekday mornings are busiest." weekdays={weekdays} values={hourValues} />
     <Heading level={1}>Charts</Heading>
     <TimeSeriesChart label="Weekly visits" context="Eight weeks" summary="Visits grew to 30; week three is unavailable." kind="bars" series={[visits]} baselineLabel="Zero" onInspect={setInspected} tableColumns={[{ header: 'Source', values: labels.map((_, index) => `Source ${index + 1}`) }]} />

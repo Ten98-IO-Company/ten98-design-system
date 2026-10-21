@@ -170,3 +170,23 @@ test('WeekdayHourGrid is a table with every value as text, square-root shading a
   assert.match(html, /Hatched: unavailable, not zero/);
   for (const name of ['t98-hour-grid', 't98-hour-grid-table', 't98-hour-cell', 't98-hour-cell--4', 't98-hour-cell--unavailable']) assert.ok(styles.includes(`.${name}`), name);
 });
+
+test('fit compress keeps 90 daily points inside the figure, while scroll keeps 48px per point', () => {
+  const points = Array.from({ length: 90 }, (_, i) => ({ x: i, xLabel: `Day ${i + 1}`, y: i % 7 === 0 ? null : i, ...(i === 3 ? { title: 'Day 4: launch email sent' } : {}) }));
+  const series = [{ id: 'v', label: 'Visits', points }];
+  const width = html => Number(html.match(/<svg[^>]*class="t98-chart-svg"[^>]*width="(\d+(?:\.\d+)?)"/)?.[1] ?? html.match(/<svg[^>]*width="(\d+(?:\.\d+)?)"[^>]*class="t98-chart-svg"/)?.[1]);
+  const scroll = render(h(TimeSeriesChart, { label: 'Visits', summary: 's', kind: 'bars', series }));
+  const compress = render(h(TimeSeriesChart, { label: 'Visits', summary: 's', kind: 'bars', series, fit: 'compress' }));
+  assert.ok(width(scroll) >= 90 * 48, `scroll width ${width(scroll)}`);
+  assert.equal(width(compress), 640);
+  // Thinned labels: far fewer ticks than points, first and last kept.
+  const ticks = (compress.match(/t98-chart-x-tick/g) ?? []).length;
+  assert.ok(ticks > 2 && ticks < 30, `ticks ${ticks}`);
+  assert.match(compress, />Day 1</);
+  assert.match(compress, />Day 90</);
+  // Nulls stay Unavailable, the table keeps every point, and a point title replaces only its hover text.
+  assert.match(compress, /<title>Day 4: launch email sent<\/title>/);
+  assert.equal((compress.match(/<th scope="row">Day \d+<\/th>/g) ?? []).length, 90);
+  assert.match(compress, /Day 8 · Visits: unavailable/);
+  assert.equal(width(render(h(TimeSeriesChart, { label: 'V', summary: 's', kind: 'bars', series, fit: 'compress', minStep: 10 }))), 58 + 14 + 900);
+});

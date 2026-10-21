@@ -206,3 +206,22 @@ for (const theme of ['light', 'dark'] as const) {
     }
   });
 }
+
+test('a compressed 90-day chart fits its figure without scrolling and still inspects points by keyboard', async ({ page }, info) => {
+  const width = info.project.name === 'narrow-dark' ? 320 : 1440;
+  await page.setViewportSize({ width, height: 900 });
+  await page.goto('/tests/charts.html');
+  const figure = page.locator('figure', { hasText: 'Ninety days compressed' });
+  const plot = figure.getByRole('group', { name: /Ninety days compressed plot/ });
+  await expect(plot).toBeVisible();
+  expect(await plot.evaluate(node => node.scrollWidth - node.clientWidth)).toBeLessThanOrEqual(1);
+  await plot.focus();
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('ArrowRight');
+  await expect(figure.getByRole('status')).toContainText('Day 3 · Visits:');
+  await page.keyboard.press('Home');
+  await expect(figure.getByRole('status')).toContainText('Day 1 · Visits: unavailable');
+  const boxes = await figure.locator('.t98-chart-x-tick').evaluateAll(nodes => nodes.map(node => node.getBoundingClientRect()).map(r => [r.left, r.right]));
+  for (let i = 1; i < boxes.length; i++) expect(boxes[i][0]).toBeGreaterThanOrEqual(boxes[i - 1][1] - 0.5);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
+});

@@ -20,6 +20,8 @@ export interface ChartPoint {
   state?: ChartPointState;
   /** Extra exact context for this point, shown in the data table. */
   note?: string;
+  /** Hover text for this point's mark; defaults to "label · series: value". */
+  title?: string;
 }
 
 export interface ChartSeries {
@@ -132,6 +134,11 @@ export interface TimeSeriesChartProps {
   xHeader?: string;
   /** Short axis label for a point, for example "W7". The data table and announcements keep the full `xLabel`. */
   formatXTick?: (point: ChartPoint, index: number) => string;
+  /** `scroll` (default) keeps a minimum width per point and scrolls inside the region; `compress` fits every point into the
+   * figure (for example 90 daily or 60 per-minute points), thinning axis labels. Keyboard inspection and the table are the same. */
+  fit?: 'scroll' | 'compress';
+  /** Minimum width per point in pixels: default 48 when scrolling (more for grouped bars) and 3 when compressing. */
+  minStep?: number;
   tableColumns?: readonly ChartTableColumn[];
   onInspect?: (index: number) => void;
   notice?: ReactNode;
@@ -181,7 +188,7 @@ function planTicks(texts: readonly string[], centres: readonly number[], width: 
 }
 
 /** Bars, grouped or stacked bars, a line or an area over time. Keyboard: arrows move between points and series, Home/End jump. */
-export function TimeSeriesChart({ label, context, summary, kind, series, xScale = 'band', xDomain, formatY = plain, yDomain = 'nice', baselineLabel, xHeader = 'Point', formatXTick, tableColumns = [], onInspect, notice, loading, emptyMessage }: TimeSeriesChartProps) {
+export function TimeSeriesChart({ label, context, summary, kind, series, xScale = 'band', xDomain, formatY = plain, yDomain = 'nice', baselineLabel, xHeader = 'Point', formatXTick, fit = 'scroll', minStep, tableColumns = [], onInspect, notice, loading, emptyMessage }: TimeSeriesChartProps) {
   const uid = useId().replace(/:/g, '');
   const summaryId = `${uid}-summary`;
   const statsId = `${uid}-stats`;
@@ -226,8 +233,10 @@ export function TimeSeriesChart({ label, context, summary, kind, series, xScale 
     if (low === high && wantsZero && low === 0) domain = [0, 1];
   }
 
-  const step = isBars && kind === 'grouped-bars' ? Math.max(48, series.length * 16 + 14) : 48;
-  // Fill the figure, but keep a minimum width per point so dense series scroll inside the region.
+  const grouped = isBars && kind === 'grouped-bars';
+  const step = fit === 'compress' ? Math.max(minStep ?? 3, grouped ? series.length * 2 : 0)
+    : Math.max(minStep ?? 48, grouped ? series.length * 16 + 14 : 0);
+  // Fill the figure, but keep a minimum width per point; when scrolling, dense series scroll inside the region.
   const width = Math.max(available, MARGIN.left + MARGIN.right + count * step);
   const plotLeft = MARGIN.left;
   const plotRight = width - MARGIN.right;
@@ -238,7 +247,7 @@ export function TimeSeriesChart({ label, context, summary, kind, series, xScale 
   const band = bandScale(count, [plotLeft, plotRight], { paddingInner: 0.25, paddingOuter: 0.1 });
   const xs = series.flatMap(item => item.points.map(point => point.x)).filter(Number.isFinite);
   const linear = linearScale(xDomain ? [xDomain[0], xDomain[1]] : [Math.min(...xs), Math.max(...xs)], [plotLeft + step / 2, plotRight - step / 2]);
-  const bandwidth = xScale === 'band' ? band.bandwidth : Math.max(8, (plotRight - plotLeft) / Math.max(1, count) * 0.7);
+  const bandwidth = xScale === 'band' ? band.bandwidth : Math.max(fit === 'compress' ? 1 : 8, (plotRight - plotLeft) / Math.max(1, count) * 0.7);
   const centre = (index: number) => {
     if (xScale === 'linear') {
       const x = series.find(item => item.points[index])?.points[index].x;
@@ -324,7 +333,7 @@ export function TimeSeriesChart({ label, context, summary, kind, series, xScale 
         layers.push(<rect key={`${item.id}-${i}`} x={x0} y={cell.value === 0 ? top - 1 : top} width={w} height={height}
           className={cx('t98-chart-bar', outlined && 't98-chart-bar--outline', cell.state === 'partial' && 't98-chart-bar--partial')}
           fill={outlined ? 'none' : `url(#${uid}-p${tone})`} style={{ stroke: toneColor(tone) }}
-          strokeDasharray={outlined ? DASHES[1] : cell.state === 'partial' ? '4 3' : undefined}><title>{describe(s, i)}</title></rect>);
+          strokeDasharray={outlined ? DASHES[1] : cell.state === 'partial' ? '4 3' : undefined}><title>{series[s].points[i]?.title ?? describe(s, i)}</title></rect>);
         if (cell.state === 'partial') layers.push(<circle key={`${item.id}-${i}-p`} className="t98-chart-partial-mark" cx={x0 + w / 2} cy={top - 7} r="5" style={{ stroke: toneColor(tone) }}><title>Partial</title></circle>);
       });
     } else {

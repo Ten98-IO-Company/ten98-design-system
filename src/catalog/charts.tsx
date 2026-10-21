@@ -73,6 +73,8 @@ export const chartEntries: ComponentEntry[] = [
       prop('baselineLabel', 'string', 'Text on the zero line.'),
       prop('xHeader', 'string', 'Header of the first data-table column.', false, "'Point'"),
       prop('formatXTick', '(point: ChartPoint, index: number) => string', 'Short axis label for a point, for example "W7". The table and announcements keep the full xLabel.'),
+      prop('fit', "'scroll' | 'compress'", 'scroll keeps a minimum width per point and scrolls; compress fits every point into the figure with thinned labels.', false, "'scroll'"),
+      prop('minStep', 'number', 'Minimum width per point in pixels (48 scrolling, 3 compressing).'),
       prop('tableColumns', '{ header: string; values: ReactNode[] }[]', 'Extra exact columns in the data table, one value per x position.'),
       prop('onInspect', '(index: number) => void', 'Called when the keyboard moves to another x position.'),
       prop('notice', 'ReactNode', 'A note such as a late-data warning.'),

@@ -216,7 +216,7 @@ export function HeatmapPlane({ label, geometry, mode, points = [], bands = [], l
   const maximum = Math.max(0, ...points.map(point => point.count).filter(valid));
   return <div className={cx('t98-heatmap', className)} data-mode={mode} dir="ltr" role="img" aria-label={`${label}, ${mode === 'click' ? 'click density' : 'scroll depth'} overlay`} style={sound ? { aspectRatio: `${width} / ${height}` } : undefined}>
     {sound && mode === 'click' && points.filter(point => valid(point.count) && point.count > 0 && maximum > 0).map((point, index) =>
-      <span key={`${point.x}-${point.y}-${index}`} className="t98-heatmap-point" style={{ insetInlineStart: `${clamp(point.x / width, 0, 1) * 100}%`, insetBlockStart: `${clamp(point.y / height, 0, 1) * 100}%`, opacity: 0.15 + 0.85 * Math.sqrt(point.count! / maximum) }} />)}
+      <span key={`${point.x}-${point.y}-${index}`} className="t98-heatmap-point" title={`${point.label}: ${point.count}`} style={{ insetInlineStart: `${clamp(point.x / width, 0, 1) * 100}%`, insetBlockStart: `${clamp(point.y / height, 0, 1) * 100}%`, opacity: 0.15 + 0.85 * Math.sqrt(point.count! / maximum) }} />)}
     {sound && mode === 'scroll' && bands.map((band, index) => {
       const from = clamp(Math.min(band.from, band.to) / height, 0, 1);
       const to = clamp(Math.max(band.from, band.to) / height, 0, 1);

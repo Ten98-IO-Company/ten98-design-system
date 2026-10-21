@@ -126,3 +126,8 @@ test('every t98 class emitted by the spatial components is styled', () => {
     // ReplayControls and Button classes belong to their own components and tests.
     if (/^t98-(map|heatmap|calendar|replay-viewer|replay-frame)/.test(name)) assert.ok(styles.includes(`.${name}`), `${name} is styled`);
 });
+
+test('heatmap click points carry a hover title with their label and count', () => {
+  const html = render(HeatmapPlane, { label: 'Page', geometry: { width: 100, height: 100 }, mode: 'click', points: [{ x: 10, y: 10, count: 4, label: 'Buy button' }] });
+  assert.match(html, /class="t98-heatmap-point" title="Buy button: 4"/);
+});
