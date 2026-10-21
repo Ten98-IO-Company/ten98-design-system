@@ -253,7 +253,8 @@ export function PasswordRecoveryFlow({ stage, token, availability = 'enabled', s
   const id = useId();
   const [mismatch, setMismatch] = useState(false);
   const copy = { ...recoveryMessages, ...messages };
-  const back = actionRow([<FlowActionControl key="back" action={backToSignIn} label={backToSignIn.label ?? 'Back to sign in'} linkComponent={linkComponent} variant="ghost" />]);
+  const backControl = <FlowActionControl key="back" action={backToSignIn} label={backToSignIn.label ?? 'Back to sign in'} linkComponent={linkComponent} variant="ghost" />;
+  const back = actionRow([backControl]);
   const message = (tone: Tone, text: string, actions?: ReactNode) => <Stack gap={4}><Alert tone={tone} title={text} />{actions}{back}</Stack>;
   const common = { ...frame, linkComponent, onSubmit: stage === 'request' ? typed(onSubmit as ((values: RecoveryRequestValues) => void | Promise<void>) | undefined, raw => ({ email: text(raw, 'email') })) : typed(onSubmit as ((values: RecoveryResetValues) => void | Promise<void>) | undefined, raw => ({ password: text(raw, 'password'), confirmation: text(raw, 'confirmation'), ...optional(raw, 'token') })), valueFields: token && stage === 'reset' ? { token } : undefined };
   if (stage === 'request' && availability === 'loading') return <AuthFormFrame {...common}><div className="t98-auth-state" role="status"><span className="t98-spinner" aria-hidden="true" /><span>{copy.loading}</span></div>{back}</AuthFormFrame>;
@@ -268,7 +269,9 @@ export function PasswordRecoveryFlow({ stage, token, availability = 'enabled', s
   // Presentation-only check so a typo is caught before a request; the application still validates the password.
   const confirmationError = fieldErrors?.confirmation ?? (mismatch ? copy.mismatch : undefined);
   const clearMismatch = () => setMismatch(false);
-  return <AuthFormFrame {...common} fieldErrors={{ ...fieldErrors, confirmation: confirmationError }} submitLabel={submitLabel ?? 'Reset password'} busyLabel={busyLabel ?? 'Resetting…'} after={back}
+  // The same mismatch also appears as the form-level alert, which takes focus after a submit like any other failure.
+  return <AuthFormFrame {...common} error={mismatch ? copy.mismatch : frame.error} fieldErrors={{ ...fieldErrors, confirmation: confirmationError }} submitLabel={submitLabel ?? 'Reset password'} busyLabel={busyLabel ?? 'Resetting…'}
+    after={actionRow([onRequestNewLink && <Button key="new-link" type="button" variant="ghost" size="sm" onClick={onRequestNewLink}>{requestNewLinkLabel}</Button>, backControl])}
     validate={values => { const same = values.password === values.confirmation; setMismatch(!same); return same; }}>
     <Text tone="muted" size="sm">{copy.resetIntro}</Text>
     <Field label="New password" htmlFor={`${id}-password`} description={passwordHint(passwordPolicy)} error={fieldErrors?.password}>
@@ -302,6 +305,8 @@ export interface InvitationAcceptFlowProps extends AuthFormBaseProps<InvitationV
   onSignIn?: () => void;
   onSwitchAccount?: () => void;
   onRetry?: () => void;
+  /** Label of the sign-in action. Defaults to "Sign in instead" beside the account form and "Sign in to join" when sign-in is required. */
+  signInLabel?: string;
   /** Where to go after joining. */
   continueAction?: LabelledAction;
   passwordPolicy?: PasswordPolicy;
@@ -309,7 +314,7 @@ export interface InvitationAcceptFlowProps extends AuthFormBaseProps<InvitationV
   cancel?: LabelledAction;
 }
 /** Workspace invitation screens for every step of acceptance. The application validates the invitation and the session. */
-export function InvitationAcceptFlow({ state, token, invitation, formatDate = formatFlowDate, signedInEmail, accountExists = false, providers, onSignIn, onSwitchAccount, onRetry, continueAction, passwordPolicy = defaultPasswordPolicy, messages, cancel, busyLabel, linkComponent, fieldErrors, onSubmit, ...frame }: InvitationAcceptFlowProps) {
+export function InvitationAcceptFlow({ state, token, invitation, formatDate = formatFlowDate, signedInEmail, accountExists = false, providers, onSignIn, signInLabel, onSwitchAccount, onRetry, continueAction, passwordPolicy = defaultPasswordPolicy, messages, cancel, busyLabel, linkComponent, fieldErrors, onSubmit, ...frame }: InvitationAcceptFlowProps) {
   const id = useId();
   const copy = { ...invitationMessages, ...messages };
   const fill = (text: string) => text.replace('{signedIn}', signedInEmail ?? '').replace('{invited}', invitation?.email ?? '').replace('{workspace}', invitation?.workspaceName ?? '');
@@ -340,12 +345,12 @@ export function InvitationAcceptFlow({ state, token, invitation, formatDate = fo
   if (effective === 'signin-required') return <AuthFormFrame {...base} below={providers}>
     {summary}
     <Text tone="muted" size="sm">{fill(copy.signInRequired)}</Text>
-    <Button type="button" loading={busy} onClick={onSignIn}>Sign in to join</Button>
+    <Button type="button" loading={busy} onClick={onSignIn}>{signInLabel ?? 'Sign in to join'}</Button>
     {actionRow([exit])}
   </AuthFormFrame>;
   const joining = Boolean(signedInEmail);
   return <AuthFormFrame {...base} fieldErrors={fieldErrors} submitLabel={joining ? 'Join workspace' : 'Create account and join'} busyLabel={busyLabel ?? (joining ? 'Joining…' : 'Creating account…')} below={joining ? undefined : providers}
-    after={actionRow([!joining && onSignIn && <Button key="signin" type="button" variant="ghost" size="sm" onClick={onSignIn}>Sign in instead</Button>, exit])}>
+    after={actionRow([!joining && onSignIn && <Button key="signin" type="button" variant="ghost" size="sm" onClick={onSignIn}>{signInLabel ?? 'Sign in instead'}</Button>, exit])}>
     {summary}
     {!joining && <>
       <Field label="Your name" htmlFor={`${id}-name`} error={fieldErrors?.name}>
@@ -407,7 +412,7 @@ export interface OidcProviderButtonsProps {
   providers: readonly OidcProvider[] | null;
   loading?: boolean;
   loadingLabel?: string;
-  /** Failure loading providers, supplied by the application. */
+  /** Failure loading or starting a provider, supplied by the application. With providers listed it shows below the buttons, which stay usable. */
   error?: string;
   /** Called for a provider without `href`; the application starts the redirect. */
   onStart?: (id: string) => void;
@@ -415,23 +420,29 @@ export interface OidcProviderButtonsProps {
   retryLabel?: string;
   /** Id of the provider being started; it shows loading and the others are disabled. */
   pending?: string | null;
+  /** Status announced while a provider is being started. */
+  pendingLabel?: string;
   dividerLabel?: string;
   labelFor?: (provider: OidcProvider) => string;
 }
 /** Sign-on provider choices below a divider. Providers with `href` are native links. */
-export function OidcProviderButtons({ providers, loading = false, loadingLabel = 'Loading sign-in options…', error, onStart, onRetry, retryLabel = 'Try again', pending = null, dividerLabel = 'or continue with', labelFor = provider => `Continue with ${provider.name}` }: OidcProviderButtonsProps) {
+export function OidcProviderButtons({ providers, loading = false, loadingLabel = 'Loading sign-in options…', error, onStart, onRetry, retryLabel = 'Try again', pending = null, pendingLabel = 'Contacting the provider…', dividerLabel = 'or continue with', labelFor = provider => `Continue with ${provider.name}` }: OidcProviderButtonsProps) {
   const divider = <div className="or-divider"><span>{dividerLabel}</span></div>;
   if (loading && !providers?.length) return <div className="t98-auth-providers">{divider}<div className="t98-auth-state" role="status"><span className="t98-spinner" aria-hidden="true" /><span>{loadingLabel}</span></div></div>;
-  if (error) return <div className="t98-auth-providers">{divider}<Alert tone="danger" title={error} actions={onRetry && <Button type="button" variant="secondary" size="sm" onClick={onRetry}>{retryLabel}</Button>} /></div>;
-  if (!providers?.length) return null;
+  const listed = Boolean(providers?.length);
+  if (!listed && !error) return null;
+  const failure = error && <Alert tone="danger" title={error} actions={!listed && onRetry ? <Button type="button" variant="secondary" size="sm" onClick={onRetry}>{retryLabel}</Button> : undefined} />;
+  if (!listed) return <div className="t98-auth-providers">{divider}{failure}</div>;
   return <div className="t98-auth-providers">{divider}
     <Stack as="ul" gap={2} aria-label="Sign-in providers">
-      {providers.map(provider => <Stack as="li" gap={0} key={provider.id}>
+      {providers!.map(provider => <Stack as="li" gap={0} key={provider.id}>
         {provider.href !== undefined
           ? <a className="t98-button t98-button--secondary t98-auth-provider" href={provider.href}>{labelFor(provider)}</a>
           : <Button type="button" variant="secondary" className="t98-auth-provider" loading={pending === provider.id} disabled={pending != null && pending !== provider.id} onClick={() => onStart?.(provider.id)}>{labelFor(provider)}</Button>}
       </Stack>)}
     </Stack>
+    {pending != null && <div className="t98-auth-state" role="status"><span className="t98-spinner" aria-hidden="true" /><span>{pendingLabel}</span></div>}
+    {failure}
   </div>;
 }
 

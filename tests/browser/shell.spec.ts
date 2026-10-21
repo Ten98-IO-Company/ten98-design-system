@@ -165,6 +165,47 @@ test('app skip link focuses main', async ({ page }) => {
   await expect(page.getByRole('main', { name: 'Page content' })).toBeFocused();
 });
 
+test('app skip link focuses main and leaves the URL hash (capability tokens) untouched', async ({ page, context }) => {
+  await page.goto(appUrl('light'));
+  await page.evaluate(() => history.replaceState(null, '', `${location.pathname}${location.search}#token=abc`));
+  const skip = page.getByRole('link', { name: 'Skip to content' });
+  const main = page.getByRole('main', { name: 'Page content' });
+  await page.keyboard.press('Tab');
+  await expect(skip).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(main).toBeFocused();
+  expect(await page.evaluate(() => location.hash)).toBe('#token=abc');
+  // The link is only on screen while focused, and each activation moves focus away.
+  await skip.focus();
+  await skip.click({ modifiers: ['ControlOrMeta'] });
+  await skip.focus();
+  await skip.click({ button: 'middle' });
+  await expect(main).toBeFocused();
+  expect(context.pages()).toHaveLength(1);
+  expect(await page.evaluate(() => location.hash)).toBe('#token=abc');
+});
+
+test('app topbar wrap keeps long breadcrumb labels visible at 320px with doubled text', async ({ page }, info) => {
+  narrowOnly(info.project.name);
+  await page.goto(`${appUrl('light')}&crumbs=long`);
+  const crumbs = page.getByRole('banner').getByRole('navigation', { name: 'Breadcrumb' });
+  // Snapshot every size first: changing a parent before measuring its child would compound inheritance.
+  await page.evaluate(() => {
+    const sizes = [...document.body.querySelectorAll<HTMLElement>('*')].map(element => ({ element, size: parseFloat(getComputedStyle(element).fontSize), height: parseFloat(getComputedStyle(element).lineHeight) }));
+    for (const { element, size, height } of sizes) {
+      element.style.setProperty('font-size', `${size * 2}px`, 'important');
+      if (Number.isFinite(height)) element.style.setProperty('line-height', `${height * 2}px`, 'important');
+    }
+  });
+  for (const selector of ['.t98-app-topbar__scope', '.t98-app-topbar__current']) {
+    const metrics = await crumbs.locator(selector).evaluate(element => ({ clipped: element.scrollWidth > element.clientWidth + 1, right: element.getBoundingClientRect().right, viewport: innerWidth, ellipsis: getComputedStyle(element).textOverflow }));
+    expect(metrics.clipped, selector).toBe(false);
+    expect(metrics.ellipsis, selector).toBe('clip');
+    expect(metrics.right, selector).toBeLessThanOrEqual(metrics.viewport + 1);
+  }
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)).toBe(true);
+});
+
 test('app drawer in right-to-left opens from the inline-end side without overflow', async ({ page }, info) => {
   narrowOnly(info.project.name);
   await page.goto(appUrl('dark'));

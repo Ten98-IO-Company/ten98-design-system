@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Alert, Badge, Button, Card, Field, Heading, Inline, Input, Meter, Progress, Select, Stack } from '@ten98/ui';
+import { Alert, Badge, Button, Card, Field, Heading, Inline, Input, Meter, Progress, Select, Stack, Tabs } from '@ten98/ui';
 import '@ten98/ui/styles.css';
 
 // Composed from library components only, the way an application screen must be.
@@ -10,6 +10,16 @@ const regions = [
   { value: 'dubai', label: 'Dubai', group: 'Middle East' }, { value: 'riyadh', label: 'Riyadh', group: 'Middle East' },
   { value: 'london', label: 'London', group: 'Europe' },
 ];
+
+function LazyTabs() {
+  const [value, setValue] = useState('one');
+  return <div id="lazy-tabs"><Tabs label="Lazy sections" value={value} onValueChange={setValue} keepMounted={false} items={[
+    { value: 'one', label: 'One', content: 'First panel' },
+    { value: 'two', label: 'Two', content: 'Second panel', disabled: true },
+    { value: 'three', label: 'Three', content: 'Third panel' },
+    { value: 'four', label: 'Four', content: 'Fourth panel' },
+  ]} /></div>;
+}
 
 function Screen() {
   const [pressed, setPressed] = useState(false);
@@ -35,6 +45,7 @@ function Screen() {
     <Progress label="Syncing destinations" />
     <Progress label="Files uploaded" value={64} />
     <Meter label="Storage used" value={72} valueLabel="72 GB of 100 GB" low={60} high={85} optimum={10} />
+    <LazyTabs />
     <Inline id="palettes">{palettes.map(palette => <Badge key={palette} palette={palette}>{palette}</Badge>)}</Inline>
   </Stack>;
 }

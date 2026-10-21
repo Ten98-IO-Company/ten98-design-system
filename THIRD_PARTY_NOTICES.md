@@ -42,3 +42,27 @@ React and React DOM are peer dependencies under the MIT license. Development dep
 - Licence: W3C Software and Document License (https://www.w3.org/copyright/software-license-2023/)
 - Retrieved: 2026-10-21
 - Use: behaviour ported and adapted to React 19 + t98 tokens in the `Combobox` component (keyboard model, ARIA roles and `aria-activedescendant` handling). No W3C markup, styles or script text is bundled.
+
+## WAI-ARIA Authoring Practices: Tabs
+
+- Source: https://www.w3.org/WAI/ARIA/apg/patterns/tabs/
+- Licence: W3C Software and Document License (https://www.w3.org/copyright/software-license-2023/)
+- Retrieved: 2026-10-21
+- Use: the `Tabs` keyboard model (automatic activation, arrow wrapping, Home/End) and tab/tabpanel roles; disabled tabs are skipped. No W3C markup, styles or script text is bundled.
+
+## WCAG Technique G1: Skip link
+
+- Source: https://www.w3.org/WAI/WCAG22/Techniques/general/G1
+- Licence: W3C Software and Document License (https://www.w3.org/copyright/software-license-2023/)
+- Retrieved: 2026-10-21
+- Use: the `AppShell` skip-link behaviour (first focusable link, visible on focus, moves focus to `main`). The default navigation is cancelled so the URL hash is preserved. No W3C text is bundled.
+
+## Lucide icons
+
+- Source: https://lucide.dev (package `lucide-static` 0.468.0, https://github.com/lucide-icons/lucide)
+- Licence: ISC. Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of Feather (MIT); all other copyright (c) for Lucide are held by Lucide Contributors 2022.
+- Use: path data of the `send`, `calendar`, `target`, `link`, `image` icons, `billboard` (Lucide `presentation`) and `chart` (Lucide `chart-column`) in the `Icon` component. `rect` and `circle` elements were converted to equivalent path commands; stroke width and the `Icon` component are our own.
+
+Permission to use, copy, modify, and/or distribute this software for any purpose with or without fee is hereby granted, provided that the above copyright notice and this permission notice appear in all copies.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.

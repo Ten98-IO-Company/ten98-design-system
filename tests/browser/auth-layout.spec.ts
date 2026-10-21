@@ -66,6 +66,20 @@ test('standalone auth shares Campaign composition and retains native forms in bo
   expect(errors).toEqual([]);
 });
 
+test('the split story panel fills the viewport height from the top; narrow stays stacked', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1600 });
+  await page.goto('/tests/auth-layout.html');
+  const wide = await page.locator('.auth-story').evaluate(element => ({ offset: element.getBoundingClientRect().top - element.closest('.auth-shell')!.getBoundingClientRect().top, height: element.getBoundingClientRect().height, viewport: innerHeight }));
+  expect(wide.offset).toBe(0);
+  expect(wide.height).toBeGreaterThanOrEqual(wide.viewport);
+  await page.setViewportSize({ width: 320, height: 800 });
+  await page.goto('/tests/auth-layout.html');
+  const narrow = await page.locator('.auth-shell').evaluate(element => ({ columns: getComputedStyle(element).gridTemplateColumns.split(' ').length, overflow: document.documentElement.scrollWidth > innerWidth + 1, story: element.querySelector('.auth-story')!.getBoundingClientRect().height, viewport: innerHeight }));
+  expect(narrow.columns).toBe(1);
+  expect(narrow.overflow).toBe(false);
+  expect(narrow.story).toBeLessThan(narrow.viewport);
+});
+
 test('brand guide and catalogue reuse the same auth layout and app-owned states', async ({ page }, info) => {
   for (const theme of ['light', 'dark']) {
     const prefix = theme === 'dark' ? '/?theme=dark' : '/';

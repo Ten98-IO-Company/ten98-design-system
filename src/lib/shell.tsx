@@ -216,6 +216,8 @@ function ShellActionControl({ action, className, linkComponent: LinkComponent }:
 export interface AppTopbarProps {
   breadcrumb: { icon?: IconName; scope?: string; current: string };
   breadcrumbLabel?: string;
+  /** Lets long scope and current labels wrap instead of truncating with an ellipsis. Default false. */
+  wrap?: boolean;
   /** Shows the menu button that opens the drawer; needs `AppShell navigation`. Hidden on desktop. */
   /** Shows the drawer toggle. It renders only inside an `AppShell` with `navigation`, which owns the drawer state. */
   menuToggle?: boolean;
@@ -226,9 +228,9 @@ export interface AppTopbarProps {
 }
 
 /** Top bar content for `AppShell topbar`: breadcrumb, drawer toggle, search, badge and actions. */
-export function AppTopbar({ breadcrumb, breadcrumbLabel = 'Breadcrumb', menuToggle = false, menuLabel = 'Open navigation', search, badge, actions }: AppTopbarProps) {
+export function AppTopbar({ breadcrumb, breadcrumbLabel = 'Breadcrumb', wrap = false, menuToggle = false, menuLabel = 'Open navigation', search, badge, actions }: AppTopbarProps) {
   const shell = useContext(appShellNavigation);
-  return <div className="t98-app-topbar">
+  return <div className={cx('t98-app-topbar', wrap && 't98-app-topbar--wrap')}>
     {menuToggle && shell && <button type="button" ref={shell.triggerRef} className="t98-app-topbar__menu" aria-label={menuLabel} aria-controls={shell.sidebarId} aria-expanded={shell.open} onClick={() => shell.setOpen(!shell.open)}><Icon name="menu" size={20} aria-hidden="true" /></button>}
     <nav aria-label={breadcrumbLabel} className="t98-app-topbar__breadcrumb">
       <ol className="t98-app-topbar__crumbs">

@@ -1,6 +1,6 @@
 'use client';
 
-import { Children, useEffect, useId, useRef, useState, type HTMLAttributes, type ReactNode, type RefObject } from 'react';
+import { Children, useEffect, useId, useRef, useState, type HTMLAttributes, type ReactNode, type RefObject, type SyntheticEvent } from 'react';
 import { Badge, Button, Icon, Input, cx } from './primitives.js';
 import { Pager, StatusLine } from './controls.js';
 import { appShellNavigation } from './shell.js';
@@ -448,7 +448,12 @@ type FrameProps = Omit<AppShellProps, 'navigation'> & {
 };
 
 function ShellFrame({ sidebar, header, topbar, banners, sidebarLabel = 'Application navigation', skipLinkLabel = 'Skip to content', mainLabel, children, mainId, asideProps, workspaceProps, drawer }: FrameProps) {
-  return <div className={cx('t98-app-shell', drawer && 't98-app-shell--drawer')}><a className="t98-skip-link" href={`#${mainId}`}>{skipLinkLabel}</a>
+  const main = useRef<HTMLElement>(null);
+  /* Skip link per the WCAG G1 technique, with the focus-the-target refinement from the APG landmark guidance.
+   * The href stays as the no-JS fallback only. Every JS activation (click, Enter, Ctrl/Meta/Shift click, middle click)
+   * is cancelled and main is focused instead, so the URL hash, which apps use for capability tokens, is never rewritten. */
+  const skip = (event: SyntheticEvent) => { event.preventDefault(); main.current?.focus(); };
+  return <div className={cx('t98-app-shell', drawer && 't98-app-shell--drawer')}><a className="t98-skip-link" href={`#${mainId}`} onClick={skip} onAuxClick={skip}>{skipLinkLabel}</a>
     <aside {...asideProps} className="t98-shell-sidebar" aria-label={sidebarLabel}>
       {drawer ? <div className="t98-shell-sidebar__body">
         <div className="t98-shell-sidebar__bar"><button type="button" className="t98-shell-close" aria-label={drawer.closeLabel} onClick={drawer.close}><Icon name="x" size={20} aria-hidden="true" /></button></div>
@@ -459,7 +464,7 @@ function ShellFrame({ sidebar, header, topbar, banners, sidebarLabel = 'Applicat
     <div {...workspaceProps} className="t98-shell-workspace">
       {topbar ? <header className="t98-shell-header t98-shell-header--topbar">{topbar}</header> : header && <div className="t98-shell-header">{header}</div>}
       {banners && <div className="t98-shell-banners">{banners}</div>}
-      <main className="t98-shell-main" id={mainId} tabIndex={-1} aria-label={mainLabel}>{children}</main>
+      <main ref={main} className="t98-shell-main" id={mainId} tabIndex={-1} aria-label={mainLabel}>{children}</main>
     </div>
   </div>;
 }

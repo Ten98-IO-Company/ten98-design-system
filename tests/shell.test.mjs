@@ -179,3 +179,10 @@ test('filtering keys items by group, so the same item id in two groups filters i
   assert.match(html, /<li class="t98-sidebar-nav__entry"><button[^>]*>.*Reports overview/);
   assert.match(html, /<li class="t98-sidebar-nav__entry" hidden="">.*?>Overview</);
 });
+
+test('AppTopbar truncates by default and wraps long labels only with wrap', () => {
+  const crumb = { scope: 'A very long scope', current: 'A very long current page' };
+  assert.doesNotMatch(renderToStaticMarkup(h(AppTopbar, { breadcrumb: crumb })), /t98-app-topbar--wrap/);
+  assert.match(renderToStaticMarkup(h(AppTopbar, { breadcrumb: crumb, wrap: true })), /class="t98-app-topbar t98-app-topbar--wrap"/);
+  assert.match(styles, /\.t98-app-topbar--wrap \.t98-app-topbar__current[^{]*\{[^}]*white-space: normal/);
+});

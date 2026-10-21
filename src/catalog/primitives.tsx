@@ -74,11 +74,11 @@ function SwitchPreview({ initial = false, disabled = false }: { initial?: boolea
   return <Switch label="Email notifications" checked={enabled} onCheckedChange={setEnabled} disabled={disabled} />;
 }
 
-function TabsPreview({ initial = 'overview' }: { initial?: string }) {
+function TabsPreview({ initial = 'overview', lazy = false }: { initial?: string; lazy?: boolean }) {
   const [value, setValue] = useState(initial);
-  return <Tabs label="Campaign details" value={value} onValueChange={setValue} items={[
+  return <Tabs label="Campaign details" value={value} onValueChange={setValue} keepMounted={!lazy} items={[
     { value: 'overview', label: 'Overview', content: 'Campaign summary and confirmed metrics.' },
-    { value: 'activity', label: 'Activity', content: 'Recent campaign changes appear here.' },
+    { value: 'activity', label: 'Activity', content: 'Recent campaign changes appear here.', disabled: lazy },
     { value: 'settings', label: 'Settings', content: 'Campaign preferences appear here.' },
   ]} />;
 }
@@ -289,21 +289,23 @@ export const primitiveEntries: ComponentEntry[] = [
   },
   {
     name: 'Tabs', category: 'Navigation', description: 'Controlled tab buttons and associated panels for related content on one page.',
-    usage: 'Supply stable item values and keep the active value in app state. Use real route links for navigation between pages. No disabled-tab API is included.',
+    usage: 'Supply stable item values and keep the active value in app state. Use real route links for navigation between pages. Mark unavailable tabs disabled; set keepMounted={false} to render only the active panel.',
     props: [
-      { name: 'items', type: 'TabItem[]', required: true, description: 'Each item has value:string, label:ReactNode and optional content:ReactNode. Values must be unique.' },
+      { name: 'items', type: 'TabItem[]', required: true, description: 'Each item has value:string, label:ReactNode and optional content:ReactNode and optional disabled:boolean (aria-disabled, skipped by arrow keys, not activatable). Values must be unique.' },
       { name: 'value', type: 'string', required: true, description: 'Active value. An unmatched value renders the first item active.' },
       { name: 'onValueChange', type: '(value: string) => void', required: true, description: 'Called on click or supported keyboard navigation.' },
       { name: 'label', type: 'string', defaultValue: "'Sections'", description: 'Accessible name of the tablist.' },
+      { name: 'keepMounted', type: 'boolean', defaultValue: 'true', description: 'Keeps inactive panels mounted but hidden. False renders only the active panel, so inactive content is absent from the DOM until selected.' },
       { name: 'className', type: 'string', description: 'Additional class on the wrapping div.' },
-    ], nativeProps: 'No general native attribute spread. Item content remains mounted in hidden panels; preserve application state with stable values.',
+    ], nativeProps: 'No general native attribute spread. By default item content remains mounted in hidden panels; preserve application state with stable values or use keepMounted={false} for lazy panels.',
     tokens: ['--t98-font', '--t98-border', '--t98-muted', '--t98-text', '--t98-accent'],
-    accessibility: ['Tab enters at the selected tab; ArrowLeft/ArrowRight wrap and select immediately. Home/End select the first/last tab.', 'Generated IDs associate each tab with its panel; inactive panels are hidden.', 'Arrow keys currently follow the listed left/right sequence in both text directions. There is no vertical orientation or manual-activation option.'],
+    accessibility: ['Tab enters at the selected tab; ArrowLeft/ArrowRight wrap and select immediately. Home/End select the first/last tab.', 'Generated IDs associate each tab with its panel; inactive panels are hidden (or absent with keepMounted={false}).', 'Disabled tabs keep aria-disabled so they are still announced, but arrow keys and Home/End skip them and activation is ignored.', 'Arrow keys currently follow the listed left/right sequence in both text directions. There is no vertical orientation or manual-activation option.'],
     related: ['PageHeader', 'Breadcrumb'], example: tabsCode(),
     states: [
       { name: 'First tab selected', description: 'Overview is selected and its panel is visible.', preview: <TabsPreview />, code: tabsCode() },
       { name: 'Alternate tab selected', description: 'The active value can begin on any existing item.', preview: <TabsPreview initial="activity" />, code: tabsCode('activity') },
       { name: 'Keyboard selection and hover', description: 'Tab into the list, use ArrowLeft/ArrowRight or Home/End, and hover the other tabs. These are actual interactions.', preview: <TabsPreview />, code: tabsCode() },
+      { name: 'Disabled tab and lazy panels', description: 'Activity is disabled: arrow keys skip it and it cannot be activated. With keepMounted={false} only the selected panel is in the DOM.', preview: <TabsPreview lazy />, code: tsx(['Tabs'], `<Tabs label="Campaign details" value={value} onValueChange={setValue} keepMounted={false} items={[\n  { value: 'overview', label: 'Overview', content: 'Campaign summary and confirmed metrics.' },\n  { value: 'activity', label: 'Activity', content: 'Recent campaign changes appear here.', disabled: true },\n  { value: 'settings', label: 'Settings', content: 'Campaign preferences appear here.' },\n]} />`, "const [value, setValue] = useState('overview');", ['useState']) },
       { name: 'Empty items', description: 'An empty items array renders an empty tablist. Prefer a meaningful empty state in the consuming app.', preview: <Tabs label="Campaign details" items={[]} value="" onValueChange={() => {}} />, code: tsx(['Tabs'], '<Tabs label="Campaign details" items={[]} value={value} onValueChange={setValue} />', "const [value, setValue] = useState('');", ['useState']) },
     ],
   },
@@ -462,7 +464,7 @@ export const primitiveEntries: ComponentEntry[] = [
     name: 'Icon', category: 'Data display', description: 'A bundled current-color stroke SVG with decorative and meaning-bearing modes.',
     usage: 'Use a bundled name for navigation, controls and status. Pair with visible text where possible; give icon-only buttons their own accessible action name.',
     props: [
-      { name: 'name', type: 'IconName | (string & {})', required: true, description: 'Bundled icon name. Unknown strings render the components fallback glyph. Names include plus, search, check, x, copy, download, settings, users, shield, server, phone and workflow.' },
+      { name: 'name', type: 'IconName | (string & {})', required: true, description: 'Bundled icon name. Unknown strings render the components fallback glyph. Names include plus, search, check, x, copy, download, settings, users, shield, server, phone, workflow, send, calendar, target, billboard, link, image and chart. Lucide-derived glyphs are credited in THIRD_PARTY_NOTICES.md.' },
       { name: 'size', type: 'number', defaultValue: '18', description: 'Default SVG width and height in pixels. Native SVG width/height can override dimensions.' },
       { name: 'title', type: 'string', description: 'Adds an SVG title, role="img" and removes the default aria-hidden. Omit for decorative icons.' },
     ], nativeProps: 'SVGProps<SVGSVGElement> except native name; includes className, aria-* and stroke attributes. Uses a 24×24 viewBox and stroke=currentColor by default. No disabled, loading or selected state API.',

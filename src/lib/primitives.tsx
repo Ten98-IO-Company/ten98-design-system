@@ -69,6 +69,15 @@ const iconPaths = {
   'arrow-up': 'M12 20V4M6 10l6-6 6 6',
   'arrow-down': 'M12 4v16M6 14l6 6 6-6',
   github: 'M9 19c-5 1.5-5-2.5-7-3M16 22v-4c0-1-.3-2-1-2.5 3-.3 6-1.5 6-6A5 5 0 0 0 19.5 6a4.6 4.6 0 0 0-.1-3.5S18 2 15 4a13 13 0 0 0-6 0C6 2 4.6 2.5 4.6 2.5A4.6 4.6 0 0 0 4.5 6 5 5 0 0 0 3 9.5c0 4.5 3 5.7 6 6-.7.5-1 1.5-1 2.5v4',
+  /* The seven icons below are path data from Lucide 0.468.0 (ISC, https://lucide.dev), with rect/circle elements
+   * converted to path commands. billboard = Lucide "presentation" (a sign board on a post), chart = "chart-column". */
+  send: 'M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11zM21.854 2.147l-10.94 10.939',
+  calendar: 'M8 2v4M16 2v4M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM3 10h18',
+  target: 'M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0zM18 12a6 6 0 1 1-12 0 6 6 0 0 1 12 0zM14 12a2 2 0 1 1-4 0 2 2 0 0 1 4 0z',
+  billboard: 'M2 3h20M21 3v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V3M7 21l5-5 5 5',
+  link: 'M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71',
+  image: 'M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zM11 9a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM21 15l-3.086-3.086a2 2 0 0 0-2.828 0L6 21',
+  chart: 'M3 3v16a2 2 0 0 0 2 2h16M18 17V9M13 17V5M8 17v-3',
 } as const;
 
 export type IconName = keyof typeof iconPaths;
@@ -205,24 +214,31 @@ export function Switch({ label, checked, onCheckedChange, disabled = false, clas
   </button>;
 }
 
-export interface TabItem { value: string; label: ReactNode; content?: ReactNode }
-export function Tabs({ items, value, onValueChange, label = 'Sections', className }: { items: TabItem[]; value: string; onValueChange: (value: string) => void; label?: string; className?: string }) {
+export interface TabItem { value: string; label: ReactNode; content?: ReactNode; /** Announced as unavailable, skipped by arrow keys and not activatable. */ disabled?: boolean }
+/* Keyboard model from the WAI-ARIA Authoring Practices Guide Tabs pattern (W3C, W3C Software and Document licence):
+ * automatic activation, ArrowLeft/ArrowRight wrap, Home/End. Disabled tabs stay in the accessibility tree (aria-disabled) but are skipped. */
+export function Tabs({ items, value, onValueChange, label = 'Sections', className, keepMounted = true }: { items: TabItem[]; value: string; onValueChange: (value: string) => void; label?: string; className?: string;
+  /** Keep inactive panels mounted but hidden (default, preserves their state). False renders only the active panel. */
+  keepMounted?: boolean }) {
   const id = useId();
   const tabList = useRef<HTMLDivElement>(null);
-  const active = items.some(item => item.value === value) ? value : items[0]?.value;
+  const active = items.some(item => item.value === value) ? value : (items.find(item => !item.disabled) ?? items[0])?.value;
+  const enabled = items.flatMap((item, index) => item.disabled ? [] : [index]);
   return <div className={cx('t98-tabs', className)}><div className="t98-tab-list" role="tablist" aria-label={label} ref={tabList}>
-    {items.map((item, index) => <button key={item.value} type="button" role="tab" id={`${id}-tab-${index}`} aria-controls={`${id}-panel-${index}`} aria-selected={active === item.value} tabIndex={active === item.value ? 0 : -1} className="t98-tab" onClick={() => onValueChange(item.value)} onKeyDown={event => {
-      let next: number;
-      if (event.key === 'ArrowRight') next = (index + 1) % items.length;
-      else if (event.key === 'ArrowLeft') next = (index - 1 + items.length) % items.length;
-      else if (event.key === 'Home') next = 0;
-      else if (event.key === 'End') next = items.length - 1;
-      else return;
+    {items.map((item, index) => <button key={item.value} type="button" role="tab" id={`${id}-tab-${index}`} aria-controls={keepMounted || active === item.value ? `${id}-panel-${index}` : undefined} aria-selected={active === item.value} aria-disabled={item.disabled || undefined} tabIndex={active === item.value && !item.disabled ? 0 : -1} className="t98-tab" onClick={() => { if (!item.disabled) onValueChange(item.value); }} onKeyDown={event => {
+      const at = enabled.indexOf(index);
+      let next: number | undefined;
+      if (!enabled.length) return;
+      if (event.key === 'ArrowRight') next = enabled[(at + 1) % enabled.length];
+      else if (event.key === 'ArrowLeft') next = enabled[(at - 1 + enabled.length) % enabled.length];
+      else if (event.key === 'Home') next = enabled[0];
+      else if (event.key === 'End') next = enabled[enabled.length - 1];
+      if (next === undefined) return;
       event.preventDefault();
       onValueChange(items[next].value);
       tabList.current?.querySelectorAll<HTMLButtonElement>('[role="tab"]')[next]?.focus();
     }}>{item.label}</button>)}
-  </div>{items.map((item, index) => <div key={item.value} role="tabpanel" id={`${id}-panel-${index}`} aria-labelledby={`${id}-tab-${index}`} hidden={active !== item.value} tabIndex={0} className="t98-tab-panel">{item.content}</div>)}</div>;
+  </div>{items.map((item, index) => (keepMounted || active === item.value) && <div key={item.value} role="tabpanel" id={`${id}-panel-${index}`} aria-labelledby={`${id}-tab-${index}`} hidden={active !== item.value} tabIndex={0} className="t98-tab-panel">{item.content}</div>)}</div>;
 }
 
 export interface DialogProps { open: boolean; onOpenChange: (open: boolean) => void; title: ReactNode; description?: ReactNode; children: ReactNode; footer?: ReactNode; className?: string; closeDisabled?: boolean }

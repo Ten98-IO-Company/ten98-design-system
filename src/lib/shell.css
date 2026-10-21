@@ -161,6 +161,9 @@
 .t98-app-topbar__scope,
 .t98-app-topbar__current { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .t98-app-topbar__current { color: var(--t98-text); font-weight: var(--t98-weight-semibold); }
+.t98-app-topbar--wrap .t98-app-topbar__crumbs { flex-wrap: wrap; }
+.t98-app-topbar--wrap .t98-app-topbar__scope,
+.t98-app-topbar--wrap .t98-app-topbar__current { overflow: visible; text-overflow: clip; white-space: normal; overflow-wrap: anywhere; }
 .t98-app-topbar__separator { display: inline-flex; flex: none; color: var(--t98-muted); }
 .t98-app-topbar__separator:dir(rtl) svg { transform: scaleX(-1); }
 .t98-app-topbar__crumb > svg { flex: none; }

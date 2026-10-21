@@ -97,6 +97,7 @@ function Fixture() {
 }
 
 /* A complete application frame composed only from library components. */
+const longCrumbs = params.get('crumbs') === 'long';
 function AppFixture() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -118,7 +119,7 @@ function AppFixture() {
         <Link href="#/settings" variant="quiet">Settings</Link>
       </SidebarFooter>
     </>}
-    topbar={<AppTopbar menuToggle breadcrumb={{ icon: 'home', scope: 'Acme', current: 'Overview' }}
+    topbar={<AppTopbar menuToggle wrap={longCrumbs} breadcrumb={longCrumbs ? { icon: 'home', scope: 'Acme International Marketing Group', current: 'Quarterly campaign performance review' } : { icon: 'home', scope: 'Acme', current: 'Overview' }}
       search={<SearchField variant="topbar" label="Search everything" hideLabel placeholder="Search" shortcut="/" value={query} onValueChange={setQuery} onClear={() => setQuery('')} clearLabel="Clear search" />}
       badge={{ label: 'Beta', hideOnMobile: true }}
       actions={<AccountMenu name="Alex Morgan" email="alex@example.test" linkComponent={RouterLink} items={[

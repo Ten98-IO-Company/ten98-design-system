@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createElement as h } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { Alert, Badge, Button, Card, Field, Input, Meter, Progress, Select } from '../dist/index.js';
+import { Alert, Badge, Button, Card, Field, Icon, Input, Meter, Progress, Select, Tabs } from '../dist/index.js';
 
 const styles = readFileSync(new URL('../dist/styles.css', import.meta.url), 'utf8');
 const classes = html => [...html.matchAll(/class="([^"]+)"/g)].flatMap(match => match[1].split(' ')).filter(name => name.startsWith('t98-'));
@@ -109,4 +109,23 @@ test('Field labels only its first control; later children keep their own ids', a
   assert.equal(new Set(ids).size, ids.length, 'ids are unique');
   assert.match(html, /<input[^>]*aria-describedby="[^"]+-description"/);
   assert.doesNotMatch(html, /<span[^>]*class="t98-badge[^"]*"[^>]*aria-describedby/);
+});
+
+test('Tabs marks disabled tabs, keeps panels mounted by default and renders only the active panel when keepMounted is false', () => {
+  const items = [{ value: 'a', label: 'A', content: 'Panel A' }, { value: 'b', label: 'B', content: 'Panel B', disabled: true }, { value: 'c', label: 'C', content: 'Panel C' }];
+  const eager = renderToStaticMarkup(h(Tabs, { items, value: 'a', onValueChange() {} }));
+  assert.equal(eager.match(/role="tabpanel"/g).length, 3);
+  assert.match(eager, /aria-disabled="true"[^>]*>B</);
+  const lazy = renderToStaticMarkup(h(Tabs, { items, value: 'a', onValueChange() {}, keepMounted: false }));
+  assert.equal(lazy.match(/role="tabpanel"/g).length, 1);
+  assert.ok(lazy.includes('Panel A') && !lazy.includes('Panel C'));
+  assert.equal(lazy.match(/aria-controls/g).length, 1);
+});
+
+test('the added icons render a non-empty path', () => {
+  for (const name of ['send', 'calendar', 'target', 'billboard', 'link', 'image', 'chart']) {
+    const d = renderToStaticMarkup(h(Icon, { name })).match(/<path d="([^"]*)"/)[1];
+    assert.ok(d.length > 10, name);
+    assert.notEqual(d, renderToStaticMarkup(h(Icon, { name: 'components' })).match(/<path d="([^"]*)"/)[1], `${name} must not use the fallback glyph`);
+  }
 });

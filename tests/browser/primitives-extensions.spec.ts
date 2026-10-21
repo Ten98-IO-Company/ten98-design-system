@@ -97,3 +97,29 @@ test('indeterminate progress animates and stops under reduced motion', async ({ 
   expect(await bar.evaluate(node => getComputedStyle(node).animationName)).toBe('none');
   expect(await bar.evaluate(node => node.getAnimations().length)).toBe(0);
 });
+
+test('tabs skip disabled items with the keyboard, ignore clicks on them and mount only the selected panel', async ({ page }) => {
+  await open(page, 'light', 'no-preference');
+  const tabs = page.locator('#lazy-tabs');
+  const tab = (name: string) => tabs.getByRole('tab', { name });
+  await expect(tab('Two')).toHaveAttribute('aria-disabled', 'true');
+  await expect(tabs.getByRole('tabpanel')).toHaveCount(1);
+  await expect(tabs.getByText('First panel')).toBeVisible();
+  await expect(tabs.getByText('Third panel')).toHaveCount(0);
+  await tab('Two').click({ force: true });
+  await expect(tab('One')).toHaveAttribute('aria-selected', 'true');
+  await tab('One').focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(tab('Three')).toBeFocused();
+  await expect(tab('Three')).toHaveAttribute('aria-selected', 'true');
+  await expect(tabs.getByText('Third panel')).toBeVisible();
+  await expect(tabs.getByText('First panel')).toHaveCount(0);
+  await page.keyboard.press('End');
+  await expect(tab('Four')).toBeFocused();
+  await page.keyboard.press('ArrowRight');
+  await expect(tab('One')).toBeFocused();
+  await page.keyboard.press('ArrowLeft');
+  await expect(tab('Four')).toBeFocused();
+  await page.keyboard.press('Home');
+  await expect(tab('One')).toBeFocused();
+});

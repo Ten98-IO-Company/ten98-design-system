@@ -86,6 +86,20 @@ test('OIDC providers render links, buttons, pending and failure states; an empty
   assert.ok(failed.includes('Try again'));
 });
 
+test('OIDC start errors render below the usable buttons; pending adds a polite status', () => {
+  const providers = [{ id: 'a', name: 'Microsoft' }, { id: 'b', name: 'Google' }];
+  const failed = renderToStaticMarkup(h(OidcProviderButtons, { providers, error: 'Could not start.', onRetry() {} }));
+  assert.ok(failed.indexOf('Continue with Google') < failed.indexOf('Could not start.'));
+  assert.match(failed, /role="alert"/);
+  assert.doesNotMatch(failed, /disabled=""/);
+  assert.ok(!failed.includes('Try again'), 'retry is the buttons themselves while providers are listed');
+  const pending = renderToStaticMarkup(h(OidcProviderButtons, { providers, pending: 'a' }));
+  assert.match(pending, /role="status"[^>]*>.*Contacting the provider…/);
+  assert.match(pending, /disabled=""[^>]*>Continue with Google/);
+  assert.ok(renderToStaticMarkup(h(OidcProviderButtons, { providers, pending: 'a', pendingLabel: 'Opening Microsoft…' })).includes('Opening Microsoft…'));
+  assert.ok(!renderToStaticMarkup(h(OidcProviderButtons, { providers })).includes('role="status"'));
+});
+
 test('story, state screens and boundary keep one h1 and the right roles', () => {
   const story = renderToStaticMarkup(h(AuthStory, { eyebrow: 'E', title: 'Plan.', emphasis: 'Measure.', lead: 'Lead', channels: [{ icon: 'send', label: 'Social' }], footnote: 'Note' }));
   assert.ok(!story.includes('<h'));
@@ -169,6 +183,23 @@ test('password recovery renders request, loading, disabled, error, sent, reset a
   assert.match(tag(failed, 'confirmation'), /aria-invalid="true"/);
   assert.ok(failed.includes('Passwords differ.'));
   assert.ok(recovery({ stage: 'reset', action: '/reset', unconfirmed: 'Unknown result.' }).includes('Unknown result.'));
+});
+
+test('the reset form offers a new link; the label is overridable and absent without a handler', () => {
+  const form = recovery({ stage: 'reset', action: '/reset', onRequestNewLink() {} });
+  assert.match(form, /<form[\s\S]*<button[^>]*type="button"[^>]*>Request a new link<\/button>[\s\S]*Back to sign in[\s\S]*<\/form>/);
+  assert.ok(recovery({ stage: 'reset', action: '/reset', onRequestNewLink() {}, requestNewLinkLabel: 'Send another' }).includes('>Send another</button>'));
+  assert.ok(!recovery({ stage: 'reset', action: '/reset' }).includes('Request a new link'));
+});
+
+test('invitation sign-in label and busy states', () => {
+  assert.match(invite({ state: 'details', onSignIn() {} }), />Sign in instead<\/button>/);
+  assert.match(invite({ state: 'details', onSignIn() {}, signInLabel: 'I have an account' }), />I have an account<\/button>/);
+  assert.match(invite({ state: 'signin-required', onSignIn() {}, signInLabel: 'Continue to sign in' }), />Continue to sign in<\/button>/);
+  for (const state of ['loading', 'details', 'signin-required', 'mismatch', 'unavailable', 'accepted']) {
+    assert.match(invite({ state, busy: true, onSwitchAccount() {} }), /aria-busy="true"/, state);
+    assert.ok(!invite({ state }).includes('aria-busy'), state);
+  }
 });
 
 test('invitation states render one h1 and the right action', () => {

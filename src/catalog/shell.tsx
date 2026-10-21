@@ -160,6 +160,7 @@ export const shellEntries: ComponentEntry[] = [
     usage: `Pass to AppShell \`topbar\`; it renders inside a header landmark outside main. menuToggle needs AppShell \`navigation\` and is hidden on desktop. The breadcrumb names the current page with aria-current="page". ${presentation}`,
     props: [
       { name: 'breadcrumb', type: '{ icon?; scope?; current }', required: true, description: 'Optional icon and scope before the current page.' },
+      { name: 'wrap', type: 'boolean', defaultValue: 'false', description: 'Wraps long scope and current labels instead of truncating them with an ellipsis, so they stay visible at 320px and 200% text.' },
       { name: 'menuToggle', type: 'boolean', description: 'Shows the button that opens the AppShell drawer (aria-controls, aria-expanded).' },
       { name: 'menuLabel / breadcrumbLabel', type: 'string', description: 'Localised names; default "Open navigation" and "Breadcrumb".' },
       { name: 'search', type: 'ReactNode', description: 'Usually a SearchField variant="topbar"; wraps to its own row on narrow screens.' },
@@ -173,6 +174,9 @@ export const shellEntries: ComponentEntry[] = [
     states: [{
       name: 'Default', description: 'Breadcrumb, search, badge and an account action.', code: topbarCode,
       preview: <AppTopbar breadcrumb={{ icon: 'home', scope: 'Acme', current: 'Overview' }} search={<SearchField variant="topbar" label="Search" hideLabel placeholder="Search" shortcut="/" value="" onValueChange={noop} />} badge={{ label: 'Beta' }} actions={<AccountMenu name="Alex Morgan" email="alex@example.test" items={[{ id: 'profile', kind: 'link', label: 'Profile', href: '#profile' }]} />} />,
+    }, {
+      name: 'Wrapping labels', description: 'wrap lets long labels flow onto several lines rather than truncating.', code: tsx(['AppTopbar'], `<AppTopbar wrap breadcrumb={{ icon: 'home', scope: 'Acme International Marketing Group', current: 'Quarterly campaign performance review' }} />`),
+      preview: <div style={{ maxWidth: 320 }}><AppTopbar wrap breadcrumb={{ icon: 'home', scope: 'Acme International Marketing Group', current: 'Quarterly campaign performance review' }} /></div>,
     }],
   },
   {

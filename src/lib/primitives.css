@@ -60,6 +60,8 @@
 .t98-tab-list { display: flex; align-items: center; gap: 20px; border-bottom: 1px solid var(--t98-border); overflow-x: auto; scrollbar-width: thin; }
 .t98-tab { flex: none; border: 0; border-bottom: 2px solid transparent; padding: 11px 1px; background: transparent; color: var(--t98-muted); font-size: 12px; font-weight: 550; line-height: 20px; cursor: pointer; }
 .t98-tab:hover { color: var(--t98-text); }
+.t98-tab[aria-disabled='true'] { opacity: .5; cursor: not-allowed; }
+.t98-tab[aria-disabled='true']:hover { color: var(--t98-muted); }
 .t98-tab[aria-selected='true'] { color: var(--t98-accent); border-bottom-color: var(--t98-accent); }
 .t98-tab:focus-visible { outline-offset: -3px; }
 .t98-tab-panel { padding-top: 20px; }

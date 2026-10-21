@@ -3,9 +3,9 @@ import { resolve } from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
 
 const evidence = resolve('.qa/auth-flows');
-const screens = ['signin', 'signin-single', 'signin-busy', 'signin-error', 'signin-providers-pending', 'signin-providers-loading', 'signin-providers-error', 'signin-providers-empty', 'setup', 'setup-full', 'setup-error', 'setup-busy', 'loading', 'error', 'boundary', 'unconfirmed', 'signin-unconfirmed',
-  '2fa-authenticator', '2fa-recovery', '2fa-error', 'recovery-request', 'recovery-loading', 'recovery-disabled', 'recovery-error', 'recovery-sent', 'recovery-reset', 'recovery-reset-error', 'recovery-unconfirmed', 'recovery-invalid',
-  'invitation-loading', 'invitation-new', 'invitation-join', 'invitation-signin', 'invitation-mismatch', 'invitation-unavailable', 'invitation-accepted', 'onboarding', 'onboarding-native', 'onboarding-error'];
+const screens = ['signin', 'signin-single', 'signin-busy', 'signin-error', 'signin-providers-pending', 'signin-providers-loading', 'signin-providers-error', 'signin-providers-start-error', 'signin-providers-empty', 'setup', 'setup-full', 'setup-error', 'setup-busy', 'loading', 'error', 'boundary', 'unconfirmed', 'signin-unconfirmed',
+  '2fa-authenticator', '2fa-recovery', '2fa-error', 'recovery-request', 'recovery-loading', 'recovery-disabled', 'recovery-error', 'recovery-sent', 'recovery-reset', 'recovery-reset-link', 'recovery-reset-error', 'recovery-unconfirmed', 'recovery-invalid',
+  'invitation-loading', 'invitation-new', 'invitation-signin-label', 'invitation-busy', 'invitation-signin-busy', 'invitation-join', 'invitation-signin', 'invitation-mismatch', 'invitation-unavailable', 'invitation-accepted', 'onboarding', 'onboarding-native', 'onboarding-error'];
 
 const open = async (page: Page, screen: string, theme: string, width: number) => {
   await page.setViewportSize({ width, height: 1000 });
@@ -105,14 +105,44 @@ test('two-factor mode toggle clears the code and changes the input constraints',
   await expect(code).toHaveValue('');
 });
 
-test('a mismatched confirmation shows a field error and moves focus to it', async ({ page }, info) => {
+test('a mismatched confirmation shows a field error and a focused form-level alert', async ({ page }, info) => {
   await open(page, 'recovery-reset', 'light', info.project.name === 'narrow-dark' ? 320 : 1440);
   await expect(page.locator('input[type=hidden][name=token]')).toHaveValue('reset-token');
   await page.getByLabel('New password', { exact: true }).fill('synthetic-password-1');
   await page.getByLabel('Confirm new password').fill('synthetic-password-2');
   await page.getByRole('button', { name: 'Reset password' }).click();
-  await expect(page.getByText('The passwords do not match.')).toBeVisible();
-  await expect(page.getByLabel('Confirm new password')).toBeFocused();
+  await expect(page.locator('.t98-field-error')).toHaveText('The passwords do not match.');
+  await expect(page.getByLabel('Confirm new password')).toHaveAttribute('aria-invalid', 'true');
+  const alert = page.locator('.t98-flow-error');
+  await expect(alert).toHaveText('The passwords do not match.');
+  await expect(alert).toBeFocused();
+});
+
+test('the reset form offers a new link before the link is invalid', async ({ page }, info) => {
+  await open(page, 'recovery-reset-link', 'light', info.project.name === 'narrow-dark' ? 320 : 1440);
+  await expect(page.locator('form').getByRole('button', { name: 'Request a new link' })).toBeVisible();
+  await expect(page.locator('form').getByRole('link', { name: 'Back to sign in' })).toBeVisible();
+});
+
+test('a provider start error shows below usable buttons and a pending provider shows a status', async ({ page }, info) => {
+  const width = info.project.name === 'narrow-dark' ? 320 : 1440;
+  await open(page, 'signin-providers-start-error', 'light', width);
+  const google = page.getByRole('button', { name: 'Continue with Google' });
+  await expect(google).toBeEnabled();
+  const [list, alert] = await Promise.all([page.locator('.t98-auth-providers > ul').boundingBox(), page.locator('.t98-auth-providers [role=alert]').boundingBox()]);
+  expect(alert!.y).toBeGreaterThanOrEqual(list!.y + list!.height);
+  await open(page, 'signin-providers-pending', 'light', width);
+  await expect(page.locator('.t98-auth-providers').getByRole('status')).toHaveText('Contacting the provider…');
+});
+
+test('invitation sign-in label is overridable and every busy state is aria-busy', async ({ page }, info) => {
+  const width = info.project.name === 'narrow-dark' ? 320 : 1440;
+  await open(page, 'invitation-signin-label', 'light', width);
+  await expect(page.getByRole('button', { name: 'I already have an account' })).toBeVisible();
+  for (const screen of ['invitation-busy', 'invitation-signin-busy']) {
+    await open(page, screen, 'light', width);
+    await expect(page.locator('main :is(form, div)[aria-busy=true]'), screen).toHaveCount(1);
+  }
 });
 
 test('recovery, invitation and onboarding screens expose the right actions', async ({ page }, info) => {

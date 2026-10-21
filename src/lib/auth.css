@@ -79,6 +79,11 @@
 .auth-form .eyebrow{font-size:9px}
 .auth-form-inner{max-width:420px}
 }
+@media(min-width:761px){
+/* The split story panel fills at least the viewport, as Campaign's split did, so it cannot float on tall screens. */
+.auth-shell.auth-split{min-block-size:100vh;min-block-size:100dvh}
+.auth-shell.auth-split>.auth-story{min-block-size:100vh;min-block-size:100dvh;align-self:stretch}
+}
 /* Shared authentication flows (SignInFlow, FirstUserSetupFlow, OidcProviderButtons, AppStateScreen) */
 .t98-auth-layout .t98-auth-heading .t98-auth-title:last-child{margin-bottom:32px}
 /* Shared by the authentication, account and workspace flows (flow-frame.tsx). */
@@ -95,6 +100,7 @@
 .t98-auth-layout .t98-auth-choice{margin:4px 0 16px}
 .t98-auth-layout .t98-auth-providers{margin-top:8px}
 .t98-auth-layout .t98-auth-providers>ul{padding:0;margin:0;list-style:none}
+.t98-auth-layout .t98-auth-providers>ul~*{margin-top:12px}
 .t98-auth-layout .t98-auth-provider{width:100%;justify-content:center;text-decoration:none;margin-top:0}
 .t98-auth-layout .t98-auth-state{display:flex;align-items:center;gap:12px;color:var(--color-text-muted,var(--t98-muted));font-size:13px}
 .t98-auth-layout .t98-auth-state .t98-spinner{flex-shrink:0}
