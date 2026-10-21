@@ -4,7 +4,7 @@ import { useEffect, useId, useImperativeHandle, useMemo, useRef, useState, type 
 import { Alert, Button, cx } from './primitives.js';
 import { StatusLine } from './controls.js';
 import { ReplayControls, type ReplayControlsProps } from './inspection.js';
-import { contentPolicyMeta, prefixDocument } from './sandbox.js';
+import { contentPolicyMeta, policyAllowsScripts, policyScriptsArePinned, prefixDocument } from './sandbox.js';
 import { PLAYER_CONNECT, PLAYER_PROTOCOL, parsePlayerMessage, playerDocument, playerFrameSource, playerScriptUrl, randomToken, validCommand, type PlayerCommand } from './player-protocol.js';
 
 export type { PlayerCommand, PlayerMessage } from './player-protocol.js';
@@ -259,25 +259,28 @@ export interface ReplayViewerProps {
   reason?: ReactNode;
   className?: string;
   /** CSP applied to a `srcDoc` document; defaults to `defaultReplayContentPolicy`, which runs no scripts and loads nothing from the
-   * network. Passing a policy that allows scripts also enables `allow-scripts`: script in the document can then navigate its own
-   * frame, which no CSP prevents, so only do that for a player you trust. Run scripted players on hostile data in `IsolatedPlayerFrame`. */
+   * network. A policy that allows scripts must pin them with 'nonce-…' or 'sha256-…' sources ('strict-dynamic' allowed); one that
+   * allows them any other way ('unsafe-inline', hosts, *) is refused, because running script can navigate its own frame to send data
+   * out, which no CSP prevents. A pinned policy enables `allow-scripts`. Run scripted players on hostile data in `IsolatedPlayerFrame`. */
   contentPolicy?: string;
 }
 
 /** Content policy for srcDoc replay documents: no scripts run, styles and recorded media stay inline, nothing is fetched. Scripts are
  * blocked because a running script can navigate its own frame to any URL, which a content policy cannot stop. */
 export const defaultReplayContentPolicy = "default-src 'none'; script-src 'none'; style-src 'unsafe-inline' data: blob:; img-src data: blob:; media-src data: blob:; font-src data:; form-action 'none'; base-uri 'none'";
-const allowsScripts = (policy: string) => !/(?:^|;)\s*script-src\s+'none'\s*(?:;|$)/i.test(policy);
 /** Hosts an untrusted player document in a script-only sandbox with no same-origin access and no referrer; controls stay outside it.
  * A `srcDoc` player also gets a content policy so recorded pages cannot fetch, beacon or load remote assets while replaying. */
 export function ReplayViewer({ label, context, title, srcDoc, src, controls, reason, className, contentPolicy = defaultReplayContentPolicy }: ReplayViewerProps) {
   const hasDocument = srcDoc !== undefined || src !== undefined;
+  // A srcDoc policy that allows scripts must pin them to nonces or hashes; otherwise recorded markup could run script and leave.
+  const scripted = srcDoc !== undefined && policyAllowsScripts(contentPolicy);
+  const refused = scripted && !policyScriptsArePinned(contentPolicy);
   return <section className={cx('t98-replay-viewer', className)} aria-label={label}>
     <h3 className="t98-replay-viewer-title">{label}</h3>
     <div className="t98-replay-viewer-context">{context}</div>
-    {reason != null || !hasDocument
-      ? <div className="t98-replay-viewer-reason" role="status">{reason ?? 'No replay document was supplied.'}</div>
-      : <iframe className="t98-replay-frame" title={title} sandbox={srcDoc === undefined || allowsScripts(contentPolicy) ? 'allow-scripts' : ''} referrerPolicy="no-referrer" srcDoc={srcDoc === undefined ? undefined : prefixDocument(srcDoc, contentPolicyMeta(contentPolicy))} src={srcDoc === undefined ? src : undefined} />}
+    {reason != null || !hasDocument || refused
+      ? <div className="t98-replay-viewer-reason" role="status">{reason ?? (refused ? 'The replay was not shown: its content policy allows scripts without pinning them to a nonce or hash.' : 'No replay document was supplied.')}</div>
+      : <iframe className="t98-replay-frame" title={title} sandbox={srcDoc === undefined || scripted ? 'allow-scripts' : ''} referrerPolicy="no-referrer" srcDoc={srcDoc === undefined ? undefined : prefixDocument(srcDoc, contentPolicyMeta(contentPolicy))} src={srcDoc === undefined ? src : undefined} />}
     <ReplayControls {...controls} />
   </section>;
 }

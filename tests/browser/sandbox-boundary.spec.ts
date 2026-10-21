@@ -25,3 +25,14 @@ test('a replay document cannot carry recorded data to the network by navigating 
   await page.waitForTimeout(800);
   expect(left, 'the replay frame never navigated to a network URL').toEqual([]);
 });
+
+test('a replay that opts into scripts runs only its pinned player: recorded inline script cannot navigate, and a loose policy is refused', async ({ page }) => {
+  const left = watchProbes(page, /\/tests\/probe-boundary-optin/);
+  await page.goto('/tests/sandbox-boundary.html');
+  const pinned = page.frameLocator('iframe[title="Pinned replay frame"]');
+  await expect(pinned.locator('body')).toHaveAttribute('data-player', 'ran');
+  await expect(page.locator('iframe[title="Loose replay frame"]')).toHaveCount(0);
+  await expect(page.getByText('its content policy allows scripts without pinning them to a nonce or hash')).toBeVisible();
+  await page.waitForTimeout(800);
+  expect(left, 'no opt-in replay navigated to a network URL').toEqual([]);
+});

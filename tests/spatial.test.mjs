@@ -29,6 +29,10 @@ test('the replay iframe is script-only sandboxed, never same-origin, and control
   assert.match(html, /script-src &#x27;none&#x27;/);
   assert.match(capture(render(ReplayViewer, { ...replay, srcDoc: undefined, src: '/player.html' })), /<iframe[^>]*sandbox="allow-scripts"/);
   assert.match(capture(render(ReplayViewer, { ...replay, contentPolicy: "default-src 'none'; script-src 'nonce-abc'" })), /<iframe[^>]*sandbox="allow-scripts"/);
+  // A policy that allows scripts without pinning them is refused outright.
+  const loose = capture(render(ReplayViewer, { ...replay, contentPolicy: "default-src 'none'; script-src 'unsafe-inline'" }));
+  assert.doesNotMatch(loose, /<iframe/);
+  assert.match(loose, /its content policy allows scripts without pinning them to a nonce or hash/);
   assert.doesNotMatch(html, /allow-same-origin/);
   assert.match(html, /referrerPolicy="no-referrer"|referrerpolicy="no-referrer"/);
   assert.match(html, /title="Synthetic replay"/);
@@ -44,7 +48,7 @@ test('a srcDoc replay starts with a no-network content policy, after any doctype
   const bare = render(ReplayViewer, { ...replay, srcDoc: '<!DOCTYPE html><p>x</p>' });
   assert.match(bare, /srcDoc="&lt;!DOCTYPE html&gt;&lt;meta http-equiv=&quot;Content-Security-Policy&quot;/);
   assert.match(render(ReplayViewer, replay), /srcDoc="&lt;meta http-equiv=&quot;Content-Security-Policy&quot;[^"]*&gt;&lt;p&gt;player/);
-  assert.match(render(ReplayViewer, { ...replay, contentPolicy: "default-src 'self'" }), /content=&quot;default-src/);
+  assert.match(render(ReplayViewer, { ...replay, contentPolicy: "default-src 'none'; img-src https:" }), /content=&quot;default-src &#x27;none&#x27;; img-src https:/);
   assert.doesNotMatch(render(ReplayViewer, { ...replay, srcDoc: undefined, src: '/player.html' }), /Content-Security-Policy/);
 });
 
