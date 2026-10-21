@@ -138,11 +138,16 @@ const teamMessages: TeamMessages = {
   policy: 'Policy', policyLabel: 'Require two-factor authentication for every member', ownership: 'Ownership', ownershipDescription: 'Make another member the owner. You become an administrator.', ownershipCandidate: 'New owner', ownershipChoose: 'Choose a member',
   transfer: 'Transfer ownership', transferTitle: 'Transfer ownership?', transferDescription: 'You lose owner rights. Only the new owner can undo this.', transferConfirmation: 'TRANSFER',
 };
+/** Labels for the canonical workspace roles (@ten98/runtime workspaceRoles). */
+const canonicalRoleLabels: Partial<Record<string, string>> = { owner: 'Owner', admin: 'Admin', editor: 'Editor', viewer: 'Viewer' };
 const invitationTone = (status: string) => ({ pending: 'info', accepted: 'success', expired: 'warning', revoked: 'neutral' } as const)[status as 'pending'] ?? 'neutral';
 export interface TeamFlowProps extends FlowState {
   currentUserId: string;
   members: TeamMember[];
+  /** Roles the current user may invite people as. Member rows are labelled from all canonical roles, not this list. */
   roles: SelectOption[];
+  /** Overrides the built-in Owner/Admin/Editor/Viewer labels, for applications that rename roles. */
+  roleLabels?: Partial<Record<string, string>>;
   /** Roles the current user may give this member. Empty makes the row read-only. */
   assignableRoles: (target: TeamMember) => string[];
   onRoleChange: Submit<{ id: string; role: string }>;
@@ -164,7 +169,7 @@ export interface TeamFlowProps extends FlowState {
   messages?: Partial<TeamMessages>;
 }
 /** The one place to manage members, roles, invitations, the two-factor policy and ownership. */
-export function TeamFlow({ currentUserId, members, roles, assignableRoles, onRoleChange, onRemove, invitations, onInvite, onRevokeInvitation, inviteLink, onDismissInviteLink, policy, ownership, defaultInviteRole = roles[roles.length - 1]?.value, formatDate = formatFlowDate, title = 'Team', description, messages, ...state }: TeamFlowProps) {
+export function TeamFlow({ currentUserId, members, roles, roleLabels, assignableRoles, onRoleChange, onRemove, invitations, onInvite, onRevokeInvitation, inviteLink, onDismissInviteLink, policy, ownership, defaultInviteRole = roles[roles.length - 1]?.value, formatDate = formatFlowDate, title = 'Team', description, messages, ...state }: TeamFlowProps) {
   const id = useId();
   const copy = { ...teamMessages, ...messages };
   const singleFlight = useSingleSubmit();
@@ -173,13 +178,14 @@ export function TeamFlow({ currentUserId, members, roles, assignableRoles, onRol
   const [newOwner, setNewOwner] = useState('');
   const [transferring, setTransferring] = useState(false);
   const locked = state.busy || state.disabled;
-  const roleLabel = (value: string) => roles.find(role => role.value === value)?.label ?? value;
+  // An admin may invite only editors and viewers, yet still sees owner and admin rows, so labels come from every canonical role.
+  const roleLabel = (value: string) => roleLabels?.[value] ?? canonicalRoleLabels[value] ?? roles.find(role => role.value === value)?.label ?? value;
   const memberColumns: DataColumn<TeamMember>[] = [
     { key: 'name', header: copy.member, rowHeader: true, wrap: true, render: row => <Stack gap={0}><Inline gap={2}><span>{row.name}</span>{row.id === currentUserId && <Badge tone="info">{copy.you}</Badge>}</Inline><Text size="sm" tone="muted">{row.email}</Text></Stack> },
     { key: 'role', header: copy.role, render: row => {
       const allowed = assignableRoles(row);
       if (!allowed.length) return roleLabel(row.role);
-      const options = roles.filter(role => role.value === row.role || allowed.includes(role.value));
+      const options = [row.role, ...allowed.filter(role => role !== row.role)].map(role => ({ value: role, label: roleLabel(role) }));
       return <Select aria-label={copy.roleFor.replace('{name}', row.name)} options={options} value={row.role} disabled={locked} onChange={event => { const role = event.target.value; void singleFlight(() => onRoleChange({ id: row.id, role })); }} />;
     } },
     { key: 'twoFactor', header: copy.twoFactor, render: row => row.twoFactor === undefined ? '' : <Badge tone={row.twoFactor ? 'success' : 'warning'}>{row.twoFactor ? copy.twoFactorOn : copy.twoFactorOff}</Badge> },
@@ -218,7 +224,7 @@ export function TeamFlow({ currentUserId, members, roles, assignableRoles, onRol
           <Stack gap={3}>
             <Heading level={4} size="sm">{copy.inviteHeading}</Heading>
             <Field label={copy.inviteEmail} htmlFor={`${id}-email`} error={state.fieldErrors?.email}><Input name="email" type="email" autoComplete="off" required maxLength={254} /></Field>
-            <Field label={copy.inviteRole} htmlFor={`${id}-role`} error={state.fieldErrors?.role}><Select name="role" options={roles} defaultValue={defaultInviteRole} /></Field>
+            <Field label={copy.inviteRole} htmlFor={`${id}-role`} error={state.fieldErrors?.role}><Select name="role" options={roles.map(role => ({ ...role, label: roleLabel(role.value) }))} defaultValue={defaultInviteRole} /></Field>
             <FormActions><Button type="submit">{copy.invite}</Button></FormActions>
           </Stack>
         </form>
@@ -284,23 +290,25 @@ const projectMessages: ProjectCreateFlowMessages = {
 };
 export interface ProjectCreateFlowProps extends FlowState {
   mode: 'create' | 'edit';
-  defaultValues: { name: string; origin: string };
+  defaultValues: { name: string; origin?: string };
   /** Defaults to true. When false the origin may stay empty. */
   originRequired?: boolean;
-  onSubmit: Submit<{ name: string; origin: string }>;
+  /** Defaults to true. False is for projects without a website: no origin field, validation or submitted value. */
+  showOrigin?: boolean;
+  onSubmit: Submit<{ name: string; origin?: string }>;
   cancel?: LabelledAction;
   title?: string;
   description?: string;
   messages?: Partial<ProjectCreateFlowMessages>;
 }
 /** Names a project and sets the origin of its site. */
-export function ProjectCreateFlow({ mode, defaultValues, originRequired = true, onSubmit, cancel, title, description, messages, ...state }: ProjectCreateFlowProps) {
+export function ProjectCreateFlow({ mode, defaultValues, originRequired = true, showOrigin = true, onSubmit, cancel, title, description, messages, ...state }: ProjectCreateFlowProps) {
   const id = useId();
   const copy = { ...projectMessages, ...messages };
   return <NameForm {...state} title={title ?? (mode === 'create' ? copy.createTitle : copy.editTitle)} description={description} submitLabel={mode === 'create' ? copy.create : copy.save} cancel={cancel} cancelLabel={copy.cancel}
-    onSubmit={form => onSubmit({ name: formText(form, 'name'), origin: formText(form, 'origin') })}>
+    onSubmit={form => onSubmit(showOrigin ? { name: formText(form, 'name'), origin: formText(form, 'origin') } : { name: formText(form, 'name') })}>
     <Field label={copy.nameLabel} htmlFor={`${id}-name`} error={state.fieldErrors?.name}><Input name="name" autoComplete="off" required maxLength={120} defaultValue={defaultValues.name} /></Field>
-    <Field label={copy.originLabel} htmlFor={`${id}-origin`} description={copy.originHint} error={state.fieldErrors?.origin}><Input name="origin" type="url" inputMode="url" autoComplete="off" spellCheck={false} required={originRequired} maxLength={2048} defaultValue={defaultValues.origin} /></Field>
+    {showOrigin && <Field label={copy.originLabel} htmlFor={`${id}-origin`} description={copy.originHint} error={state.fieldErrors?.origin}><Input name="origin" type="url" inputMode="url" autoComplete="off" spellCheck={false} required={originRequired} maxLength={2048} defaultValue={defaultValues.origin} /></Field>}
   </NameForm>;
 }
 

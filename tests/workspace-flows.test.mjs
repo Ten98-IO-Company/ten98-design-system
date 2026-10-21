@@ -153,3 +153,27 @@ test('a danger action restored after a reload confirms again instead of retrying
   assert.match(html, />Delete workspace<\/button>/);
   assert.doesNotMatch(html, /aria-label="Retry: Delete workspace"/);
 });
+
+test('an admin sees owner and admin rows labelled while inviting only editors and viewers', async () => {
+  const { TeamFlow } = await import('../dist/index.js');
+  const html = renderToStaticMarkup(h(TeamFlow, { currentUserId: 'me', onRoleChange() {}, onRemove() {}, onInvite() {}, onRevokeInvitation() {}, invitations: [],
+    roles: [{ value: 'editor', label: 'Editor' }, { value: 'viewer', label: 'Viewer' }], assignableRoles: () => [],
+    members: [{ id: 'o', name: 'Olu', email: 'o@example.test', role: 'owner' }, { id: 'a', name: 'Ada', email: 'a@example.test', role: 'admin' }] }));
+  assert.match(html, />Owner</);
+  assert.match(html, />Admin</);
+  assert.doesNotMatch(html, />owner<|>admin</);
+  const invite = html.match(/<select[^>]*name="role"[^>]*>(.*?)<\/select>/s)[1];
+  assert.deepEqual([...invite.matchAll(/value="([^"]+)"/g)].map(match => match[1]), ['editor', 'viewer']);
+  const renamed = renderToStaticMarkup(h(TeamFlow, { currentUserId: 'me', onRoleChange() {}, onRemove() {}, onInvite() {}, onRevokeInvitation() {}, invitations: [], roles: [], assignableRoles: () => [],
+    roleLabels: { owner: 'Workspace owner' }, members: [{ id: 'o', name: 'Olu', email: 'o@example.test', role: 'owner' }] }));
+  assert.match(renamed, />Workspace owner</);
+});
+
+test('ProjectCreateFlow renders the site origin only for projects that have one', async () => {
+  const { ProjectCreateFlow } = await import('../dist/index.js');
+  const website = renderToStaticMarkup(h(ProjectCreateFlow, { mode: 'create', defaultValues: { name: '' }, onSubmit() {} }));
+  const originInput = website.match(/<input[^>]*name="origin"[^>]*>/)[0];
+  assert.match(originInput, /required/);
+  const campaign = renderToStaticMarkup(h(ProjectCreateFlow, { mode: 'create', defaultValues: { name: '' }, showOrigin: false, onSubmit() {} }));
+  assert.doesNotMatch(campaign, /name="origin"/);
+});
