@@ -30,6 +30,7 @@ function Screen() {
   const [boxes, setBoxes] = useState(['email']);
   const [range, setRange] = useState('week');
   const [city, setCity] = useState('');
+  const [region, setRegion] = useState('');
   const [page, setPage] = useState(2);
   return <Stack as="main" gap={6} id="controls">
     <Heading level={1}>Controls</Heading>
@@ -47,7 +48,8 @@ function Screen() {
     <CodeBlock language="ts" copy maxHeight="sm" code={code} />
     <Text>Set <InlineCode>retryLimit</InlineCode> before publishing.</Text>
     <StatusLine busy>Loading campaigns…</StatusLine>
-    <Combobox label="City" options={['Dubai', 'Doha', 'Riyadh']} value={city} onValueChange={setCity} />
+    <Combobox label="City" options={['Dubai', 'Doha', 'Riyadh', 'Abu Dhabi']} value={city} onValueChange={setCity} name="city" />
+    <Combobox label="Region" options={[{ value: 'ae', label: 'United Arab Emirates' }, { value: 'qa', label: 'Qatar' }]} value={region} onValueChange={setRegion} allowCustom={false} error="Choose a listed region." />
     <DateTimeField label="Publish at" value={publishAt} onValueChange={setPublishAt} min="2026-10-01T00:00" description="Posts go out at this time." timeZoneLabel="Asia/Dubai (GST)" />
     <FileField label="Attachments" accept="image/*,.pdf" multiple description="PDF or images." files={files}
       onFiles={added => setFiles(current => [...current, ...added.map(file => ({ id: file.name, name: file.name, size: file.size, status: 'pending' as const }))])}

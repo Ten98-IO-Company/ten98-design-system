@@ -13,7 +13,7 @@ This is the public component inventory for `@ten98/ui`. Import React components 
 | `Card` | `title?`, `description?`, `actions?`, `as?` (`div`/`section`/`article`), `headingLevel?` (2–4, default 3), children; div attributes | Panel with optional header and a 16px gap between direct content children. Its built-in title is an `h3` unless `headingLevel` is set; a titled `section`/`article` is named by it; consider the screen's heading hierarchy. Group buttons in `FormActions`, fields in `FormGrid`. |
 | `Input` | Native input attributes and ref | Styled input; choose its native `type`, constraints and controlled/uncontrolled state. |
 | `Textarea` | Native textarea attributes and ref | Resizable multiline input; default four rows. |
-| `Select` | Native select attributes and ref; `options?: {value, label, disabled?, group?}[]`, `placeholder?`, option children | Browser-native select. Options sharing a `group` render in one optgroup (first-seen order); `placeholder` is a disabled empty first option selected while the value is empty; children render after `options`. Searchable combobox and multiselect behavior are not included. |
+| `Select` | Native select attributes and ref; `options?: {value, label, disabled?, group?}[]`, `placeholder?`, option children | Browser-native select. Options sharing a `group` render in one optgroup (first-seen order); `placeholder` is a disabled empty first option selected while the value is empty; children render after `options`. For a searchable list use `Combobox`; for several choices use `CheckboxGroup`. |
 | `Field` | `label`, `htmlFor?`, `required?`, `description?`, `error?`, children | Connects a label, description and error to its direct control child; marks invalid when an error exists. Without `htmlFor` an id is generated and applied to a child that has none. `required` adds an `aria-hidden` ` *` marker only; set `required` on the control. |
 | `Checkbox` | Native input attributes except `type`; `label`; ref | Native checkbox inside its label. |
 | `Switch` | `label`, `checked`, `onCheckedChange`; button attributes | Controlled switch button; the application saves the value. |
@@ -50,6 +50,24 @@ Applications compose every screen from these instead of writing elements, `class
 | `DescriptionList` | `items`, `columns?` | Native label/value pairs. |
 | `Option`, `OptionGroup` | native option/optgroup attributes | `Select` children. |
 | `VisuallyHidden` | `as?` | Screen-reader-only text. |
+
+## Form and content controls
+
+| Component | Main props | Behavior |
+| --- | --- | --- |
+| `Disclosure` | `summary`, children, `open?`/`onOpenChange?` or `defaultOpen?`, `variant?`, `actions?` | Native details/summary; actions sit beside the summary, not inside it; browser-initiated opens such as find-in-page stay in sync. |
+| `Fieldset` | `legend`, `description?`, `disabled?`, `hideLegend?`, `layout?` | Native fieldset grouping with an optional visually hidden legend. |
+| `RadioGroup`, `CheckboxGroup` | `legend`, `name`, `options`, `value`/`defaultValue`, `onValueChange`, `error?` | Labelled 44px choice rows; checkbox lists can scroll in a labelled region (`maxHeight`). |
+| `SegmentedControl` | `label`, `options`, `value`, `onValueChange` | Single choice with aria-pressed and roving focus; arrows follow the writing direction. |
+| `Combobox` | `label`, `options`, `value`, `onValueChange`, `allowCustom?`, `name?` | Type-to-filter list ported from the WAI-ARIA APG list-autocomplete pattern (see THIRD_PARTY_NOTICES.md); announces the result count; a hidden input carries the value for native forms. |
+| `Pager` | `onPrevious?`, `onNext?`, `status?` | Previous/next navigation with a polite status; an absent handler disables that end. |
+| `CodeBlock`, `InlineCode` | `code`, `language?`, `wrap?`, `maxHeight?`, `copy?` | Read-only code with an optional copy button; long blocks scroll in a focusable region. |
+| `StatusLine` | `tone?`, `busy?`, `live?` | Inline loading or result status announced politely. |
+| `Scroller` | `label`, children | Focusable, labelled horizontal scroll region for wide content. |
+| `DateTimeField` | `label`, `type?`, `value`, `onValueChange`, `timeZoneLabel?` | Native date/time input that shows the app's time zone; the app converts zones. |
+| `FileField` | `label`, `onFiles`, `files?`, `onRemove?`, `accept?`, `multiple?` | Keyboard file chooser plus a drop zone with an announced status; listed files show size, progress and a labelled remove button. |
+| `Meter` | `label`, `value`, `min?`, `max?`, `low?`, `high?`, `optimum?` | Native meter with a visible value. |
+| `MetricGrid` | `minItemWidth?`, `list?`, `label?` | Responsive grid of `MetricCard`s; `unavailable` cards never read as 0. |
 
 ## A labelled form
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useId, useRef, useState, type ChangeEvent, type DragEvent, type KeyboardEvent, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type ChangeEvent, type DragEvent, type KeyboardEvent, type ReactNode } from 'react';
 import { Badge, Button, Checkbox, Field, Icon, Input, Progress, cx } from './primitives.js';
 import { Stack, VisuallyHidden } from './structure.js';
 import { CopyButton } from './workspace.js';
@@ -182,31 +182,129 @@ export function StatusLine({ tone = 'neutral', busy = false, live = 'polite', ch
   </p>;
 }
 
+export interface ComboboxOption { value: string; label: string }
 export interface ComboboxProps {
   label: ReactNode;
-  options: string[];
+  options: string[] | ComboboxOption[];
   value: string;
   onValueChange: (value: string) => void;
   description?: ReactNode;
-  /** Shown when `allowCustom` is true, or when it is false and the value is not an option. */
+  /** Shown when `allowCustom` is true, or when it is false and the field was left with a value that is not an option. */
   error?: ReactNode;
+  /** When false, leaving the field with text that is not an option shows `error` and keeps the text. */
   allowCustom?: boolean;
+  /** Carried by a hidden input so native forms receive the value. */
   name?: string;
   placeholder?: string;
   required?: boolean;
   disabled?: boolean;
+  /** Shown in the popup, and announced, when nothing matches the typed text. */
+  emptyMessage?: string;
 }
-/** A text input with native suggestions. The message for a value outside the list is the caller's. */
-export function Combobox({ label, options, value, onValueChange, description, error, allowCustom = true, name, placeholder, required, disabled }: ComboboxProps) {
+
+/* Behaviour ported from the W3C WAI-ARIA Authoring Practices Guide, "Editable Combobox With List Autocomplete":
+ * https://www.w3.org/WAI/ARIA/apg/patterns/combobox/examples/combobox-autocomplete-list/
+ * (W3C Software and Document License; see THIRD_PARTY_NOTICES.md). Adapted to React 19 and t98 tokens.
+ * DOM focus stays on the input; the highlighted option is exposed with aria-activedescendant.
+ * Deviations from the example: filtering matches anywhere in the label (case-insensitive) rather than as a prefix,
+ * ArrowUp moves to the previous option and wraps, and Enter on an open list with no highlighted option only closes it. */
+interface ComboboxControlProps {
+  id?: string;
+  'aria-describedby'?: string;
+  'aria-invalid'?: boolean;
+  options: ComboboxOption[];
+  value: string;
+  onValueChange: (value: string) => void;
+  onLeave: () => void;
+  label: ReactNode;
+  name?: string;
+  placeholder?: string;
+  required?: boolean;
+  disabled?: boolean;
+  emptyMessage: string;
+}
+function ComboboxControl({ id, options, value, onValueChange, onLeave, label, name, placeholder, required, disabled, emptyMessage, ...described }: ComboboxControlProps) {
+  const generated = useId();
+  const listId = `${generated}-list`;
+  const optionId = (index: number) => `${generated}-option-${index}`;
+  const [open, setOpen] = useState(false);
+  const [active, setActive] = useState(-1);
+  // The text typed since the field was last closed. It filters the options and is shown as typed, because a
+  // typed value that happens to equal another option's value must not be rewritten to that option's label. Null shows every option.
+  const [query, setQuery] = useState<string | null>(null);
+  const list = useRef<HTMLUListElement>(null);
+  const text = options.find(option => option.value === value)?.label ?? value;
+  const needle = query?.toLowerCase();
+  const shown = needle ? options.filter(option => option.label.toLowerCase().includes(needle)) : options;
+  const count = shown.length;
+  const activeOption = open && active >= 0 && active < count ? active : -1;
+
+  useEffect(() => {
+    if (activeOption >= 0) list.current?.children[activeOption]?.scrollIntoView({ block: 'nearest' });
+  }, [activeOption]);
+
+  function close() { setOpen(false); setActive(-1); setQuery(null); }
+  function accept(option: ComboboxOption) { onValueChange(option.value); close(); }
+  function onKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    switch (event.key) {
+      case 'ArrowDown':
+        event.preventDefault();
+        if (event.altKey) { setOpen(true); return; }
+        setOpen(true);
+        if (count) setActive(activeOption < 0 ? 0 : (activeOption + 1) % count);
+        return;
+      case 'ArrowUp':
+        event.preventDefault();
+        setOpen(true);
+        if (count) setActive(activeOption < 0 ? count - 1 : (activeOption - 1 + count) % count);
+        return;
+      case 'Enter':
+        if (!open) return;
+        event.preventDefault();
+        if (activeOption >= 0) accept(shown[activeOption]); else close();
+        return;
+      case 'Escape':
+        if (open) { event.preventDefault(); event.stopPropagation(); close(); } else if (value !== '') { event.preventDefault(); onValueChange(''); }
+        return;
+      case 'Tab':
+        close();
+        return;
+    }
+  }
+
+  return <div className="t98-combobox">
+    <Input id={id} {...described} role="combobox" aria-autocomplete="list" aria-expanded={open} aria-controls={listId} aria-activedescendant={activeOption >= 0 ? optionId(activeOption) : undefined}
+      value={query ?? text} placeholder={placeholder} required={required} disabled={disabled} autoComplete="off" spellCheck={false}
+      onChange={event => {
+        const typed = event.target.value;
+        onValueChange(options.find(option => option.label === typed)?.value ?? typed);
+        setQuery(typed); setActive(-1); setOpen(true);
+      }}
+      onKeyDown={onKeyDown}
+      onBlur={() => { close(); onLeave(); }} />
+    {name && <input type="hidden" name={name} value={value} />}
+    <div className="t98-combobox-popup" hidden={!open}>
+      <ul className="t98-combobox-list" id={listId} role="listbox" aria-label={typeof label === 'string' ? label : 'Options'} ref={list} hidden={count === 0}>
+        {shown.map((option, index) => <li key={option.value} id={optionId(index)} role="option" aria-selected={index === activeOption} className="t98-combobox-option"
+          // Keep focus in the input so the list does not close before the click is handled.
+          onMouseDown={event => event.preventDefault()} onClick={() => accept(option)}>{option.label}</li>)}
+      </ul>
+      {count === 0 && <p className="t98-combobox-empty" aria-hidden="true">{emptyMessage}</p>}
+    </div>
+    <span role="status" className="t98-visually-hidden">{open ? (count === 0 ? emptyMessage : `${count} ${count === 1 ? 'result' : 'results'} available`) : ''}</span>
+  </div>;
+}
+
+/** An editable combobox with list autocomplete. The message for a value outside the list is the caller's. */
+export function Combobox({ label, options, value, onValueChange, description, error, allowCustom = true, name, placeholder, required, disabled, emptyMessage = 'No matches' }: ComboboxProps) {
   const id = useId();
-  const outside = !allowCustom && value !== '' && !options.includes(value);
-  // The datalist sits outside Field, which would otherwise pass its id and description to every child.
-  return <>
-    <Field label={label} htmlFor={id} description={description} error={allowCustom || outside ? error : undefined}>
-      <Input name={name} list={`${id}-options`} value={value} placeholder={placeholder} required={required} disabled={disabled} autoComplete="off" onChange={event => onValueChange(event.target.value)} />
-    </Field>
-    <datalist id={`${id}-options`}>{options.map(option => <option key={option} value={option} />)}</datalist>
-  </>;
+  const [left, setLeft] = useState(false);
+  const normalized: ComboboxOption[] = options.map(option => typeof option === 'string' ? { value: option, label: option } : option);
+  const outside = !allowCustom && left && value !== '' && !normalized.some(option => option.value === value);
+  // Field passes its id, description and invalid state to the first child, which hands them to the input.
+  return <Field label={label} htmlFor={id} description={description} error={allowCustom || outside ? error : undefined} required={required}>
+    <ComboboxControl options={normalized} value={value} onValueChange={onValueChange} onLeave={() => setLeft(true)} label={label} name={name} placeholder={placeholder} required={required} disabled={disabled} emptyMessage={emptyMessage} />
+  </Field>;
 }
 
 export interface ScrollerProps { label: string; children: ReactNode }

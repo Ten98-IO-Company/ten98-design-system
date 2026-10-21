@@ -79,14 +79,35 @@ test('StatusLine marks busy work and picks the live role', () => {
   assert.match(render(h(StatusLine, { tone: 'danger', live: 'assertive' }, 'Failed')), /role="alert" aria-live="assertive"/);
 });
 
-test('Combobox wires its datalist and shows the supplied error only for values outside the list', () => {
-  const html = render(h(Combobox, { label: 'City', options: ['Dubai', 'Doha'], value: 'Rome', onValueChange() {}, allowCustom: false, error: 'Pick a listed city', name: 'city' }));
-  const list = html.match(/list="([^"]+)"/)[1];
-  assert.ok(html.includes(`<datalist id="${list}"><option value="Dubai"></option>`));
-  assert.match(html, /name="city"/);
-  assert.match(html, /aria-invalid="true"/);
-  assert.ok(html.includes('Pick a listed city'));
-  assert.ok(!render(h(Combobox, { label: 'City', options: ['Dubai'], value: 'Dubai', onValueChange() {}, allowCustom: false, error: 'Nope' })).includes('Nope'));
+test('Combobox follows the editable list-autocomplete contract and carries its value in a hidden input', () => {
+  const html = render(h(Combobox, { label: 'City', options: ['Dubai', 'Doha'], value: 'Do', onValueChange() {}, name: 'city', description: 'Help' }));
+  const input = html.match(/<input[^>]*role="combobox"[^>]*>/)[0];
+  assert.match(input, /aria-autocomplete="list"/);
+  assert.match(input, /aria-expanded="false"/);
+  assert.doesNotMatch(input, /aria-activedescendant| name=/);
+  const list = input.match(/aria-controls="([^"]+)"/)[1];
+  assert.ok(html.includes(`<ul class="t98-combobox-list" id="${list}" role="listbox"`));
+  const ids = [...html.matchAll(/<li id="([^"]+)" role="option" aria-selected="false"/g)].map(match => match[1]);
+  assert.equal(new Set(ids).size, 2);
+  assert.match(html, /<input type="hidden" name="city" value="Do"\/>/);
+  const id = input.match(/ id="([^"]+)"/)[1];
+  assert.ok(input.includes(`aria-describedby="${id}-description"`));
+  assert.ok(html.includes('<span role="status" class="t98-visually-hidden"></span>'));
+});
+
+test('Combobox accepts label and value options', () => {
+  const html = render(h(Combobox, { label: 'City', options: [{ value: 'dxb', label: 'Dubai' }, { value: 'doh', label: 'Doha' }], value: 'dxb', onValueChange() {}, name: 'city' }));
+  assert.match(html, /<input[^>]*role="combobox"[^>]*value="Dubai"/);
+  assert.match(html, /<input type="hidden" name="city" value="dxb"\/>/);
+  assert.ok(html.includes('>Doha</li>'));
+});
+
+test('Combobox shows the supplied error for a list-only field only after it was left, and always when custom values are allowed', () => {
+  const props = { label: 'City', options: ['Dubai'], onValueChange() {}, error: 'Pick a listed city' };
+  assert.ok(!render(h(Combobox, { ...props, allowCustom: false, value: 'Rome' })).includes('Pick a listed city'));
+  const free = render(h(Combobox, { ...props, value: 'Rome' }));
+  assert.ok(free.includes('role="alert">Pick a listed city'));
+  assert.match(free, /aria-invalid="true"/);
 });
 
 test('Scroller is a labelled, focusable region', () => {

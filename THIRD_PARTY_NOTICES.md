@@ -35,3 +35,10 @@ SOFTWARE.
 ## Runtime dependencies
 
 React and React DOM are peer dependencies under the MIT license. Development dependencies retain their own package licenses; the published library does not bundle their source.
+
+## WAI-ARIA Authoring Practices: Editable Combobox With List Autocomplete
+
+- Source: https://www.w3.org/WAI/ARIA/apg/patterns/combobox/examples/combobox-autocomplete-list/
+- Licence: W3C Software and Document License (https://www.w3.org/copyright/software-license-2023/)
+- Retrieved: 2026-10-21
+- Use: behaviour ported and adapted to React 19 + t98 tokens in the `Combobox` component (keyboard model, ARIA roles and `aria-activedescendant` handling). No W3C markup, styles or script text is bundled.

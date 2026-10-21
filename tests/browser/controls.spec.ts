@@ -94,9 +94,85 @@ for (const theme of ['light', 'dark'] as const) {
     expect(await overflow(page), 'a wide Scroller does not widen the page').toBeLessThanOrEqual(1);
     await scroller.evaluate(node => { (node.firstElementChild as HTMLElement).style.minInlineSize = ''; });
 
-    // Combobox keeps its datalist wiring; status line is busy.
-    const city = screen.getByLabel('City');
-    expect(await city.evaluate(node => (node as HTMLInputElement).list?.options.length)).toBe(3);
+    // Combobox: editable list autocomplete (APG). Status line is busy.
+    const city = screen.getByRole('combobox', { name: 'City' });
+    const popup = screen.getByRole('listbox', { name: 'City' });
+    const cityStatus = city.locator('xpath=ancestor::div[contains(@class,"t98-combobox")][1]').getByRole('status');
+    await expect(city).toHaveAttribute('aria-expanded', 'false');
+    await city.focus();
+    await page.keyboard.type('ha');
+    await expect(city).toHaveAttribute('aria-expanded', 'true');
+    await expect(popup.getByRole('option')).toHaveText(['Doha', 'Abu Dhabi']);
+    await expect(cityStatus).toHaveText('2 results available');
+    await page.keyboard.type('b');
+    await expect(popup.getByRole('option')).toHaveText(['Abu Dhabi']);
+    await expect(cityStatus).toHaveText('1 result available');
+    for (let index = 0; index < 3; index++) await page.keyboard.press('Backspace');
+    await page.keyboard.press('ArrowDown');
+    await expect(city).toHaveAttribute('aria-activedescendant', (await popup.getByRole('option').nth(0).getAttribute('id'))!);
+    await expect(popup.getByRole('option').nth(0)).toHaveAttribute('aria-selected', 'true');
+    await page.keyboard.press('ArrowUp');
+    await expect(popup.getByRole('option').nth(3)).toHaveAttribute('aria-selected', 'true');
+    await expect(city).toHaveAttribute('aria-activedescendant', (await popup.getByRole('option').nth(3).getAttribute('id'))!);
+    await page.keyboard.press('ArrowDown');
+    await expect(popup.getByRole('option').nth(0)).toHaveAttribute('aria-selected', 'true');
+    await page.keyboard.press('ArrowDown');
+    await page.keyboard.press('Enter');
+    await expect(city).toHaveValue('Doha');
+    await expect(city).toHaveAttribute('aria-expanded', 'false');
+    await expect(city).not.toHaveAttribute('aria-activedescendant', /.+/);
+    expect(await city.evaluate(node => (node.closest('form') ?? document).querySelector<HTMLInputElement>('input[type=hidden][name=city]')!.value)).toBe('Doha');
+    // Alt+Down opens without moving; Escape closes first, then clears.
+    await page.keyboard.press('Alt+ArrowDown');
+    await expect(city).toHaveAttribute('aria-expanded', 'true');
+    await expect(city).not.toHaveAttribute('aria-activedescendant', /.+/);
+    await page.keyboard.press('Escape');
+    await expect(city).toHaveAttribute('aria-expanded', 'false');
+    await expect(city).toHaveValue('Doha');
+    await page.keyboard.press('Escape');
+    await expect(city).toHaveValue('');
+    // Tab closes without accepting; the field keeps its text.
+    await page.keyboard.type('du');
+    await page.keyboard.press('ArrowDown');
+    await expect(popup.getByRole('option', { name: 'Dubai' })).toHaveAttribute('aria-selected', 'true');
+    await page.keyboard.press('Tab');
+    await expect(city).toHaveAttribute('aria-expanded', 'false');
+    await expect(city).toHaveValue('du');
+    // Click selects; hover never moves focus away from the input.
+    await city.focus();
+    await page.keyboard.press('Alt+ArrowDown');
+    await popup.getByRole('option', { name: 'Riyadh' }).click();
+    await expect(city).toHaveValue('Riyadh');
+    await expect(city).toHaveAttribute('aria-expanded', 'false');
+    // Clicking outside closes.
+    await city.focus();
+    await page.keyboard.press('Alt+ArrowDown');
+    await expect(city).toHaveAttribute('aria-expanded', 'true');
+    await screen.getByRole('heading', { level: 1 }).click();
+    await expect(city).toHaveAttribute('aria-expanded', 'false');
+    // Options are at least 44px tall and the open list does not widen the page.
+    await city.focus();
+    await page.keyboard.press('Alt+ArrowDown');
+    expect.soft((await popup.getByRole('option').first().boundingBox())!.height, 'option height').toBeGreaterThanOrEqual(43.5);
+    expect(await overflow(page), 'an open list does not widen the page').toBeLessThanOrEqual(1);
+    await page.keyboard.press('Escape');
+    // List-only field: leaving with text outside the list shows the error and keeps the text.
+    const region = screen.getByRole('combobox', { name: 'Region' });
+    await region.focus();
+    await page.keyboard.type('zz');
+    await expect(screen.locator('.t98-combobox-empty')).toHaveText('No matches');
+    await expect(region.locator('xpath=ancestor::div[contains(@class,"t98-combobox")][1]').getByRole('status')).toHaveText('No matches');
+    await page.keyboard.press('Tab');
+    await expect(screen.getByText('Choose a listed region.')).toBeVisible();
+    await expect(region).toHaveValue('zz');
+    await expect(region).toHaveAttribute('aria-invalid', 'true');
+    await region.focus();
+    await page.keyboard.press('Control+A');
+    await page.keyboard.type('qat');
+    await page.keyboard.press('ArrowDown');
+    await page.keyboard.press('Enter');
+    await expect(region).toHaveValue('Qatar');
+    await expect(screen.getByText('Choose a listed region.')).toHaveCount(0);
     await expect(screen.getByRole('status').filter({ hasText: 'Loading campaigns' })).toHaveAttribute('aria-busy', 'true');
 
     // DateTimeField: native type, value callback and the visible time zone in the description.
