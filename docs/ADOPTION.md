@@ -120,6 +120,42 @@ Keep the standard accent across products. Differentiate products through their n
 
 `@ten98/ui` is the only place frontend elements are authored. Application source composes library components, flow sections and templates and never renders raw JSX elements (`div`, `button`, `svg`…), passes `className` or `style`, or imports its own stylesheets. Layout and text come from `Stack`, `Inline`, `Grid`, `FormGrid`, `FormActions`, `FeatureControls`, `Text`, `Heading`, `Link`, `Image`, `List` and `DescriptionList`; router links pass the router's link component to `Link`. The `@ten98/runtime` architecture check enforces this in each app's `test` and `build` scripts, with a per-app baseline that can only go down until it reaches zero.
 
+## Upgrading across releases
+
+Apps can jump several versions at once; every release body lists breaking and behaviour changes first. The ones to check when moving from 0.5.x to 0.13.0:
+
+| Since | Change | What to do |
+|---|---|---|
+| 0.6.0 | `TimeSeriesChart` stretches to its container width instead of a fixed natural width | Check layouts that sized a wrapper around a chart. |
+| 0.6.0, 0.7.0 | Skip these as pins: their `ReplayViewer` content policy could be bypassed by a document starting with `<!--<head>-->` | Use 0.8.0 or later. |
+| 0.8.0 | `Progress` with a non-finite value is indeterminate instead of 0% | Pass a finite number to show a percentage. |
+| 0.9.0 | `DateRangeField` calls `onChange(range, problem)` on every edit, including an invalid range | Keep the second argument and block submission while it is non-null. |
+| 0.9.0 | TypeScript: `ShareSegment.count` is `number \| null` | Handle `null` where you read counts back. |
+| 0.9.0 | `AppTopbar` `wrap` clamps the scope to two lines, with the full name in its `title` | Check screens with long workspace or project names. |
+| 0.11.0 | `Image` replaces a failed image with a fallback ("Image unavailable") | Pass `fallback` for your own wording. |
+
+## Replace these app patterns
+
+| App pattern | Library component (release) |
+|---|---|
+| Raw `form` with a busy flag | `Form` (0.11.0); `Dialog` `onSubmit` for modal forms (0.13.0) |
+| `label` + `span` + `input`, help text, counters | `Field` (with `count`, 0.11.0), `Input`, `Textarea`, `Select` |
+| Inline "I reviewed … then Confirm" blocks | `ReviewConfirm` (0.12.0); `ConfirmDialog` for modal confirmation |
+| Pre-publish checks per destination | `ValidationSummary` (0.12.0) |
+| "Load more" / "Load older" cursor buttons | `LoadMore` (0.11.0); `ConversationThread` `onLoadOlder` (0.13.0) |
+| Inbox or contact lists beside a detail pane | `SelectableList` (0.13.0) with `DetailWorkspace` |
+| Message history, comments and replies | `ConversationThread` (`direction`, `actions`, `removed` 0.7.0; `replies` 0.13.0) |
+| Editor modals with unsaved changes | `Dialog` `dirty` (0.13.0) |
+| Social post, thread, poll and story previews | `ContentPreview` `chrome`, `thread`, `captionLimit`, `poll`, `firstComment` (0.9.0, 0.13.0) |
+| Email HTML previews | `SandboxedPreview` (0.8.0) |
+| Asset thumbnails and image placeholders | `ResourceCard` `media`/`tags`, `Image` `fallback` (0.11.0); `MediaStrip` facts (0.8.0) |
+| Audio, video and quotes in messages | `MediaPlayer`, `Blockquote` (0.7.0) |
+| Searchable selects, async results, tags | `Combobox` (async 0.7.0, option `description` 0.11.0), `MultiCombobox` (0.7.0) |
+| Hand-drawn SVG charts | `TimeSeriesChart`, `BarList`, `ShareChart`, `WeekdayHourGrid` (0.9.0) |
+| Session replay players | `IsolatedPlayerFrame` (0.10.0); `ReplayViewer` for simple `srcDoc` players |
+
+Import `@ten98/ui/app-tokens.css`, `@ten98/ui/app.css` and `@ten98/ui/product.css` once: component styles live in `product.css`.
+
 ## Incremental migration
 
 1. Build and install a fixed package version; import its CSS once.
