@@ -1,0 +1,105 @@
+/* Spatial evidence and calendar: country map, heatmap plane, replay viewer and month grid. Tokens and logical properties only. */
+:where(.t98-map, .t98-heatmap-list, .t98-replay-viewer, .t98-calendar) { display: grid; gap: var(--t98-space-3); min-inline-size: 0; font-family: var(--t98-font); color: var(--t98-text); }
+:where(.t98-map-title, .t98-replay-viewer-title, .t98-calendar-title) { margin: 0; font-size: var(--t98-text-lg, 1.125rem); font-weight: 600; line-height: var(--t98-leading-tight); overflow-wrap: anywhere; }
+:where(.t98-map-context, .t98-map-summary, .t98-replay-viewer-context) { color: var(--t98-muted); overflow-wrap: anywhere; }
+
+/* Country map */
+.t98-map-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--t98-space-2); }
+.t98-map-control { min-block-size: var(--t98-control-touch); min-inline-size: var(--t98-control-touch); }
+.t98-map-zoom { color: var(--t98-muted); }
+.t98-map-stage { min-inline-size: 0; overflow: hidden; border: var(--t98-border-width) solid var(--t98-border); border-radius: var(--t98-radius); background: var(--t98-subtle); }
+.t98-map-stage:focus-visible, .t98-map-details:focus-visible, .t98-heatmap-list:focus-visible { outline: var(--t98-focus-width) solid var(--t98-focus); outline-offset: var(--t98-focus-offset); }
+.t98-map-svg { display: block; inline-size: 100%; block-size: auto; max-block-size: 70vh; }
+.t98-map-shape { stroke: var(--t98-surface); stroke-width: 0.6; vector-effect: non-scaling-stroke; outline: none; cursor: default; }
+.t98-map-shape[tabindex] { cursor: pointer; }
+.t98-map-shape:hover { stroke: var(--t98-text); stroke-width: 2; }
+.t98-map-shape:focus-visible { stroke: var(--t98-focus); stroke-width: 4; }
+.t98-map-shape--selected { stroke: var(--t98-text); stroke-width: 3; }
+.t98-map-shape--step-0, .t98-map-swatch--step-0 { fill: color-mix(in srgb, var(--t98-accent) 14%, var(--t98-surface)); background: color-mix(in srgb, var(--t98-accent) 14%, var(--t98-surface)); }
+.t98-map-shape--step-1, .t98-map-swatch--step-1 { fill: color-mix(in srgb, var(--t98-accent) 32%, var(--t98-surface)); background: color-mix(in srgb, var(--t98-accent) 32%, var(--t98-surface)); }
+.t98-map-shape--step-2, .t98-map-swatch--step-2 { fill: color-mix(in srgb, var(--t98-accent) 52%, var(--t98-surface)); background: color-mix(in srgb, var(--t98-accent) 52%, var(--t98-surface)); }
+.t98-map-shape--step-3, .t98-map-swatch--step-3 { fill: color-mix(in srgb, var(--t98-accent) 74%, var(--t98-surface)); background: color-mix(in srgb, var(--t98-accent) 74%, var(--t98-surface)); }
+.t98-map-shape--step-4, .t98-map-swatch--step-4 { fill: var(--t98-accent); background: var(--t98-accent); }
+.t98-map-shape--nodata { fill: var(--t98-subtle); }
+.t98-map-pattern-base { fill: var(--t98-surface); }
+.t98-map-pattern-line { stroke: var(--t98-muted); stroke-width: 1; fill: none; }
+.t98-map-legend { display: flex; flex-wrap: wrap; align-items: center; gap: var(--t98-space-2) var(--t98-space-4); color: var(--t98-muted); }
+.t98-map-legend-title { color: var(--t98-text); font-weight: 600; }
+.t98-map-legend-scale { display: inline-flex; border: var(--t98-border-width) solid var(--t98-border); }
+.t98-map-swatch { display: block; inline-size: 1.5rem; block-size: 1rem; }
+.t98-map-legend-nodata { display: inline-flex; align-items: center; gap: var(--t98-space-2); }
+.t98-map-swatch-nodata { inline-size: 1.5rem; block-size: 1rem; border: var(--t98-border-width) solid var(--t98-border); }
+.t98-map-legend-range { overflow-wrap: anywhere; }
+.t98-map-details, .t98-heatmap-list { min-inline-size: 0; overflow-x: auto; border: var(--t98-border-width) solid var(--t98-border); border-radius: var(--t98-radius); background: var(--t98-surface); }
+:where(.t98-map-table, .t98-heatmap-table) { inline-size: 100%; border-collapse: collapse; }
+:where(.t98-map-table, .t98-heatmap-table) :where(th, td) { padding: var(--t98-space-2) var(--t98-space-3); border-block-end: var(--t98-border-width) solid var(--t98-border); text-align: start; font-weight: 400; overflow-wrap: anywhere; }
+:where(.t98-map-table, .t98-heatmap-table) :where(thead th, tfoot th, tbody th) { font-weight: 600; }
+:where(.t98-map-table, .t98-heatmap-table) thead th { background: var(--t98-subtle); }
+.t98-map-table tfoot th, .t98-map-table tfoot td { border-block-start: 2px solid var(--t98-border); background: var(--t98-subtle); }
+.t98-map-table tbody tr[data-nodata] td { color: var(--t98-muted); font-style: italic; }
+:where(.t98-map-caption, .t98-heatmap-caption) { padding: var(--t98-space-2) var(--t98-space-3); text-align: start; font-weight: 600; }
+:where(.t98-map-table-value, .t98-heatmap-number) { text-align: end; font-variant-numeric: tabular-nums; }
+.t98-map-attribution { margin: 0; color: var(--t98-muted); font-size: var(--t98-text-sm); overflow-wrap: anywhere; }
+
+/* Heatmap plane: a forced left-to-right coordinate space so x positions match the captured page. */
+.t98-heatmap { position: relative; inline-size: 100%; overflow: hidden; unicode-bidi: isolate; }
+.t98-visual-overlay > .t98-heatmap { aspect-ratio: auto !important; block-size: 100%; }
+.t98-heatmap-point { position: absolute; inline-size: 7%; aspect-ratio: 1; min-inline-size: 0.75rem; transform: translate(-50%, -50%); border-radius: 50%; background: var(--t98-danger); border: 2px solid var(--t98-surface); box-sizing: border-box; }
+.t98-heatmap-band { position: absolute; inset-inline: 0; min-block-size: 0; border-block-start: 1px dashed var(--t98-border); }
+.t98-heatmap-band::before { content: ''; position: absolute; inset: 0; background: var(--t98-danger); opacity: var(--t98-heat, 0); }
+.t98-heatmap-band--unavailable::before { background: repeating-linear-gradient(135deg, var(--t98-muted) 0 2px, transparent 2px 8px); opacity: 0.35; }
+.t98-heatmap-band-label { position: absolute; inset-block-start: 0; inset-inline-start: 0; max-inline-size: 100%; padding: 0.125rem var(--t98-space-2); background: var(--t98-surface); color: var(--t98-text); border: var(--t98-border-width) solid var(--t98-border); font-size: var(--t98-text-sm); overflow-wrap: anywhere; }
+
+/* Replay viewer */
+.t98-replay-frame { display: block; inline-size: 100%; aspect-ratio: 16 / 9; min-block-size: 12rem; border: var(--t98-border-width) solid var(--t98-border); border-radius: var(--t98-radius); background: var(--t98-surface); }
+.t98-replay-viewer-reason { padding: var(--t98-space-4); border: var(--t98-border-width) dashed var(--t98-border); border-radius: var(--t98-radius); background: var(--t98-subtle); overflow-wrap: anywhere; }
+
+/* The native range input's default 2px inline margins push the viewer past its container. */
+.t98-replay-viewer .t98-replay-seek { margin-inline: 0; box-sizing: border-box; }
+
+/* Calendar month */
+.t98-calendar-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--t98-space-2) var(--t98-space-4); }
+.t98-calendar-nav { display: flex; flex-wrap: wrap; gap: var(--t98-space-2); }
+.t98-calendar-button { min-block-size: var(--t98-control-touch); min-inline-size: var(--t98-control-touch); }
+.t98-calendar-reason { padding: var(--t98-space-2) var(--t98-space-3); border: var(--t98-border-width) solid var(--t98-border); border-inline-start: 4px solid var(--t98-warning); border-radius: var(--t98-radius); background: var(--t98-subtle); overflow-wrap: anywhere; }
+.t98-calendar-scroll { min-inline-size: 0; overflow-x: auto; }
+.t98-calendar-grid { inline-size: 100%; min-inline-size: calc(7 * var(--t98-control-touch)); table-layout: fixed; border-collapse: collapse; }
+.t98-calendar-weekday { padding: var(--t98-space-2) var(--t98-space-1); background: var(--t98-subtle); border: var(--t98-border-width) solid var(--t98-border); font-size: var(--t98-text-sm); font-weight: 600; text-align: center; overflow-wrap: anywhere; }
+.t98-calendar-cell { min-block-size: calc(var(--t98-control-touch) * 2); padding: var(--t98-space-1); border: var(--t98-border-width) solid var(--t98-border); background: var(--t98-surface); vertical-align: top; overflow-wrap: anywhere; }
+.t98-calendar-cell:focus-visible { outline: var(--t98-focus-width) solid var(--t98-focus); outline-offset: calc(var(--t98-focus-width) * -1); }
+.t98-calendar-cell--outside { background: var(--t98-subtle); color: var(--t98-muted); }
+.t98-calendar-cell--today { border-width: 2px; border-color: var(--t98-accent); }
+.t98-calendar-date { display: flex; flex-wrap: wrap; gap: 0 var(--t98-space-1); font-weight: 600; }
+.t98-calendar-today-mark { color: var(--t98-accent); font-size: var(--t98-text-sm); }
+.t98-calendar-entries { display: grid; gap: var(--t98-space-1); margin: var(--t98-space-1) 0 0; padding: 0; list-style: none; }
+.t98-calendar-entry-item { min-inline-size: 0; }
+.t98-calendar-entry, .t98-calendar-create { display: block; inline-size: 100%; box-sizing: border-box; min-block-size: var(--t98-control-touch); padding: var(--t98-space-1); border: var(--t98-border-width) solid var(--t98-border); border-radius: var(--t98-radius); background: var(--t98-accent-soft); color: var(--t98-text); font: inherit; font-size: var(--t98-text-sm); text-align: start; overflow-wrap: anywhere; }
+button.t98-calendar-entry, .t98-calendar-create { cursor: pointer; }
+.t98-calendar-entry--static { cursor: default; }
+.t98-calendar-entry-time { display: block; color: var(--t98-muted); font-variant-numeric: tabular-nums; }
+.t98-calendar-entry-label { display: block; }
+.t98-calendar-create { margin-block-start: var(--t98-space-1); background: var(--t98-surface); text-align: center; }
+.t98-calendar-create:disabled { cursor: not-allowed; background: var(--t98-disabled-surface); color: var(--t98-disabled-text); }
+:where(button.t98-calendar-entry, .t98-calendar-create):focus-visible { outline: var(--t98-focus-width) solid var(--t98-focus); outline-offset: var(--t98-focus-offset); }
+
+@media (forced-colors: active) {
+  .t98-map-svg, .t98-map-legend-scale, .t98-heatmap-point, .t98-heatmap-band::before { forced-color-adjust: none; }
+  .t98-map-stage, .t98-map-details, .t98-heatmap-list, .t98-replay-frame, .t98-calendar-cell, .t98-calendar-weekday, .t98-calendar-entry, .t98-calendar-create, .t98-map-swatch-nodata, .t98-map-legend-scale { border-color: CanvasText; }
+  .t98-map-shape { stroke: CanvasText; stroke-width: 1; }
+  .t98-map-shape--step-0, .t98-map-swatch--step-0 { fill: color-mix(in srgb, Highlight 15%, Canvas); background: color-mix(in srgb, Highlight 15%, Canvas); }
+  .t98-map-shape--step-1, .t98-map-swatch--step-1 { fill: color-mix(in srgb, Highlight 35%, Canvas); background: color-mix(in srgb, Highlight 35%, Canvas); }
+  .t98-map-shape--step-2, .t98-map-swatch--step-2 { fill: color-mix(in srgb, Highlight 55%, Canvas); background: color-mix(in srgb, Highlight 55%, Canvas); }
+  .t98-map-shape--step-3, .t98-map-swatch--step-3 { fill: color-mix(in srgb, Highlight 75%, Canvas); background: color-mix(in srgb, Highlight 75%, Canvas); }
+  .t98-map-shape--step-4, .t98-map-swatch--step-4 { fill: Highlight; background: Highlight; }
+  .t98-map-shape--nodata { fill: Canvas; }
+  .t98-map-pattern-base { fill: Canvas; }
+  .t98-map-pattern-line { stroke: CanvasText; }
+  .t98-map-shape:focus-visible, .t98-map-shape--selected { stroke: Highlight; stroke-width: 4; }
+  .t98-heatmap-point { background: Highlight; border-color: CanvasText; }
+  .t98-heatmap-band::before { background: Highlight; }
+  .t98-heatmap-band { border-block-start-color: CanvasText; }
+  .t98-heatmap-band-label { background: Canvas; color: CanvasText; border-color: CanvasText; }
+  .t98-calendar-cell--today { border-color: Highlight; }
+  .t98-calendar-cell--outside { color: GrayText; }
+  .t98-calendar-create:disabled { color: GrayText; border-color: GrayText; }
+}

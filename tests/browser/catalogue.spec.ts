@@ -44,14 +44,18 @@ test('every component state page renders without browser errors or page overflow
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.goto(`${prefix}#components`);
-  await expect(page.locator('.reference-component-card')).toHaveCount(135);
+  await expect(page.locator('.reference-component-card')).toHaveCount(144);
   const links = await page.locator('.reference-component-card').evaluateAll(nodes => nodes.map(node => ({ href: node.getAttribute('href')!, name: node.querySelector('h2')!.textContent! })));
   for (const link of links) {
     await test.step(link.name, async () => {
       await page.goto(`${prefix}${link.href}?tab=states`);
       await expect(page.locator('.reference-detail > header h1')).toHaveText(link.name);
       await expect(page.locator('.reference-state').first()).toBeVisible();
-      for (const frame of page.frames().filter(frame => frame !== page.mainFrame())) await expect(frame.locator('.specimen')).toBeVisible();
+      // Catalogue previews render in reference frames; components such as ReplayViewer add their own sandboxed frames.
+      for (const frame of page.frames().filter(frame => frame !== page.mainFrame())) {
+        const isPreview = await (await frame.frameElement()).evaluate(element => element.classList.contains('reference-app-frame'));
+        if (isPreview) await expect(frame.locator('.specimen')).toBeVisible();
+      }
       expect(await page.locator('.reference-state').count()).toBeGreaterThan(0);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1), `${link.name} must contain horizontal overflow`).toBeTruthy();
       if (info.project.name === 'narrow-dark') {

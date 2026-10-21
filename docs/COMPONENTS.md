@@ -306,6 +306,27 @@ All 28 additive exports have live props, state specimens, tokens, accessibility 
 
 The emitted declarations remain the exact prop contract. Existing apps use `product.css` after `app.css`; new screens may load `styles.css`. Long main-API badges wrap within their containing surface.
 
+## Charts
+
+Presentation only: the application computes every value, total and summary; the library draws and describes them. Geometry is a small internal port of d3 pure functions (ISC; see `THIRD_PARTY_NOTICES.md`) with no d3 dependency.
+
+- Data contract: `ChartValue = number | null`; `ChartPoint { x, xLabel, y, state?: 'observed' | 'partial' | 'unavailable', note? }`; `ChartSeries { id, label, points, role?: 'primary' | 'comparison', tone?: 1-5, unavailable? }`.
+- Missing is never zero. A null or unavailable point is a hatched column labelled "Unavailable" (and "Unavailable" in the data table); a partial point has a dashed outline or ring and "(partial)" in the table; a line breaks at a gap. A comparison series is outlined, not filled. Series differ by pattern, dash and marker as well as colour (`--t98-chart-1` to `--t98-chart-5`).
+- `TimeSeriesChart` (`kind`: `bars`, `grouped-bars`, `stacked-bars`, `line`, `area`; `xScale`, `xDomain`, `yDomain`, `formatY`, `baselineLabel`, `tableColumns`, `onInspect`, `notice`, `loading`, `emptyMessage`). The plot is a focusable labelled region that scrolls inside itself and stays left to right in RTL. ArrowLeft/Right move the point, Home/End jump, ArrowUp/Down switch series; a polite live region announces "x · series: value (partial|unavailable)". The `summary` is referenced by the SVG through `aria-describedby`, with a computed "N points, minimum, maximum, N unavailable" line and a `<details>` data table of every point.
+- `BarList`: ordered list with visible value text, optional `secondary` value, `href` links, `onSelect` buttons with `aria-pressed`, and a `reason` for partial or unavailable items.
+- `ProportionBar` and `ShareChart`: legend with counts and shares; `total` null shows "Unavailable" and 0 shows the empty message ("No samples" by default). `ShareChart` adds an `aria-hidden` donut and a table with a total row.
+- `Sparkline` and `MetricCard.chart` accept `(number | null)[]`; a missing value leaves a gap.
+- Forced-colors mode uses system colours with visible hatching. Charts are checked at 320px and doubled text for page overflow.
+
+## Maps, evidence and calendar
+
+| Exports | Usage and ownership |
+| --- | --- |
+| `CountryMap` | Choropleth over app-supplied `shapes` and `viewBox`; the library ships no geometry, so the app supplies and attributes the paths. Countries with `rows` form one roving tab stop (arrows move in name order, Shift with arrows pans, `+`/`-` zoom 1-4); others show a no-data pattern. A details table always lists values plus Mapped, Unknown and Not recorded totals (`null` reads Unavailable, never 0). |
+| `HeatmapPlane`, `HeatmapRankedList` | Image-role click-density (square-root opacity) or scroll-band overlay for `VisualEvidenceFrame`, forced left-to-right, with a table equivalent for the ranked slot. A null count or share reads Unavailable. |
+| `ReplayViewer` | Hosts an app-authorized `srcDoc` or `src` in `sandbox="allow-scripts"` (never `allow-same-origin`) with no referrer; `reason` replaces the frame when unavailable. `ReplayControls` render outside the frame. |
+| `CalendarMonth` | Month grid only (use `PublishingAgenda` for lists). Follows the APG date-picker grid: one tab stop, arrows, Home/End within the week, PageUp/PageDown call `onPrev`/`onNext`. UTC dates, explicit `locale`, today and outside-month states, and a create button that stays visible and disabled with `createDisabledReason`. |
+
 ## Domain boundaries
 
 Integration cards combine `ResourceCard`, `Badge`, `Button` and fields. The shared workspace compositions cover common presentation and interaction; business rules, credentials, protocols and execution stay in the consuming application.

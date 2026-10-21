@@ -22,3 +22,6 @@ export * from './controls.js';
 export * from './settings-base.js';
 export * from './account-flows.js';
 export * from './workspace-flows.js';
+export * from './charts.js';
+export * from './spatial.js';
+export * from './calendar.js';

@@ -3,6 +3,7 @@
 import { Children, useEffect, useId, useRef, useState, type HTMLAttributes, type ReactNode, type RefObject, type SyntheticEvent } from 'react';
 import { Badge, Button, Icon, Input, cx } from './primitives.js';
 import { Pager, StatusLine } from './controls.js';
+import { linearScale, segments } from './chart-scale.js';
 import { appShellNavigation } from './shell.js';
 import { useSidebarNavigation } from './sidebar.js';
 
@@ -302,16 +303,23 @@ export function DataTable<T>({
   </div>;
 }
 
-export function Sparkline({ values, label, color = 'var(--t98-accent)' }: { values: readonly number[]; label: string; color?: string }) {
-  const finite = values.filter(Number.isFinite);
+/** A compact trend line. A missing (`null` or non-finite) value leaves a gap; it is never drawn as 0. */
+export function Sparkline({ values, label, color = 'var(--t98-accent)' }: { values: readonly (number | null)[]; label: string; color?: string }) {
+  const known = values.map(value => value !== null && Number.isFinite(value) ? value : null);
+  const finite = known.filter((value): value is number => value !== null);
   const minimum = Math.min(...finite);
   const maximum = Math.max(...finite);
+  // Scale first so the full finite range cannot overflow when subtracted.
   const scale = Math.max(Math.abs(minimum), Math.abs(maximum)) || 1;
-  const points = finite.map((value, index) => `${finite.length === 1 ? 60 : 3 + index / (finite.length - 1) * 114},${maximum === minimum ? 20 : 36 - (value / scale - minimum / scale) / (maximum / scale - minimum / scale) * 32}`).join(' ');
-  const summary = finite.length ? `${label}: ${finite.length} points, first ${finite[0]}, last ${finite.at(-1)}, minimum ${minimum}, maximum ${maximum}` : `${label}: no data`;
+  const scaled = linearScale([minimum / scale, maximum / scale], [36, 4]);
+  const y = (value: number) => scaled(value) ?? 20;
+  const x = (index: number) => known.length === 1 ? 60 : 3 + index / (known.length - 1) * 114;
+  const gaps = known.length - finite.length;
+  const summary = finite.length ? `${label}: ${finite.length} points, first ${finite[0]}, last ${finite.at(-1)}, minimum ${minimum}, maximum ${maximum}${gaps ? `, ${gaps} unavailable` : ''}` : `${label}: no data`;
   return <svg className="t98-sparkline" viewBox="0 0 120 40" role="img" aria-label={summary} style={{ color }}>
-    {finite.length > 1 ? <polyline points={points} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      : finite.length === 1 ? <circle cx="60" cy="20" r="3" fill="currentColor" /> : null}
+    {segments(known, value => value !== null).map(run => run.length > 1
+      ? <polyline key={run[0].index} points={run.map(({ index, item }) => `${x(index)},${y(item! / scale)}`).join(' ')} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      : <circle key={run[0].index} cx={x(run[0].index)} cy={y(run[0].item! / scale)} r="3" fill="currentColor" />)}
   </svg>;
 }
 
@@ -319,7 +327,7 @@ interface MetricCardBaseProps {
   label: string;
   change?: string;
   trend?: 'up' | 'down' | 'neutral';
-  chart?: readonly number[];
+  chart?: readonly (number | null)[];
   /** Short qualifier under the value, such as a date range or an exclusion. */
   hint?: ReactNode;
 }

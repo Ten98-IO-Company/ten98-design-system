@@ -6,4 +6,4 @@ mkdirSync('dist', { recursive: true });
 const authCss = readFileSync('src/lib/auth.css', 'utf8');
 const css = file => readFileSync(`src/lib/${file}`, 'utf8').replace("@import './auth.css';", authCss);
 for (const file of readdirSync('src/lib').filter(name => name.endsWith('.css'))) writeFileSync(`dist/${file}`, css(file));
-writeFileSync('dist/styles.css', ['tokens.css', 'primitives.css', 'patterns.css', 'workspace.css', 'products.css', 'navigation.css', 'structure.css', 'shell.css', 'controls.css', 'account-flows.css', 'workspace-flows.css'].map(css).join('\n'));
+writeFileSync('dist/styles.css', ['tokens.css', 'primitives.css', 'patterns.css', 'workspace.css', 'products.css', 'navigation.css', 'structure.css', 'shell.css', 'controls.css', 'account-flows.css', 'workspace-flows.css', 'charts.css', 'spatial.css'].map(css).join('\n'));
