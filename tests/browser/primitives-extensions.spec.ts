@@ -123,3 +123,15 @@ test('tabs skip disabled items with the keyboard, ignore clicks on them and moun
   await page.keyboard.press('Home');
   await expect(tab('One')).toBeFocused();
 });
+
+test('tab arrows follow the writing direction', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/tests/primitives-extensions.html?theme=light');
+  await page.evaluate(() => { document.documentElement.dir = 'rtl'; });
+  const tabs = page.locator('#lazy-tabs').getByRole('tab');
+  await tabs.first().click();
+  await tabs.first().press('ArrowLeft');
+  // "Two" is disabled, so the next tab in reading order is "Three".
+  await expect(tabs.nth(2)).toBeFocused();
+  await expect(tabs.nth(2)).toHaveAttribute('aria-selected', 'true');
+});

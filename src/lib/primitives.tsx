@@ -224,13 +224,18 @@ export function Tabs({ items, value, onValueChange, label = 'Sections', classNam
   const tabList = useRef<HTMLDivElement>(null);
   const active = items.some(item => item.value === value) ? value : (items.find(item => !item.disabled) ?? items[0])?.value;
   const enabled = items.flatMap((item, index) => item.disabled ? [] : [index]);
+  // The roving tab stop: the active tab, or the first enabled one when the active tab is disabled, so the list stays reachable.
+  const activeIndex = items.findIndex(item => item.value === active);
+  const stop = activeIndex >= 0 && !items[activeIndex].disabled ? activeIndex : enabled[0];
   return <div className={cx('t98-tabs', className)}><div className="t98-tab-list" role="tablist" aria-label={label} ref={tabList}>
-    {items.map((item, index) => <button key={item.value} type="button" role="tab" id={`${id}-tab-${index}`} aria-controls={keepMounted || active === item.value ? `${id}-panel-${index}` : undefined} aria-selected={active === item.value} aria-disabled={item.disabled || undefined} tabIndex={active === item.value && !item.disabled ? 0 : -1} className="t98-tab" onClick={() => { if (!item.disabled) onValueChange(item.value); }} onKeyDown={event => {
+    {items.map((item, index) => <button key={item.value} type="button" role="tab" id={`${id}-tab-${index}`} aria-controls={keepMounted || active === item.value ? `${id}-panel-${index}` : undefined} aria-selected={active === item.value} aria-disabled={item.disabled || undefined} tabIndex={index === stop ? 0 : -1} className="t98-tab" onClick={() => { if (!item.disabled) onValueChange(item.value); }} onKeyDown={event => {
       const at = enabled.indexOf(index);
       let next: number | undefined;
       if (!enabled.length) return;
-      if (event.key === 'ArrowRight') next = enabled[(at + 1) % enabled.length];
-      else if (event.key === 'ArrowLeft') next = enabled[(at - 1 + enabled.length) % enabled.length];
+      // Arrows follow the writing direction (APG): in RTL, ArrowLeft moves to the next tab.
+      const rtl = tabList.current ? getComputedStyle(tabList.current).direction === 'rtl' : false;
+      if (event.key === (rtl ? 'ArrowLeft' : 'ArrowRight')) next = enabled[(at + 1) % enabled.length];
+      else if (event.key === (rtl ? 'ArrowRight' : 'ArrowLeft')) next = enabled[(at - 1 + enabled.length) % enabled.length];
       else if (event.key === 'Home') next = enabled[0];
       else if (event.key === 'End') next = enabled[enabled.length - 1];
       if (next === undefined) return;

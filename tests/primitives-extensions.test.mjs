@@ -129,3 +129,14 @@ test('the added icons render a non-empty path', () => {
     assert.notEqual(d, renderToStaticMarkup(h(Icon, { name: 'components' })).match(/<path d="([^"]*)"/)[1], `${name} must not use the fallback glyph`);
   }
 });
+
+test('Tabs keep a keyboard stop when the active tab is disabled', async () => {
+  const { Tabs } = await import('../dist/index.js');
+  const html = renderToStaticMarkup(h(Tabs, { value: 'billing', onValueChange() {}, items: [
+    { value: 'billing', label: 'Billing', content: 'b', disabled: true },
+    { value: 'team', label: 'Team', content: 't' },
+  ] }));
+  const tabs = [...html.matchAll(/<button[^>]*role="tab"[^>]*>/g)].map(match => match[0]);
+  assert.match(tabs[0], /tabindex="-1"/i);
+  assert.match(tabs[1], /tabindex="0"/i);
+});

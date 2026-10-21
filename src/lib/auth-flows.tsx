@@ -270,7 +270,8 @@ export function PasswordRecoveryFlow({ stage, token, availability = 'enabled', s
   const confirmationError = fieldErrors?.confirmation ?? (mismatch ? copy.mismatch : undefined);
   const clearMismatch = () => setMismatch(false);
   // The same mismatch also appears as the form-level alert, which takes focus after a submit like any other failure.
-  return <AuthFormFrame {...common} error={mismatch ? copy.mismatch : frame.error} fieldErrors={{ ...fieldErrors, confirmation: confirmationError }} submitLabel={submitLabel ?? 'Reset password'} busyLabel={busyLabel ?? 'Resetting…'}
+  // An error from the app is newer information, so it wins over the local mismatch message.
+  return <AuthFormFrame {...common} error={frame.error ?? (mismatch ? copy.mismatch : undefined)} fieldErrors={{ ...fieldErrors, confirmation: confirmationError }} submitLabel={submitLabel ?? 'Reset password'} busyLabel={busyLabel ?? 'Resetting…'}
     after={actionRow([onRequestNewLink && <Button key="new-link" type="button" variant="ghost" size="sm" onClick={onRequestNewLink}>{requestNewLinkLabel}</Button>, backControl])}
     validate={values => { const same = values.password === values.confirmation; setMismatch(!same); return same; }}>
     <Text tone="muted" size="sm">{copy.resetIntro}</Text>
