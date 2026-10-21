@@ -69,3 +69,13 @@ test('U51: MediaStrip caps alt text and counts it', () => {
   assert.match(html, /<textarea[^>]*maxLength="100"|<textarea[^>]*maxlength="100"/);
   assert.match(html, />14 \/ 100 characters</);
 });
+
+test('TeamFlow shows invitation statuses in sentence case, overridable, and keeps raw values for its checks', () => {
+  const base = { currentUserId: 'u1', members: [], roles: [{ value: 'editor', label: 'Editor' }], assignableRoles: () => [], onRoleChange() {}, onRemove() {}, onInvite() {}, onRevokeInvitation() {},
+    invitations: [{ id: 'i1', email: 'a@example.com', role: 'editor', expiresAt: '2026-11-01T00:00:00Z', status: 'revoked' }, { id: 'i2', email: 'b@example.com', role: 'editor', expiresAt: '2026-11-01T00:00:00Z', status: 'pending' }] };
+  const html = render(ui.TeamFlow, base);
+  assert.match(html, />Revoked<\/span>/);
+  assert.match(html, />Pending<\/span>/);
+  assert.doesNotMatch(html, />revoked</);
+  assert.match(render(ui.TeamFlow, { ...base, invitationStatusLabels: { revoked: 'Withdrawn' } }), />Withdrawn<\/span>/);
+});

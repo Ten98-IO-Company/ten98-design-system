@@ -140,6 +140,8 @@ const teamMessages: TeamMessages = {
 };
 /** Labels for the canonical workspace roles (@ten98/runtime workspaceRoles). */
 const canonicalRoleLabels: Partial<Record<string, string>> = { owner: 'Owner', admin: 'Admin', editor: 'Editor', viewer: 'Viewer' };
+/** Sentence-case labels for the known invitation states; an unknown status is shown as given. */
+const invitationStatusText: Record<string, string> = { pending: 'Pending', accepted: 'Accepted', expired: 'Expired', revoked: 'Revoked' };
 const invitationTone = (status: string) => ({ pending: 'info', accepted: 'success', expired: 'warning', revoked: 'neutral' } as const)[status as 'pending'] ?? 'neutral';
 export interface TeamFlowProps extends FlowState {
   currentUserId: string;
@@ -148,6 +150,8 @@ export interface TeamFlowProps extends FlowState {
   roles: SelectOption[];
   /** Overrides the built-in Owner/Admin/Editor/Viewer labels, for applications that rename roles. */
   roleLabels?: Partial<Record<string, string>>;
+  /** Overrides the built-in Pending/Accepted/Expired/Revoked invitation labels. Statuses stay raw values for the flow's own checks. */
+  invitationStatusLabels?: Partial<Record<string, string>>;
   /** Roles the current user may give this member. Empty makes the row read-only. */
   assignableRoles: (target: TeamMember) => string[];
   onRoleChange: Submit<{ id: string; role: string }>;
@@ -169,7 +173,7 @@ export interface TeamFlowProps extends FlowState {
   messages?: Partial<TeamMessages>;
 }
 /** The one place to manage members, roles, invitations, the two-factor policy and ownership. */
-export function TeamFlow({ currentUserId, members, roles, roleLabels, assignableRoles, onRoleChange, onRemove, invitations, onInvite, onRevokeInvitation, inviteLink, onDismissInviteLink, policy, ownership, defaultInviteRole = roles[roles.length - 1]?.value, formatDate = formatFlowDate, title = 'Team', description, messages, ...state }: TeamFlowProps) {
+export function TeamFlow({ currentUserId, members, roles, roleLabels, invitationStatusLabels, assignableRoles, onRoleChange, onRemove, invitations, onInvite, onRevokeInvitation, inviteLink, onDismissInviteLink, policy, ownership, defaultInviteRole = roles[roles.length - 1]?.value, formatDate = formatFlowDate, title = 'Team', description, messages, ...state }: TeamFlowProps) {
   const id = useId();
   const copy = { ...teamMessages, ...messages };
   const singleFlight = useSingleSubmit();
@@ -194,7 +198,7 @@ export function TeamFlow({ currentUserId, members, roles, roleLabels, assignable
     { key: 'email', header: copy.email, rowHeader: true, wrap: true },
     { key: 'role', header: copy.role, render: row => roleLabel(row.role) },
     { key: 'expiresAt', header: copy.expires, render: row => formatDate(row.expiresAt) },
-    { key: 'status', header: copy.status, render: row => <Badge tone={invitationTone(row.status)}>{row.status}</Badge> },
+    { key: 'status', header: copy.status, render: row => <Badge tone={invitationTone(row.status)}>{invitationStatusLabels?.[row.status] ?? invitationStatusText[row.status] ?? row.status}</Badge> },
   ];
   const candidate = ownership?.candidates.find(option => option.value === newOwner);
   return <SettingsFlow {...state} title={title} description={description}>
