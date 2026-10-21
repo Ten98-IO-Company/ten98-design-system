@@ -244,7 +244,7 @@ function ShellActionControl({ action, className, linkComponent: LinkComponent }:
 export interface AppTopbarProps {
   breadcrumb: { icon?: IconName; scope?: string; current: string };
   breadcrumbLabel?: string;
-  /** Lets long scope and current labels wrap instead of truncating with an ellipsis. Default false. */
+  /** Lets long scope and current labels wrap instead of truncating with an ellipsis: the scope shows at most two lines (full name in its title), and on narrow screens the breadcrumb takes its own row. Default false. */
   wrap?: boolean;
   /** Shows the menu button that opens the drawer; needs `AppShell navigation`. Hidden on desktop. */
   /** Shows the drawer toggle. It renders only inside an `AppShell` with `navigation`, which owns the drawer state. */
@@ -265,7 +265,8 @@ export function AppTopbar({ breadcrumb, breadcrumbLabel = 'Breadcrumb', wrap = f
         {(breadcrumb.icon || breadcrumb.scope) && <>
           <li className="t98-app-topbar__crumb">
             {breadcrumb.icon && <Icon name={breadcrumb.icon} size={17} aria-hidden="true" />}
-            {breadcrumb.scope && <span className="t98-app-topbar__scope">{breadcrumb.scope}</span>}
+            {/* The title carries the full name wherever the label is truncated or clamped. */}
+            {breadcrumb.scope && <span className="t98-app-topbar__scope" title={breadcrumb.scope}>{breadcrumb.scope}</span>}
           </li>
           <li className="t98-app-topbar__separator" aria-hidden="true"><Icon name="chevron-right" size={14} /></li>
         </>}

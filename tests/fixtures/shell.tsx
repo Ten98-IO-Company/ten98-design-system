@@ -111,7 +111,9 @@ function Fixture() {
 }
 
 /* A complete application frame composed only from library components. */
-const longCrumbs = params.get('crumbs') === 'long';
+const longCrumbs = params.get('crumbs') === 'long' || params.get('crumbs') === 'unbroken';
+// Discover's long-name case: one hyphenated 130-character token with no spaces.
+const unbroken = params.get('crumbs') === 'unbroken';
 function AppFixture() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -133,7 +135,7 @@ function AppFixture() {
         <Link href="#/settings" variant="quiet">Settings</Link>
       </SidebarFooter>
     </>}
-    topbar={<AppTopbar menuToggle wrap={longCrumbs} breadcrumb={longCrumbs ? { icon: 'home', scope: 'Discover workspace with a complete retained observation context', current: 'Research / Saved keyword report with a very long project and website scope' } : { icon: 'home', scope: 'Acme', current: 'Overview' }}
+    topbar={<AppTopbar menuToggle wrap={longCrumbs} breadcrumb={unbroken ? { icon: 'folder', scope: 'Project-' + 'long-name-'.repeat(12), current: 'Events' } : longCrumbs ? { icon: 'home', scope: 'Discover workspace with a complete retained observation context', current: 'Research / Saved keyword report with a very long project and website scope' } : { icon: 'home', scope: 'Acme', current: 'Overview' }}
       search={<SearchField variant="topbar" label="Search everything" hideLabel placeholder="Search" shortcut="/" value={query} onValueChange={setQuery} onClear={() => setQuery('')} clearLabel="Clear search" />}
       badge={{ label: 'Beta', hideOnMobile: true }}
       actions={<AccountMenu name="Alex Morgan" email="alex@example.test" linkComponent={RouterLink} items={[

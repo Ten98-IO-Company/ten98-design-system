@@ -170,6 +170,8 @@
 .t98-app-topbar--wrap .t98-app-topbar__crumb { max-width: 100%; }
 .t98-app-topbar--wrap .t98-app-topbar__scope,
 .t98-app-topbar--wrap .t98-app-topbar__current { overflow: visible; text-overflow: clip; white-space: normal; overflow-wrap: break-word; }
+/* A workspace or project name can be one unbroken 100+ character token: clamp the scope to two lines (title has the rest). */
+.t98-app-topbar--wrap .t98-app-topbar__scope { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; }
 .t98-app-topbar__separator { display: inline-flex; flex: none; color: var(--t98-muted); }
 .t98-app-topbar__separator:dir(rtl) svg { transform: scaleX(-1); }
 .t98-app-topbar__crumb > svg { flex: none; }
@@ -251,6 +253,9 @@
 
 @media (max-width: 760px) {
   .t98-app-topbar__search { flex: 1 1 100%; order: 10; }
+  /* Sharing the first row with the menu and account controls left the breadcrumb about 8rem wide, so long names
+   * broke every few characters. The menu and actions keep the first row; the breadcrumb gets the next one. */
+  .t98-app-topbar--wrap .t98-app-topbar__breadcrumb { flex: 1 1 100%; order: 5; }
   .t98-app-topbar__badge--hide-mobile { display: none; }
 }
 @media (min-width: 761px) {
