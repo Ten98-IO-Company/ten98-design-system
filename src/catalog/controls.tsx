@@ -1,7 +1,8 @@
 import { useState, type ReactNode } from 'react';
 import {
-  Button, CheckboxGroup, CodeBlock, Combobox, Disclosure, Fieldset, Field, Input, InlineCode, Pager, RadioGroup, Scroller, SegmentedControl, StatusLine, Text,
+  Button, CheckboxGroup, CodeBlock, Combobox, DateTimeField, Disclosure, FileField, Fieldset, Field, Input, InlineCode, Pager, RadioGroup, Scroller, SegmentedControl, StatusLine, Text,
 } from '../lib';
+import type { FileItem } from '../lib';
 import { tsx, type ComponentCategory, type ComponentEntry, type ComponentProp, type ComponentState } from './model';
 
 const noElements = 'Applications use this instead of writing the native element, className or style.';
@@ -43,6 +44,20 @@ function SegmentedPreview() {
 function ComboboxPreview({ strict = false }: { strict?: boolean }) {
   const [value, setValue] = useState(strict ? 'Dubai' : '');
   return <Combobox label="City" options={['Dubai', 'Doha', 'Riyadh']} value={value} onValueChange={setValue} allowCustom={!strict} error={strict ? 'Choose a city from the list.' : undefined} />;
+}
+function DateTimePreview({ zone = false }: { zone?: boolean }) {
+  const [value, setValue] = useState('2026-10-20T09:30');
+  return <DateTimeField label="Publish at" value={value} onValueChange={setValue} description="Posts go out at this time." timeZoneLabel={zone ? 'Asia/Dubai (GST)' : undefined} />;
+}
+function FilePreview({ withFiles = false }: { withFiles?: boolean }) {
+  const [files, setFiles] = useState<FileItem[]>(withFiles ? [
+    { id: 'a', name: 'brand-guidelines.pdf', size: 2411724, status: 'done' },
+    { id: 'b', name: 'hero.png', size: 148200, status: 'uploading' },
+    { id: 'c', name: 'broken.mov', size: 900, status: 'error', error: 'This file type is not supported.' },
+  ] : []);
+  return <FileField label="Attachments" accept="image/*,.pdf" multiple description="PDF or images." files={files}
+    onFiles={added => setFiles([...files, ...added.map(file => ({ id: `${file.name}-${file.size}`, name: file.name, size: file.size, status: 'pending' as const }))])}
+    onRemove={id => setFiles(files.filter(file => file.id !== id))} />;
 }
 const sample = "const total = items.reduce((sum, item) => sum + item.spend, 0);\nconsole.log(total);";
 
@@ -114,6 +129,20 @@ export const controlEntries: ComponentEntry[] = [
     ['Field', 'Input', 'Select'],
     [state('Free text', 'Any value is accepted.', ['Combobox'], "<Combobox label=\"City\" options={['Dubai', 'Doha', 'Riyadh']} value={value} onValueChange={setValue} />", <ComboboxPreview />, "const [value, setValue] = useState('');", ['useState']),
       state('List only', 'A value outside the list shows the supplied error.', ['Combobox'], "<Combobox\n  label=\"City\"\n  options={['Dubai', 'Doha', 'Riyadh']}\n  value={value}\n  onValueChange={setValue}\n  allowCustom={false}\n  error=\"Choose a city from the list.\"\n/>", <ComboboxPreview strict />, "const [value, setValue] = useState('Dubai');", ['useState'])]),
+  entry('DateTimeField', 'Controls', 'A labelled native date, time or date-and-time input with an optional visible time zone.', 'Values are the native strings (`2026-10-20`, `09:30`, `2026-10-20T09:30`). Use `timeZoneLabel` to say which zone the entry means; the library never converts zones, validates ranges beyond min and max, or words errors.',
+    [prop('label', 'ReactNode', 'Field label.', true), prop('value', 'string', 'Native input value, or an empty string.', true), prop('onValueChange', '(value: string) => void', 'Called with the native string as it changes.', true), prop('type', "'date' | 'time' | 'datetime-local'", 'Which native input to render.', false, "'datetime-local'"), prop('min', 'string', 'Earliest native value.'), prop('max', 'string', 'Latest native value.'), prop('step', 'number | string', 'Native step in seconds (or days for date).'), prop('required', 'boolean', 'Marks the field required.'), prop('name', 'string', 'Form field name.'), prop('description', 'ReactNode', 'Help text linked to the input.'), prop('error', 'ReactNode', 'Marks the input invalid and shows this message.'), prop('disabled', 'boolean', 'Disables the input.'), prop('timeZoneLabel', 'string', 'Visible zone text such as "Asia/Dubai (GST)", linked to the input by aria-describedby.')],
+    ['--t98-control-border', '--t98-danger', '--t98-muted'],
+    ['A visible label, description, error and time zone are all linked with aria-describedby.', 'Uses the browser’s native picker, so keyboard and assistive technology behavior is the platform’s.'],
+    ['DateRangeField', 'Field', 'Input'],
+    [state('Date and time', 'Local date and time with a visible zone.', ['DateTimeField'], '<DateTimeField\n  label="Publish at"\n  value={value}\n  onValueChange={setValue}\n  description="Posts go out at this time."\n  timeZoneLabel="Asia/Dubai (GST)"\n/>', <DateTimePreview zone />, "const [value, setValue] = useState('2026-10-20T09:30');", ['useState']),
+      state('Without zone', 'The zone note is optional.', ['DateTimeField'], '<DateTimeField label="Publish at" value={value} onValueChange={setValue} />', <DateTimePreview />, "const [value, setValue] = useState('2026-10-20T09:30');", ['useState'])]),
+  entry('FileField', 'Controls', 'A file chooser button with a drop zone and a list of the files being handled.', 'The field only reports chosen or dropped files through `onFiles` and renders the `files` you pass back. Uploads, type and size checks and removal are the caller’s. Drag and drop is an extra; the Choose files button always works.',
+    [prop('label', 'ReactNode', 'Field label.', true), prop('onFiles', '(files: File[]) => void', 'Called with the chosen or dropped files (only the first when not `multiple`).', true), prop('accept', 'string', 'Native accept hint for the chooser. Dropped files are not filtered; check them in the caller.'), prop('multiple', 'boolean', 'Allows several files.'), prop('name', 'string', 'Form field name.'), prop('files', "{ id: string; name: string; size?: number; status?: 'pending' | 'uploading' | 'done' | 'error'; error?: string }[]", 'Files to list below, with size in B, KB or MB and a status.'), prop('onRemove', '(id: string) => void', 'Adds a Remove button named after each file.'), prop('description', 'ReactNode', 'Help text linked to the input.'), prop('error', 'ReactNode', 'Marks the field invalid and shows this message.'), prop('disabled', 'boolean', 'Disables the button and the drop zone.'), prop('busy', 'boolean', 'Shows the button as loading and ignores new files.')],
+    ['--t98-control-border', '--t98-accent', '--t98-subtle', '--t98-border', '--t98-muted'],
+    ['The Choose files button opens the native chooser, so no one needs drag and drop.', 'Added files are announced politely ("2 files added"). Remove buttons are named "Remove" plus the file name, and every target is at least 44px.'],
+    ['Field', 'Progress', 'Badge'],
+    [state('Empty', 'Waiting for files.', ['FileField'], '<FileField\n  label="Attachments"\n  accept="image/*,.pdf"\n  multiple\n  description="PDF or images."\n  onFiles={files => upload(files)}\n/>', <FilePreview />, 'const upload = (files: File[]) => console.log(files.length);'),
+      state('With files', 'Done, uploading and failed files with remove buttons.', ['FileField', 'type FileItem'], '<FileField\n  label="Attachments"\n  multiple\n  files={files}\n  onFiles={addFiles}\n  onRemove={removeFile}\n/>', <FilePreview withFiles />, "const [files, setFiles] = useState<FileItem[]>([{ id: 'a', name: 'brand-guidelines.pdf', size: 2411724, status: 'done' }]);\nconst addFiles = (added: File[]) => setFiles([...files, ...added.map(file => ({ id: file.name, name: file.name, size: file.size, status: 'pending' as const }))]);\nconst removeFile = (id: string) => setFiles(files.filter(file => file.id !== id));", ['useState'])]),
   entry('Scroller', 'Layout', 'A horizontally scrolling region for wide tables and charts.', 'Wrap content wider than its container so the page itself never scrolls sideways. The label is required.',
     [prop('label', 'string', 'Accessible name for the region.', true), prop('children', 'ReactNode', 'The wide content.', true)],
     ['--t98-accent'], ['A labelled region that takes keyboard focus so arrow keys scroll it.'], ['CodeBlock', 'CheckboxGroup'],

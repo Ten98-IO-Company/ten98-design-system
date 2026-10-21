@@ -1,0 +1,138 @@
+import { mkdir } from 'node:fs/promises';
+import { resolve } from 'node:path';
+import { expect, test, type Page } from '@playwright/test';
+
+const evidence = resolve('.qa/data-table');
+
+async function doubleText(page: Page) {
+  // Snapshot first: changing a parent before measuring its child would compound inheritance.
+  const snapshot = await page.evaluateHandle(() => {
+    const sizes = [...document.body.querySelectorAll('*')].filter((element): element is HTMLElement => element instanceof HTMLElement).map(element => {
+      const style = getComputedStyle(element);
+      return { element, original: element.style.cssText, size: parseFloat(style.fontSize), height: parseFloat(style.lineHeight) };
+    });
+    for (const { element, size, height } of sizes) {
+      element.style.setProperty('font-size', `${size * 2}px`, 'important');
+      if (Number.isFinite(height)) element.style.setProperty('line-height', `${height * 2}px`, 'important');
+    }
+    return sizes;
+  });
+  return async () => {
+    await snapshot.evaluate(sizes => { for (const { element, original } of sizes) element.style.cssText = original; });
+    await snapshot.dispose();
+  };
+}
+const overflow = (page: Page) => page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+
+for (const theme of ['light', 'dark'] as const) {
+  test(`data tables scroll, stack, stick and report server state in ${theme}`, async ({ page }, info) => {
+    const width = info.project.name === 'narrow-dark' ? 320 : 1440;
+    const errors: string[] = [];
+    page.on('pageerror', error => errors.push(error.message));
+    await page.setViewportSize({ width, height: 1000 });
+    await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
+    await page.goto(`/tests/data-table.html?theme=${theme}`);
+    const screen = page.locator('#data-table');
+    await expect(screen.getByRole('heading', { level: 1, name: 'Data tables' })).toBeVisible();
+    expect(await overflow(page), 'no page overflow').toBeLessThanOrEqual(1);
+
+    // Metrics: the unavailable value is text, not zero, and the grid is a labelled list.
+    const summary = screen.getByRole('list', { name: 'Summary' });
+    await expect(summary.getByRole('listitem')).toHaveCount(3);
+    await expect(summary.getByRole('listitem').nth(1)).toContainText('Unavailable');
+    await expect(summary.getByRole('listitem').nth(1)).not.toContainText(/\b0\b/);
+
+    // A wide table scrolls inside a focusable region without widening the page.
+    const wide = screen.getByRole('region', { name: 'Wide table table' });
+    await expect(wide).toHaveAttribute('tabindex', '0');
+    const sizes = await wide.evaluate(node => ({ visible: node.clientWidth, content: node.scrollWidth }));
+    if (width === 320) expect(sizes.content).toBeGreaterThan(sizes.visible);
+    await wide.focus();
+    await page.keyboard.press('ArrowRight');
+    if (width === 320) await expect.poll(() => wide.evaluate(node => node.scrollLeft)).toBeGreaterThan(0);
+    expect(await overflow(page), 'a wide table does not widen the page').toBeLessThanOrEqual(1);
+    await expect(wide.getByRole('rowheader').first()).toContainText('Campaign 1');
+    await expect(wide.getByRole('columnheader', { name: 'Spend' })).toHaveCSS('text-align', 'end');
+    await expect(wide.getByRole('cell', { name: 'Not available' })).toHaveCount(1);
+
+    // Stacked rows show label/value pairs at narrow widths and a normal table at wide widths.
+    const stacked = screen.getByRole('table', { name: 'Stacked table' });
+    const cell = stacked.getByRole('cell').first();
+    const labelled = await cell.evaluate(node => ({ label: node.getAttribute('data-label'), display: getComputedStyle(node).display, before: getComputedStyle(node, '::before').content }));
+    expect(labelled.label).toBe('Status');
+    if (width === 320) {
+      expect(labelled.display).toBe('block');
+      expect(labelled.before).toBe('"Status"');
+      await expect(stacked.getByRole('rowheader').first()).toContainText('Campaign 1');
+    } else {
+      expect(labelled.display).toBe('table-cell');
+      expect(labelled.before).toBe('none');
+      expect(await stacked.evaluate(node => getComputedStyle(node).display)).toBe('table');
+    }
+
+    // The sticky header stays visible while the body scrolls inside the region.
+    const sticky = screen.getByRole('region', { name: 'Sticky table table' });
+    const header = sticky.getByRole('columnheader', { name: 'Campaign' });
+    await sticky.evaluate(node => { node.scrollTop = 400; });
+    await expect.poll(() => sticky.evaluate(node => node.scrollTop)).toBeGreaterThan(100);
+    const [region, head] = await Promise.all([sticky.boundingBox(), header.boundingBox()]);
+    expect(Math.abs(head!.y - region!.y), 'header pinned to the top of the region').toBeLessThanOrEqual(2);
+    await sticky.evaluate(node => { node.scrollTop = 0; });
+
+    // Server table: sort and pager callbacks are reported and the app owns the rows.
+    const server = screen.getByRole('table', { name: 'Server table' });
+    const status = screen.getByText(/^Last callback:/);
+    const clicks = server.getByRole('button', { name: 'Clicks' });
+    await clicks.click();
+    await expect(status).toHaveText('Last callback: sort clicks asc');
+    await expect(server.getByRole('columnheader', { name: 'Clicks' })).toHaveAttribute('aria-sort', 'ascending');
+    await clicks.click();
+    await expect(status).toHaveText('Last callback: sort clicks desc');
+    await expect(server.getByRole('columnheader', { name: 'Clicks' })).toHaveAttribute('aria-sort', 'descending');
+    const spend = server.getByRole('button', { name: 'Spend' });
+    await spend.focus();
+    await page.keyboard.press('Enter');
+    await expect(status).toHaveText('Last callback: sort spend asc');
+    await page.keyboard.press('Space');
+    await expect(status).toHaveText('Last callback: sort spend desc');
+    const pager = screen.getByRole('navigation', { name: 'Server table pages' });
+    await expect(pager.getByRole('button', { name: 'Previous' })).toBeDisabled();
+    await expect(server.getByRole('row')).toHaveCount(3);
+    await pager.getByRole('button', { name: 'Next' }).click();
+    await expect(status).toHaveText('Last callback: page next 1');
+    await expect(pager.getByRole('status')).toHaveText('3–4 of 6');
+    await pager.getByRole('button', { name: 'Next' }).click();
+    await expect(status).toHaveText('Last callback: page next 2');
+    await expect(pager.getByRole('button', { name: 'Next' })).toBeDisabled();
+    await pager.getByRole('button', { name: 'Previous' }).click();
+    await expect(status).toHaveText('Last callback: page previous 1');
+
+    // Loading and unavailable states are distinct.
+    await expect(screen.getByRole('table', { name: 'Loading table' })).toHaveAttribute('aria-busy', 'true');
+    await expect(screen.getByRole('status').filter({ hasText: 'Loading records' })).toHaveAttribute('aria-busy', 'true');
+    await expect(screen.getByRole('table', { name: 'Loading table' })).not.toContainText('No records found');
+    await expect(screen.getByRole('table', { name: 'Unavailable table' })).toContainText('Campaigns could not be loaded.');
+    await expect(screen.getByRole('button', { name: 'Retry' })).toBeVisible();
+
+    await mkdir(evidence, { recursive: true });
+    await page.screenshot({ path: resolve(evidence, `data-table-${theme}-${width}.png`), fullPage: true, animations: 'disabled' });
+
+    // Doubled text wraps where allowed and never widens the page.
+    const restore = await doubleText(page);
+    try {
+      expect.soft(await overflow(page), 'no page overflow at 200% text').toBeLessThanOrEqual(1);
+      await page.screenshot({ path: resolve(evidence, `data-table-${theme}-${width}-2x.png`), fullPage: true, animations: 'disabled' });
+    } finally { await restore(); }
+    expect(errors).toEqual([]);
+  });
+}
+
+test('row action buttons keep their label on one line, so rows stay one line tall', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/tests/data-table.html');
+  const button = page.locator('.t98-table-actions .t98-button').first();
+  await button.waitFor();
+  const [buttonHeight, cellHeight] = await button.evaluate(element => [element.getBoundingClientRect().height, element.closest('td')!.getBoundingClientRect().height]);
+  expect(buttonHeight).toBeLessThan(48);
+  expect(cellHeight).toBeLessThan(72);
+});

@@ -2,9 +2,9 @@ import { useId, useState } from 'react';
 import {
   ActivityFeed, Alert, AppShell, AuthLayout, Badge, Button, ConfirmDialog, CopyButton, DataTable,
   DateRangeField, EmptyState, Field, Input, MetricCard, PageHeader, PermissionMatrix, ProductSwitcher,
-  ResourceCard, SecretField, SettingsSection, Sparkline, Stack, Stepper, Switch, Text, ToastProvider, useToast,
+  MetricGrid, ResourceCard, SecretField, SettingsSection, Sparkline, Stack, Stepper, Switch, Text, ToastProvider, useToast,
   AppTopbar, SidebarNav,
-  type ActivityItem, type DataColumn, type Tone,
+  type ActivityItem, type DataColumn, type TableSort, type Tone,
 } from '../lib/index.js';
 import { tsx, type ComponentEntry, type ComponentProp } from './model.js';
 import { AppBrand } from '../lib/app.js';
@@ -52,6 +52,30 @@ function tableCode({ selectable = false, empty = false, simple = false } = {}) {
   <DataTable columns={columns} rows={${empty ? '[]' : 'rows'}} rowKey={row => row.id} caption="Product traffic" pageSize={${simple ? 10 : 3}}${simple ? ' searchable={false}' : ''}${selectable ? ' selectable onSelectionChange={setSelected}' : ''} />${selectable ? '\n  <p role="status">Selected IDs: {selected.join(\', \') || \'none\'}</p>' : ''}
 </>`, rowSetup + (selectable ? '\nconst [selected, setSelected] = useState<string[]>([]);' : ''), selectable ? ['useState'] : []);
 }
+
+const staticColumns: DataColumn<Row>[] = [{ ...columns[0], rowHeader: true }, { ...columns[1], numeric: true }, { key: 'owner', header: 'Owner' }];
+const total = rows.reduce((sum, row) => sum + row.visits, 0);
+const serverRowsSetup = `const [sort, setSort] = useState<TableSort>({ key: 'visits', direction: 'desc' });
+const [index, setIndex] = useState(0);
+const value = (row: Row) => sort.key === 'visits' ? row.visits : row[sort.key as 'name' | 'status'];
+const sorted = [...rows].sort((a, b) => (value(a) < value(b) ? -1 : value(a) > value(b) ? 1 : 0) * (sort.direction === 'asc' ? 1 : -1));
+const pageRows = sorted.slice(index * 2, index * 2 + 2);`;
+
+function ServerDemo({ cursor = false }: { cursor?: boolean }) {
+  const [sort, setSort] = useState<TableSort>({ key: 'visits', direction: 'desc' });
+  const [index, setIndex] = useState(0);
+  const value = (row: Row) => sort.key === 'visits' ? row.visits : row[sort.key as 'name' | 'status'];
+  const sorted = [...rows].sort((a, b) => (value(a) < value(b) ? -1 : value(a) > value(b) ? 1 : 0) * (sort.direction === 'asc' ? 1 : -1));
+  const pageRows = sorted.slice(index * 2, index * 2 + 2);
+  return <DataTable columns={columns} rows={pageRows} rowKey={row => row.id} caption="Product traffic" searchable={false} sort={sort} onSortChange={setSort}
+    page={cursor ? { cursor: { hasPrevious: index > 0, hasNext: index < 2 } } : { index, size: 2, total: rows.length }}
+    onPageChange={change => setIndex(change.index ?? index + (change.direction === 'next' ? 1 : -1))} />;
+}
+const serverCode = (cursor: boolean) => tsx(['DataTable', 'Badge', 'type DataColumn', 'type TableSort'], `<DataTable columns={columns} rows={pageRows} rowKey={row => row.id} caption="Product traffic" searchable={false}
+  sort={sort} onSortChange={setSort}
+  page={${cursor ? '{ cursor: { hasPrevious: index > 0, hasNext: index < 2 } }' : '{ index, size: 2, total: rows.length }'}}
+  onPageChange={change => setIndex(change.index ?? index + (change.direction === 'next' ? 1 : -1))} />`, rowSetup + '\n' + serverRowsSetup, ['useState']);
+const retry = <Stack gap={2}><Text>Traffic could not be loaded.</Text><Button variant="secondary" size="sm">Retry</Button></Stack>;
 
 function ProductDemo({ disabled = false, empty = false }: { disabled?: boolean; empty?: boolean }) {
   const [product, setProduct] = useState(empty ? '' : 'campaign');
@@ -189,10 +213,10 @@ const activityCode = (items: ActivityItem[]) => tsx(['ActivityFeed', 'type Activ
 
 export const patternEntries: ComponentEntry[] = [
   {
-    name: 'DataTable', category: 'Data display', description: 'A local-data table with search, two-way sorting, page selection and pagination.',
-    usage: 'Use stable unique row keys. Provide sortValue for custom cells; search and sort use it rather than rendered JSX. This component owns query, sorting, pagination and selection internally. It has no loading, remote-data, controlled-sort or row-click API; compose Skeleton/Alert around it when needed. Local operations suit small datasets; use application-owned server pagination for large collections.',
-    props: [prop('columns', 'readonly DataColumn<T>[]', 'Column definitions: key and header are required; render?: (row: T) => ReactNode; sortValue?: (row: T) => string | number.', true), prop('rows', 'readonly T[]', 'Source rows; filtering and sorting do not mutate this array.', true), prop('rowKey', '(row: T) => string', 'A unique stable key for each row.', true), prop('caption', 'string', 'Accessible table caption and search-region name.', true), prop('searchable', 'boolean', 'Display the local search field.', false, 'true'), prop('searchPlaceholder', 'string', 'Search input placeholder; the input also has a persistent hidden label.', false, 'Search records…'), prop('pageSize', 'number', 'Positive finite size, floored to an integer. Invalid sizes fall back to 5.', false, '5'), prop('selectable', 'boolean', 'Display native row and current-page selection checkboxes.', false, 'false'), prop('onSelectionChange', '(keys: string[]) => void', 'Receives keys after selection changes and when removed rows are pruned.'), prop('emptyTitle', 'string', 'Heading when source rows or current search results are empty.', false, 'No records found')],
-    tokens: [...surfaceTokens, '--t98-subtle', '--t98-accent', '--t98-accent-soft', '--t98-cell-padding'], accessibility: ['Semantic table/caption/column headers; aria-sort follows the selected column.', 'Keyboard-accessible search, sorting and pagination; the horizontal scroll region is focusable.', 'Select-all affects the visible page and becomes indeterminate for a partial page selection. Selection persists across pages and filters.', 'Records, selected count and current page are announced politely.'], related: ['EmptyState', 'Badge', 'Skeleton', 'Alert'], example: tableCode({ selectable: true }),
+    name: 'DataTable', category: 'Data display', description: 'A table with local search, sorting, selection and pagination, or a controlled view of rows the application already sorted, filtered and paged.',
+    usage: 'Use stable unique row keys. Provide sortValue for custom cells; search and sort use it rather than rendered JSX. By default it owns query, sorting, pagination and selection for a small local dataset. For a server collection pass sort/onSortChange, page/onPageChange or search/onSearchChange: the table then shows rows as given and only reports what the user asked for, so the application fetches, sorts and slices. Turn off searchable, sortable and pagination for a plain static table. Missing values show an em dash with hidden text “Not available”, never 0. loading, emptyState and unavailable are distinct states: unavailable replaces the rows with application-supplied content (such as a retry button). No row-click API; use rowActions.',
+    props: [prop('columns', 'readonly DataColumn<T>[]', 'Column definitions: key and header are required; render?: (row: T) => ReactNode; sortValue?: (row: T) => string | number.', true), prop('rows', 'readonly T[]', 'Source rows; filtering and sorting do not mutate this array.', true), prop('rowKey', '(row: T) => string', 'A unique stable key for each row.', true), prop('caption', 'string', 'Accessible table caption and search-region name. Provide this or ariaLabel.'), prop('captionHidden', 'boolean', 'Visually hides the caption (it stays the accessible name). Set false to show it.', false, 'true'), prop('ariaLabel', 'string', 'Accessible name when there is no caption. Exclusive with caption.'), prop('searchable', 'boolean', 'Display the local search field.', false, 'true'), prop('searchPlaceholder', 'string', 'Search input placeholder; the input also has a persistent hidden label.', false, 'Search records…'), prop('pageSize', 'number', 'Positive finite size, floored to an integer. Invalid sizes fall back to 5.', false, '5'), prop('selectable', 'boolean', 'Display native row and current-page selection checkboxes.', false, 'false'), prop('onSelectionChange', '(keys: string[]) => void', 'Receives keys after selection changes and when removed rows are pruned.'), prop('emptyTitle', 'string', 'Heading when source rows or current search results are empty.', false, 'No records found'), prop('emptyState', 'ReactNode', 'Replaces the default empty state.'), prop('sortable', 'boolean', 'false renders plain headers with no sort buttons or aria-sort.', false, 'true'), prop('pagination', 'boolean', 'false shows every row with no pager or count; searchable, sortable and pagination all false removes the toolbar.', false, 'true'), prop('sort', 'TableSort', 'Controlled sort; the application sorts rows. Setting sort or onSortChange stops local sorting.'), prop('onSortChange', '(sort: TableSort) => void', 'Called with the next key and direction on a header click or keyboard activation.'), prop('page', '{ index: number; size: number; total?: number; status?: ReactNode } | { cursor: { hasPrevious: boolean; hasNext: boolean }; status?: ReactNode }', 'Controlled paging (index is zero-based); rows are not sliced. Without total, Next is offered while the page is full.'), prop('onPageChange', '(change: { direction: \'previous\' | \'next\'; index?: number }) => void', 'Called by the Previous/Next buttons; index is the requested zero-based page for index paging.'), prop('search', 'string', 'Controlled search text; the application filters rows.'), prop('onSearchChange', '(query: string) => void', 'Called when the search field changes or Clear search is used.'), prop('rowActions', '(row: T) => ReactNode', 'Trailing actions cell per row, with a hidden column header.'), prop('rowActionsLabel', 'string', 'Hidden header for the actions column.', false, 'Actions'), prop('loading', 'boolean', 'Shows a busy status line and aria-busy; the empty state is withheld while loading.', false, 'false'), prop('unavailable', 'ReactNode', 'Error or unavailable content replacing the rows, distinct from empty. Include any retry control.'), prop('stickyHeader', 'boolean', 'Keeps the header visible while the table body scrolls inside its region.', false, 'false'), prop('footerCells', 'readonly ReactNode[]', 'Totals row cells aligned by index to columns.'), prop('density', "'comfortable' | 'compact'", 'Cell padding.', false, 'comfortable'), prop('responsive', "'scroll' | 'stack'", 'stack shows each row as label/value pairs below 600px; scroll keeps the horizontal scroll region.', false, 'scroll'), prop('columns[].align / numeric', "'start' | 'end' | 'center' / boolean", 'numeric end-aligns with tabular numerals.'), prop('columns[].wrap / minWidth', "boolean / 'sm' | 'md' | 'lg'", 'Wrap long text; named minimum widths because applications cannot pass styles.'), prop('columns[].rowHeader / hidden / sortable', 'boolean', 'rowHeader renders th scope=row; hidden omits the column; sortable=false disables one column.')],
+    tokens: [...surfaceTokens, '--t98-subtle', '--t98-accent', '--t98-accent-soft', '--t98-cell-padding'], accessibility: ['Semantic table/caption/column headers; aria-sort follows the selected column.', 'Keyboard-accessible search, sorting and pagination; the horizontal scroll region is focusable.', 'Select-all affects the visible page and becomes indeterminate for a partial page selection. Selection persists across pages and filters.', 'Records, selected count and current page are announced politely.', 'Tables need a caption or ariaLabel. Row headers use scope=row; stacked rows keep table roles and expose each column as a data label.', 'Controlled sort announces aria-sort from the sort prop; the application must update it. Unavailable values include hidden text so they are not read as zero.'], related: ['EmptyState', 'Badge', 'Skeleton', 'Alert', 'Pager', 'StatusLine', 'MetricCard'], example: tableCode({ selectable: true }),
     states: [
       { name: 'Default', description: 'Search and ascending/descending column sorting are available.', preview: <TableDemo />, code: tableCode() },
       { name: 'Filtered and no results', description: 'Type “Wiki” in Search to filter; type an unmatched word to inspect the clear-search empty state. Query state is internal, so this preview starts unfiltered.', preview: <TableDemo />, code: tableCode() },
@@ -201,19 +225,64 @@ export const patternEntries: ComponentEntry[] = [
       { name: 'Pagination', description: 'Use Next page and Previous page. The boundary button is disabled; changing search or sort returns to page 1.', preview: <TableDemo />, code: tableCode() },
       { name: 'Empty source', description: 'No source records: zero count, empty explanation, and disabled page controls.', preview: <TableDemo empty />, code: tableCode({ empty: true }) },
       { name: 'Search hidden', description: 'Use searchable=false for a small fixed list. Column sorting is still available.', preview: <TableDemo simple />, code: tableCode({ simple: true }) },
+      { name: 'Static table', description: 'searchable, sortable and pagination off: a plain table with a row header, numeric column, missing value (“Not available”), totals row and row actions.', preview: <DataTable columns={staticColumns} rows={rows} rowKey={row => row.id} ariaLabel="Traffic summary" searchable={false} sortable={false} pagination={false} footerCells={['Total', total.toLocaleString(), '']} rowActions={() => <Button variant="ghost" size="sm">Open</Button>} />,
+        code: tsx(['DataTable', 'Button', 'Badge', 'type DataColumn'], `<DataTable columns={staticColumns} rows={rows} rowKey={row => row.id} ariaLabel="Traffic summary"
+  searchable={false} sortable={false} pagination={false}
+  footerCells={['Total', total.toLocaleString(), '']}
+  rowActions={() => <Button variant="ghost" size="sm">Open</Button>} />`, rowSetup + `
+const staticColumns: DataColumn<Row>[] = [{ ...columns[0], rowHeader: true }, { ...columns[1], numeric: true }, { key: 'owner', header: 'Owner' }];
+const total = rows.reduce((sum, row) => sum + row.visits, 0);`) },
+      { name: 'Server sort and page', description: 'The application sorts and slices; the table reports the next sort and page and does not reorder or slice the rows it is given.', preview: <ServerDemo />, code: serverCode(false) },
+      { name: 'Cursor pagination', description: 'Cursor pages without a known total: Previous and Next are disabled at the ends.', preview: <ServerDemo cursor />, code: serverCode(true) },
+      { name: 'Loading', description: 'A busy status line and aria-busy; the empty state is not shown while loading.', preview: <DataTable columns={columns} rows={[]} rowKey={row => row.id} caption="Product traffic" searchable={false} loading />,
+        code: tsx(['DataTable', 'Badge', 'type DataColumn'], '<DataTable columns={columns} rows={[]} rowKey={row => row.id} caption="Product traffic" searchable={false} loading />', rowSetup) },
+      { name: 'Unavailable', description: 'A failed load is distinct from an empty result; the application supplies the message and retry action.', preview: <DataTable columns={columns} rows={[]} rowKey={row => row.id} caption="Product traffic" searchable={false} unavailable={retry} />,
+        code: tsx(['DataTable', 'Badge', 'Button', 'Stack', 'Text', 'type DataColumn'], `<DataTable columns={columns} rows={[]} rowKey={row => row.id} caption="Product traffic" searchable={false}
+  unavailable={<Stack gap={2}><Text>Traffic could not be loaded.</Text><Button variant="secondary" size="sm">Retry</Button></Stack>} />`, rowSetup) },
+      { name: 'Compact, sticky and stacked', description: 'Compact density, a sticky header inside the scroll region, and responsive="stack" (resize below 600px to see label/value pairs).', preview: <DataTable columns={columns} rows={rows} rowKey={row => row.id} caption="Product traffic" pageSize={6} density="compact" stickyHeader responsive="stack" />,
+        code: tsx(['DataTable', 'Badge', 'type DataColumn'], '<DataTable columns={columns} rows={rows} rowKey={row => row.id} caption="Product traffic" pageSize={6} density="compact" stickyHeader responsive="stack" />', rowSetup) },
     ],
   },
   {
     name: 'MetricCard', category: 'Data display', description: 'A numeric or formatted KPI with an optional change label and sparkline.',
-    usage: 'Supply an honest value and comparison period in change. Trend describes direction, not business value: “down” always uses danger color. Do not use trend=up to imply a decrease is positive. Loading/error content belongs to the consuming app; this component has no loading prop.',
-    props: [prop('label', 'string', 'Readable metric name.', true), prop('value', 'ReactNode', 'Formatted metric value or meaningful no-data text.', true), prop('change', 'string', 'Optional comparison text.'), prop('trend', "'up' | 'down' | 'neutral'", 'Direction icon and semantic change color.', false, 'neutral'), prop('chart', 'readonly number[]', 'Optional values passed to Sparkline; non-finite points are omitted.')],
-    tokens: [...surfaceTokens, '--t98-accent', '--t98-success', '--t98-danger'], accessibility: ['Direction includes hidden Increasing/Decreasing text, so color is not the only cue.', 'Sparkline includes a numeric text summary; give the metric and comparison a clear label.'], related: ['Sparkline', 'Skeleton'], example: tsx(['MetricCard'], '<MetricCard label="Visits" value="12,480" change="12% vs previous 28 days" trend="up" chart={[4, 7, 6, 12, 15]} />'),
+    usage: 'Supply an honest value and comparison period in change. Trend describes direction, not business value: “down” always uses danger color. Do not use trend=up to imply a decrease is positive. Pass unavailable (for example “Unavailable”) when the value could not be measured: it replaces the value, change and chart and is never shown as 0. Use hint for a short qualifier. Loading content belongs to the consuming app.',
+    props: [prop('label', 'string', 'Readable metric name.', true), prop('value', 'ReactNode', 'Formatted metric value or meaningful no-data text.', true), prop('change', 'string', 'Optional comparison text.'), prop('trend', "'up' | 'down' | 'neutral'", 'Direction icon and semantic change color.', false, 'neutral'), prop('chart', 'readonly number[]', 'Optional values passed to Sparkline; non-finite points are omitted.'), prop('hint', 'ReactNode', 'Short qualifier below the value, such as a date range or exclusion.'), prop('unavailable', 'ReactNode', 'Replaces value, change and chart when the measure could not be obtained. Never rendered as 0.')],
+    tokens: [...surfaceTokens, '--t98-accent', '--t98-success', '--t98-danger'], accessibility: ['Direction includes hidden Increasing/Decreasing text, so color is not the only cue.', 'Sparkline includes a numeric text summary; give the metric and comparison a clear label.'], related: ['Sparkline', 'Skeleton', 'MetricGrid'], example: tsx(['MetricCard'], '<MetricCard label="Visits" value="12,480" change="12% vs previous 28 days" trend="up" chart={[4, 7, 6, 12, 15]} />'),
     states: [
       { name: 'Value only', description: 'No change label or chart.', preview: <MetricCard label="Visits" value="12,480" />, code: tsx(['MetricCard'], '<MetricCard label="Visits" value="12,480" />') },
       { name: 'Increasing', description: 'Up icon, success change label, and accent chart.', preview: <MetricCard label="Visits" value="12,480" change="12% vs previous 28 days" trend="up" chart={[4, 7, 6, 12, 15]} />, code: tsx(['MetricCard'], '<MetricCard label="Visits" value="12,480" change="12% vs previous 28 days" trend="up" chart={[4, 7, 6, 12, 15]} />') },
       { name: 'Decreasing', description: 'Down icon and danger chart; direction is announced.', preview: <MetricCard label="Visits" value="9,100" change="8% vs previous 28 days" trend="down" chart={[15, 12, 13, 7, 4]} />, code: tsx(['MetricCard'], '<MetricCard label="Visits" value="9,100" change="8% vs previous 28 days" trend="down" chart={[15, 12, 13, 7, 4]} />') },
       { name: 'Neutral / zero', description: 'Zero is a real numeric value, with neutral comparison.', preview: <MetricCard label="New events" value={0} change="No change in this period" chart={[0, 0, 0]} />, code: tsx(['MetricCard'], '<MetricCard label="New events" value={0} change="No change in this period" chart={[0, 0, 0]} />') },
+      { name: 'Unavailable', description: 'unavailable replaces the value, comparison and chart; it is never presented as zero.', preview: <MetricCard label="Conversion rate" unavailable="Unavailable" hint="Tracking was not connected for this period." />, code: tsx(['MetricCard'], '<MetricCard label="Conversion rate" unavailable="Unavailable" hint="Tracking was not connected for this period." />') },
+      { name: 'With hint', description: 'A short qualifier under the value.', preview: <MetricCard label="Visits" value="12,480" hint="Excludes bot traffic" />, code: tsx(['MetricCard'], '<MetricCard label="Visits" value="12,480" hint="Excludes bot traffic" />') },
       { name: 'No data', description: 'Explicit unavailable value with an empty chart; never represent missing data as zero.', preview: <MetricCard label="Conversion rate" value="No data" chart={[]} />, code: tsx(['MetricCard'], '<MetricCard label="Conversion rate" value="No data" chart={[]} />') },
+    ],
+  },
+  {
+    name: 'MetricGrid', category: 'Data display', description: 'A responsive auto-fill grid of MetricCards, optionally exposed as a labelled list.',
+    usage: 'Place MetricCards directly inside. Cards fill the available columns and keep at least the chosen minItemWidth; narrow screens stack them. Set list with a label when the metrics read as a set of items, otherwise a label adds a labelled group.',
+    props: [prop('children', 'ReactNode', 'MetricCard elements.', true), prop('minItemWidth', "'sm' | 'md' | 'lg'", 'Named minimum card width (10, 14 or 18rem).', false, 'md'), prop('list', 'boolean', 'Render a list with one item per child. Requires label.', false, 'false'), prop('label', 'string', 'Accessible name for the list, or for the group when list is off.')],
+    tokens: surfaceTokens, accessibility: ['With list, a ul with an accessible name and one li per metric; without it, a plain div (a labelled group when label is set).', 'Cards reflow without horizontal scrolling and long values wrap.'], related: ['MetricCard'], example: tsx(['MetricGrid', 'MetricCard'], `<MetricGrid list label="Traffic summary">
+  <MetricCard label="Visits" value="12,480" change="12% vs previous 28 days" trend="up" />
+  <MetricCard label="Conversion rate" unavailable="Unavailable" />
+  <MetricCard label="New events" value={0} />
+</MetricGrid>`),
+    states: [
+      { name: 'Auto-fill grid', description: 'Default medium cards.', preview: <MetricGrid><><MetricCard label="Visits" value="12,480" change="12% vs previous 28 days" trend="up" /><MetricCard label="Conversion rate" unavailable="Unavailable" /><MetricCard label="New events" value={0} /></></MetricGrid>, code: tsx(['MetricGrid', 'MetricCard'], `<MetricGrid>
+  <MetricCard label="Visits" value="12,480" change="12% vs previous 28 days" trend="up" />
+  <MetricCard label="Conversion rate" unavailable="Unavailable" />
+  <MetricCard label="New events" value={0} />
+</MetricGrid>`) },
+      { name: 'Labelled list', description: 'list with label exposes the cards as list items.', preview: <MetricGrid list label="Traffic summary"><><MetricCard label="Visits" value="12,480" change="12% vs previous 28 days" trend="up" /><MetricCard label="Conversion rate" unavailable="Unavailable" /><MetricCard label="New events" value={0} /></></MetricGrid>, code: tsx(['MetricGrid', 'MetricCard'], `<MetricGrid list label="Traffic summary">
+  <MetricCard label="Visits" value="12,480" change="12% vs previous 28 days" trend="up" />
+  <MetricCard label="Conversion rate" unavailable="Unavailable" />
+  <MetricCard label="New events" value={0} />
+</MetricGrid>`) },
+      { name: 'Small items', description: 'minItemWidth="sm" fits more cards per row.', preview: <MetricGrid minItemWidth="sm"><><MetricCard label="Visits" value="12,480" change="12% vs previous 28 days" trend="up" /><MetricCard label="Conversion rate" unavailable="Unavailable" /><MetricCard label="New events" value={0} /></></MetricGrid>, code: tsx(['MetricGrid', 'MetricCard'], `<MetricGrid minItemWidth="sm">
+  <MetricCard label="Visits" value="12,480" change="12% vs previous 28 days" trend="up" />
+  <MetricCard label="Conversion rate" unavailable="Unavailable" />
+  <MetricCard label="New events" value={0} />
+</MetricGrid>`) },
     ],
   },
   {

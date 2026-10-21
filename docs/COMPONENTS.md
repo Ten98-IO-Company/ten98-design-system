@@ -105,8 +105,9 @@ Each flow renders the whole screen on `AuthLayout` with one `main` and one `h1`,
 | `Banner`, `SidebarStatus` | `tone`, children/`label`, `action?`, `onDismiss?` | Workspace-level notices above content (sample data, a required security step) and the sidebar connection note. |
 | `useSidebarNavigation` | `open`, `onOpenChange`, `sidebarRef`, `triggerRef`, `mediaQuery?` | Adds responsive drawer focus handling and inertness to existing app navigation. Spread returned `sidebarProps` and `contentProps` as described in [sidebar usage](SIDEBAR.md). The app owns routes, permissions and draft guards. |
 | `PageHeader` | `title`, `eyebrow?`, `description?`, `actions?` | Page `h1`, context and actions; actions wrap on narrow screens. |
-| `DataTable<T>` | `columns`, `rows`, `rowKey`, `caption`; options below | Local search, column sort, pagination and optional selection. Native table with scroll region. |
-| `MetricCard` | `label`, `value`, `change?`, `trend?`, `chart?` | Formatted value and optional change/trend graphic. Application supplies all calculations and formatting. |
+| `DataTable<T>` | `columns`, `rows`, `rowKey`, `caption` or `ariaLabel`; options below | Local search, column sort, pagination and optional selection, or a controlled view of server-sorted, filtered and paged rows. Native table with scroll region. |
+| `MetricCard` | `label`, `value` or `unavailable`, `change?`, `trend?`, `chart?`, `hint?` | Formatted value and optional change/trend graphic. `unavailable` replaces the value, change and chart and is never shown as 0. Application supplies all calculations and formatting. |
+| `MetricGrid` | children (`MetricCard`s), `minItemWidth?: 'sm' | 'md' | 'lg'`, `list?` + `label` | Responsive auto-fill grid of MetricCards (10, 14 or 18rem minimum). `list` with `label` exposes a labelled list; `label` alone adds a labelled group. |
 | `Sparkline` | `values`, `label`, `color?` | Display-only SVG trend; ignores nonfinite values. Include text/tabular detail when exact values matter. |
 | `EmptyState` | `title`, `description`, `icon?`, `action?` | Empty or filtered-empty explanation and next action. |
 | `ActivityFeed` | `items` | Ordered activity presentation. Application supplies readable timestamps and sanitized event content. |
@@ -156,21 +157,33 @@ export function ProjectsTable({ projects }: { projects: Project[] }) {
 | `columns` | Readonly `DataColumn<T>[]`; each column has a unique `key`, `header`, optional `render(row)` and `sortValue(row)` |
 | `rows` | Readonly array of the current local dataset |
 | `rowKey` | Returns a unique, stable string for every row |
-| `caption` | Accessible table name and part of the search label |
+| `caption` / `ariaLabel` | Accessible table name and part of the search label. Provide exactly one; `caption` is visually hidden unless `captionHidden={false}` |
 | `searchable` | Defaults to `true` |
 | `searchPlaceholder` | Defaults to “Search records…” |
 | `pageSize` | Defaults to `5`; invalid values fall back to 5 |
 | `selectable` | Defaults to `false`; enables row checkboxes |
 | `onSelectionChange` | Receives the selected row keys |
 | `emptyTitle` | Defaults to “No records found” |
+| `emptyState` | Replaces the default empty state |
+| `searchable`, `sortable`, `pagination` | Each `false` removes that feature; all three `false` is a plain table with no toolbar. Per column, `sortable: false` removes one sort button |
+| `sort`, `onSortChange(sort)` | Controlled sort. The table does not reorder rows; it reflects `sort` in `aria-sort` and reports the next `{ key, direction }` |
+| `page`, `onPageChange(change)` | Controlled paging: `{ index, size, total? }` (zero-based `index`) or `{ cursor: { hasPrevious, hasNext } }`, each with optional `status`. Rows are not sliced. `change` is `{ direction, index? }`. Without `total`, Next is offered while the page is full |
+| `search`, `onSearchChange(query)` | Controlled search; the application filters |
+| `rowActions(row)`, `rowActionsLabel` | Trailing actions cell with a visually hidden column header (default “Actions”) |
+| `loading` | Busy status line and `aria-busy`; the empty state is withheld |
+| `unavailable` | Error/unavailable content (with the app's retry) that replaces the rows and pager. Distinct from empty |
+| `stickyHeader`, `density`, `responsive` | Header stays visible while the region scrolls vertically; `'comfortable' | 'compact'`; `'scroll'` or `'stack'` (label/value pairs below 600px, table roles kept) |
+| `footerCells` | Totals row aligned by index to `columns` |
+
+Column options: `align` (`start | end | center`), `numeric` (end-aligned, tabular numerals), `wrap`, `minWidth` (`sm | md | lg`), `rowHeader` (`th scope="row"`), `hidden`. A missing cell value (`null`, `undefined`, `NaN`, or a `render` result of those) shows “—” with hidden text “Not available”; it is never shown as 0.
 
 Search and sort use the raw property matching `column.key`, or `sortValue` when supplied. A custom `render` changes the display only; provide `sortValue` for derived or formatted cells. Numbers sort numerically and other values use an `Intl.Collator`. Source rows are not mutated.
 
 Selection persists across filtering and pages. The header checkbox selects or clears the current page only, with a mixed state for partial page selection. Removed rows are pruned from selection. The app owns bulk actions, access checks and result feedback; it should explain the selection scope before an operation.
 
-This is a small local-dataset table. It does not expose controlled server query/sort/page state, remote totals, virtualization, editable cells or column resizing. Use an application-owned table integration for those requirements and reuse these tokens and visual conventions. Do not pass one server page and label it as a full collection.
+By default this is a small local-dataset table. For a server collection supply `sort`/`onSortChange`, `page`/`onPageChange` and `search`/`onSearchChange`: the app fetches, sorts, filters and slices, and the table only presents the rows it is given and reports the user's request. Give `page.total` (or use a cursor) so the pager never presents one page as the full collection. It does not provide virtualization, editable cells or column resizing.
 
-`filterAndSortRows(rows, columns, query?, sort?)` is exported for the same nonmutating local operations. `TableSort` contains `key` and `direction: 'asc' | 'desc'`. `DataColumn`, `DataTableProps`, `TableSort`, `MetricCardProps` and `ActivityItem` are exported types.
+`filterAndSortRows(rows, columns, query?, sort?)` is exported for the same nonmutating local operations. `TableSort` contains `key` and `direction: 'asc' | 'desc'`. `DataColumn`, `DataTableProps`, `TableSort`, `TableIndexPage`, `TableCursorPage`, `TablePageChange`, `MetricCardProps`, `MetricGridProps` and `ActivityItem` are exported types.
 
 ## Shared workspace compositions
 

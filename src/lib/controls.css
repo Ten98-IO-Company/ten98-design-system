@@ -1,5 +1,5 @@
 /* Controls: disclosure, grouped fields, choice lists, pager, code, status and scroll regions. Tokens and logical properties only. */
-:where(.t98-disclosure, .t98-fieldset, .t98-segmented, .t98-pager, .t98-code-block, .t98-status-line, .t98-scroller, .t98-choice) { font-family: var(--t98-font); }
+:where(.t98-disclosure, .t98-fieldset, .t98-segmented, .t98-pager, .t98-code-block, .t98-status-line, .t98-scroller, .t98-choice, .t98-datetime-zone, .t98-file-zone, .t98-file-list) { font-family: var(--t98-font); }
 
 .t98-disclosure { display: flex; flex-wrap: wrap; align-items: flex-start; gap: var(--t98-space-2); min-inline-size: 0; color: var(--t98-text); }
 .t98-disclosure--boxed { border: 1px solid var(--t98-border); border-radius: var(--t98-radius); background: var(--t98-surface); padding-inline-end: var(--t98-space-2); }
@@ -70,3 +70,24 @@
   .t98-disclosure--boxed, .t98-code-pre, .t98-scroll-region, .t98-segmented { border-color: CanvasText; }
   .t98-disclosure-summary:focus-visible, .t98-scroller:focus-visible, .t98-code-pre:focus-visible, .t98-scroll-region:focus-visible, .t98-segmented-option:focus-visible { outline-color: Highlight; }
 }
+
+.t98-datetime-zone { margin: 0; }
+
+.t98-file-zone { display: flex; flex-wrap: wrap; align-items: center; gap: var(--t98-space-2) var(--t98-space-3); min-block-size: 44px; padding: var(--t98-space-3); border: 1px dashed var(--t98-control-border); border-radius: var(--t98-radius); background: var(--t98-surface); color: var(--t98-muted); min-inline-size: 0; }
+.t98-file-zone--active { border-color: var(--t98-accent); background: var(--t98-subtle); }
+.t98-file-zone--disabled { opacity: .6; }
+.t98-file-hint { font-size: var(--t98-text-sm); }
+.t98-file-zone .t98-button { min-block-size: 44px; }
+.t98-input.t98-file-input { position: absolute; inline-size: 1px; block-size: 1px; min-block-size: 0; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.t98-file-zone:has(.t98-file-input:focus-visible) .t98-button { outline: 3px solid var(--t98-accent); outline-offset: 3px; }
+
+.t98-file-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--t98-space-2); min-inline-size: 0; }
+.t98-file-item { display: flex; flex-wrap: wrap; align-items: center; gap: var(--t98-space-2) var(--t98-space-3); min-block-size: 44px; padding-inline-start: var(--t98-space-3); border: 1px solid var(--t98-border); border-radius: var(--t98-radius); background: var(--t98-surface); min-inline-size: 0; }
+.t98-file-item > .t98-icon { flex: none; color: var(--t98-muted); }
+.t98-file-name { flex: 1 1 8rem; min-inline-size: 0; overflow-wrap: anywhere; color: var(--t98-text); font-size: var(--t98-text-sm); }
+.t98-file-size { color: var(--t98-muted); font-size: var(--t98-text-xs); white-space: nowrap; }
+.t98-file-progress { inline-size: 8rem; flex: none; }
+.t98-file-remove { min-block-size: 44px; min-inline-size: 44px; margin-inline-start: auto; }
+.t98-file-error { flex: 1 1 100%; margin: 0; padding-inline-end: var(--t98-space-3); padding-block-end: var(--t98-space-2); }
+
+@media (forced-colors: active) { .t98-file-zone, .t98-file-item { border-color: CanvasText; } }

@@ -99,8 +99,44 @@ for (const theme of ['light', 'dark'] as const) {
     expect(await city.evaluate(node => (node as HTMLInputElement).list?.options.length)).toBe(3);
     await expect(screen.getByRole('status').filter({ hasText: 'Loading campaigns' })).toHaveAttribute('aria-busy', 'true');
 
+    // DateTimeField: native type, value callback and the visible time zone in the description.
+    const publish = screen.getByLabel('Publish at');
+    await expect(publish).toHaveAttribute('type', 'datetime-local');
+    await publish.fill('2026-10-21T10:15');
+    await expect(screen.getByText('Value: 2026-10-21T10:15')).toBeVisible();
+    const described = await publish.evaluate(node => node.getAttribute('aria-describedby')!.split(' ').map(id => document.getElementById(id)?.textContent));
+    expect(described).toEqual(['Asia/Dubai (GST)', 'Posts go out at this time.']);
+
+    // FileField: the button opens the native chooser; dropped files are added and announced; remove works.
+    const attachments = screen.getByRole('group', { name: 'Attachments' });
+    const fileList = screen.getByRole('list', { name: 'Selected files' });
+    await expect(fileList.getByRole('listitem')).toHaveCount(1);
+    const chooser = page.waitForEvent('filechooser');
+    await attachments.getByRole('button', { name: 'Choose files' }).click();
+    expect((await chooser).isMultiple()).toBe(true);
+    await (await chooser).setFiles([{ name: 'notes.txt', mimeType: 'text/plain', buffer: Buffer.from('hello') }, { name: 'data.csv', mimeType: 'text/csv', buffer: Buffer.alloc(2048) }]);
+    await expect(fileList.getByRole('listitem')).toHaveCount(3);
+    await expect(fileList).toContainText('5 B');
+    await expect(fileList).toContainText('2 KB');
+    await expect(attachments.getByRole('status')).toHaveText('2 files added');
+
+    await attachments.evaluate(zone => {
+      const transfer = new DataTransfer();
+      transfer.items.add(new File(['x'], 'dropped.png', { type: 'image/png' }));
+      zone.dispatchEvent(new DragEvent('dragover', { bubbles: true, cancelable: true, dataTransfer: transfer }));
+      zone.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: transfer }));
+    });
+    await expect(fileList.getByRole('listitem')).toHaveCount(4);
+    await expect(fileList).toContainText('dropped.png');
+    await expect(attachments.getByRole('status')).toHaveText('1 file added');
+    expect(await overflow(page), 'a long file name does not overflow').toBeLessThanOrEqual(1);
+
+    await fileList.getByRole('button', { name: 'Remove notes.txt' }).click();
+    await expect(fileList.getByRole('listitem')).toHaveCount(3);
+    await expect(fileList).not.toContainText('notes.txt');
+
     // Interactive targets are at least 44px tall.
-    for (const target of [summary, group.getByRole('button', { name: 'Day' }), pager.getByRole('button', { name: 'Next' }), screen.getByRole('button', { name: 'Copy code' })]) {
+    for (const target of [summary, group.getByRole('button', { name: 'Day' }), pager.getByRole('button', { name: 'Next' }), screen.getByRole('button', { name: 'Copy code' }), attachments.getByRole('button', { name: 'Choose files' }), fileList.getByRole('button', { name: 'Remove data.csv' })]) {
       expect.soft((await target.boundingBox())!.height, 'target height').toBeGreaterThanOrEqual(43.5);
     }
     for (const label of await screen.locator('label.t98-choice').all()) expect.soft((await label.boundingBox())!.height, 'choice row height').toBeGreaterThanOrEqual(43.5);

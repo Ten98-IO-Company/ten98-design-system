@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createElement as h } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { CheckboxGroup, CodeBlock, Combobox, Disclosure, Fieldset, InlineCode, Pager, RadioGroup, Scroller, SegmentedControl, StatusLine, Button } from '../dist/index.js';
+import { CheckboxGroup, CodeBlock, Combobox, DateTimeField, Disclosure, FileField, Fieldset, InlineCode, Pager, RadioGroup, Scroller, SegmentedControl, StatusLine, Button } from '../dist/index.js';
 
 const styles = readFileSync(new URL('../dist/styles.css', import.meta.url), 'utf8');
 const classes = html => [...html.matchAll(/class="([^"]+)"/g)].flatMap(match => match[1].split(' '));
@@ -91,6 +91,57 @@ test('Combobox wires its datalist and shows the supplied error only for values o
 
 test('Scroller is a labelled, focusable region', () => {
   assert.equal(render(h(Scroller, { label: 'Spend' }, 'x')), '<div class="t98-scroller" role="region" tabindex="0" aria-label="Spend">x</div>');
+});
+
+test('DateTimeField sets the native type and limits and describes the time zone', () => {
+  const html = render(h(DateTimeField, { label: 'Publish at', value: '2026-10-20T09:30', onValueChange() {}, min: '2026-10-01T00:00', max: '2026-12-31T23:59', step: 60, name: 'publishAt', description: 'Help', timeZoneLabel: 'Asia/Dubai (GST)', required: true }));
+  assert.match(html, /<input[^>]*type="datetime-local"/);
+  assert.match(html, /min="2026-10-01T00:00"[^>]*max="2026-12-31T23:59"|max="2026-12-31T23:59"[^>]*min="2026-10-01T00:00"/);
+  assert.match(html, /name="publishAt"/);
+  const zone = html.match(/<p class="t98-field-description t98-datetime-zone" id="([^"]+)">/)[1];
+  assert.ok(html.includes('>Asia/Dubai (GST)</p>'));
+  const describedBy = html.match(/<input[^>]*aria-describedby="([^"]+)"/)[1].split(' ');
+  assert.ok(describedBy.includes(zone) && describedBy.some(id => id.endsWith('-description')));
+  assert.match(render(h(DateTimeField, { label: 'Day', type: 'date', value: '', onValueChange() {}, error: 'Required' })), /type="date"[^>]*aria-invalid="true"|aria-invalid="true"[^>]*type="date"/);
+  assert.match(render(h(DateTimeField, { label: 'At', type: 'time', value: '', onValueChange() {} })), /type="time"/);
+  assert.doesNotMatch(render(h(DateTimeField, { label: 'At', value: '', onValueChange() {} })), /t98-datetime-zone/);
+});
+
+test('FileField passes accept, multiple and name to a native file input behind a visible button', () => {
+  const html = render(h(FileField, { label: 'Attachments', accept: 'image/*', multiple: true, name: 'files', onFiles() {} }));
+  assert.match(html, /<input[^>]*class="t98-input t98-file-input"[^>]*type="file"/);
+  assert.ok(html.includes('accept="image/*"'));
+  assert.match(html, /multiple=""/);
+  assert.match(html, /name="files"/);
+  assert.ok(html.includes('>Choose files</button>'));
+  assert.match(html, /tabindex="-1"/);
+  assert.ok(html.includes('<span role="status" class="t98-visually-hidden"></span>'));
+  assert.match(render(h(FileField, { label: 'A', onFiles() {}, disabled: true })), /<button[^>]* disabled=""[^>]*>Choose files/);
+});
+
+test('FileField lists files with readable sizes, statuses and labelled remove buttons', () => {
+  const files = [
+    { id: 'a', name: 'tiny.txt', size: 512, status: 'pending' },
+    { id: 'b', name: 'report.pdf', size: 1536, status: 'done' },
+    { id: 'c', name: 'video.mov', size: 5 * 1024 * 1024 + 300000, status: 'error', error: 'Unsupported type' },
+    { id: 'd', name: 'hero.png', size: 2048, status: 'uploading' },
+  ];
+  const html = render(h(FileField, { label: 'Attachments', files, onFiles() {}, onRemove() {} }));
+  for (const text of ['512 B', '1.5 KB', '5.3 MB', '2 KB', 'Pending', 'Uploaded', 'Failed']) assert.ok(html.includes(text), text);
+  assert.match(html, /<progress[^>]*aria-label="Uploading hero.png"/);
+  for (const { name } of files) assert.ok(html.includes('aria-label="Remove ' + name + '"'), name);
+  const id = html.match(/aria-describedby="([^"]+-c-error)"/)[1];
+  assert.ok(html.includes('id="' + id + '">Unsupported type'));
+  assert.doesNotMatch(render(h(FileField, { label: 'A', files, onFiles() {} })), /Remove /);
+});
+
+test('FileField describes the input by its description and error', () => {
+  const html = render(h(FileField, { label: 'Attachments', description: 'PDF only', error: 'Too large', onFiles() {} }));
+  const ids = html.match(/<input[^>]*aria-describedby="([^"]+)"/)[1].split(' ');
+  assert.equal(ids.length, 2);
+  for (const id of ids) assert.ok(html.includes('id="' + id + '"'), id);
+  assert.match(html, /<input[^>]*aria-invalid="true"/);
+  assert.ok(html.includes('role="alert">Too large'));
 });
 
 test('every emitted control class exists in the shipped stylesheet', () => {

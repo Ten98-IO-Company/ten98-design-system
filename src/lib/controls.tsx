@@ -1,8 +1,8 @@
 'use client';
 
-import { useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
-import { Button, Checkbox, Field, Icon, Input, cx } from './primitives.js';
-import { VisuallyHidden } from './structure.js';
+import { useId, useRef, useState, type ChangeEvent, type DragEvent, type KeyboardEvent, type ReactNode } from 'react';
+import { Badge, Button, Checkbox, Field, Icon, Input, Progress, cx } from './primitives.js';
+import { Stack, VisuallyHidden } from './structure.js';
 import { CopyButton } from './workspace.js';
 
 /* Controls replace the raw details, fieldset, radio/checkbox list, pager, pre/code, status-line,
@@ -203,4 +203,107 @@ export interface ScrollerProps { label: string; children: ReactNode }
 /** A labelled, keyboard-scrollable region for wide tables and charts. */
 export function Scroller({ label, children }: ScrollerProps) {
   return <div className="t98-scroller" role="region" tabIndex={0} aria-label={label}>{children}</div>;
+}
+
+export interface DateTimeFieldProps {
+  label: ReactNode;
+  type?: 'date' | 'time' | 'datetime-local';
+  /** The native string for `type` (for example 2026-10-20T09:30), or an empty string. */
+  value: string;
+  onValueChange: (value: string) => void;
+  min?: string;
+  max?: string;
+  step?: number | string;
+  required?: boolean;
+  name?: string;
+  description?: ReactNode;
+  error?: ReactNode;
+  disabled?: boolean;
+  /** Visible zone the entered value is meant in, such as "Asia/Dubai (GST)". Text only: the library never converts zones. */
+  timeZoneLabel?: string;
+}
+/** A native date, time or date-and-time input. Conversion, ranges and validation messages stay with the caller. */
+export function DateTimeField({ label, type = 'datetime-local', value, onValueChange, min, max, step, required, name, description, error, disabled, timeZoneLabel }: DateTimeFieldProps) {
+  const id = useId();
+  const zoneId = `${id}-zone`;
+  // The zone note sits outside Field, which would otherwise pass its id and description to every child.
+  return <Stack gap={1}>
+    <Field label={label} htmlFor={id} description={description} error={error} required={required}>
+      <Input type={type} name={name} value={value} min={min} max={max} step={step} required={required} disabled={disabled} aria-describedby={timeZoneLabel ? zoneId : undefined} onChange={event => onValueChange(event.target.value)} />
+    </Field>
+    {timeZoneLabel && <p className="t98-field-description t98-datetime-zone" id={zoneId}>{timeZoneLabel}</p>}
+  </Stack>;
+}
+
+export type FileStatus = 'pending' | 'uploading' | 'done' | 'error';
+export interface FileItem { id: string; name: string; size?: number; status?: FileStatus; error?: string }
+export interface FileFieldProps {
+  label: ReactNode;
+  accept?: string;
+  multiple?: boolean;
+  name?: string;
+  /** Called with the chosen or dropped files. Type, size and count checks stay with the caller. */
+  onFiles: (files: File[]) => void;
+  description?: ReactNode;
+  error?: ReactNode;
+  disabled?: boolean;
+  busy?: boolean;
+  files?: FileItem[];
+  onRemove?: (id: string) => void;
+}
+const statusBadge: Record<Exclude<FileStatus, 'uploading'>, { tone: 'neutral' | 'success' | 'danger'; text: string }> = {
+  pending: { tone: 'neutral', text: 'Pending' }, done: { tone: 'success', text: 'Uploaded' }, error: { tone: 'danger', text: 'Failed' },
+};
+function formatFileSize(bytes: number): string {
+  if (!Number.isFinite(bytes) || bytes < 0) return '';
+  if (bytes < 1024) return `${bytes} B`;
+  const [value, unit] = bytes < 1024 * 1024 ? [bytes / 1024, 'KB'] : [bytes / (1024 * 1024), 'MB'];
+  return `${value.toFixed(1).replace(/\.0$/, '')} ${unit}`;
+}
+/** A file chooser button with a drop zone and a list of the caller's files. Drag and drop is only an extra: the button works alone. */
+export function FileField({ label, accept, multiple, name, onFiles, description, error, disabled, busy, files, onRemove }: FileFieldProps) {
+  const id = useId();
+  const input = useRef<HTMLInputElement>(null);
+  const [dragging, setDragging] = useState(false);
+  const [announcement, setAnnouncement] = useState('');
+  const inactive = disabled || busy;
+  const describedBy = [description && `${id}-description`, error && `${id}-error`].filter(Boolean).join(' ') || undefined;
+  function addFiles(list: File[]) {
+    const chosen = multiple ? list : list.slice(0, 1);
+    if (chosen.length === 0) return;
+    setAnnouncement(chosen.length === 1 ? '1 file added' : `${chosen.length} files added`);
+    onFiles(chosen);
+  }
+  function choose(event: ChangeEvent<HTMLInputElement>) {
+    addFiles(Array.from(event.target.files ?? []));
+    event.target.value = ''; // Lets the same file be chosen again after it is removed.
+  }
+  function drop(event: DragEvent) {
+    event.preventDefault();
+    setDragging(false);
+    if (!inactive) addFiles(Array.from(event.dataTransfer.files));
+  }
+  return <Field label={label} htmlFor={id} description={description} error={error}>
+    <div id={`${id}-zone`} className={cx('t98-file-zone', dragging && 't98-file-zone--active', inactive && 't98-file-zone--disabled')} role="group" aria-label={typeof label === 'string' ? label : 'Files'}
+      onDragOver={event => { event.preventDefault(); if (!inactive) setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={drop}>
+      <Icon name="arrow-up" size={20} />
+      <span className="t98-file-hint">Drop files here or</span>
+      <Button variant="secondary" disabled={disabled} loading={busy} onClick={() => input.current?.click()}>Choose files</Button>
+      <Input ref={input} id={id} className="t98-file-input" type="file" name={name} accept={accept} multiple={multiple} disabled={inactive} tabIndex={-1} aria-describedby={describedBy} aria-invalid={error ? true : undefined} onChange={choose} />
+      <VisuallyHidden role="status">{announcement}</VisuallyHidden>
+    </div>
+    {files && files.length > 0 && <ul id={`${id}-list`} className="t98-file-list" aria-label="Selected files">
+      {files.map(file => {
+        const errorId = `${id}-${file.id}-error`;
+        return <li key={file.id} className="t98-file-item">
+          <Icon name="file" size={18} />
+          <span className="t98-file-name">{file.name}</span>
+          {file.size !== undefined && <span className="t98-file-size">{formatFileSize(file.size)}</span>}
+          {file.status === 'uploading' ? <Progress label={`Uploading ${file.name}`} className="t98-file-progress" /> : file.status && <Badge tone={statusBadge[file.status].tone}>{statusBadge[file.status].text}</Badge>}
+          {onRemove && <Button variant="ghost" className="t98-file-remove" aria-label={`Remove ${file.name}`} aria-describedby={file.error ? errorId : undefined} icon={<Icon name="x" size={16} />} onClick={() => onRemove(file.id)} />}
+          {file.error && <p className="t98-field-error t98-file-error" id={errorId}>{file.error}</p>}
+        </li>;
+      })}
+    </ul>}
+  </Field>;
 }

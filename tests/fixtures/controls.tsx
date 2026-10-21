@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
-  Button, CheckboxGroup, CodeBlock, Combobox, Disclosure, Field, Fieldset, Heading, InlineCode, Input, Pager, RadioGroup, Scroller, SegmentedControl, Stack, StatusLine, Text,
+  Button, CheckboxGroup, CodeBlock, Combobox, DateTimeField, Disclosure, Field, FileField, Fieldset, Heading, InlineCode, Input, Pager, RadioGroup, Scroller, SegmentedControl, Stack, StatusLine, Text,
+  type FileItem,
 } from '@ten98/ui';
 import '@ten98/ui/app-tokens.css';
 import '@ten98/ui/app.css';
@@ -19,7 +20,11 @@ const channels = [
 ];
 const code = Array.from({ length: 24 }, (_, line) => `const metric${line} = await loadCampaignMetric('destination-${line}', { window: 'last-30-days', includeOrganic: true });`).join('\n');
 
+const longName = 'quarterly-campaign-performance-review-final-approved-version-with-all-regional-appendices-and-legal-sign-off-2026.pdf';
+
 function Screen() {
+  const [publishAt, setPublishAt] = useState('2026-10-20T09:30');
+  const [files, setFiles] = useState<FileItem[]>([{ id: 'seed', name: longName, size: 2411724, status: 'done' }]);
   const [open, setOpen] = useState(false);
   const [radio, setRadio] = useState('email');
   const [boxes, setBoxes] = useState(['email']);
@@ -43,6 +48,11 @@ function Screen() {
     <Text>Set <InlineCode>retryLimit</InlineCode> before publishing.</Text>
     <StatusLine busy>Loading campaigns…</StatusLine>
     <Combobox label="City" options={['Dubai', 'Doha', 'Riyadh']} value={city} onValueChange={setCity} />
+    <DateTimeField label="Publish at" value={publishAt} onValueChange={setPublishAt} min="2026-10-01T00:00" description="Posts go out at this time." timeZoneLabel="Asia/Dubai (GST)" />
+    <FileField label="Attachments" accept="image/*,.pdf" multiple description="PDF or images." files={files}
+      onFiles={added => setFiles(current => [...current, ...added.map(file => ({ id: file.name, name: file.name, size: file.size, status: 'pending' as const }))])}
+      onRemove={id => setFiles(current => current.filter(file => file.id !== id))} />
+    <Text>Value: {publishAt}</Text>
     <Scroller label="Monthly spend"><Text>Jan 1,204 · Feb 1,310 · Mar 1,198 · Apr 1,420 · May 1,377 · Jun 1,502</Text></Scroller>
   </Stack>;
 }
