@@ -1,10 +1,13 @@
 'use client';
 
-import { useId, useMemo, useState, type KeyboardEvent, type ReactNode } from 'react';
-import { Button, cx } from './primitives.js';
+import { useEffect, useId, useImperativeHandle, useMemo, useRef, useState, type KeyboardEvent, type ReactNode, type Ref } from 'react';
+import { Alert, Button, cx } from './primitives.js';
 import { StatusLine } from './controls.js';
 import { ReplayControls, type ReplayControlsProps } from './inspection.js';
 import { contentPolicyMeta, prefixDocument } from './sandbox.js';
+import { PLAYER_CONNECT, PLAYER_PROTOCOL, parsePlayerMessage, playerDocument, playerFrameSource, playerScriptUrl, randomToken, validCommand, type PlayerCommand } from './player-protocol.js';
+
+export type { PlayerCommand, PlayerMessage } from './player-protocol.js';
 
 /** Presentation only: the app supplies geometry, data, player documents, access decisions and every explanatory message. */
 
@@ -273,4 +276,137 @@ export function ReplayViewer({ label, context, title, srcDoc, src, controls, rea
       : <iframe className="t98-replay-frame" title={title} sandbox="allow-scripts" referrerPolicy="no-referrer" srcDoc={srcDoc === undefined ? undefined : prefixDocument(srcDoc, contentPolicyMeta(contentPolicy))} src={srcDoc === undefined ? src : undefined} />}
     <ReplayControls {...controls} />
   </section>;
+}
+
+/** Commands the app may send once the player is ready. */
+export type IsolatedPlayerCommand = Exclude<PlayerCommand, { type: 'init' } | { type: 'destroy' }>;
+export interface IsolatedPlayerHandle {
+  /** Sends a validated command; false when the player is not ready or the command is out of range. */
+  send: (command: IsolatedPlayerCommand) => boolean;
+}
+export interface IsolatedPlayerFrameProps {
+  /** The frame's accessible name. */
+  title: string;
+  /** The app's player script: an https URL or a root-relative path. It runs inside the isolated document with a per-mount nonce. */
+  playerSrc: string;
+  /** Subresource Integrity hash for the player script. */
+  integrity?: string;
+  /** Sent to the player over the channel only after it proves it is this mount's document. */
+  payload: unknown;
+  onReady?: (duration: number) => void;
+  onTick?: (time: number, playing: boolean) => void;
+  onEnded?: () => void;
+  /** Called once when the player fails, times out or breaks the protocol; the frame is then destroyed. */
+  onFail?: () => void;
+  /** Upper bounds for position commands, for example page size minus viewport size. */
+  positionMax?: { x: number; y: number };
+  /** Milliseconds from load to a valid `ready` before failing closed. Default 8000. */
+  timeoutMs?: number;
+  /** Allows blob: workers inside the player (for example for decompression). Off by default. */
+  workers?: boolean;
+  failMessage?: ReactNode;
+  retryLabel?: string;
+  preparingMessage?: ReactNode;
+  ref?: Ref<IsolatedPlayerHandle>;
+  className?: string;
+}
+
+/**
+ * Runs an app-owned player script on hostile data (for example rrweb session events) in an isolated frame.
+ * The frame always loads a data: document, whose origin is opaque, so `allow-scripts allow-same-origin` (needed for the
+ * player's own nested frames) can never reach the app; srcdoc, blob: and same-origin sources are refused. The document
+ * starts with a CSP that blocks every connection. Handshake: on load the app transfers a MessagePort (the only message
+ * sent to the window, and it carries no data); the player must answer over the port with this mount's token, which only
+ * this document holds; only then is the payload sent. Anything late, malformed or out of order fails closed and destroys
+ * the player; retry remounts with a new nonce and token. Threat model: issue #17 (U25).
+ */
+export function IsolatedPlayerFrame({ title, playerSrc, integrity, payload, onReady, onTick, onEnded, onFail, positionMax, timeoutMs = 8000, workers = false,
+  failMessage = 'The player could not start safely. Nothing from it was trusted.', retryLabel = 'Retry', preparingMessage = 'Preparing the isolated player…', ref, className, ...rest }: IsolatedPlayerFrameProps) {
+  // Only a data: document may host the player; a caller passing a frame source is refused rather than silently ignored.
+  const refusedSource = 'src' in rest || 'srcDoc' in rest || 'srcdoc' in rest;
+  const [attempt, setAttempt] = useState(0);
+  const [source, setSource] = useState<string | null>(null);
+  const [status, setStatus] = useState<'preparing' | 'ready' | 'failed' | 'refused'>(refusedSource ? 'refused' : 'preparing');
+  const frame = useRef<HTMLIFrameElement>(null);
+  const live = useRef({ port: null as MessagePort | null, timer: null as ReturnType<typeof setTimeout> | null, token: '', greeted: false, loaded: false, done: false, duration: null as number | null });
+  const latest = useRef({ payload, onReady, onTick, onEnded, onFail, positionMax });
+  latest.current = { payload, onReady, onTick, onEnded, onFail, positionMax };
+
+  function close() {
+    const state = live.current;
+    if (state.timer !== null) clearTimeout(state.timer);
+    state.timer = null;
+    if (state.port) { try { state.port.postMessage({ type: 'destroy' }); } catch { /* already closed */ } state.port.close(); }
+    state.port = null;
+  }
+  function fail() {
+    const state = live.current;
+    if (state.done) return;
+    state.done = true;
+    close();
+    setStatus('failed');
+    latest.current.onFail?.();
+  }
+
+  // Built after mount only, so the nonce and token never appear in server-rendered HTML.
+  useEffect(() => {
+    if (refusedSource) return;
+    const scriptUrl = playerScriptUrl(playerSrc, window.location.href);
+    if (!scriptUrl) { setStatus('refused'); return; }
+    const token = randomToken();
+    live.current = { port: null, timer: null, token, greeted: false, loaded: false, done: false, duration: null };
+    setStatus('preparing');
+    setSource(playerFrameSource(playerDocument({ scriptUrl, nonce: randomToken(), token, integrity, workers })));
+    return close;
+  }, [attempt, playerSrc, integrity, workers, refusedSource]);
+
+  function loaded() {
+    const state = live.current;
+    // A second load means the frame navigated away from the document this mount built.
+    if (state.loaded) { fail(); return; }
+    state.loaded = true;
+    state.timer = setTimeout(fail, timeoutMs);
+    const channel = new MessageChannel();
+    state.port = channel.port1;
+    channel.port1.onmessage = event => {
+      if (state.done || live.current !== state) return;
+      const message = parsePlayerMessage(event.data, state.duration);
+      if (!message) { fail(); return; }
+      if (!state.greeted) {
+        if (message.type !== 'hello' || message.token !== state.token) { fail(); return; }
+        state.greeted = true;
+        channel.port1.postMessage({ type: 'init', protocol: PLAYER_PROTOCOL, payload: latest.current.payload });
+        return;
+      }
+      switch (message.type) {
+        case 'ready':
+          if (state.duration !== null) { fail(); return; }
+          if (state.timer !== null) clearTimeout(state.timer);
+          state.timer = null; state.duration = message.duration;
+          setStatus('ready'); latest.current.onReady?.(message.duration); return;
+        case 'tick': latest.current.onTick?.(message.time, message.playing); return;
+        case 'ended': latest.current.onEnded?.(); return;
+        default: fail();
+      }
+    };
+    channel.port1.start();
+    // The one window message: an opaque origin cannot be named as a target, so it carries only the port, never data.
+    frame.current?.contentWindow?.postMessage({ type: PLAYER_CONNECT, protocol: PLAYER_PROTOCOL }, '*', [channel.port2]);
+  }
+
+  useImperativeHandle(ref, () => ({
+    send(command) {
+      const state = live.current;
+      if (status !== 'ready' || !state.port || state.done || !validCommand(command, state.duration, latest.current.positionMax)) return false;
+      state.port.postMessage(command);
+      return true;
+    },
+  }), [status]);
+
+  if (status === 'refused') return <p className={cx('t98-player-frame-reason', className)} role="alert">The player was refused: it can only run from an https or root-relative script inside an isolated data: document.</p>;
+  return <div className={cx('t98-player-frame', className)}>
+    {status === 'failed' ? <Alert tone="danger" title="Player stopped">{failMessage}<div className="t98-player-frame-retry"><Button variant="secondary" onClick={() => setAttempt(value => value + 1)}>{retryLabel}</Button></div></Alert>
+      : source && <iframe key={attempt} ref={frame} className="t98-player-frame-frame" title={title} sandbox="allow-scripts allow-same-origin" referrerPolicy="no-referrer" tabIndex={-1} src={source} onLoad={loaded} />}
+    <p className="t98-player-frame-status" role="status">{status === 'preparing' ? preparingMessage : ''}</p>
+  </div>;
 }

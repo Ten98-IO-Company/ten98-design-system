@@ -1,5 +1,9 @@
-import { useState } from 'react';
-import { CountryMap, HeatmapPlane, HeatmapRankedList, ReplayViewer } from '../lib/spatial.js';
+import { useRef, useState } from 'react';
+// Served as a plain file, not bundled: the player runs inside the isolated frame and must stay a classic script.
+import demoPlayerUrl from './demo-player.ts?worker&url';
+import { Button } from '../lib/primitives.js';
+import { Inline, Stack, Text } from '../lib/structure.js';
+import { CountryMap, HeatmapPlane, HeatmapRankedList, IsolatedPlayerFrame, ReplayViewer, type IsolatedPlayerHandle } from '../lib/spatial.js';
 import { CalendarMonth } from '../lib/calendar.js';
 import { VisualEvidenceFrame } from '../lib/inspection.js';
 import { tsx, type ComponentEntry, type ComponentProp } from './model.js';
@@ -93,6 +97,28 @@ const calendarCode = (locked: boolean) => tsx(['CalendarMonth'], `<CalendarMonth
   onPrev={() => step(-1)} onNext={() => step(1)} onToday={() => setMonth({ year: 2026, month: 10 })}
   onCreateDay={() => {}}${locked ? "\n  createDisabledReason=\"Creating entries is disabled: you have read-only access.\"" : ''} />`, calendarSetup, ['useState']);
 
+function PlayerDemo() {
+  const handle = useRef<IsolatedPlayerHandle>(null);
+  const [state, setState] = useState('Preparing');
+  return <Stack gap={2}>
+    <IsolatedPlayerFrame ref={handle} title="Demonstration player" playerSrc={demoPlayerUrl} payload={{ label: 'synthetic session demo-018' }}
+      onReady={() => setState('Ready')} onTick={(time, playing) => setState(`${playing ? 'Playing' : 'Paused'} at ${(time / 1000).toFixed(1)} s`)} onEnded={() => setState('Ended')} onFail={() => setState('Failed closed')} />
+    <Inline gap={2}><Button onClick={() => handle.current?.send({ type: 'play', offset: 0 })}>Play</Button><Button variant="secondary" onClick={() => handle.current?.send({ type: 'pause', offset: 2000 })}>Pause at 2 s</Button></Inline>
+    <Text role="status">{state}</Text>
+  </Stack>;
+}
+const playerCode = tsx(['IsolatedPlayerFrame', 'Button', 'type IsolatedPlayerHandle'], `<>
+  <IsolatedPlayerFrame ref={player} title="Session replay" playerSrc="/replay.js" integrity={replayIntegrity}
+    payload={{ events }} onReady={setDuration} onTick={setPosition} onFail={() => setFailed(true)} />
+  <Button onClick={() => player.current?.send({ type: 'play', offset: 0 })}>Play</Button>
+</>`, `const player = useRef<IsolatedPlayerHandle>(null);
+// The recording comes from the app's API; pin the player script with its build's SRI hash.
+const events: unknown[] = [];
+const replayIntegrity = 'sha384-…';
+const [, setDuration] = useState(0);
+const [, setPosition] = useState(0);
+const [, setFailed] = useState(false);`, ['useRef', 'useState']);
+
 export const spatialEntries: ComponentEntry[] = [
   {
     name: 'CountryMap', category: 'Data display', description: 'Choropleth over app-supplied shapes with a roving single tab stop, zoom and pan controls, a polite status line and a mandatory details table.',
@@ -121,6 +147,15 @@ export const spatialEntries: ComponentEntry[] = [
     accessibility: ['Scrollable region is focusable and labelled; table has a caption and row headers.', 'Missing counts and shares read Unavailable.'],
     related: ['HeatmapPlane', 'VisualEvidenceFrame'], example: heatExample('scroll'),
     states: [{ name: 'Alongside the plane', description: 'See the HeatmapPlane specimens: the table is the ranked slot.', preview: <HeatmapRankedList label="Synthetic page" mode="click" points={[{ x: 480, y: 150, count: 12, label: 'Add to cart' }]} />, code: heatExample('click') }],
+  },
+  {
+    name: 'IsolatedPlayerFrame', category: 'Data display', description: 'Runs an app-owned player script on hostile data in an opaque-origin frame, over a token-checked MessageChannel that fails closed.',
+    usage: 'Use for rrweb-style session players that need scripts and nested frames. The frame is always a data: document (opaque origin), so srcDoc, src, blob: and same-origin sources are refused. The document starts with a CSP that blocks every connection; the player script loads with a per-mount nonce from an https or root-relative URL (pin it with integrity). Protocol v1: the player answers the connect message over the port with its token, receives init with the payload, then reports ready, tick, ended. Anything late, malformed or out of order destroys the player; retry remounts with a fresh nonce and token. Use ReplayViewer for simple srcDoc players. Threat model: issue #17.',
+    props: [prop('title', 'string', 'Frame name.', true), prop('playerSrc', 'string', 'Player script: https URL or root-relative path.', true), prop('payload', 'unknown', 'Sent over the channel after the token handshake.', true), prop('integrity', 'string', 'SRI hash for the player script.'), prop('onReady / onTick / onEnded / onFail', 'callbacks', 'Validated player messages; onFail fires once.'), prop('positionMax', '{ x: number; y: number }', 'Bounds for position commands.'), prop('timeoutMs', 'number', 'Time from load to ready before failing closed; default 8000.'), prop('workers', 'boolean', 'Allows blob: workers in the player; default false.'), prop('ref', 'Ref<IsolatedPlayerHandle>', 'send(command) for play, pause, speed and position; returns false when not ready or out of range.')],
+    tokens: [...surfaceTokens],
+    accessibility: ['The frame is named by title and kept out of the tab order; controls live outside the frame.', 'Preparing and failure states are announced; failure offers a Retry button.', 'Provide a text alternative (events table or summary) outside the frame.'],
+    related: ['ReplayViewer', 'ReplayControls', 'VisualEvidenceFrame'], example: playerCode,
+    states: [{ name: 'Demonstration player', description: 'A synthetic player loaded from the catalogue: play, pause and watch the validated ticks.', preview: <PlayerDemo />, code: playerCode }],
   },
   {
     name: 'ReplayViewer', category: 'Data display', description: 'Sandboxed iframe host for an app-supplied replay document, with ReplayControls rendered outside the frame.',

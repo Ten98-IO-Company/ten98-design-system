@@ -53,6 +53,11 @@
 
 /* Replay viewer */
 .t98-replay-frame { display: block; inline-size: 100%; aspect-ratio: 16 / 9; min-block-size: 12rem; border: var(--t98-border-width) solid var(--t98-border); border-radius: var(--t98-radius); background: var(--t98-surface); }
+.t98-player-frame { display: grid; gap: var(--t98-space-2); min-inline-size: 0; }
+.t98-player-frame-frame { display: block; inline-size: 100%; block-size: min(60vh, 37.5rem); min-block-size: 12rem; border: var(--t98-border-width) solid var(--t98-border); border-radius: var(--t98-radius); background: var(--t98-surface); }
+.t98-player-frame-status:empty { display: none; }
+.t98-player-frame-status, .t98-player-frame-reason { margin: 0; color: var(--t98-muted); overflow-wrap: anywhere; }
+.t98-player-frame-retry { margin-block-start: var(--t98-space-2); }
 .t98-replay-viewer-reason { padding: var(--t98-space-4); border: var(--t98-border-width) dashed var(--t98-border); border-radius: var(--t98-radius); background: var(--t98-subtle); overflow-wrap: anywhere; }
 
 /* The native range input's default 2px inline margins push the viewer past its container. */
@@ -85,7 +90,7 @@ button.t98-calendar-entry, .t98-calendar-create { cursor: pointer; }
 
 @media (forced-colors: active) {
   .t98-map-svg, .t98-map-legend-scale, .t98-heatmap-point, .t98-heatmap-band::before { forced-color-adjust: none; }
-  .t98-map-stage, .t98-map-details, .t98-heatmap-list, .t98-replay-frame, .t98-calendar-cell, .t98-calendar-weekday, .t98-calendar-entry, .t98-calendar-create, .t98-map-swatch-nodata, .t98-map-legend-scale { border-color: CanvasText; }
+  .t98-map-stage, .t98-map-details, .t98-heatmap-list, .t98-replay-frame, .t98-player-frame-frame, .t98-calendar-cell, .t98-calendar-weekday, .t98-calendar-entry, .t98-calendar-create, .t98-map-swatch-nodata, .t98-map-legend-scale { border-color: CanvasText; }
   .t98-map-shape { stroke: CanvasText; stroke-width: 1; }
   .t98-map-shape--step-0, .t98-map-swatch--step-0 { fill: color-mix(in srgb, Highlight 15%, Canvas); background: color-mix(in srgb, Highlight 15%, Canvas); }
   .t98-map-shape--step-1, .t98-map-swatch--step-1 { fill: color-mix(in srgb, Highlight 35%, Canvas); background: color-mix(in srgb, Highlight 35%, Canvas); }
