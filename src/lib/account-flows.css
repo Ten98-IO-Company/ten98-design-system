@@ -1,6 +1,2 @@
-.t98-account-flow { min-width: 0; }
-.t98-account-fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
-.t98-account-flow :is(.t98-input, .t98-select), .t98-account-flow .t98-button, .t98-account-flow .t98-copy-control .t98-button { min-block-size: var(--t98-control-touch, 2.75rem); }
-.t98-account-error:focus-visible { outline: 3px solid var(--t98-accent); outline-offset: 3px; }
 .t98-account-qr { inline-size: min(100%, 12rem); padding: var(--t98-space-2); border-radius: var(--t98-radius-md); background: Canvas; color-scheme: light; }
 .t98-account-key { display: block; padding: var(--t98-space-2) var(--t98-space-3); border: 1px solid var(--t98-border); border-radius: var(--t98-radius-md); background: var(--t98-subtle); overflow-wrap: anywhere; user-select: all; }

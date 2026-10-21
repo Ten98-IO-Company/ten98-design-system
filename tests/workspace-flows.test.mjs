@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createElement as h } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
+import * as ui from '../dist/index.js';
 import { ApiKeysFlow, DangerZoneFlow, ProjectCreateFlow, SettingsLayout, TeamFlow, WorkspaceCreateFlow } from '../dist/index.js';
 
 const styles = readFileSync(new URL('../dist/styles.css', import.meta.url), 'utf8');
@@ -49,7 +50,7 @@ test('ApiKeysFlow shows the secret only when revealedSecret is set, with a once-
 test('ApiKeysFlow passes paging to the table and locks while busy', () => {
   const html = render(h(ApiKeysFlow, { ...keysProps, page: { index: 0, size: 2, total: 5 }, onPageChange: noop, busy: true }));
   assert.match(html, /Next/);
-  assert.match(html, /<fieldset class="t98-workspace-fieldset" disabled=""/);
+  assert.match(html, /<fieldset class="t98-flow-fieldset" disabled=""/);
 });
 
 test('TeamFlow gives the current user no remove action and read-only rows no role select', () => {
@@ -126,4 +127,20 @@ test('SettingsLayout omits disallowed items, hides empty groups and marks the cu
 test('every t98 class emitted by the workspace flows is styled', () => {
   const emitted = new Set(rendered.flatMap(html => [...html.matchAll(/class="([^"]+)"/g)].flatMap(match => match[1].split(' '))));
   for (const name of emitted) if (/^t98-/.test(name) && !['t98-button--md', 't98-button--secondary'].includes(name)) assert.ok(styles.includes(`.${name}`), `${name} is styled`);
+});
+
+test('TeamFlow preselects the last, least-privileged role unless defaultInviteRole says otherwise', () => {
+  const inviteSelect = html => html.match(/<select[^>]*name="role"[^>]*>[\s\S]*?<\/select>/)[0];
+  assert.match(inviteSelect(render(h(TeamFlow, teamProps))), /<option value="member" selected/);
+  assert.match(inviteSelect(render(h(TeamFlow, { ...teamProps, defaultInviteRole: 'admin' }))), /<option value="admin" selected/);
+});
+
+test('flow-frame stays internal while CopyButton keeps its manual-copy fallback', () => {
+  const entry = readFileSync(new URL('../dist/index.js', import.meta.url), 'utf8');
+  assert.doesNotMatch(entry, /flow-frame/);
+  for (const name of ['FlowFrame', 'SettingsFlow', 'FlowActionControl', 'useSingleSubmit', 'formatFlowDate', 'TargetConfirm']) assert.equal(ui[name], undefined, `${name} is not public`);
+  // The fallback needs a browser clipboard; the browser spec exercises it. Here the shipped source must still contain both routes.
+  const workspace = readFileSync(new URL('../dist/workspace.js', import.meta.url), 'utf8');
+  assert.match(workspace, /navigator\.clipboard\.writeText/);
+  assert.match(workspace, /execCommand\('copy'\)/);
 });

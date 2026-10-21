@@ -1,9 +1,10 @@
 'use client';
 
-import { Component, useEffect, useId, useRef, useState, type FormEvent, type MouseEvent, type ReactNode } from 'react';
+import { Component, useId, useState, type FormEvent, type ReactNode } from 'react';
 import { Alert, Button, Checkbox, Field, Icon, Input, type Tone } from './primitives.js';
 import { DescriptionList, Heading, Link, Stack, Text, type LinkProps } from './structure.js';
 import { AuthLayout } from './workspace.js';
+import { FlowActionControl, FlowFrame, HiddenInputs, formatFlowDate, passwordHint, useSingleSubmit, type LabelledAction } from './flow-frame.js';
 
 /* Presentation-only authentication flows. Applications keep requests, sessions, routing, CSRF and OIDC redirects,
  * and supply every message; these components never decide whether a credential is valid. */
@@ -79,69 +80,38 @@ function readValues(form: HTMLFormElement): AuthFormValues {
   for (const [name, value] of new FormData(form)) if (typeof value === 'string') values[name] = value;
   return values;
 }
-const emailOf = (button: HTMLElement) => {
-  const form = (button as HTMLButtonElement).form;
-  const value = form ? new FormData(form).get('email') : null;
-  return typeof value === 'string' ? value : '';
-};
-
 function AuthFormFrame({ brand, aside, footer, label, eyebrow, title, description, onSubmit, action, method = 'post', hiddenFields, valueFields, busy = false, busyLabel, error, unconfirmed, notice, fieldErrors, submitLabel, validate, children, after, below }: AuthFormFrameProps) {
-  const rootRef = useRef<HTMLDivElement>(null);
-  const submitted = useRef(false);
-  const pending = useRef(false);
-  const fieldKey = JSON.stringify(fieldErrors ?? {});
-
-  useEffect(() => {
-    if (!submitted.current || busy) return;
-    const root = rootRef.current;
-    const target = error ? root?.querySelector<HTMLElement>('.t98-auth-error') : root?.querySelector<HTMLElement>('[aria-invalid=true]');
-    target?.focus();
-  }, [error, fieldKey, busy]);
+  const once = useSingleSubmit();
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    if (busy || pending.current) { event.preventDefault(); return; }
-    submitted.current = true;
+    if (busy) { event.preventDefault(); return; }
     const values = readValues(event.currentTarget);
     for (const name of Object.keys(hiddenFields ?? {})) delete values[name];
     if (validate && !validate(values)) { event.preventDefault(); return; }
     if (!onSubmit) return;
     event.preventDefault();
-    pending.current = true;
-    try { await onSubmit(values); } finally { pending.current = false; }
+    await once(() => onSubmit(values));
   }
 
+  const hasForm = submitLabel !== undefined;
   return <AuthLayout label={label ?? title} brand={brand} aside={aside} footer={footer}>
     <header className="t98-auth-heading">
       {eyebrow && <p className="eyebrow">{eyebrow}</p>}
       <h1 className="t98-auth-title">{title}</h1>
       {description && <p>{description}</p>}
     </header>
-    <div ref={rootRef}>{submitLabel === undefined
-      ? <Stack gap={4}>
-        {notice && <Alert tone={notice.tone} title={notice.text} />}
-        {unconfirmed && <Alert tone="warning" role="alert" title={unconfirmed} />}
-        {error && <Alert className="t98-auth-error" tone="danger" title={error} tabIndex={-1} />}
-        {children}
-      </Stack>
-      : <form aria-busy={busy || undefined} onSubmit={handleSubmit} action={onSubmit ? undefined : action} method={onSubmit ? undefined : method}>
-        {Object.entries({ ...hiddenFields, ...valueFields }).map(([name, value]) => <input key={name} type="hidden" name={name} value={value} />)}
-        {notice && <Alert className="t98-auth-feedback" tone={notice.tone} title={notice.text} />}
-        {unconfirmed && <Alert className="t98-auth-feedback" tone="warning" role="alert" title={unconfirmed} />}
-        {error && <Alert className="t98-auth-feedback t98-auth-error" tone="danger" title={error} tabIndex={-1} />}
-        <fieldset className="t98-auth-fieldset" disabled={busy}>
+    <FlowFrame busy={busy} error={error} unconfirmed={unconfirmed} notice={notice} fieldErrors={fieldErrors} onSubmit={hasForm ? handleSubmit : undefined}
+      action={onSubmit ? undefined : action} method={onSubmit ? undefined : method} hiddenFields={{ ...hiddenFields, ...valueFields }}>
+      {hasForm
+        ? <>
           {children}
           <Button type="submit" className="t98-auth-submit" loading={busy}>{busy && busyLabel ? busyLabel : submitLabel}</Button>
           {after}
-        </fieldset>
-      </form>}</div>
+        </>
+        : <Stack gap={4}>{children}</Stack>}
+    </FlowFrame>
     {below}
   </AuthLayout>;
-}
-
-function AuthActionControl({ action, label, linkComponent, variant }: { action: AuthAction; label: string; linkComponent?: LinkProps['component']; variant: 'ghost' | 'secondary' }) {
-  if (action.href !== undefined) return <Link href={action.href} variant="standalone" component={linkComponent}>{label}</Link>;
-  const { onClick } = action;
-  return <Button type="button" variant={variant} size="sm" onClick={(event: MouseEvent<HTMLButtonElement>) => onClick(emailOf(event.currentTarget))}>{label}</Button>;
 }
 
 export interface SignInFlowProps extends AuthFormBaseProps<SignInValues> {
@@ -166,7 +136,7 @@ export function SignInFlow({ defaultValues, passwordPolicy, submitLabel = 'Sign 
     <Field label="Password" htmlFor={`${id}-password`} error={fieldErrors?.password}>
       <Input name="password" type="password" autoComplete="current-password" required maxLength={maxLength} />
     </Field>
-    {forgotPassword && <div className="t98-auth-inline-action"><AuthActionControl action={forgotPassword} label={forgotPassword.label ?? 'Forgot password?'} linkComponent={linkComponent} variant="ghost" /></div>}
+    {forgotPassword && <div className="t98-auth-inline-action"><FlowActionControl action={forgotPassword} label={forgotPassword.label ?? 'Forgot password?'} linkComponent={linkComponent} variant="ghost" /></div>}
   </AuthFormFrame>;
 }
 
@@ -186,7 +156,7 @@ export interface FirstUserSetupFlowProps extends AuthFormBaseProps<FirstUserSetu
 export function FirstUserSetupFlow({ defaultValues, passwordPolicy = defaultPasswordPolicy, tokenLength, tokenHint, workspaceName = false, sampleOptIn = false, signInInstead, submitLabel = 'Create owner account', busyLabel = 'Creating account…', linkComponent, fieldErrors, onSubmit, ...frame }: FirstUserSetupFlowProps) {
   const id = useId();
   return <AuthFormFrame {...frame} onSubmit={typed(onSubmit, raw => ({ name: text(raw, 'name'), token: text(raw, 'token'), email: text(raw, 'email'), password: text(raw, 'password'), ...(workspaceName ? optional(raw, 'workspaceName') : {}), sample: raw.sample === 'true' }))} fieldErrors={fieldErrors} linkComponent={linkComponent} submitLabel={submitLabel} busyLabel={busyLabel}
-    after={signInInstead && <div className="t98-auth-aux"><AuthActionControl action={signInInstead} label={signInInstead.label ?? 'Sign in instead'} linkComponent={linkComponent} variant="ghost" /></div>}>
+    after={signInInstead && <div className="t98-auth-aux"><FlowActionControl action={signInInstead} label={signInInstead.label ?? 'Sign in instead'} linkComponent={linkComponent} variant="ghost" /></div>}>
     <Field label="Your name" htmlFor={`${id}-name`} error={fieldErrors?.name}>
       <Input name="name" autoComplete="name" required maxLength={120} defaultValue={defaultValues?.name} />
     </Field>
@@ -196,7 +166,7 @@ export function FirstUserSetupFlow({ defaultValues, passwordPolicy = defaultPass
     <Field label="Email address" htmlFor={`${id}-email`} error={fieldErrors?.email}>
       <Input name="email" type="email" autoComplete="username" required maxLength={254} defaultValue={defaultValues?.email} />
     </Field>
-    <Field label="Password" htmlFor={`${id}-password`} description={passwordPolicy.hint ?? `Use at least ${passwordPolicy.minLength} characters.`} error={fieldErrors?.password}>
+    <Field label="Password" htmlFor={`${id}-password`} description={passwordHint(passwordPolicy)} error={fieldErrors?.password}>
       <Input name="password" type="password" autoComplete="new-password" required minLength={passwordPolicy.minLength} maxLength={passwordPolicy.maxLength} />
     </Field>
     {workspaceName && <Field label="Workspace name" htmlFor={`${id}-workspace`} error={fieldErrors?.workspaceName}>
@@ -206,7 +176,6 @@ export function FirstUserSetupFlow({ defaultValues, passwordPolicy = defaultPass
   </AuthFormFrame>;
 }
 
-type LabelledAction = AuthAction & { label?: string };
 const actionRow = (items: ReactNode[]) => {
   const shown = items.filter(Boolean);
   return shown.length ? <div className="t98-auth-aux">{shown}</div> : null;
@@ -242,7 +211,7 @@ export function TwoFactorChallengeFlow({ mode, onModeChange, codeLength, message
   return <AuthFormFrame {...frame} onSubmit={typed(onSubmit, raw => ({ code: text(raw, 'code'), mode }))} valueFields={{ mode }} fieldErrors={fieldErrors} linkComponent={linkComponent} submitLabel={submitLabel} busyLabel={busyLabel}
     after={actionRow([
       <Button key="mode" type="button" variant="ghost" size="sm" onClick={() => onModeChange(recovery ? 'authenticator' : 'recovery')}>{recovery ? copy.useAuthenticator : copy.useRecovery}</Button>,
-      cancel && <AuthActionControl key="cancel" action={cancel} label={cancel.label ?? 'Back to sign in'} linkComponent={linkComponent} variant="ghost" />,
+      cancel && <FlowActionControl key="cancel" action={cancel} label={cancel.label ?? 'Back to sign in'} linkComponent={linkComponent} variant="ghost" />,
     ])}>
     <Field label={recovery ? copy.recoveryLabel : copy.authenticatorLabel} htmlFor={`${id}-code`} description={(recovery ? copy.recoveryDescription : copy.authenticatorDescription).replace('{length}', String(length))} error={fieldErrors?.code}>
       <Input key={mode} name="code" autoComplete="one-time-code" inputMode={recovery ? 'text' : 'numeric'} maxLength={length} required spellCheck={false} autoCapitalize="off" />
@@ -284,7 +253,7 @@ export function PasswordRecoveryFlow({ stage, token, availability = 'enabled', s
   const id = useId();
   const [mismatch, setMismatch] = useState(false);
   const copy = { ...recoveryMessages, ...messages };
-  const back = actionRow([<AuthActionControl key="back" action={backToSignIn} label={backToSignIn.label ?? 'Back to sign in'} linkComponent={linkComponent} variant="ghost" />]);
+  const back = actionRow([<FlowActionControl key="back" action={backToSignIn} label={backToSignIn.label ?? 'Back to sign in'} linkComponent={linkComponent} variant="ghost" />]);
   const message = (tone: Tone, text: string, actions?: ReactNode) => <Stack gap={4}><Alert tone={tone} title={text} />{actions}{back}</Stack>;
   const common = { ...frame, linkComponent, onSubmit: stage === 'request' ? typed(onSubmit as ((values: RecoveryRequestValues) => void | Promise<void>) | undefined, raw => ({ email: text(raw, 'email') })) : typed(onSubmit as ((values: RecoveryResetValues) => void | Promise<void>) | undefined, raw => ({ password: text(raw, 'password'), confirmation: text(raw, 'confirmation'), ...optional(raw, 'token') })), valueFields: token && stage === 'reset' ? { token } : undefined };
   if (stage === 'request' && availability === 'loading') return <AuthFormFrame {...common}><div className="t98-auth-state" role="status"><span className="t98-spinner" aria-hidden="true" /><span>{copy.loading}</span></div>{back}</AuthFormFrame>;
@@ -302,7 +271,7 @@ export function PasswordRecoveryFlow({ stage, token, availability = 'enabled', s
   return <AuthFormFrame {...common} fieldErrors={{ ...fieldErrors, confirmation: confirmationError }} submitLabel={submitLabel ?? 'Reset password'} busyLabel={busyLabel ?? 'Resetting…'} after={back}
     validate={values => { const same = values.password === values.confirmation; setMismatch(!same); return same; }}>
     <Text tone="muted" size="sm">{copy.resetIntro}</Text>
-    <Field label="New password" htmlFor={`${id}-password`} description={passwordPolicy.hint ?? `Use at least ${passwordPolicy.minLength} characters.`} error={fieldErrors?.password}>
+    <Field label="New password" htmlFor={`${id}-password`} description={passwordHint(passwordPolicy)} error={fieldErrors?.password}>
       <Input name="password" type="password" autoComplete="new-password" required minLength={passwordPolicy.minLength} maxLength={passwordPolicy.maxLength} onChange={clearMismatch} />
     </Field>
     <Field label="Confirm new password" htmlFor={`${id}-confirmation`} error={confirmationError}>
@@ -317,10 +286,6 @@ export interface InvitationMessages { loading: string; mismatch: string; accepte
 const invitationMessages: InvitationMessages = {
   loading: 'Loading the invitation…', mismatch: 'Signed in as {signedIn}; this invitation is for {invited}.', accepted: 'You joined {workspace}.',
   signInRequired: 'Sign in as {invited} to join {workspace}.',
-};
-const defaultFormatDate = (value: string | Date) => {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? String(value) : new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeZone: 'UTC' }).format(date);
 };
 export interface InvitationAcceptFlowProps extends AuthFormBaseProps<InvitationValues> {
   state: InvitationState;
@@ -344,7 +309,7 @@ export interface InvitationAcceptFlowProps extends AuthFormBaseProps<InvitationV
   cancel?: LabelledAction;
 }
 /** Workspace invitation screens for every step of acceptance. The application validates the invitation and the session. */
-export function InvitationAcceptFlow({ state, token, invitation, formatDate = defaultFormatDate, signedInEmail, accountExists = false, providers, onSignIn, onSwitchAccount, onRetry, continueAction, passwordPolicy = defaultPasswordPolicy, messages, cancel, busyLabel, linkComponent, fieldErrors, onSubmit, ...frame }: InvitationAcceptFlowProps) {
+export function InvitationAcceptFlow({ state, token, invitation, formatDate = formatFlowDate, signedInEmail, accountExists = false, providers, onSignIn, onSwitchAccount, onRetry, continueAction, passwordPolicy = defaultPasswordPolicy, messages, cancel, busyLabel, linkComponent, fieldErrors, onSubmit, ...frame }: InvitationAcceptFlowProps) {
   const id = useId();
   const copy = { ...invitationMessages, ...messages };
   const fill = (text: string) => text.replace('{signedIn}', signedInEmail ?? '').replace('{invited}', invitation?.email ?? '').replace('{workspace}', invitation?.workspaceName ?? '');
@@ -356,7 +321,7 @@ export function InvitationAcceptFlow({ state, token, invitation, formatDate = de
     { key: 'role', term: 'Role', description: invitation.role },
     { key: 'expires', term: 'Expires', description: formatDate(invitation.expiresAt) },
   ]} />;
-  const exit = cancel && <AuthActionControl key="exit" action={cancel} label={cancel.label ?? 'Cancel'} linkComponent={linkComponent} variant="ghost" />;
+  const exit = cancel && <FlowActionControl key="exit" action={cancel} label={cancel.label ?? 'Cancel'} linkComponent={linkComponent} variant="ghost" />;
   const base = { ...frame, linkComponent, onSubmit: typed(onSubmit, raw => ({ ...optional(raw, 'name'), ...optional(raw, 'password'), ...optional(raw, 'token') })), valueFields: token ? { token } : undefined };
 
   if (effective === 'loading') return <AuthFormFrame {...base}><div className="t98-auth-state" role="status"><span className="t98-spinner" aria-hidden="true" /><span>{copy.loading}</span></div></AuthFormFrame>;
@@ -365,7 +330,7 @@ export function InvitationAcceptFlow({ state, token, invitation, formatDate = de
   </AuthFormFrame>;
   if (effective === 'accepted') return <AuthFormFrame {...base}>
     <Alert tone="success" title={fill(copy.accepted)} />
-    {continueAction && actionRow([<AuthActionControl key="go" action={continueAction} label={continueAction.label ?? 'Open workspace'} linkComponent={linkComponent} variant="secondary" />])}
+    {continueAction && actionRow([<FlowActionControl key="go" action={continueAction} label={continueAction.label ?? 'Open workspace'} linkComponent={linkComponent} variant="secondary" />])}
   </AuthFormFrame>;
   if (effective === 'mismatch') return <AuthFormFrame {...base}>
     {summary}
@@ -386,7 +351,7 @@ export function InvitationAcceptFlow({ state, token, invitation, formatDate = de
       <Field label="Your name" htmlFor={`${id}-name`} error={fieldErrors?.name}>
         <Input name="name" autoComplete="name" required maxLength={120} />
       </Field>
-      <Field label="Password" htmlFor={`${id}-password`} description={passwordPolicy.hint ?? `Use at least ${passwordPolicy.minLength} characters.`} error={fieldErrors?.password}>
+      <Field label="Password" htmlFor={`${id}-password`} description={passwordHint(passwordPolicy)} error={fieldErrors?.password}>
         <Input name="password" type="password" autoComplete="new-password" required minLength={passwordPolicy.minLength} maxLength={passwordPolicy.maxLength} />
       </Field>
     </>}
@@ -418,10 +383,10 @@ export function WorkspaceOnboarding({ title = 'Workspace access', email, subhead
     below={(onRefresh || signOut || account || children) && <Stack gap={4}>
       {(onRefresh || signOut || account) && <div className="t98-auth-aux">
         {onRefresh && <Button type="button" variant="secondary" size="sm" onClick={onRefresh}>{refreshLabel}</Button>}
-        {account && <AuthActionControl action={account} label={account.label} linkComponent={frame.linkComponent} variant="ghost" />}
+        {account && <FlowActionControl action={account} label={account.label} linkComponent={frame.linkComponent} variant="ghost" />}
         {signOut && (signOut.action !== undefined
           ? <form action={signOut.action} method="post">
-            {signOut.hiddenFields && Object.entries(signOut.hiddenFields).map(([name, value]) => <input key={name} type="hidden" name={name} value={value} />)}
+            <HiddenInputs fields={signOut.hiddenFields} />
             <Button type="submit" variant="ghost" size="sm">{signOutLabel}</Button>
           </form>
           : <Button type="button" variant="ghost" size="sm" onClick={signOut.onClick}>{signOutLabel}</Button>)}

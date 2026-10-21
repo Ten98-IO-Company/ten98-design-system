@@ -3,7 +3,9 @@
 .t98-date-range legend { padding:0; margin-bottom:12px; font-size:13px; font-weight:600; }
 .t98-date-range-fields { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
 .t98-date-range>.t98-field-error { margin-top:8px; }
-.t98-copy-control { display:inline-flex; align-items:center; gap:10px; font:12px var(--t98-font); color:var(--t98-muted); }
+.t98-copy-control { display:inline-flex; flex-wrap:wrap; align-items:center; gap:10px; max-inline-size:100%; font:12px var(--t98-font); color:var(--t98-muted); }
+.t98-copy-control [role=status] { min-inline-size:0; overflow-wrap:anywhere; }
+.t98-copy-manual { flex:1 1 100%; min-inline-size:0; }
 .t98-secret-control { display:flex; gap:8px; width:100%; min-width:0; }
 .t98-secret-control>.t98-field { flex:1; min-width:0; }.t98-secret-control .t98-input { font-family:var(--t98-mono); }.t98-secret-control>.t98-button { align-self:flex-end; }
 .t98-confirm-hint { margin:0; color:var(--t98-muted); font:13px/1.7 var(--t98-font); }

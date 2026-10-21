@@ -22,15 +22,48 @@ export function DateRangeField({ label, start, end, onChange, disabled }: DateRa
   return <fieldset className="t98-date-range"><legend>{label}</legend><div className="t98-date-range-fields"><Field label="Start date" htmlFor={`${id}-start`}><Input type="date" value={start} max={end || undefined} disabled={disabled} aria-describedby={error ? `${id}-error` : undefined} onChange={event => update({ start: event.target.value, end })}/></Field><Field label="End date" htmlFor={`${id}-end`}><Input type="date" value={end} min={start || undefined} disabled={disabled} aria-describedby={error ? `${id}-error` : undefined} onChange={event => update({ start, end: event.target.value })}/></Field></div>{error && <p className="t98-field-error" id={`${id}-error`} role="alert">{error}</p>}</fieldset>;
 }
 
-export function CopyButton({ value, label = 'Copy' }: { value: string; label?: string }) {
-  const [status, setStatus] = useState('');
+export interface CopyButtonMessages {
+  /** Shown in the status region after a successful copy. */
+  copied: string;
+  /** Shown when neither clipboard route worked; the text is then selected in a visible field. */
+  copyFailed: string;
+  /** Accessible name of that field. */
+  select: string;
+}
+const copyMessages: CopyButtonMessages = { copied: 'Copied', copyFailed: 'Copy failed. The text is selected: copy it manually.', select: 'Select and copy' };
+
+/* The legacy route for pages without the async clipboard (the approach of clipboard-copy, MIT): select a hidden textarea
+ * and run the copy command, then restore focus to the control that was used. */
+function legacyCopy(text: string) {
+  const previous = document.activeElement as HTMLElement | null;
+  const area = document.createElement('textarea');
+  area.value = text;
+  area.setAttribute('readonly', '');
+  area.style.position = 'fixed';
+  area.style.insetBlockStart = '0';
+  document.body.appendChild(area);
+  area.select();
+  try { return document.execCommand('copy'); } catch { return false; } finally { area.remove(); previous?.focus(); }
+}
+
+/** Copies with the async Clipboard API, then the legacy command; if both fail the value is selected in a visible field. */
+export function CopyButton({ value, label = 'Copy', messages }: { value: string; label?: string; messages?: Partial<CopyButtonMessages> }) {
+  const [status, setStatus] = useState<'idle' | 'copied' | 'manual'>('idle');
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const manual = useRef<HTMLInputElement>(null);
+  const text = { ...copyMessages, ...messages };
   useEffect(() => () => clearTimeout(timer.current), []);
+  useEffect(() => { if (status === 'manual') { manual.current?.focus(); manual.current?.select(); } }, [status]);
   async function copy() {
-    try { await navigator.clipboard.writeText(value); setStatus('Copied'); } catch { setStatus('Copy failed'); }
-    clearTimeout(timer.current); timer.current = setTimeout(() => setStatus(''), 2500);
+    clearTimeout(timer.current);
+    let copied: boolean;
+    try { await navigator.clipboard.writeText(value); copied = true; } catch { copied = legacyCopy(value); }
+    setStatus(copied ? 'copied' : 'manual');
+    // The manual notice stays until the next attempt so the person can finish copying.
+    if (copied) timer.current = setTimeout(() => setStatus('idle'), 2500);
   }
-  return <span className="t98-copy-control"><Button variant="secondary" size="sm" onClick={copy}><Icon name={status === 'Copied' ? 'check' : 'copy'} size={14}/>{label}</Button><span role="status">{status}</span></span>;
+  return <span className="t98-copy-control"><Button variant="secondary" size="sm" onClick={copy}><Icon name={status === 'copied' ? 'check' : 'copy'} size={14}/>{label}</Button><span role="status">{status === 'copied' ? text.copied : status === 'manual' ? text.copyFailed : ''}</span>
+    {status === 'manual' && <Input ref={manual} className="t98-copy-manual" aria-label={text.select} value={value} readOnly autoComplete="off" onFocus={event => event.currentTarget.select()}/>}</span>;
 }
 
 /** Presentation only: this does not encrypt a value already sent to the browser. */

@@ -108,7 +108,7 @@ for (const theme of ['light', 'dark'] as const) {
     expect(await only(page, 'revokeInvitation:')).toEqual(['revokeInvitation:{"id":"i1"}']);
     await team.getByLabel('Email address').fill('invitee@example.com');
     await team.getByRole('button', { name: 'Send invitation' }).click();
-    await expect.poll(() => calls(page)).toContain('invite:{"email":"invitee@example.com","role":"owner"}');
+    await expect.poll(() => calls(page)).toContain('invite:{"email":"invitee@example.com","role":"member"}');
     await expect(team.getByText(/Share this link now\./)).toBeVisible();
 
     // Policy toggle.
@@ -164,3 +164,20 @@ for (const theme of ['light', 'dark'] as const) {
     expect(errors).toEqual([]);
   });
 }
+
+test('CopyButton shows a visible, selected fallback when the clipboard is denied', async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText: () => Promise.reject(new DOMException('denied', 'NotAllowedError')) }, configurable: true });
+    document.execCommand = () => false;
+  });
+  await page.goto('/tests/workspace-flows.html?theme=light');
+  const keys = page.locator('#workspace-flows-fixture').getByRole('region', { name: 'API keys' });
+  await keys.getByLabel('Key name').fill('Deploy');
+  await keys.getByRole('checkbox', { name: /^Read/ }).check();
+  await keys.getByRole('button', { name: 'Create key' }).click();
+  await keys.getByRole('button', { name: 'Copy key' }).click();
+  await expect(keys.getByText('Copy failed. The key is selected: copy it manually.')).toBeVisible();
+  const manual = keys.getByLabel('Select and copy');
+  await expect(manual).toBeFocused();
+  expect(await manual.evaluate((input: HTMLInputElement) => input.value.slice(input.selectionStart ?? 0, input.selectionEnd ?? 0))).toContain('t98_live_');
+});

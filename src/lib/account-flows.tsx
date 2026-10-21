@@ -1,73 +1,17 @@
 'use client';
 
-import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { Alert, Badge, Button, Field, Input, Select, type SelectOption } from './primitives.js';
 import { Combobox, CodeBlock, RadioGroup, StatusLine } from './controls.js';
 import { DataTable, type DataColumn } from './patterns.js';
 import { DescriptionList, FormActions, Heading, Image, Inline, Link, Stack, Text, type LinkProps } from './structure.js';
 import { ConfirmDialog, CopyButton } from './workspace.js';
+import { SettingsFlow, TargetConfirm, formText, formatFlowDate, passwordHint, staticTable, useSingleSubmit } from './flow-frame.js';
 import { defaultPasswordPolicy, type OidcProvider, type PasswordPolicy } from './auth-flows.js';
 import type { FlowState, Submit } from './settings-base.js';
 
 /* Presentation-only account settings flows. Applications keep requests, authorization, secrets and sessions, and supply
  * every message; each value below is edited only here, so an application does not repeat these controls elsewhere. */
-
-const defaultFormatDate = (value: string | Date) => {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? String(value) : new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeZone: 'UTC' }).format(date);
-};
-
-interface FlowFrameProps extends FlowState {
-  title: string;
-  description?: string;
-  children: ReactNode;
-  /** Wraps the content in a form; omit for read-mostly flows. */
-  onSubmit?: (event: FormEvent<HTMLFormElement>) => void;
-  /** Submit label; omit when the flow has its own action buttons. */
-  submitLabel?: string;
-  submitDisabled?: boolean;
-  extraActions?: ReactNode;
-}
-
-/** Shared chrome: heading, outcome messages (focus moves to a new error) and a fieldset that locks busy or read-only flows. */
-function FlowFrame({ title, description, busy = false, busyLabel, error, unconfirmed, notice, disabled = false, onSubmit, submitLabel, submitDisabled, extraActions, children }: FlowFrameProps) {
-  const errorRef = useRef<HTMLDivElement>(null);
-  const attempted = useRef(false);
-  useEffect(() => { if (attempted.current && error && !busy) errorRef.current?.focus(); }, [error, busy]);
-  const body = <fieldset className="t98-account-fieldset" disabled={busy || disabled}>
-    <Stack gap={4}>
-      {children}
-      {(submitLabel || extraActions) && <FormActions>
-        {submitLabel && <Button type="submit" loading={busy} disabled={submitDisabled}>{busy && busyLabel ? busyLabel : submitLabel}</Button>}
-        {extraActions}
-      </FormActions>}
-    </Stack>
-  </fieldset>;
-  return <section className="t98-account-flow" aria-label={title}>
-    <Stack gap={4}>
-      <Stack gap={1}>
-        <Heading level={2} size="md">{title}</Heading>
-        {description && <Text tone="muted" size="sm">{description}</Text>}
-      </Stack>
-      {notice && <Alert tone={notice.tone} title={notice.text} />}
-      {unconfirmed && <Alert tone="warning" role="alert" title={unconfirmed} />}
-      {error && <div ref={errorRef} tabIndex={-1} className="t98-account-error"><Alert tone="danger" title={error} /></div>}
-      {onSubmit
-        ? <form aria-busy={busy || undefined} onSubmit={event => { attempted.current = true; onSubmit(event); }}>{body}</form>
-        : <div aria-busy={busy || undefined}>{body}</div>}
-    </Stack>
-  </section>;
-}
-
-/** Runs the handler once at a time so a double activation cannot send two requests. */
-function useSingleFlight() {
-  const pending = useRef(false);
-  return async (action: () => void | Promise<void>) => {
-    if (pending.current) return;
-    pending.current = true;
-    try { await action(); } finally { pending.current = false; }
-  };
-}
 
 /* ---------------------------------------------------------------- Profile */
 
@@ -105,7 +49,7 @@ export function AccountProfileFlow({ email, emailHref, defaultValues, localeOpti
   const [values, setValues] = useState<AccountProfileValues>(defaultValues);
   const [zoneError, setZoneError] = useState<string>();
   const [detectStatus, setDetectStatus] = useState<{ tone: 'success' | 'warning'; text: string }>();
-  const single = useSingleFlight();
+  const single = useSingleSubmit();
   const dirty = values.name !== defaultValues.name || values.theme !== defaultValues.theme || values.locale !== defaultValues.locale || values.timeZone !== defaultValues.timeZone;
   const lastDirty = useRef<boolean | undefined>(undefined);
   useEffect(() => {
@@ -125,7 +69,7 @@ export function AccountProfileFlow({ email, emailHref, defaultValues, localeOpti
     setZoneError(undefined);
     void single(() => onSubmit({ ...values, name: values.name.trim() }));
   }
-  return <FlowFrame {...state} title={title} description={description} onSubmit={submit} submitLabel={copy.save} busyLabel={state.busyLabel ?? copy.saving} submitDisabled={!dirty && !state.busy}>
+  return <SettingsFlow {...state} title={title} description={description} onSubmit={submit} submitLabel={copy.save} busyLabel={state.busyLabel ?? copy.saving} submitDisabled={!dirty && !state.busy}>
     <Field label={copy.email} htmlFor={`${id}-email`}>
       <Input id={`${id}-email`} name="email" type="email" value={email} readOnly autoComplete="email" />
     </Field>
@@ -143,7 +87,7 @@ export function AccountProfileFlow({ email, emailHref, defaultValues, localeOpti
       <Button type="button" variant="secondary" onClick={detect}>{copy.detect}</Button>
       {detectStatus && <StatusLine tone={detectStatus.tone}>{detectStatus.text}</StatusLine>}
     </Stack>}
-  </FlowFrame>;
+  </SettingsFlow>;
 }
 
 /* --------------------------------------------------------------- Password */
@@ -172,32 +116,32 @@ export function PasswordChangeFlow({ policy = defaultPasswordPolicy, hasPassword
   const id = useId();
   const copy = { ...passwordMessages, ...messages };
   const [mismatch, setMismatch] = useState(false);
-  const single = useSingleFlight();
-  if (!hasPassword) return <FlowFrame {...state} title={title} description={description}>
+  const single = useSingleSubmit();
+  if (!hasPassword) return <SettingsFlow {...state} title={title} description={description}>
     <Alert tone="info" title={copy.noPassword} />
     {setPasswordHref && <Link href={setPasswordHref} variant="standalone" component={linkComponent}>{copy.setPassword}</Link>}
-  </FlowFrame>;
+  </SettingsFlow>;
   const confirmationError = fieldErrors?.confirmation ?? (mismatch ? copy.mismatch : undefined);
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
-    const read = (name: string) => { const value = data.get(name); return typeof value === 'string' ? value : ''; };
+    const read = (name: string) => formText(data, name);
     const newPassword = read('newPassword');
     if (newPassword !== read('confirmation')) { setMismatch(true); return; }
     setMismatch(false);
     void single(() => onSubmit({ currentPassword: read('currentPassword'), newPassword }));
   }
-  return <FlowFrame {...state} title={title} description={description} onSubmit={submit} submitLabel={copy.submit} busyLabel={state.busyLabel ?? copy.submitting}>
+  return <SettingsFlow {...state} title={title} description={description} onSubmit={submit} submitLabel={copy.submit} busyLabel={state.busyLabel ?? copy.submitting}>
     <Field label={copy.current} htmlFor={`${id}-current`} error={fieldErrors?.currentPassword}>
       <Input id={`${id}-current`} name="currentPassword" type="password" autoComplete="current-password" required maxLength={policy.maxLength} />
     </Field>
-    <Field label={copy.next} htmlFor={`${id}-new`} description={policy.hint ?? `Use at least ${policy.minLength} characters.`} error={fieldErrors?.newPassword}>
+    <Field label={copy.next} htmlFor={`${id}-new`} description={passwordHint(policy)} error={fieldErrors?.newPassword}>
       <Input id={`${id}-new`} name="newPassword" type="password" autoComplete="new-password" required minLength={policy.minLength} maxLength={policy.maxLength} onChange={() => setMismatch(false)} />
     </Field>
     <Field label={copy.confirmation} htmlFor={`${id}-confirmation`} error={confirmationError}>
       <Input id={`${id}-confirmation`} name="confirmation" type="password" autoComplete="new-password" required maxLength={policy.maxLength} onChange={() => setMismatch(false)} />
     </Field>
-  </FlowFrame>;
+  </SettingsFlow>;
 }
 
 /* ------------------------------------------------------------ Two-factor */
@@ -259,19 +203,19 @@ export function TwoFactorSetupFlow({ stage, enrolment, recoveryCodes = [], codeL
   const [passwordError, setPasswordError] = useState<string>();
   const [confirming, setConfirming] = useState<TwoFactorAction>();
   const [saveError, setSaveError] = useState(false);
-  const single = useSingleFlight();
-  const read = (event: FormEvent<HTMLFormElement>, name: string) => { const value = new FormData(event.currentTarget).get(name); return typeof value === 'string' ? value : ''; };
+  const single = useSingleSubmit();
+  const read = (event: FormEvent<HTMLFormElement>, name: string) => formText(new FormData(event.currentTarget), name);
   const passwordField = <Field label={copy.password} htmlFor={`${id}-password`} error={passwordError ?? fieldErrors?.password}>
     <Input id={`${id}-password`} name="password" type="password" autoComplete="current-password" required value={password} onChange={event => { setPassword(event.target.value); setPasswordError(undefined); }} />
   </Field>;
 
-  if (stage === 'off') return <FlowFrame {...state} title={title} description={description} submitLabel={copy.start} busyLabel={state.busyLabel ?? copy.starting}
+  if (stage === 'off') return <SettingsFlow {...state} title={title} description={description} submitLabel={copy.start} busyLabel={state.busyLabel ?? copy.starting}
     onSubmit={event => { event.preventDefault(); void single(() => onStart({ password: read(event, 'password') })); }}>
     <Badge>{copy.statusOff}</Badge>
     {passwordField}
-  </FlowFrame>;
+  </SettingsFlow>;
 
-  if (stage === 'enrolling') return <FlowFrame {...state} title={title} description={description} submitLabel={copy.verify} busyLabel={state.busyLabel ?? copy.verifying}
+  if (stage === 'enrolling') return <SettingsFlow {...state} title={title} description={description} submitLabel={copy.verify} busyLabel={state.busyLabel ?? copy.verifying}
     onSubmit={event => { event.preventDefault(); void single(() => onVerify({ code: read(event, 'code').trim() })); }}>
     <Text tone="muted" size="sm">{copy.scan}</Text>
     {enrolment && <Stack gap={3}>
@@ -287,14 +231,14 @@ export function TwoFactorSetupFlow({ stage, enrolment, recoveryCodes = [], codeL
     <Field label={copy.code} htmlFor={`${id}-code`} description={copy.codeHint.replace('{length}', String(codeLength))} error={fieldErrors?.code}>
       <Input id={`${id}-code`} name="code" autoComplete="one-time-code" inputMode="numeric" pattern={`[0-9]{${codeLength}}`} maxLength={codeLength} required spellCheck={false} autoCapitalize="off" />
     </Field>
-  </FlowFrame>;
+  </SettingsFlow>;
 
   if (stage === 'codes') {
     const text = recoveryCodes.join('\n');
     const download = () => {
       try { saveTextFile(downloadName, `${text}\n`); setSaveError(false); } catch { setSaveError(true); }
     };
-    return <FlowFrame {...state} title={title} description={description} extraActions={<Button type="button" onClick={() => void single(onAcknowledgeCodes)}>{copy.acknowledge}</Button>}>
+    return <SettingsFlow {...state} title={title} description={description} extraActions={<Button type="button" onClick={() => void single(onAcknowledgeCodes)}>{copy.acknowledge}</Button>}>
       <Text tone="muted" size="sm">{copy.codesIntro}</Text>
       <CodeBlock code={text} label="Recovery codes" />
       <Inline>
@@ -302,12 +246,12 @@ export function TwoFactorSetupFlow({ stage, enrolment, recoveryCodes = [], codeL
         <Button type="button" variant="secondary" size="sm" onClick={download}>{copy.download}</Button>
       </Inline>
       {saveError && <StatusLine tone="warning">{copy.downloadFailed}</StatusLine>}
-    </FlowFrame>;
+    </SettingsFlow>;
   }
 
   const target = confirming === 'disable' ? { title: copy.disableTitle, description: copy.disableDescription, label: copy.disable, run: onDisable } : { title: copy.regenerateTitle, description: copy.regenerateDescription, label: copy.regenerate, run: onRegenerate };
   const ask = (action: TwoFactorAction) => { if (!password) { setPasswordError(copy.passwordRequired); return; } setConfirming(action); };
-  return <FlowFrame {...state} title={title} description={description} onSubmit={event => event.preventDefault()}>
+  return <SettingsFlow {...state} title={title} description={description} onSubmit={event => event.preventDefault()}>
     <Badge tone="success">{copy.statusOn}</Badge>
     <Text tone="muted" size="sm">{copy.manage}</Text>
     {passwordField}
@@ -317,7 +261,7 @@ export function TwoFactorSetupFlow({ stage, enrolment, recoveryCodes = [], codeL
     </FormActions>
     <ConfirmDialog open={confirming !== undefined} onOpenChange={open => { if (!open) setConfirming(undefined); }} title={target.title} description={target.description} confirmLabel={target.label} danger={confirming === 'disable'}
       onConfirm={() => target.run({ password })} />
-  </FlowFrame>;
+  </SettingsFlow>;
 }
 
 /* --------------------------------------------------------------- Sessions */
@@ -342,7 +286,7 @@ export interface SessionListFlowProps extends FlowState {
   messages?: Partial<SessionListMessages>;
 }
 /** Active sessions with sign-out. The current session is marked and offers no revoke action. */
-export function SessionListFlow({ sessions, onRevoke, onRevokeOthers, formatDate = defaultFormatDate, title = 'Active sessions', description, messages, ...state }: SessionListFlowProps) {
+export function SessionListFlow({ sessions, onRevoke, onRevokeOthers, formatDate = formatFlowDate, title = 'Active sessions', description, messages, ...state }: SessionListFlowProps) {
   const copy = { ...sessionMessages, ...messages };
   const [target, setTarget] = useState<AccountSession>();
   const [others, setOthers] = useState(false);
@@ -352,16 +296,15 @@ export function SessionListFlow({ sessions, onRevoke, onRevokeOthers, formatDate
     { key: 'location', header: copy.location, wrap: true, render: row => row.location ?? '' },
     { key: 'lastActiveAt', header: copy.lastActive, render: row => <Text as="time" size="sm">{formatDate(row.lastActiveAt)}</Text> },
   ];
-  return <FlowFrame {...state} title={title} description={description} >
-    <DataTable<AccountSession> ariaLabel={title} columns={columns} rows={sessions} rowKey={row => row.id} searchable={false} sortable={false} pagination={false} responsive="stack" emptyTitle={copy.empty}
+  return <SettingsFlow {...state} title={title} description={description} >
+    <DataTable<AccountSession> ariaLabel={title} columns={columns} rows={sessions} rowKey={row => row.id} {...staticTable} emptyTitle={copy.empty}
       rowActionsLabel={copy.actions} rowActions={row => row.current ? null : <Button type="button" variant="secondary" size="sm" disabled={locked} aria-label={`${copy.revoke}: ${row.device}`} onClick={() => setTarget(row)}>{copy.revoke}</Button>} />
     <FormActions>
       <Button type="button" variant="danger" disabled={locked || sessions.every(session => session.current)} onClick={() => setOthers(true)}>{copy.revokeOthers}</Button>
     </FormActions>
-    <ConfirmDialog open={target !== undefined} onOpenChange={open => { if (!open) setTarget(undefined); }} title={copy.revokeTitle} description={target ? `${target.device}. ${copy.revokeDescription}` : copy.revokeDescription} confirmLabel={copy.revoke} danger
-      onConfirm={() => target ? onRevoke({ id: target.id }) : undefined} />
+    <TargetConfirm target={target} onClose={() => setTarget(undefined)} title={copy.revokeTitle} description={copy.revokeDescription} subject={row => row.device} confirmLabel={copy.revoke} onConfirm={row => onRevoke({ id: row.id })} />
     <ConfirmDialog open={others} onOpenChange={setOthers} title={copy.revokeOthersTitle} description={copy.revokeOthersDescription} confirmLabel={copy.revokeOthers} danger onConfirm={onRevokeOthers} />
-  </FlowFrame>;
+  </SettingsFlow>;
 }
 
 /* ------------------------------------------------------ Linked identities */
@@ -395,7 +338,7 @@ export interface LinkedIdentitiesFlowProps extends FlowState {
   messages?: Partial<LinkedIdentitiesMessages>;
 }
 /** Linked sign-in providers. The application verifies ownership and the password; the flow only blocks the last method. */
-export function LinkedIdentitiesFlow({ identities, providers, hasPassword, onLink, onUnlink, pendingProof, onConfirmProof, onDismissProof, formatDate = defaultFormatDate, title = 'Linked sign-in providers', description, messages, fieldErrors, ...state }: LinkedIdentitiesFlowProps) {
+export function LinkedIdentitiesFlow({ identities, providers, hasPassword, onLink, onUnlink, pendingProof, onConfirmProof, onDismissProof, formatDate = formatFlowDate, title = 'Linked sign-in providers', description, messages, fieldErrors, ...state }: LinkedIdentitiesFlowProps) {
   const id = useId();
   const copy = { ...identityMessages, ...messages };
   const [password, setPassword] = useState('');
@@ -412,12 +355,12 @@ export function LinkedIdentitiesFlow({ identities, providers, hasPassword, onLin
     { key: 'email', header: copy.email, wrap: true, render: row => row.email ?? '' },
     { key: 'linkedAt', header: copy.linkedOn, render: row => formatDate(row.linkedAt) },
   ];
-  return <FlowFrame {...state} title={title} description={description}>
+  return <SettingsFlow {...state} title={title} description={description}>
     {blocked && <Alert tone="info" title={copy.lastMethod} />}
     {hasPassword && <Field label={copy.password} htmlFor={`${id}-password`} error={passwordError ?? fieldErrors?.password}>
       <Input id={`${id}-password`} name="password" type="password" autoComplete="current-password" value={password} onChange={event => { setPassword(event.target.value); setPasswordError(undefined); }} />
     </Field>}
-    <DataTable<LinkedIdentity> ariaLabel={title} columns={columns} rows={identities} rowKey={row => row.id} searchable={false} sortable={false} pagination={false} responsive="stack" emptyTitle={copy.empty}
+    <DataTable<LinkedIdentity> ariaLabel={title} columns={columns} rows={identities} rowKey={row => row.id} {...staticTable} emptyTitle={copy.empty}
       rowActionsLabel={copy.actions} rowActions={row => <Button type="button" variant="secondary" size="sm" disabled={locked || blocked} aria-label={`${copy.unlink}: ${row.providerName}`} onClick={() => ask(row)}>{copy.unlink}</Button>} />
     {providers.length > 0 && <Stack gap={2}>
       <Heading level={3} size="sm">{copy.linkHeading}</Heading>
@@ -433,7 +376,6 @@ export function LinkedIdentitiesFlow({ identities, providers, hasPassword, onLin
         ...(pendingProof.email ? [{ term: copy.email, description: pendingProof.email }] : []), { term: copy.expires, description: formatDate(pendingProof.expiresAt) },
       ]} />
     </Alert>}
-    <ConfirmDialog open={target !== undefined} onOpenChange={open => { if (!open) setTarget(undefined); }} title={copy.unlinkTitle} description={target ? `${target.providerName}. ${copy.unlinkDescription}` : copy.unlinkDescription} confirmLabel={copy.unlink} danger
-      onConfirm={() => target ? onUnlink({ id: target.id, password }) : undefined} />
-  </FlowFrame>;
+    <TargetConfirm target={target} onClose={() => setTarget(undefined)} title={copy.unlinkTitle} description={copy.unlinkDescription} subject={row => row.providerName} confirmLabel={copy.unlink} onConfirm={row => onUnlink({ id: row.id, password })} />
+  </SettingsFlow>;
 }

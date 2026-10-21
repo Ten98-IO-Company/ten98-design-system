@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { AccountProfileFlow, LinkedIdentitiesFlow, PasswordChangeFlow, SessionListFlow, Stack, Text, TwoFactorSetupFlow, type TwoFactorSetupStage } from '@ten98/ui';
 import '@ten98/ui/app-tokens.css';
@@ -33,6 +33,13 @@ function Probe({ render }: { render: (log: (entry: string) => void) => ReactNode
   </Stack>;
 }
 
+/** A background error that arrives while the person is typing must not move focus. */
+function LateError() {
+  const [error, setError] = useState<string>();
+  useEffect(() => { const timer = setTimeout(() => setError('Preferences could not be refreshed.'), 600); return () => clearTimeout(timer); }, []);
+  return <PasswordChangeFlow hasPassword error={error} onSubmit={noop} />;
+}
+
 function TwoFactor({ initial }: { initial: TwoFactorSetupStage }) {
   const [stage, setStage] = useState<TwoFactorSetupStage>(initial);
   return <Probe render={log => <TwoFactorSetupFlow stage={stage} enrolment={{ qrDataUrl: qr, manualKey: 'JBSWY3DPEHPK3PXP-LONG-SETUP-KEY-FOR-WRAPPING' }} recoveryCodes={codes} downloadName="team-codes.txt"
@@ -43,6 +50,7 @@ function TwoFactor({ initial }: { initial: TwoFactorSetupStage }) {
 const screens: Record<string, ReactNode> = {
   'profile': <Probe render={log => <AccountProfileFlow email="member@example.test" emailHref="#email" defaultValues={{ name: 'Sam Rivera', theme: 'system', locale: 'en', timeZone: 'Asia/Dubai' }} localeOptions={locales} timeZones={zones} onDetectTimeZone={() => 'Europe/London'} onSubmit={values => log(JSON.stringify(values))} onDirtyChange={dirty => log(`dirty:${dirty}`)} />} />,
   'profile-disabled': <AccountProfileFlow email="member@example.test" defaultValues={{ name: 'Sam Rivera', theme: 'dark', locale: 'ar', timeZone: 'Asia/Qatar' }} localeOptions={locales} timeZones={zones} onSubmit={noop} disabled notice={{ tone: 'info', text: 'Only owners can edit profiles.' }} />,
+  'late-error': <LateError />,
   'password': <Probe render={log => <PasswordChangeFlow hasPassword onSubmit={values => log(JSON.stringify(values))} />} />,
   'password-error': <PasswordChangeFlow hasPassword onSubmit={noop} error="The password could not be changed." fieldErrors={{ currentPassword: 'The current password is incorrect.' }} unconfirmed="We could not confirm whether your password changed. Reload this page before trying again." />,
   'password-none': <PasswordChangeFlow hasPassword={false} setPasswordHref="#set-password" onSubmit={noop} />,

@@ -166,3 +166,12 @@ test('profile reports unsaved edits, detects the time zone and submits typed val
   await page.getByRole('button', { name: 'Save changes' }).click();
   await expect(log).toContainText('{"name":"Sam R","theme":"dark","locale":"en","timeZone":"Europe/London"}');
 });
+
+test('an error that arrives without a submit does not take focus from a field being typed in', async ({ page }) => {
+  await open(page, 'late-error');
+  const field = page.getByLabel('Current password');
+  await field.focus();
+  await field.pressSequentially('typing', { delay: 120 });
+  await expect(page.getByText('Preferences could not be refreshed.')).toBeVisible();
+  await expect(field).toBeFocused();
+});
