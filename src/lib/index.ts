@@ -19,3 +19,6 @@ export * from './structure.js';
 export * from './auth-flows.js';
 export * from './shell.js';
 export * from './controls.js';
+export * from './settings-base.js';
+export * from './account-flows.js';
+export * from './workspace-flows.js';

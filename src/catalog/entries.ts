@@ -8,6 +8,8 @@ import { structureEntries } from './structure';
 import { authFlowEntries } from './auth-flows';
 import { shellEntries } from './shell';
 import { controlEntries } from './controls';
+import { accountFlowEntries } from './account-flows';
+import { workspaceFlowEntries } from './workspace-flows';
 import { coordinationEntries } from './coordination';
 import { assetsAudienceEntries } from './assets-audience';
 import { analyticsEntries } from './analytics';
@@ -19,7 +21,7 @@ import { patternEntries } from './patterns';
 import { adapterEntries } from './adapters';
 import type { ComponentEntry } from './model';
 
-export const componentEntries: ComponentEntry[] = [...primitiveEntries, ...patternEntries, ...adapterEntries, ...evidenceEntries, ...compositionEntries, ...measurementEntries, ...coordinationEntries, ...assetsAudienceEntries, ...analyticsEntries, ...layoutEntries, ...structureEntries, ...authFlowEntries, ...shellEntries, ...controlEntries, ...templateEntries, ...reportingEntries, ...inspectionEntries, ...sidebarEntries, ...accountMenuEntries];
+export const componentEntries: ComponentEntry[] = [...primitiveEntries, ...patternEntries, ...adapterEntries, ...evidenceEntries, ...compositionEntries, ...measurementEntries, ...coordinationEntries, ...assetsAudienceEntries, ...analyticsEntries, ...layoutEntries, ...structureEntries, ...authFlowEntries, ...shellEntries, ...controlEntries, ...accountFlowEntries, ...workspaceFlowEntries, ...templateEntries, ...reportingEntries, ...inspectionEntries, ...sidebarEntries, ...accountMenuEntries];
 export const categories = ['All', ...new Set(componentEntries.map(entry => entry.category))];
 
 export function findComponents(query: string, category = 'All') {
