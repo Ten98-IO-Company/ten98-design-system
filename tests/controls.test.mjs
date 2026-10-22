@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createElement as h } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { Blockquote, LoadMore, ResourceCard, Image, Form, Field as UIField, Textarea, CheckboxGroup, CodeBlock, MediaPlayer, MultiCombobox, Combobox, DateTimeField, Disclosure, FileField, Fieldset, InlineCode, Pager, RadioGroup, Scroller, SegmentedControl, StatusLine, Button } from '../dist/index.js';
+import { Blockquote, Popover, LoadMore, ResourceCard, Image, Form, Field as UIField, Textarea, CheckboxGroup, CodeBlock, MediaPlayer, MultiCombobox, Combobox, DateTimeField, Disclosure, FileField, Fieldset, InlineCode, Pager, RadioGroup, Scroller, SegmentedControl, StatusLine, Button } from '../dist/index.js';
 
 const styles = readFileSync(new URL('../dist/styles.css', import.meta.url), 'utf8');
 const classes = html => [...html.matchAll(/class="([^"]+)"/g)].flatMap(match => match[1].split(' '));
@@ -327,4 +327,15 @@ test('MultiCombobox at its limit lists other options as not pickable, and a cont
   assert.match(html, /role="combobox"[^>]*value="Ri"|value="Ri"[^>]*role="combobox"/);
   // Picked options stay selectable so they can be removed at the limit.
   assert.doesNotMatch(html.slice(html.indexOf('<span>Dubai') - 300, html.indexOf('<span>Dubai')), /aria-disabled/);
+});
+
+test('Popover links a native popover panel to its trigger as a labelled non-modal dialog', () => {
+  const html = renderToStaticMarkup(h(Popover, { label: 'Emoji', triggerLabel: 'Add emoji' }, h('button', { type: 'button' }, '😀')));
+  rendered.push(html);
+  const panelId = html.match(/popovertarget="([^"]+)"|popoverTarget="([^"]+)"/i);
+  assert.ok(panelId, html);
+  const id = panelId[1] ?? panelId[2];
+  assert.match(html, new RegExp(`aria-controls="${id}" aria-expanded="false" aria-haspopup="dialog"`));
+  assert.match(html, new RegExp(`<div id="${id}" popover="auto" role="dialog" aria-label="Emoji" tabindex="-1" class="t98-popover-panel">`));
+  assert.ok(styles.includes('.t98-popover-panel'));
 });

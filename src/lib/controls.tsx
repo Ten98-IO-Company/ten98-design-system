@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useId, useRef, useState, type ChangeEvent, type DragEvent, type FormEvent, type FormHTMLAttributes, type KeyboardEvent, type ReactNode, type Ref } from 'react';
-import { Badge, Button, Checkbox, Field, Icon, Input, Progress, cx } from './primitives.js';
+import { Badge, Button, Checkbox, Field, Icon, Input, Progress, cx, type IconName } from './primitives.js';
 import { Link, Stack, VisuallyHidden, type Space } from './structure.js';
 import { CopyButton } from './workspace.js';
 import { formatFileSize } from './format.js';
@@ -669,3 +669,91 @@ export function Form({ onSubmit, busy = false, gap = 4, className, children, ...
     <fieldset className="t98-form-body" disabled={locked}>{children}</fieldset>
   </form>;
 }
+
+export interface PopoverProps {
+  /** Accessible name of the popover panel, for example "Emoji". */
+  label: string;
+  /** Visible text of the trigger button. */
+  triggerLabel: ReactNode;
+  /** Accessible name of the trigger when it shows an icon only. */
+  triggerAriaLabel?: string;
+  triggerIcon?: IconName;
+  triggerVariant?: 'primary' | 'secondary' | 'ghost';
+  /** Preferred side; the panel flips and stays inside the viewport. */
+  placement?: 'bottom-start' | 'bottom-end' | 'top-start' | 'top-end';
+  /** Controlled open state; omit to let the trigger toggle it. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  disabled?: boolean;
+  children: ReactNode;
+  className?: string;
+}
+
+const GAP = 6;
+/** Where the panel goes: the preferred side if it fits, else the other side; always clamped inside the viewport. */
+function placePopover(anchor: DOMRect, panel: { width: number; height: number }, viewport: { width: number; height: number }, placement: NonNullable<PopoverProps['placement']>, rtl = false) {
+  const wantsTop = placement.startsWith('top');
+  const below = anchor.bottom + GAP, above = anchor.top - GAP - panel.height;
+  const fitsBelow = below + panel.height <= viewport.height, fitsAbove = above >= 0;
+  const top = wantsTop ? (fitsAbove || !fitsBelow ? above : below) : (fitsBelow || !fitsAbove ? below : above);
+  // "start" means the inline start: the left edge in LTR, the right edge in RTL.
+  const alignEnd = placement.endsWith('end') !== rtl;
+  const left = alignEnd ? anchor.right - panel.width : anchor.left;
+  const clamp = (value: number, size: number, max: number) => Math.max(GAP, Math.min(value, max - size - GAP));
+  return { top: clamp(top, panel.height, viewport.height), left: clamp(left, panel.width, viewport.width) };
+}
+
+/**
+ * A non-modal panel anchored to its trigger, such as an emoji or filter picker. Uses the native popover attribute: it opens in
+ * the top layer, Escape and a click outside close it, and focus moves into it and back to the trigger. The panel is a labelled
+ * non-modal dialog; placement flips above or below and stays inside the viewport, mirrored in right-to-left layouts.
+ */
+export function Popover({ label, triggerLabel, triggerAriaLabel, triggerIcon, triggerVariant = 'secondary', placement = 'bottom-start', open, onOpenChange, disabled = false, children, className }: PopoverProps) {
+  const id = useId().replace(/:/g, '');
+  const panel = useRef<HTMLDivElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const [isOpen, setIsOpen] = useState(false);
+  const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
+  const place = () => {
+    const anchor = trigger.current?.getBoundingClientRect(), node = panel.current;
+    if (!anchor || !node) return;
+    setPosition(placePopover(anchor, { width: node.offsetWidth, height: node.offsetHeight }, { width: window.innerWidth, height: window.innerHeight }, placement, getComputedStyle(node).direction === 'rtl'));
+  };
+  useEffect(() => {
+    const node = panel.current;
+    if (!node) return;
+    const onToggle = (event: Event) => {
+      const now = (event as ToggleEvent).newState === 'open';
+      setIsOpen(now);
+      onOpenChange?.(now);
+      if (now) {
+        place();
+        // Focus the first control in the panel, or the panel itself.
+        (node.querySelector<HTMLElement>('[autofocus], button:not([disabled]), input:not([disabled]), select, textarea, a[href], [tabindex]:not([tabindex="-1"])') ?? node).focus();
+      } else if (node.contains(document.activeElement) || document.activeElement === document.body) trigger.current?.focus();
+    };
+    node.addEventListener('toggle', onToggle);
+    return () => node.removeEventListener('toggle', onToggle);
+  }, [placement, onOpenChange]);
+  // Controlled mode: follow the open prop.
+  useEffect(() => {
+    const node = panel.current;
+    if (!node || open === undefined || typeof node.showPopover !== 'function') return;
+    const shown = node.matches(':popover-open');
+    if (open && !shown) node.showPopover(); else if (!open && shown) node.hidePopover();
+  }, [open]);
+  useEffect(() => {
+    if (!isOpen) return;
+    window.addEventListener('resize', place);
+    window.addEventListener('scroll', place, true);
+    return () => { window.removeEventListener('resize', place); window.removeEventListener('scroll', place, true); };
+  }, [isOpen]);
+  return <span className={cx('t98-popover', className)}>
+    <Button ref={trigger} variant={triggerVariant} disabled={disabled} popoverTarget={`${id}-panel`} aria-controls={`${id}-panel`} aria-expanded={isOpen} aria-haspopup="dialog" aria-label={triggerAriaLabel}
+      icon={triggerIcon ? <Icon name={triggerIcon} size={16} /> : undefined}
+      onClick={open !== undefined ? event => { event.preventDefault(); onOpenChange?.(!open); } : undefined}>{triggerLabel}</Button>
+    <div ref={panel} id={`${id}-panel`} popover="auto" role="dialog" aria-label={label} tabIndex={-1} className="t98-popover-panel"
+      style={position ? { top: position.top, left: position.left } : undefined}>{children}</div>
+  </span>;
+}
+

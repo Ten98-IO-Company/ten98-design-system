@@ -132,3 +132,9 @@
 .t98-load-more { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--t98-space-2) var(--t98-space-3); min-inline-size: 0; font-family: var(--t98-font); color: var(--t98-text); }
 .t98-load-more-status, .t98-load-more-reason, .t98-load-more-end { margin: 0; color: var(--t98-muted); font-size: var(--t98-text-sm); overflow-wrap: anywhere; }
 .t98-load-more-status:empty { display: none; }
+.t98-popover { display: inline-flex; }
+/* Top layer (native popover); placed in viewport coordinates by the component. */
+.t98-popover-panel { position: fixed; inset: auto; margin: 0; max-inline-size: min(22rem, calc(100vw - 12px)); max-block-size: min(24rem, calc(100vh - 12px)); overflow: auto; padding: var(--t98-space-3); border: var(--t98-border-width) solid var(--t98-border); border-radius: var(--t98-radius); background: var(--t98-surface); color: var(--t98-text); box-shadow: var(--t98-shadow-popover); font-family: var(--t98-font); }
+.t98-popover-panel:focus-visible { outline: var(--t98-focus-width) solid var(--t98-focus); outline-offset: var(--t98-focus-offset); }
+@media (forced-colors: active) { .t98-popover-panel { border-color: CanvasText; } }
+
