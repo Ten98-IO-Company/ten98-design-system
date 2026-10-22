@@ -33,3 +33,9 @@ test('the isolated player connects only after the token handshake, stays offline
   await expect(alerts).toHaveCount(3);
   expect(reached, 'every player fetch was blocked by the CSP').toEqual([]);
 });
+
+test('a byte payload reaches the player as a transferred ArrayBuffer', async ({ page }) => {
+  await page.goto('/tests/player.html');
+  await expect(page.frameLocator('iframe[title="Player bytes"]').getByText('Payload bytes 12')).toBeVisible();
+  await expect(page.locator('[data-log="bytes"]')).toHaveText('ready 1000');
+});

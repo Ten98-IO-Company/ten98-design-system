@@ -13,7 +13,7 @@
     port.onmessage = function (message: MessageEvent) {
       var command = message.data;
       if (command.type === 'init') {
-        document.getElementById('ten98-player-root')!.textContent = 'Payload ' + JSON.stringify(command.payload);
+        document.getElementById('ten98-player-root')!.textContent = 'Payload ' + (command.payload instanceof ArrayBuffer ? 'bytes ' + command.payload.byteLength : JSON.stringify(command.payload));
         port.postMessage({ type: 'ready', duration: 1000 });
         if (mode === 'chatty') port.postMessage({ type: 'navigate', href: 'https://evil.example/' });
       } else if (command.type === 'play') port.postMessage({ type: 'tick', time: command.offset, playing: true });

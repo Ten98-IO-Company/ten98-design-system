@@ -305,7 +305,9 @@ export interface IsolatedPlayerFrameProps {
   playerSrc: string;
   /** Subresource Integrity hash for the player script. */
   integrity?: string;
-  /** Sent to the player over the channel only after it proves it is this mount's document. */
+  /** Sent to the player over the channel only after it proves it is this mount's document. An ArrayBuffer or typed array
+   * (for example a recording encoded with TextEncoder) is transferred as a fresh copy instead of deep-cloned: much faster for
+   * large recordings; the player receives an ArrayBuffer. Other values are structured-cloned. */
   payload: unknown;
   onReady?: (duration: number) => void;
   onTick?: (time: number, playing: boolean) => void;
@@ -389,7 +391,12 @@ export function IsolatedPlayerFrame({ title, playerSrc, integrity, payload, onRe
       if (!state.greeted) {
         if (message.type !== 'hello' || message.token !== state.token) { fail(); return; }
         state.greeted = true;
-        channel.port1.postMessage({ type: 'init', protocol: PLAYER_PROTOCOL, payload: latest.current.payload });
+        // Bytes are transferred, not cloned: an 11.7 MB recording costs about half a second to deep-copy as objects. A fresh
+        // copy is transferred so the app's buffer stays usable for a retry.
+        const payload = latest.current.payload;
+        const bytes = payload instanceof ArrayBuffer ? payload.slice(0) : ArrayBuffer.isView(payload) ? payload.buffer.slice(payload.byteOffset, payload.byteOffset + payload.byteLength) : null;
+        if (bytes && bytes instanceof ArrayBuffer) channel.port1.postMessage({ type: 'init', protocol: PLAYER_PROTOCOL, payload: bytes }, [bytes]);
+        else channel.port1.postMessage({ type: 'init', protocol: PLAYER_PROTOCOL, payload });
         return;
       }
       switch (message.type) {
