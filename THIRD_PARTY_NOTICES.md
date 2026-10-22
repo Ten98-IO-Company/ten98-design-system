@@ -2,7 +2,7 @@
 
 ## Product UI reference captures
 
-Vendor UI screenshots in the dated `docs/reviews/*/images/` folders are attributed comparison evidence. The corresponding reports identify their source pages, capture dates and whether they show a public application or an official captured screen. Vendor names, marks and UI remain their owners' property; the repository's MIT license does not relicense those captures. They are excluded from the installable library archive and are not used as product assets.
+Vendor UI screenshots on the project wiki's dated review pages (its `images/reviews-*/` folders) are attributed comparison evidence. The corresponding reports identify their source pages, capture dates and whether they show a public application or an official captured screen. Vendor names, marks and UI remain their owners' property; the repository's MIT license does not relicense those captures. They are not part of this repository or the installable library archive, and are not used as product assets.
 
 ## ten98-campaign / ten98-discover application foundation
 
