@@ -105,3 +105,19 @@ test('DataTable emptyDescription replaces or removes the default, and TeamFlow s
   assert.match(team, /No pending invitations\./);
   assert.doesNotMatch(team, /New records will appear here\./);
 });
+
+test('U52: EmbedHost is a named region with an empty SDK mount, size presets, and loading or fallback covers', () => {
+  const html = render(ui.EmbedHost, { label: 'Billboard locations map', size: 'lg', narrowSize: 'md', busy: true, loadingLabel: 'Loading map…' });
+  assert.match(html, /^<div class="t98-embed-host" role="region" aria-label="Billboard locations map" aria-busy="true" data-size="lg" data-narrow-size="md">/);
+  assert.match(html, /<div class="t98-embed-host-mount"><\/div>/);
+  assert.match(html, /role="status"[^>]*aria-busy="true"[^>]*>.*Loading map…/);
+  const failed = render(ui.EmbedHost, { label: 'Map', fallback: 'Map unavailable.' });
+  assert.match(failed, /<div class="t98-embed-host-mount" hidden=""><\/div><div class="t98-embed-host-cover">Map unavailable\.<\/div>/);
+  assert.match(render(ui.EmbedHost, { label: 'Map' }), /data-size="md" data-narrow-size="md"/);
+  for (const rule of ['data-size="sm"', 'data-size="lg"', 'data-narrow-size="md"', 'data-aspect="video"']) assert.ok(styles.includes(`.t98-embed-host[${rule}]`), rule);
+});
+
+test('Checkbox and Switch labels are 44px touch targets', () => {
+  assert.match(styles, /\.t98-checkbox-label\s*\{[^}]*min-block-size:\s*var\(--t98-control-touch\)/);
+  assert.match(styles, /\.t98-switch-label\s*\{[^}]*min-block-size:\s*var\(--t98-control-touch\)/);
+});

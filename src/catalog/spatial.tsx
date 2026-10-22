@@ -3,7 +3,7 @@ import { useRef, useState } from 'react';
 import demoPlayerUrl from './demo-player.ts?worker&url';
 import { Button } from '../lib/primitives.js';
 import { Inline, Stack, Text } from '../lib/structure.js';
-import { CountryMap, HeatmapPlane, HeatmapRankedList, IsolatedPlayerFrame, ReplayViewer, type IsolatedPlayerHandle } from '../lib/spatial.js';
+import { CountryMap, EmbedHost, HeatmapPlane, HeatmapRankedList, IsolatedPlayerFrame, ReplayViewer, type IsolatedPlayerHandle } from '../lib/spatial.js';
 import { CalendarMonth } from '../lib/calendar.js';
 import { VisualEvidenceFrame } from '../lib/inspection.js';
 import { tsx, type ComponentEntry, type ComponentProp } from './model.js';
@@ -119,7 +119,27 @@ const [, setDuration] = useState(0);
 const [, setPosition] = useState(0);
 const [, setFailed] = useState(false);`, ['useRef', 'useState']);
 
+const embedSetup = `const mapRef = useRef<HTMLDivElement>(null);
+const [loading, setLoading] = useState(true);
+// The app keeps the SDK loader and keys; it mounts the map into mapRef.current and calls setLoading(false).`;
+const embedCode = (state: 'loading' | 'fallback') => tsx(['EmbedHost', 'Text'], state === 'loading'
+  ? `<EmbedHost ref={mapRef} label="Billboard locations map" size="lg" narrowSize="md" busy={loading} loadingLabel="Loading map…" />`
+  : `<EmbedHost ref={mapRef} label="Billboard locations map" size="sm" busy={loading}
+  fallback={<Text>Map unavailable. Add a Maps key in Integrations.</Text>} />`, embedSetup, ['useRef', 'useState']);
+
 export const spatialEntries: ComponentEntry[] = [
+  {
+    name: 'EmbedHost', category: 'Data display', description: 'Sized, named host element for a third-party SDK such as a map, with loading and fallback covers.',
+    usage: 'Use wherever an SDK mounts into a DOM element (Google Maps and similar). Pass a ref; the library renders nothing inside the mount, so the SDK owns its children. Choose a height preset (sm 230px, md 300px, lg 390px) with an optional narrowSize under 760px, or an aspect ratio. The app keeps the SDK loader, keys and calls.',
+    props: [prop('label', 'string', 'Accessible name of the region.', true), prop('ref', 'Ref<HTMLDivElement>', 'The empty mount element the SDK renders into.'),
+      prop('size / narrowSize', '"sm" | "md" | "lg"', 'Height preset, and the preset under 760px (defaults to size). Default md.'), prop('aspect', '"video" | "wide" | "square"', 'Scale with width instead of a fixed height.'),
+      prop('busy / loadingLabel', 'boolean / ReactNode', 'Marks the region busy and covers the mount with a status. Default label “Loading…”.'), prop('fallback', 'ReactNode', 'Replaces the embed, for example when the SDK fails; the mount stays hidden in place.')],
+    tokens: surfaceTokens,
+    accessibility: ['The host is a named region; the loading cover is a polite status and the region is aria-busy while it shows.', 'The SDK owns the mount’s content, so give it its own keyboard support and a text alternative outside the region where needed.'],
+    related: ['CountryMap', 'StatusLine'], example: embedCode('loading'),
+    states: [{ name: 'Loading', description: 'Busy region with a status while the SDK loads.', preview: <EmbedHost label="Billboard locations map" size="lg" narrowSize="md" busy loadingLabel="Loading map…" />, code: embedCode('loading') },
+      { name: 'Fallback', description: 'The app’s message replaces the embed.', preview: <EmbedHost label="Billboard locations map" size="sm" fallback={<Text>Map unavailable. Add a Maps key in Integrations.</Text>} />, code: embedCode('fallback') }],
+  },
   {
     name: 'CountryMap', category: 'Data display', description: 'Choropleth over app-supplied shapes with a roving single tab stop, zoom and pan controls, a polite status line and a mandatory details table.',
     usage: 'Use for country breakdowns. The app supplies the geometry, its attribution, the values and every total; the library ships no boundaries. Countries without a row use a hatched no-data pattern and are never drawn as zero. Unknown and Not recorded totals stay in the details table; a null total reads Unavailable.',

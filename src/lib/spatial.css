@@ -89,6 +89,22 @@ button.t98-calendar-entry, .t98-calendar-create { cursor: pointer; }
 .t98-calendar-create:disabled { cursor: not-allowed; background: var(--t98-disabled-surface); color: var(--t98-disabled-text); }
 :where(button.t98-calendar-entry, .t98-calendar-create):focus-visible { outline: var(--t98-focus-width) solid var(--t98-focus); outline-offset: var(--t98-focus-offset); }
 
+/* EmbedHost: the mount fills a sized frame; covers sit above it while loading or in place of it on failure. */
+.t98-embed-host { position: relative; inline-size: 100%; block-size: 300px; overflow: hidden; border: var(--t98-border-width) solid var(--t98-border); border-radius: var(--t98-radius); background: var(--t98-subtle); }
+.t98-embed-host[data-size="sm"] { block-size: 230px; }
+.t98-embed-host[data-size="lg"] { block-size: 390px; }
+@media (max-width: 760px) {
+  .t98-embed-host[data-narrow-size="sm"] { block-size: 230px; }
+  .t98-embed-host[data-narrow-size="md"] { block-size: 300px; }
+  .t98-embed-host[data-narrow-size="lg"] { block-size: 390px; }
+}
+.t98-embed-host[data-aspect] { block-size: auto; }
+.t98-embed-host[data-aspect="video"] { aspect-ratio: 16 / 9; }
+.t98-embed-host[data-aspect="wide"] { aspect-ratio: 21 / 9; }
+.t98-embed-host[data-aspect="square"] { aspect-ratio: 1; }
+.t98-embed-host-mount { position: absolute; inset: 0; }
+.t98-embed-host-cover { position: absolute; inset: 0; display: grid; place-items: center; padding: var(--t98-space-3); background: var(--t98-subtle); text-align: center; overflow: auto; overflow-wrap: anywhere; }
+
 @media (forced-colors: active) {
   .t98-map-svg, .t98-map-legend-scale, .t98-heatmap-point, .t98-heatmap-band::before { forced-color-adjust: none; }
   .t98-map-stage, .t98-map-details, .t98-heatmap-list, .t98-replay-frame, .t98-player-frame-frame, .t98-calendar-cell, .t98-calendar-weekday, .t98-calendar-entry, .t98-calendar-create, .t98-map-swatch-nodata, .t98-map-legend-scale { border-color: CanvasText; }
@@ -109,4 +125,5 @@ button.t98-calendar-entry, .t98-calendar-create { cursor: pointer; }
   .t98-calendar-cell--today { border-color: Highlight; }
   .t98-calendar-cell--outside { color: GrayText; }
   .t98-calendar-create:disabled { color: GrayText; border-color: GrayText; }
+  .t98-embed-host { border-color: CanvasText; }
 }

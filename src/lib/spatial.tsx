@@ -433,3 +433,34 @@ export function IsolatedPlayerFrame({ title, playerSrc, integrity, payload, onRe
     <p className="t98-player-frame-status" role="status">{status === 'preparing' ? preparingMessage : ''}</p>
   </div>;
 }
+
+export type EmbedHostSize = 'sm' | 'md' | 'lg';
+export interface EmbedHostProps {
+  /** Accessible name of the region, for example "Billboard locations map". */
+  label: string;
+  /** The element the app mounts its SDK into. The library renders nothing inside it, so the SDK owns its children. */
+  ref?: Ref<HTMLDivElement>;
+  /** Height preset: sm 230px, md 300px, lg 390px. Ignored when `aspect` is set. */
+  size?: EmbedHostSize;
+  /** Height preset under 760px viewport width; defaults to `size`. */
+  narrowSize?: EmbedHostSize;
+  /** Scale with the width instead of a fixed height. */
+  aspect?: 'video' | 'wide' | 'square';
+  /** While the SDK loads: marks the region busy and covers the mount with `loadingLabel`. */
+  busy?: boolean;
+  loadingLabel?: ReactNode;
+  /** Shown instead of the embed, for example when the SDK fails or no key is configured. The mount stays in place, hidden. */
+  fallback?: ReactNode;
+  className?: string;
+}
+
+/** Sized, named host for a third-party embed such as a map SDK. The app keeps the loader, keys and SDK calls. */
+export function EmbedHost({ label, ref, size = 'md', narrowSize = size, aspect, busy = false, loadingLabel = 'Loading…', fallback, className }: EmbedHostProps) {
+  const failed = fallback != null;
+  return <div className={cx('t98-embed-host', className)} role="region" aria-label={label} aria-busy={busy || undefined}
+    data-size={size} data-narrow-size={narrowSize} data-aspect={aspect}>
+    <div className="t98-embed-host-mount" ref={ref} hidden={failed} />
+    {failed ? <div className="t98-embed-host-cover">{fallback}</div>
+      : busy && <div className="t98-embed-host-cover"><StatusLine busy>{loadingLabel}</StatusLine></div>}
+  </div>;
+}

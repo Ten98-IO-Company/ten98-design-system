@@ -179,3 +179,17 @@ for (const width of [1440, 375]) {
     await expect(calendar.locator('td[data-date="2026-10-21"] .t98-calendar-create')).toHaveCount(1);
   });
 }
+
+test('the replay skip toggle is a 44px target, including at 320px and doubled text', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 900 });
+  await page.goto('/tests/spatial.html');
+  const skip = page.getByText('Skip inactive periods');
+  const target = page.locator('label.t98-replay-skip');
+  await expect(skip).toBeVisible();
+  expect((await target.boundingBox())!.height).toBeGreaterThanOrEqual(43.5);
+  await expect(page.getByRole('checkbox', { name: 'Skip inactive periods' })).toBeChecked();
+  const restore = await doubleText(page);
+  expect((await target.boundingBox())!.height).toBeGreaterThanOrEqual(43.5);
+  expect(await overflow(page)).toBeLessThanOrEqual(1);
+  await restore();
+});

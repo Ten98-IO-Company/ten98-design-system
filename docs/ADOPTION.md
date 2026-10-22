@@ -140,6 +140,7 @@ Apps can jump several versions at once; every release body lists breaking and be
 |---|---|
 | Raw `form` with a busy flag | `Form` (0.11.0); `Dialog` `onSubmit` for modal forms (0.13.0) |
 | `label` + `span` + `input`, help text, counters | `Field` (with `count`, 0.11.0), `Input`, `Textarea`, `Select` |
+| Raw `div` sized by className for a map or other SDK mount | `EmbedHost` (0.19.0) |
 | Inline "I reviewed … then Confirm" blocks | `ReviewConfirm` (0.12.0); `ConfirmDialog` for modal confirmation |
 | Pre-publish checks per destination | `ValidationSummary` (0.12.0) |
 | "Load more" / "Load older" cursor buttons | `LoadMore` (0.11.0); `ConversationThread` `onLoadOlder` (0.13.0) |

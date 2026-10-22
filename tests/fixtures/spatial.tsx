@@ -41,7 +41,7 @@ function Screen() {
       overlay={<HeatmapPlane label="Synthetic page" geometry={{ width: 640, height: 360 }} mode="click" points={points} bands={bands} />}
       rankedListLabel="Click groups" rankedList={<HeatmapRankedList label="Synthetic page" mode="click" points={points} bands={bands} />} />
     <ReplayViewer label="Session replay" context="Session demo-018 · captured 18 October 2026, 08:00 UTC" title="Synthetic session replay" srcDoc={doc}
-      controls={{ playing: false, onPlayingChange: () => {}, currentTime: time, duration: 90, onSeek: setTime, playbackRate: 1, allowedRates: [0.5, 1, 2], onRateChange: () => {} }} />
+      controls={{ playing: false, onPlayingChange: () => {}, currentTime: time, duration: 90, onSeek: setTime, playbackRate: 1, allowedRates: [1, 2, 4, 8], onRateChange: () => {}, skipInactive: true, onSkipInactiveChange: () => {} }} />
     <CalendarMonth month={month} weekStartsOn={1} locale="en-GB" today="2026-10-21" days={days} onPrev={() => step(-1)} onNext={() => step(1)}
       onToday={() => { setLog('today'); setMonth({ year: 2026, month: 10 }); }} onCreateDay={() => {}} isCreatable={iso => iso >= '2026-10-21'} createDisabledReason="Creating entries is disabled: read-only access." />
     <Text id="log">{log}</Text>
