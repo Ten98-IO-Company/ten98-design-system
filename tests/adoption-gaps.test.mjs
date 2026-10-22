@@ -146,5 +146,7 @@ test('U56: AuthLayout defaults to the card surface without an aside; plain opts 
   assert.doesNotMatch(render(ui.SignInFlow, { brand, title: 'Sign in', surface: 'plain' }), /t98-auth-layout--card/);
   assert.match(render(ui.AppStateScreen, { brand, state: 'loading' }), /t98-auth-layout--card/);
   assert.doesNotMatch(render(ui.AppStateScreen, { brand, state: 'loading', surface: 'plain' }), /t98-auth-layout--card/);
-  assert.doesNotMatch(render(ui.SignInFlow, { brand, title: 'Sign in', surface: 'card', aside: 'Story' }), /t98-auth-layout--card/);
+  // Beside an aside the default stays plain; an explicit card cards the form column.
+  assert.doesNotMatch(render(ui.SignInFlow, { brand, title: 'Sign in', aside: 'Story' }), /t98-auth-layout--card/);
+  assert.match(render(ui.SignInFlow, { brand, title: 'Sign in', surface: 'card', aside: 'Story' }), /class="t98-auth-layout auth-shell auth-split t98-auth-layout--card"/);
 });

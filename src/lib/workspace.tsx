@@ -251,11 +251,12 @@ export function useToast(): ToastApi { const context = useContext(ToastContext);
 
 /** Branded authentication presentation; authentication and recovery remain application-owned. */
 export type AuthSurface = 'plain' | 'card';
-/** Without an `aside` the form is a centred bordered card on the canvas (`surface="card"`, the default); `plain` keeps the open form column. */
-export function AuthLayout({ brand, title, description, aside, children, footer, label, surface = 'card' }: { brand: ReactNode; title?: string; description?: string; aside?: ReactNode; children: ReactNode; footer?: ReactNode; surface?: AuthSurface; label?: string }) {
+/** `card` shows the form as a bordered card on the canvas: centred on its own, or centred in the form column beside an `aside`.
+ * The default is `card` without an `aside` and `plain` (the open form column) with one. */
+export function AuthLayout({ brand, title, description, aside, children, footer, label, surface }: { brand: ReactNode; title?: string; description?: string; aside?: ReactNode; children: ReactNode; footer?: ReactNode; surface?: AuthSurface; label?: string }) {
   // A labelled layout is the page's main landmark; unlabelled keeps the 0.3.x div for apps that supply their own <main>.
   const Root = label ? 'main' : 'div';
-  return <Root className={`t98-auth-layout auth-shell ${aside ? 'auth-split' : surface === 'card' ? 't98-auth-layout--card' : ''}`} aria-label={label}>{aside && <aside className="auth-story t98-auth-aside">{brand}{aside}<div className="auth-orbit" aria-hidden="true"/></aside>}<section className="auth-form"><div className="auth-form-inner">{!aside && <div className="t98-auth-brand">{brand}</div>}{title !== undefined && <h1 className="t98-auth-title">{title}</h1>}{description && <p>{description}</p>}<div className="t98-auth-fields">{children}</div>{footer && <footer className="auth-footnote">{footer}</footer>}</div></section></Root>;
+  return <Root className={['t98-auth-layout auth-shell', aside && 'auth-split', (surface ?? (aside ? 'plain' : 'card')) === 'card' && 't98-auth-layout--card'].filter(Boolean).join(' ')} aria-label={label}>{aside && <aside className="auth-story t98-auth-aside">{brand}{aside}<div className="auth-orbit" aria-hidden="true"/></aside>}<section className="auth-form"><div className="auth-form-inner">{!aside && <div className="t98-auth-brand">{brand}</div>}{title !== undefined && <h1 className="t98-auth-title">{title}</h1>}{description && <p>{description}</p>}<div className="t98-auth-fields">{children}</div>{footer && <footer className="auth-footnote">{footer}</footer>}</div></section></Root>;
 }
 
 export interface Permission { id: string; label: string; description?: string }

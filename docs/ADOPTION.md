@@ -140,7 +140,7 @@ Apps can jump several versions at once; every release body lists breaking and be
 | 0.18.1 | `CalendarMonth` entries wrap inside their day; empty `TeamFlow` invitations show the title only | None, unless you worked around either. |
 | 0.19.0 | `Checkbox` and `Switch` labels are at least 44px tall | Check dense checkbox and switch lists; remove local min-height stopgaps. |
 | 0.20.0 | `app.css`: global reduced motion (0s); `.field` text uses `--color-text`; raw tables lose the last-row border and gain hover and 16px cell padding under 1200px; page base on `:where(html)` and 14px on `:where(body)` | Remove matching app CSS; don't set a 14px root font size (it shrinks rem tokens). |
-| 0.21.0 | `AuthLayout`, the auth flows and `AppStateScreen` show a centred card when there is no `aside` | Pass `surface="plain"` to keep the open form column. |
+| 0.21.0 | `AuthLayout`, the auth flows and `AppStateScreen` show a centred card when there is no `aside` | Pass `surface="plain"` to keep the open form column; pass `surface="card"` to card the form beside an `aside` too. |
 
 ## Replace these app patterns
 
