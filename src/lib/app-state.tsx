@@ -11,7 +11,7 @@ export type AppStateKind = 'loading' | 'error' | 'boundary' | 'unconfirmed';
 export interface AppStateScreenProps {
   state: AppStateKind;
   brand: ReactNode;
-  /** `card` matches the sign-in screens' card presentation. */
+  /** Default `card` matches the sign-in screens; `plain` keeps the open column. */
   surface?: AuthSurface;
   title?: string;
   message?: string;

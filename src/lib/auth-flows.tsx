@@ -25,7 +25,7 @@ export interface AuthFormBaseProps<Values = AuthFormValues> {
   brand: ReactNode;
   /** Side panel, normally `AuthStory`. */
   aside?: ReactNode;
-  /** `card` centres the form as a bordered card when there is no `aside`. */
+  /** Default `card` centres the form as a bordered card when there is no `aside`; `plain` keeps the open column. */
   surface?: AuthSurface;
   footer?: ReactNode;
   /** Accessible name for the whole screen. */

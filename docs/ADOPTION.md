@@ -122,7 +122,7 @@ Keep the standard accent across products. Differentiate products through their n
 
 ## Upgrading across releases
 
-Apps can jump several versions at once; every release body lists breaking and behaviour changes first. The ones to check when moving from 0.5.x to 0.13.0:
+Apps can jump several versions at once; every release body lists breaking and behaviour changes first. The ones to check when moving from 0.5.x to 0.21.0:
 
 | Since | Change | What to do |
 |---|---|---|
@@ -133,6 +133,14 @@ Apps can jump several versions at once; every release body lists breaking and be
 | 0.9.0 | TypeScript: `ShareSegment.count` is `number \| null` | Handle `null` where you read counts back. |
 | 0.9.0 | `AppTopbar` `wrap` clamps the scope to two lines, with the full name in its `title` | Check screens with long workspace or project names. |
 | 0.11.0 | `Image` replaces a failed image with a fallback ("Image unavailable") | Pass `fallback` for your own wording. |
+| 0.14.1 | `ReplayViewer` `srcDoc` runs no scripts by default; a scripted policy must pin scripts with hashes or nonces of at least 22 characters | Pass a pinned `contentPolicy` if your replay document needs scripts, or use `IsolatedPlayerFrame`. |
+| 0.15.0 | `Dialog` footers stay visible while the body scrolls; `TeamFlow` invitation statuses are sentence case | Check long dialogs; override `invitationStatusLabels` if you relied on the raw values. |
+| 0.16.0 | `MultiCombobox` announces adds and removals | Remove any app-side announcement to avoid hearing it twice. |
+| 0.17.0 | `BarList` selectable rows are 44px; `ShareChart` with a null total shows counts; `TimeSeriesChart` series 6+ change dash pattern | Check dense bar lists and many-series charts. |
+| 0.18.1 | `CalendarMonth` entries wrap inside their day; empty `TeamFlow` invitations show the title only | None, unless you worked around either. |
+| 0.19.0 | `Checkbox` and `Switch` labels are at least 44px tall | Check dense checkbox and switch lists; remove local min-height stopgaps. |
+| 0.20.0 | `app.css`: global reduced motion (0s); `.field` text uses `--color-text`; raw tables lose the last-row border and gain hover and 16px cell padding under 1200px; page base on `:where(html)` and 14px on `:where(body)` | Remove matching app CSS; don't set a 14px root font size (it shrinks rem tokens). |
+| 0.21.0 | `AuthLayout`, the auth flows and `AppStateScreen` show a centred card when there is no `aside` | Pass `surface="plain"` to keep the open form column. |
 
 ## Replace these app patterns
 
