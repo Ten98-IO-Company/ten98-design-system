@@ -79,3 +79,8 @@ test('TeamFlow shows invitation statuses in sentence case, overridable, and keep
   assert.doesNotMatch(html, />revoked</);
   assert.match(render(ui.TeamFlow, { ...base, invitationStatusLabels: { revoked: 'Withdrawn' } }), />Withdrawn<\/span>/);
 });
+
+test('useConfirmDialog renders nothing until a confirmation is requested', () => {
+  function Probe() { const [, dialog] = ui.useConfirmDialog({ danger: true }); return h('div', null, dialog ?? 'idle'); }
+  assert.equal(render(Probe, {}), '<div>idle</div>');
+});

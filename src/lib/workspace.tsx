@@ -176,6 +176,39 @@ export function ReviewConfirm({ title, children, acknowledgements, reviewKey, co
   </section>;
 }
 
+export interface ConfirmRequest {
+  title: string;
+  description: string;
+  confirmLabel?: string;
+  cancelLabel?: string;
+  danger?: boolean;
+  /** Text the user must type to confirm, for example the resource name. */
+  confirmationText?: string;
+  /** A required checkbox label. */
+  acknowledgement?: string;
+}
+
+/**
+ * Promise-style confirmation over ConfirmDialog: `const [confirm, dialog] = useConfirmDialog()`, render `dialog`, then
+ * `if (await confirm({ title, description })) …`. The dialog only collects the decision; callers keep their own request,
+ * retry and error handling after it closes. The promise resolves `true` on confirm and `false` on cancel, on Escape, when a
+ * newer request replaces it, and when the component unmounts. Focus returns to the control that was focused when the
+ * dialog opened (the Dialog's own focus return). `defaults` apply to every request, for example `{ danger: true }`.
+ */
+export function useConfirmDialog(defaults: Partial<ConfirmRequest> = {}): [(request: ConfirmRequest) => Promise<boolean>, ReactNode] {
+  const [request, setRequest] = useState<ConfirmRequest | null>(null);
+  const answer = useRef<((confirmed: boolean) => void) | null>(null);
+  const settle = useCallback((confirmed: boolean) => { const resolve = answer.current; answer.current = null; resolve?.(confirmed); }, []);
+  // An unmounted caller must not wait forever: answer any open request with false.
+  useEffect(() => () => settle(false), [settle]);
+  const confirm = useCallback((next: ConfirmRequest) => new Promise<boolean>(resolve => { settle(false); answer.current = resolve; setRequest(next); }), [settle]);
+  const merged = request && { ...defaults, ...request };
+  const dialog = merged && <ConfirmDialog open title={merged.title} description={merged.description} confirmLabel={merged.confirmLabel} cancelLabel={merged.cancelLabel}
+    danger={merged.danger} confirmationText={merged.confirmationText} acknowledgement={merged.acknowledgement}
+    onConfirm={() => settle(true)} onOpenChange={open => { if (!open) { settle(false); setRequest(null); } }} />;
+  return [confirm, dialog];
+}
+
 export interface ConfirmDialogProps {
   open: boolean; onOpenChange: (open: boolean) => void; title: string; description: string;
   onConfirm: () => void | Promise<void>; confirmLabel?: string; danger?: boolean; confirmationText?: string;

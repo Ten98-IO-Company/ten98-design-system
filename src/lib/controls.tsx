@@ -642,11 +642,23 @@ export interface FormProps extends Omit<FormHTMLAttributes<HTMLFormElement>, 'st
   busy?: boolean;
   /** Vertical gap between direct children. */
   gap?: Space;
+  /** Server or app validation errors by field name. Render each with `Field error`; when this changes to a non-empty set
+   * the form moves focus to the first invalid control, as flows do. */
+  fieldErrors?: Partial<Record<string, string | undefined>>;
 }
 
 /** A native form that locks its controls while a submit is pending (or `busy`) and ignores repeat submits. Focus returns
  * to the control that submitted when the lock lifts, so keyboard users keep their place. */
-export function Form({ onSubmit, busy = false, gap = 4, className, children, ...props }: FormProps) {
+export function Form({ onSubmit, busy = false, gap = 4, fieldErrors, className, children, ...props }: FormProps) {
+  const formRef = useRef<HTMLFormElement>(null);
+  const errorKey = fieldErrors ? Object.entries(fieldErrors).filter(([, message]) => message).map(([name]) => name).join('|') : '';
+  useEffect(() => {
+    if (!errorKey) return;
+    const form = formRef.current;
+    const first = errorKey.split('|').map(name => form?.querySelector<HTMLElement>(`[name="${CSS.escape(name)}"]`)).find(Boolean)
+      ?? form?.querySelector<HTMLElement>('[aria-invalid="true"]');
+    first?.focus();
+  }, [errorKey]);
   const single = useSingleSubmit();
   const [pending, setPending] = useState(false);
   const returnFocus = useRef<HTMLElement | null>(null);
@@ -656,7 +668,7 @@ export function Form({ onSubmit, busy = false, gap = 4, className, children, ...
     if (document.activeElement === document.body || document.activeElement === null) returnFocus.current.focus();
     returnFocus.current = null;
   }, [locked]);
-  return <form {...props} className={cx('t98-form', 't98-stack', `t98-gap-${gap}`, className)} aria-busy={locked || undefined}
+  return <form {...props} ref={formRef} className={cx('t98-form', 't98-stack', `t98-gap-${gap}`, className)} aria-busy={locked || undefined}
     onSubmit={event => {
       if (!onSubmit) { if (locked) event.preventDefault(); return; }
       event.preventDefault();
