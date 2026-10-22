@@ -4,7 +4,7 @@ import { useEffect, useId, useRef, useState, type CSSProperties, type KeyboardEv
 import { cx } from './primitives.js';
 import { StatusLine } from './controls.js';
 import { VisuallyHidden } from './structure.js';
-import { arcPath, bandScale, linearScale, niceDomain, segments, stackSigned, ticks, type ChartValue } from './chart-scale.js';
+import { arcPath, bandScale, extent, linearScale, niceDomain, segments, stackSigned, ticks, type ChartValue } from './chart-scale.js';
 
 // Presentation only: applications compute the data. A null or unavailable value is never drawn as 0.
 
@@ -38,7 +38,9 @@ export interface ChartSeries {
 
 export interface ChartTableColumn { header: string; values: readonly ReactNode[] }
 
-const plain = (value: number) => new Intl.NumberFormat('en').format(value);
+// Building an Intl.NumberFormat is far slower than formatting with one, so the default formatter is made once.
+const plainFormat = new Intl.NumberFormat('en');
+const plain = (value: number) => plainFormat.format(value);
 const toneOf = (series: ChartSeries, index: number): ChartTone => series.tone ?? ((index % 5) + 1) as ChartTone;
 const toneColor = (tone: ChartTone) => `var(--t98-chart-${tone})`;
 const DASHES = ['', '7 4', '2 4', '10 4 2 4', '1 5'];
@@ -93,12 +95,20 @@ interface ChartFrameProps {
   emptyMessage?: ReactNode;
   legend?: ReactNode;
   tableLabel: string;
-  table: ReactNode;
+  /** The data table, or a function that builds it; a function is only called once the table is opened when there are many rows. */
+  table: ReactNode | (() => ReactNode);
+  /** Row count, so very long tables are built on first open instead of on every render. */
+  rows?: number;
   children: ReactNode;
 }
 
+/** Up to this many rows the table is always in the document (searchable without opening it); beyond it, it is built on open. */
+const EAGER_TABLE_ROWS = 500;
+
 /** Shared chart chrome: caption, application summary, computed statistics, state messages, legend and a data table with every point. */
-function ChartFrame({ label, context, summary, summaryId, statsId, stats, notice, loading, empty, emptyMessage, legend, tableLabel, table, children }: ChartFrameProps) {
+function ChartFrame({ label, context, summary, summaryId, statsId, stats, notice, loading, empty, emptyMessage, legend, tableLabel, table, rows = 0, children }: ChartFrameProps) {
+  const [tableOpen, setTableOpen] = useState(false);
+  const showTable = typeof table !== 'function' || rows <= EAGER_TABLE_ROWS || tableOpen;
   return <figure className="t98-chart" aria-busy={loading || undefined}>
     <figcaption className="t98-chart-caption"><strong>{label}</strong>{context && <span className="t98-chart-context">{context}</span>}</figcaption>
     {notice && <p className="t98-chart-notice" role="note">{notice}</p>}
@@ -108,9 +118,9 @@ function ChartFrame({ label, context, summary, summaryId, statsId, stats, notice
     <p id={summaryId} className="t98-chart-summary">{summary}</p>
     <p id={statsId} className="t98-chart-stats">{stats}</p>
     {!loading && !empty && legend}
-    {!loading && !empty && <details className="t98-chart-data">
-      <summary>View data table</summary>
-      <div className="t98-table-scroll t98-chart-table-scroll" tabIndex={0} role="region" aria-label={tableLabel}>{table}</div>
+    {!loading && !empty && <details className="t98-chart-data" onToggle={event => { if (event.currentTarget.open) setTableOpen(true); }}>
+      <summary>View data table{rows > EAGER_TABLE_ROWS ? ` (${rows.toLocaleString('en')} rows)` : ''}</summary>
+      <div className="t98-table-scroll t98-chart-table-scroll" tabIndex={0} role="region" aria-label={tableLabel}>{showTable ? (typeof table === 'function' ? table() : table) : null}</div>
     </details>}
   </figure>;
 }
@@ -166,7 +176,8 @@ function planTicks(texts: readonly string[], centres: readonly number[], width: 
   let pitch = Infinity;
   for (let i = 1; i < count; i++) pitch = Math.min(pitch, Math.abs(centres[i] - centres[i - 1]));
   if (!Number.isFinite(pitch) || pitch <= 0) pitch = width;
-  const widest = Math.max(...texts.map(text => text.length * CHAR_WIDTH));
+  let widest = 0;
+  for (const text of texts) widest = Math.max(widest, text.length * CHAR_WIDTH);
   const wanted = Math.min(widest, PREFERRED_TICK_WIDTH);
   let every = 1;
   while (every < count - 1 && every * pitch - TICK_GAP < wanted) every++;
@@ -212,16 +223,16 @@ export function TimeSeriesChart({ label, context, summary, kind, series, xScale 
 
   const cells = series.map(item => item.points.length ? Array.from({ length: count }, (_, index) => valueOf(item, index)) : []);
   const stack = stacked ? stackSigned(cells.map(row => row.map(cell => cell.value))) : [];
-  const extent: number[] = [];
+  const bounds: number[] = [];
   cells.forEach((row, s) => row.forEach((cell, i) => {
     if (cell.value === null) return;
-    if (stacked) { const range = stack[s][i]; if (range) extent.push(range[0], range[1]); } else extent.push(cell.value);
+    if (stacked) { const range = stack[s][i]; if (range) bounds.push(range[0], range[1]); } else bounds.push(cell.value);
   }));
   const unavailableCount = cells.reduce((sum, row) => sum + row.filter(cell => cell.value === null).length, 0);
-  const lowest = extent.length ? Math.min(...extent) : null;
-  const highest = extent.length ? Math.max(...extent) : null;
+  const [lowest, highest] = extent(bounds) ?? [null, null];
   const observed = cells.flatMap(row => row.map(cell => cell.value).filter((value): value is number => value !== null));
-  const stats = `${count} points, minimum ${observed.length ? formatY(Math.min(...observed)) : 'unavailable'}, maximum ${observed.length ? formatY(Math.max(...observed)) : 'unavailable'}, ${unavailableCount} unavailable`;
+  const observedRange = extent(observed);
+  const stats = `${count} points, minimum ${observedRange ? formatY(observedRange[0]) : 'unavailable'}, maximum ${observedRange ? formatY(observedRange[1]) : 'unavailable'}, ${unavailableCount} unavailable`;
 
   const wantsZero = isBars || kind === 'area';
   let domain: [number, number] = [0, 1];
@@ -247,7 +258,7 @@ export function TimeSeriesChart({ label, context, summary, kind, series, xScale 
   const yAt = (value: number) => y(value) ?? plotBottom;
   const band = bandScale(count, [plotLeft, plotRight], { paddingInner: 0.25, paddingOuter: 0.1 });
   const xs = series.flatMap(item => item.points.map(point => point.x)).filter(Number.isFinite);
-  const linear = linearScale(xDomain ? [xDomain[0], xDomain[1]] : [Math.min(...xs), Math.max(...xs)], [plotLeft + step / 2, plotRight - step / 2]);
+  const linear = linearScale(xDomain ? [xDomain[0], xDomain[1]] : (extent(xs) ?? [0, 1]), [plotLeft + step / 2, plotRight - step / 2]);
   const bandwidth = xScale === 'band' ? band.bandwidth : Math.max(fit === 'compress' ? 1 : 8, (plotRight - plotLeft) / Math.max(1, count) * 0.7);
   const centre = (index: number) => {
     if (xScale === 'linear') {
@@ -368,7 +379,7 @@ export function TimeSeriesChart({ label, context, summary, kind, series, xScale 
     {hasUnavailable && <li><svg className="t98-chart-key" width="30" height="14" viewBox="0 0 30 14" aria-hidden="true" focusable="false"><rect className="t98-chart-unavailable-column" x="8" y="1" width="14" height="12" fill={`url(#${uid}-hatch)`} /></svg><span>Hatched: unavailable, not zero</span></li>}
   </ul>;
 
-  const table = <table className="t98-table t98-chart-table">
+  const table = () => <table className="t98-table t98-chart-table">
     <caption className="t98-visually-hidden">{label}: every point</caption>
     <thead><tr><th scope="col">{xHeader}</th>{series.map(item => <th key={item.id} scope="col">{item.label}</th>)}{tableColumns.map(column => <th key={column.header} scope="col">{column.header}</th>)}</tr></thead>
     <tbody>{Array.from({ length: count }, (_, i) => <tr key={i}>
@@ -383,7 +394,7 @@ export function TimeSeriesChart({ label, context, summary, kind, series, xScale 
   </table>;
 
   return <ChartFrame label={label} context={context} summary={summary} summaryId={summaryId} statsId={statsId} stats={stats} notice={notice} loading={loading}
-    empty={count === 0} emptyMessage={emptyMessage} legend={legend} tableLabel={`${label} data table`} table={table}>
+    empty={count === 0} emptyMessage={emptyMessage} legend={legend} tableLabel={`${label} data table`} table={table} rows={count}>
     <div ref={scrollRef} className="t98-chart-scroll" dir="ltr" tabIndex={0} role="group" aria-label={`${label} plot. Arrow keys move between points and series.`}
       aria-describedby={`${summaryId} ${statsId}`} onKeyDown={onKeyDown} onFocus={() => { if (!active && count) inspect({ index: 0, series: 0 }); }} onBlur={() => setActive(null)}>
       <svg className="t98-chart-svg" width={width} height={HEIGHT} viewBox={`0 0 ${width} ${HEIGHT}`} role="img" aria-label={label} aria-describedby={`${summaryId} ${statsId}`}>
@@ -564,7 +575,7 @@ const HOURS = Array.from({ length: 24 }, (_, hour) => String(hour).padStart(2, '
 export function WeekdayHourGrid({ label, context, summary, values, weekdays, formatValue = plain, hourLabels = HOURS, className }: WeekdayHourGridProps) {
   const cellOf = (day: number, hour: number) => { const value = values[day]?.[hour]; return value != null && Number.isFinite(value) ? value : null; };
   const known = weekdays.flatMap((_, day) => HOURS.map((__, hour) => cellOf(day, hour))).filter((value): value is number => value !== null);
-  const max = known.length ? Math.max(...known) : 0;
+  const max = extent(known)?.[1] ?? 0;
   const step = (value: number) => value <= 0 || max <= 0 ? 0 : Math.min(4, 1 + Math.floor(Math.sqrt(value / max) * 3.999));
   return <figure className={cx('t98-chart', 't98-hour-grid', className)}>
     <figcaption className="t98-chart-caption"><strong>{label}</strong>{context && <span className="t98-chart-context">{context}</span>}</figcaption>

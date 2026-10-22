@@ -3,6 +3,7 @@
 import { useEffect, useId, useImperativeHandle, useMemo, useRef, useState, type KeyboardEvent, type ReactNode, type Ref } from 'react';
 import { Alert, Button, cx } from './primitives.js';
 import { StatusLine } from './controls.js';
+import { extent } from './chart-scale.js';
 import { ReplayControls, type ReplayControlsProps } from './inspection.js';
 import { contentPolicyMeta, policyAllowsScripts, policyScriptsArePinned, prefixDocument } from './sandbox.js';
 import { PLAYER_CONNECT, PLAYER_PROTOCOL, parsePlayerMessage, playerDocument, playerFrameSource, playerScriptUrl, randomToken, validCommand, type PlayerCommand } from './player-protocol.js';
@@ -77,8 +78,7 @@ export function CountryMap({ label, context, summary, shapes, viewBox, rows, met
 
   const navigable = useMemo(() => shapes.filter(shape => shape.code != null && rows.has(shape.code)).sort(compareNames), [shapes, rows]);
   const numbers = [...rows.values()].map(row => row.value).filter((value): value is number => value != null && Number.isFinite(value));
-  const low = Math.min(...numbers);
-  const high = Math.max(...numbers);
+  const [low, high] = extent(numbers) ?? [Infinity, -Infinity];
   const stepOf = (value: number | null) => value == null || !Number.isFinite(value) ? null : high === low ? SCALE_STEPS - 1 : Math.min(SCALE_STEPS - 1, Math.floor(((value - low) / (high - low)) * SCALE_STEPS));
   const lowRow = [...rows.values()].find(row => row.value === low);
   const highRow = [...rows.values()].find(row => row.value === high);
@@ -206,14 +206,20 @@ export interface HeatmapPlaneProps {
   className?: string;
 }
 
-const percent = (value: number, locale = 'en') => new Intl.NumberFormat(locale, { style: 'percent', maximumFractionDigits: 0 }).format(value);
+// One formatter per locale: constructing Intl.NumberFormat dominates the cost of formatting.
+const percentFormats = new Map<string, Intl.NumberFormat>();
+const percent = (value: number, locale = 'en') => {
+  let format = percentFormats.get(locale);
+  if (!format) percentFormats.set(locale, format = new Intl.NumberFormat(locale, { style: 'percent', maximumFractionDigits: 0 }));
+  return format.format(value);
+};
 const valid = (value: number | null): value is number => value != null && Number.isFinite(value);
 
 /** An image-role overlay for VisualEvidenceFrame. Pair it with HeatmapRankedList in the frame's ranked slot. */
 export function HeatmapPlane({ label, geometry, mode, points = [], bands = [], locale, className }: HeatmapPlaneProps) {
   const { width, height } = geometry;
   const sound = width > 0 && height > 0;
-  const maximum = Math.max(0, ...points.map(point => point.count).filter(valid));
+  const maximum = Math.max(0, extent(points.map(point => point.count).filter(valid))?.[1] ?? 0);
   return <div className={cx('t98-heatmap', className)} data-mode={mode} dir="ltr" role="img" aria-label={`${label}, ${mode === 'click' ? 'click density' : 'scroll depth'} overlay`} style={sound ? { aspectRatio: `${width} / ${height}` } : undefined}>
     {sound && mode === 'click' && points.filter(point => valid(point.count) && point.count > 0 && maximum > 0).map((point, index) =>
       <span key={`${point.x}-${point.y}-${index}`} className="t98-heatmap-point" title={`${point.label}: ${point.count}`} style={{ insetInlineStart: `${clamp(point.x / width, 0, 1) * 100}%`, insetBlockStart: `${clamp(point.y / height, 0, 1) * 100}%`, opacity: 0.15 + 0.85 * Math.sqrt(point.count! / maximum) }} />)}

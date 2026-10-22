@@ -64,3 +64,11 @@ test('arcPath returns valid closed paths for quarter, full and empty slices', ()
   assert.equal(arcPath(40, 70, 1, 1), '');
   for (const path of [quarter, full]) assert.doesNotMatch(path, /NaN|Infinity/);
 });
+
+test('extent handles more values than Math.min(...spread) can (about 125k) without throwing', async () => {
+  const { extent } = await import('../dist/chart-scale.js');
+  const values = Array.from({ length: 300_000 }, (_, i) => (i * 7919) % 100_003 - 50_000);
+  assert.deepEqual(extent(values), [-50_000, 50_002]);
+  assert.equal(extent([]), null);
+  assert.deepEqual(extent([5]), [5, 5]);
+});

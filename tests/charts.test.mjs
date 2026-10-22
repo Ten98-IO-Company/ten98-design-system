@@ -190,3 +190,15 @@ test('fit compress keeps 90 daily points inside the figure, while scroll keeps 4
   assert.match(compress, /Day 8 · Visits: unavailable/);
   assert.equal(width(render(h(TimeSeriesChart, { label: 'V', summary: 's', kind: 'bars', series, fit: 'compress', minStep: 10 }))), 58 + 14 + 900);
 });
+
+test('large inputs neither throw nor build a huge table until it is opened', () => {
+  const points = n => Array.from({ length: n }, (_, i) => ({ x: i, xLabel: `P${i}`, y: i % 50 }));
+  const big = render(h(TimeSeriesChart, { label: 'Big', summary: 's', kind: 'line', fit: 'compress', series: [{ id: 's', label: 'S', points: points(600) }] }));
+  assert.match(big, /View data table \(600 rows\)/);
+  assert.doesNotMatch(big, /<th scope="row">P0<\/th>/);
+  const small = render(h(TimeSeriesChart, { label: 'Small', summary: 's', kind: 'line', series: [{ id: 's', label: 'S', points: points(50) }] }));
+  assert.match(small, /<th scope="row">P0<\/th>/);
+  assert.doesNotMatch(small, /rows\)/);
+  // 200k values exceed the spread-argument limit of Math.min/Math.max.
+  assert.doesNotThrow(() => render(h(Sparkline, { label: 'Spark', values: Array.from({ length: 200_000 }, (_, i) => i % 97) })));
+});

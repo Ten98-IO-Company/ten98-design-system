@@ -163,3 +163,13 @@ export function arcPath(r0: number, r1: number, a0: number, a1: number): string 
     ? `${outerArc}L${point(inner, end)}A${fixed(inner)} ${fixed(inner)} 0 ${large} 0 ${point(inner, start)}Z`
     : `${outerArc}L0 0Z`;
 }
+
+/** Smallest and largest of the values, or null when there are none. A loop, not Math.min(...values): spreading more than
+ * about 125k arguments overflows the call stack. */
+export function extent(values: readonly number[]): [number, number] | null {
+  if (values.length === 0) return null;
+  let low = values[0], high = values[0];
+  for (let i = 1; i < values.length; i++) { const value = values[i]; if (value < low) low = value; if (value > high) high = value; }
+  return [low, high];
+}
+

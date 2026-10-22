@@ -11,9 +11,10 @@ import type { FlowState } from './settings-base.js';
  * guard, one date formatter and one action control. Not exported from the package entry point. */
 
 /** Deterministic across servers and browsers: English, UTC, medium date. Unparseable values are shown as given. */
+const flowDateFormat = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeZone: 'UTC' });
 export const formatFlowDate = (value: string | Date) => {
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? String(value) : new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeZone: 'UTC' }).format(date);
+  return Number.isNaN(date.getTime()) ? String(value) : flowDateFormat.format(date);
 };
 
 /** Runs the handler once at a time so a double activation cannot send two requests. */

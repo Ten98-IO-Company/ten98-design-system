@@ -3,7 +3,7 @@
 import { Children, Fragment, useEffect, useId, useRef, useState, type HTMLAttributes, type KeyboardEvent, type MouseEvent, type ReactNode, type RefObject, type SyntheticEvent } from 'react';
 import { Badge, Button, Icon, Input, cx } from './primitives.js';
 import { Pager, StatusLine } from './controls.js';
-import { linearScale, segments } from './chart-scale.js';
+import { extent, linearScale, segments } from './chart-scale.js';
 import { appShellNavigation } from './shell.js';
 import { useSidebarNavigation } from './sidebar.js';
 
@@ -380,8 +380,7 @@ export function DataTable<T>({
 export function Sparkline({ values, label, color = 'var(--t98-accent)' }: { values: readonly (number | null)[]; label: string; color?: string }) {
   const known = values.map(value => value !== null && Number.isFinite(value) ? value : null);
   const finite = known.filter((value): value is number => value !== null);
-  const minimum = Math.min(...finite);
-  const maximum = Math.max(...finite);
+  const [minimum, maximum] = extent(finite) ?? [Infinity, -Infinity];
   // Scale first so the full finite range cannot overflow when subtracted.
   const scale = Math.max(Math.abs(minimum), Math.abs(maximum)) || 1;
   const scaled = linearScale([minimum / scale, maximum / scale], [36, 4]);
