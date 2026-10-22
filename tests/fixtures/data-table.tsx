@@ -32,6 +32,20 @@ const stackColumns = wideColumns.slice(0, 4);
 const serverColumns = [wideColumns[0], wideColumns[2], wideColumns[3]];
 const wrapColumns: DataColumn<Campaign>[] = [{ ...wideColumns[0], wrap: true }, { ...wideColumns[6], wrap: true }];
 
+// A large sortable table whose sort accessor counts its calls: re-renders that do not change rows, columns, search or sort
+// (such as selecting a row) must not sort again.
+declare global { interface Window { sortCalls: number } }
+window.sortCalls = 0;
+const largeRows = Array.from({ length: 2000 }, (_, i) => ({ id: `r${i}`, name: `Row ${(i * 7919) % 2000}`, spend: (i * 37) % 1000 }));
+const largeColumns: DataColumn<(typeof largeRows)[number]>[] = [
+  { key: 'name', header: 'Name' },
+  { key: 'spend', header: 'Spend', numeric: true, sortValue: row => { window.sortCalls++; return row.spend; } },
+];
+function LargeTable() {
+  const [picked, setPicked] = useState<string[]>([]);
+  return <DataTable columns={largeColumns} rows={largeRows} rowKey={row => row.id} caption="Large table" searchable={false} pageSize={10} selectable selectedKeys={picked} onSelectionChange={setPicked} />;
+}
+
 function Screen() {
   const [sort, setSort] = useState<TableSort>();
   const [index, setIndex] = useState(0);
@@ -68,6 +82,7 @@ function Screen() {
       rowDetail={row => <Text>Stacked detail for {row.id}</Text>} />
     <DataTable columns={wrapColumns} rows={campaigns.slice(0, 2)} rowKey={row => row.id} ariaLabel="Wrapped table" searchable={false} sortable={false} pagination={false} />
     <DataTable columns={serverColumns} rows={[]} rowKey={row => row.id} caption="Loading table" searchable={false} loading />
+    <LargeTable />
     <DataTable columns={serverColumns} rows={[]} rowKey={row => row.id} caption="Unavailable table" searchable={false}
       unavailable={<Stack gap={2}><Text>Campaigns could not be loaded.</Text><Button variant="secondary" size="sm">Retry</Button></Stack>} />
   </Stack>;

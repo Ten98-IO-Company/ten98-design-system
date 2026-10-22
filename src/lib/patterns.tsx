@@ -1,6 +1,6 @@
 'use client';
 
-import { Children, Fragment, useEffect, useId, useRef, useState, type HTMLAttributes, type KeyboardEvent, type MouseEvent, type ReactNode, type RefObject, type SyntheticEvent } from 'react';
+import { Children, Fragment, useEffect, useId, useMemo, useRef, useState, type HTMLAttributes, type KeyboardEvent, type MouseEvent, type ReactNode, type RefObject, type SyntheticEvent } from 'react';
 import { Badge, Button, Icon, Input, cx } from './primitives.js';
 import { Pager, StatusLine } from './controls.js';
 import { extent, linearScale, segments } from './chart-scale.js';
@@ -152,12 +152,15 @@ export function DataTable<T>({
   const controlledSort = sortProp !== undefined || onSortChange !== undefined;
   const controlledSearch = searchProp !== undefined || onSearchChange !== undefined;
   const controlledPage = pageProp !== undefined;
-  const shown = columns.filter(column => !column.hidden);
+  const shown = useMemo(() => columns.filter(column => !column.hidden), [columns]);
   const sort = controlledSort ? sortProp : localSort;
   const query = controlledSearch ? searchProp ?? '' : localQuery;
   const size = Number.isFinite(pageSize) && pageSize >= 1 ? Math.floor(pageSize) : 5;
   // ponytail: local operations suit small datasets; use the controlled props for server-side collections.
-  const filtered = filterAndSortRows(rows, shown, searchable && !controlledSearch ? localQuery : '', controlledSort ? undefined : localSort);
+  // Sorting and searching are memoized: re-renders for selection, paging or row activation reuse the last result.
+  const localFilter = searchable && !controlledSearch ? localQuery : '';
+  const localOrder = controlledSort ? undefined : localSort;
+  const filtered = useMemo(() => filterAndSortRows(rows, shown, localFilter, localOrder), [rows, shown, localFilter, localOrder]);
   const paged = pagination && !controlledPage;
   const pageCount = paged ? Math.max(1, Math.ceil(filtered.length / size)) : 1;
   const currentPage = Math.min(localPage, pageCount);

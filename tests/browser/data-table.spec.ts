@@ -205,3 +205,14 @@ for (const width of [1440, 320]) {
     expect(await overflow(page)).toBeLessThanOrEqual(1);
   });
 }
+
+test('a large DataTable sorts once per sort change, not again when a row is selected', async ({ page }) => {
+  await page.goto('/tests/data-table.html');
+  const table = page.getByRole('table', { name: 'Large table' });
+  await table.getByRole('button', { name: /Spend/ }).click();
+  const afterSort = await page.evaluate(() => window.sortCalls);
+  expect(afterSort).toBeGreaterThan(0);
+  await table.getByRole('checkbox').nth(1).check();
+  await table.getByRole('checkbox').nth(2).check();
+  expect(await page.evaluate(() => window.sortCalls), 'selecting rows reuses the memoized sort').toBe(afterSort);
+});
