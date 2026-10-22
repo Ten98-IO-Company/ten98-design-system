@@ -652,13 +652,7 @@ export interface FormProps extends Omit<FormHTMLAttributes<HTMLFormElement>, 'st
 export function Form({ onSubmit, busy = false, gap = 4, fieldErrors, className, children, ...props }: FormProps) {
   const formRef = useRef<HTMLFormElement>(null);
   const errorKey = fieldErrors ? Object.entries(fieldErrors).filter(([, message]) => message).map(([name]) => name).join('|') : '';
-  useEffect(() => {
-    if (!errorKey) return;
-    const form = formRef.current;
-    const first = errorKey.split('|').map(name => form?.querySelector<HTMLElement>(`[name="${CSS.escape(name)}"]`)).find(Boolean)
-      ?? form?.querySelector<HTMLElement>('[aria-invalid="true"]');
-    first?.focus();
-  }, [errorKey]);
+
   const single = useSingleSubmit();
   const [pending, setPending] = useState(false);
   const returnFocus = useRef<HTMLElement | null>(null);
@@ -668,6 +662,17 @@ export function Form({ onSubmit, busy = false, gap = 4, fieldErrors, className, 
     if (document.activeElement === document.body || document.activeElement === null) returnFocus.current.focus();
     returnFocus.current = null;
   }, [locked]);
+  // New field errors win over returning focus to the submitter. They wait until the lock lifts, because disabled controls
+  // cannot take focus, and each set of errors moves focus once.
+  const focusedErrors = useRef('');
+  useEffect(() => {
+    if (!errorKey || locked || focusedErrors.current === errorKey) { if (!errorKey) focusedErrors.current = ''; return; }
+    focusedErrors.current = errorKey;
+    const form = formRef.current;
+    const first = errorKey.split('|').map(name => form?.querySelector<HTMLElement>(`[name="${CSS.escape(name)}"]`)).find(Boolean)
+      ?? form?.querySelector<HTMLElement>('[aria-invalid="true"]');
+    first?.focus();
+  }, [errorKey, locked]);
   return <form {...props} ref={formRef} className={cx('t98-form', 't98-stack', `t98-gap-${gap}`, className)} aria-busy={locked || undefined}
     onSubmit={event => {
       if (!onSubmit) { if (locked) event.preventDefault(); return; }
