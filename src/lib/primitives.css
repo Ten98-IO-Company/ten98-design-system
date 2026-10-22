@@ -47,7 +47,7 @@
 .t98-select { padding-right: 30px; cursor: pointer; }
 .t98-field { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
 .t98-label { color: var(--t98-text); font-size: 12px; font-weight: 600; line-height: 18px; }
-.t98-field-description, .t98-field-error { margin: 0; font-size: 11px; line-height: 17px; }
+.t98-field-description, .t98-field-error { margin: 0; font-size: 11px; line-height: 17px; overflow-wrap: anywhere; }
 .t98-field-count { margin: 0; color: var(--t98-muted); font-size: 11px; line-height: 17px; font-variant-numeric: tabular-nums; text-align: end; }
 .t98-field-count--near { color: var(--t98-text); font-weight: var(--t98-weight-medium); }
 .t98-field-count--over { color: var(--t98-danger); font-weight: var(--t98-weight-semibold); }

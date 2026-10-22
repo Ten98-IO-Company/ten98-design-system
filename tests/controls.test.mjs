@@ -310,7 +310,7 @@ test('ResourceCard takes a media slot in place of its icon and lists tags', () =
 
 test('field descriptions keep their own rule: the counter styles never leak into it', () => {
   // Regression: inserting the counter rule split this selector list, right-aligning every description (0.11.0 gate).
-  assert.ok(styles.includes('.t98-field-description, .t98-field-error { margin: 0; font-size: 11px; line-height: 17px; }'));
+  assert.ok(styles.includes('.t98-field-description, .t98-field-error { margin: 0; font-size: 11px; line-height: 17px; overflow-wrap: anywhere; }'));
   assert.doesNotMatch(styles, /\.t98-field-description,\s*\.t98-field-count/);
 });
 
