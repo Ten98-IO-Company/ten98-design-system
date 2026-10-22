@@ -279,7 +279,7 @@ export const primitiveEntries: ComponentEntry[] = [
     props: [
       { name: 'title', type: 'ReactNode', description: 'Optional title rendered inside a heading (h3 by default).' },
       { name: 'as', type: "'div' | 'section' | 'article'", defaultValue: "'div'", description: 'Element for the card. A titled section or article is named by its title.' },
-      { name: 'headingLevel', type: '2 | 3 | 4', defaultValue: '3', description: 'Outline level of the title.' },
+      { name: 'headingLevel', type: '2 | 3 | 4 | 5 | 6', defaultValue: '3', description: 'Outline level of the title.' },
       { name: 'description', type: 'ReactNode', description: 'Optional supporting text rendered inside a paragraph.' },
       { name: 'actions', type: 'ReactNode', description: 'Optional header action slot; provide labelled controls.' },
       { name: 'children', type: 'ReactNode', description: 'Optional padded card body.' },

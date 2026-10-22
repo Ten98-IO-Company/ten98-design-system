@@ -137,11 +137,11 @@ export interface CardProps extends Omit<HTMLAttributes<HTMLDivElement>, 'title'>
   /** Landmark-capable element; a titled `section` or `article` is named by its title. */
   as?: 'div' | 'section' | 'article';
   /** Outline level of the title. */
-  headingLevel?: 2 | 3 | 4;
+  headingLevel?: 2 | 3 | 4 | 5 | 6;
 }
 export function Card({ title, description, actions, as: Tag = 'div', headingLevel = 3, className, children, ...props }: CardProps) {
   const titleId = useId();
-  const Heading = `h${headingLevel}` as 'h2' | 'h3' | 'h4';
+  const Heading = `h${headingLevel}` as 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
   const named = Tag !== 'div' && title && !props['aria-label'] && !props['aria-labelledby'];
   return <Tag className={cx('t98-card', className)} aria-labelledby={named ? titleId : undefined} {...props}>
     {(title || description || actions) && <div className="t98-card-header"><div>{title && <Heading id={named ? titleId : undefined} className="t98-card-title">{title}</Heading>}{description && <p className="t98-card-description">{description}</p>}</div>{actions && <div className="t98-card-actions">{actions}</div>}</div>}

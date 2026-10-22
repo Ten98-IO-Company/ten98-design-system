@@ -121,3 +121,8 @@ test('Checkbox and Switch labels are 44px touch targets', () => {
   assert.match(styles, /\.t98-checkbox-label\s*\{[^}]*min-block-size:\s*var\(--t98-control-touch\)/);
   assert.match(styles, /\.t98-switch-label\s*\{[^}]*min-block-size:\s*var\(--t98-control-touch\)/);
 });
+
+test('U54: Card titles can sit at h5 and h6 under deeper pane headings', () => {
+  assert.match(render(ui.Card, { title: 'Contact', headingLevel: 5 }, 'x'), /<h5 [^>]*class="t98-card-title"[^>]*>Contact<\/h5>|<h5 class="t98-card-title"[^>]*>Contact<\/h5>/);
+  assert.match(render(ui.Card, { title: 'Notes', headingLevel: 6 }, 'x'), /<h6[^>]*>Notes<\/h6>/);
+});
