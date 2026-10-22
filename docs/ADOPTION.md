@@ -156,6 +156,22 @@ Apps can jump several versions at once; every release body lists breaking and be
 
 Import `@ten98/ui/app-tokens.css`, `@ten98/ui/app.css` and `@ten98/ui/product.css` once: component styles live in `product.css`.
 
+`product.css` loads every component sheet. To load only what a screen family uses, import the sheets directly from `@ten98/ui/css/<sheet>.css` instead (keep `app-tokens.css` and `app.css` first):
+
+| Sheet | Styles |
+|---|---|
+| `tokens.css`, `primitives.css`, `structure.css` | Always needed: tokens, Button, Field, Dialog, Alert, Badge, layout and text primitives |
+| `patterns.css` | DataTable, MetricCard, ResourceCard, AppShell, PageHeader, Stepper |
+| `workspace.css` | ConfirmDialog, ReviewConfirm, CopyButton, DateRangeField, AuthLayout |
+| `products.css` | Evidence, composition, coordination and analytics components (ConversationThread, SelectableList, ContentPreview, SandboxedPreview, ValidationSummary, OperationResults …) |
+| `navigation.css`, `shell.css` | Sidebar, AppTopbar, SectionNav, search and banners |
+| `controls.css` | Form, Combobox, MultiCombobox, Popover, FieldList, FileField, MediaPlayer, LoadMore and other controls |
+| `account-flows.css`, `workspace-flows.css` | Settings and workspace flows |
+| `charts.css` | TimeSeriesChart, BarList, ShareChart, ProportionBar, WeekdayHourGrid |
+| `spatial.css` | CountryMap, heatmaps, ReplayViewer, IsolatedPlayerFrame, CalendarMonth |
+
+For example, an app with no maps, heatmaps, replays or calendar can leave out `spatial.css` (about 10.9 KB minified, 1.5 KB gzip in Campaign's build). Removing unused rules inside the sheets an app does load is a build-time purge in the app.
+
 ## Incremental migration
 
 1. Build and install a fixed package version; import its CSS once.

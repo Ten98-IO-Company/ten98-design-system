@@ -28,7 +28,8 @@
     },
     "./app.css": "./dist/app.css",
     "./app-tokens.css": "./dist/app-tokens.css",
-    "./product.css": "./dist/product.css"
+    "./product.css": "./dist/product.css",
+    "./css/*.css": "./dist/*.css"
   },
   "sideEffects": [
     "**/*.css"

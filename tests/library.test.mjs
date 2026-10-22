@@ -265,7 +265,8 @@ test('DataTable renders semantic empty state and safe paging for invalid page si
 test('the distributable resolves its public exports, client boundaries and combined stylesheet', () => {
   const manifest = JSON.parse(readFileSync(file('package.json'), 'utf8'));
   for (const target of Object.values(manifest.exports)) {
-    for (const path of typeof target === 'string' ? [target] : Object.values(target)) accessSync(file(path));
+    // A subpath pattern (./css/*.css) is checked by the per-sheet test; every literal target must exist.
+    for (const path of typeof target === 'string' ? [target] : Object.values(target)) if (!path.includes('*')) accessSync(file(path));
   }
   for (const name of ['Button', 'Input', 'Field', 'Dialog', 'Tabs', 'DataTable', 'AppShell', 'Sparkline', 'filterAndSortRows', 'ProductSwitcher', 'DateRangeField', 'CopyButton', 'SecretField', 'ConfirmDialog', 'ToastProvider', 'useToast', 'AuthLayout', 'PermissionMatrix']) {
     assert.ok(ui[name], `Public export ${name} resolves`);
@@ -372,4 +373,12 @@ test('Dialog takes an eyebrow and, with onSubmit, makes body and footer one form
   assert.doesNotMatch(render(ui.Dialog, { open: true, onOpenChange() {}, title: 'T', children: 'x' }), /<form|t98-dialog-eyebrow/);
   const css = readFileSync(new URL('../dist/styles.css', import.meta.url), 'utf8');
   for (const name of ['t98-dialog-eyebrow', 't98-dialog-form', 't98-dialog-discard']) assert.ok(css.includes(`.${name}`), name);
+});
+
+test('each component stylesheet is published under @ten98/ui/css/<sheet>.css', () => {
+  const manifest = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+  assert.equal(manifest.exports['./css/*.css'], './dist/*.css');
+  for (const sheet of ['tokens', 'primitives', 'structure', 'patterns', 'workspace', 'products', 'navigation', 'shell', 'controls', 'account-flows', 'workspace-flows', 'charts', 'spatial']) {
+    assert.doesNotThrow(() => accessSync(new URL(`../dist/${sheet}.css`, import.meta.url)), sheet);
+  }
 });
