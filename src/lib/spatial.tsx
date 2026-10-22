@@ -203,6 +203,8 @@ export interface HeatmapPlaneProps {
   points?: readonly HeatmapPoint[];
   bands?: readonly HeatmapBand[];
   locale?: string;
+  /** Click point diameter as a percentage of the plane width (default 7). Lower it for tall documents with many click groups. */
+  pointSize?: number;
   className?: string;
 }
 
@@ -216,11 +218,11 @@ const percent = (value: number, locale = 'en') => {
 const valid = (value: number | null): value is number => value != null && Number.isFinite(value);
 
 /** An image-role overlay for VisualEvidenceFrame. Pair it with HeatmapRankedList in the frame's ranked slot. */
-export function HeatmapPlane({ label, geometry, mode, points = [], bands = [], locale, className }: HeatmapPlaneProps) {
+export function HeatmapPlane({ label, geometry, mode, points = [], bands = [], locale, pointSize = 7, className }: HeatmapPlaneProps) {
   const { width, height } = geometry;
   const sound = width > 0 && height > 0;
   const maximum = Math.max(0, extent(points.map(point => point.count).filter(valid))?.[1] ?? 0);
-  return <div className={cx('t98-heatmap', className)} data-mode={mode} dir="ltr" role="img" aria-label={`${label}, ${mode === 'click' ? 'click density' : 'scroll depth'} overlay`} style={sound ? { aspectRatio: `${width} / ${height}` } : undefined}>
+  return <div className={cx('t98-heatmap', className)} data-mode={mode} dir="ltr" role="img" aria-label={`${label}, ${mode === 'click' ? 'click density' : 'scroll depth'} overlay`} style={sound ? { aspectRatio: `${width} / ${height}`, ['--t98-heat-point' as string]: `${Math.min(25, Math.max(0.5, pointSize))}%` } : undefined}>
     {sound && mode === 'click' && points.filter(point => valid(point.count) && point.count > 0 && maximum > 0).map((point, index) =>
       <span key={`${point.x}-${point.y}-${index}`} className="t98-heatmap-point" title={`${point.label}: ${point.count}`} style={{ insetInlineStart: `${clamp(point.x / width, 0, 1) * 100}%`, insetBlockStart: `${clamp(point.y / height, 0, 1) * 100}%`, opacity: 0.15 + 0.85 * Math.sqrt(point.count! / maximum) }} />)}
     {sound && mode === 'scroll' && bands.map((band, index) => {

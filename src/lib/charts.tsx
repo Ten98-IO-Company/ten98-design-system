@@ -42,6 +42,8 @@ export interface ChartTableColumn { header: string; values: readonly ReactNode[]
 const plainFormat = new Intl.NumberFormat('en');
 const plain = (value: number) => plainFormat.format(value);
 const toneOf = (series: ChartSeries, index: number): ChartTone => series.tone ?? ((index % 5) + 1) as ChartTone;
+// Five tones; the dash pattern shifts every five series, so series 1 and 6 (same tone) still look different (25 line styles).
+const dashOf = (index: number) => DASHES[(index + Math.floor(index / 5)) % DASHES.length] || undefined;
 const toneColor = (tone: ChartTone) => `var(--t98-chart-${tone})`;
 const DASHES = ['', '7 4', '2 4', '10 4 2 4', '1 5'];
 /** Per-tone SVG fills with a non-colour overlay (hatch, dots, stripes), referenced as `url(#${uid}-p${tone})`. */
@@ -77,7 +79,7 @@ function ChartMarker({ shape, x, y, tone }: { shape: number; x: number; y: numbe
 function SwatchKey({ series, index }: { series: ChartSeries; index: number }) {
   const tone = toneOf(series, index);
   return <svg className="t98-chart-key" width="30" height="14" viewBox="0 0 30 14" aria-hidden="true" focusable="false">
-    <line x1="1" x2="29" y1="7" y2="7" className="t98-chart-key-line" strokeDasharray={DASHES[index % 5] || undefined} style={{ stroke: toneColor(tone) }} />
+    <line x1="1" x2="29" y1="7" y2="7" className="t98-chart-key-line" strokeDasharray={dashOf(index)} style={{ stroke: toneColor(tone) }} />
     <ChartMarker shape={index} x={15} y={7} tone={tone} />
   </svg>;
 }
@@ -357,7 +359,7 @@ export function TimeSeriesChart({ label, context, summary, kind, series, xScale 
         if (kind === 'area' && !outlined && run.length > 1) {
           layers.push(<path key={`${item.id}-a${first}`} className="t98-chart-area" d={`M${points.join('L')}L${centre(run.at(-1)!.index)},${yAt(baseline)}L${centre(first)},${yAt(baseline)}Z`} fill={`url(#${uid}-p${tone})`} />);
         }
-        if (run.length > 1) layers.push(<path key={`${item.id}-l${first}`} className="t98-chart-line" d={`M${points.join('L')}`} strokeDasharray={DASHES[s % 5] || undefined} style={{ stroke: toneColor(tone) }} />);
+        if (run.length > 1) layers.push(<path key={`${item.id}-l${first}`} className="t98-chart-line" d={`M${points.join('L')}`} strokeDasharray={dashOf(s)} style={{ stroke: toneColor(tone) }} />);
       });
       row.forEach((cell, i) => {
         if (cell.value === null) return;
@@ -522,7 +524,12 @@ export function ShareChart({ label, context, summary, segments: parts, total, fo
   return <figure className="t98-chart t98-share-chart" aria-describedby={summary ? summaryId : undefined}>
     <figcaption className="t98-chart-caption"><strong>{label}</strong>{context && <span className="t98-chart-context">{context}</span>}</figcaption>
     {notice && <p className="t98-chart-notice" role="note">{notice}</p>}
-    {total === null ? <p className="t98-chart-empty t98-chart-empty--unavailable">Unavailable</p>
+    {total === null ? <>
+        <p className="t98-chart-empty t98-chart-empty--unavailable">Total unavailable, so shares cannot be shown.</p>
+        {parts.length > 0 && <ul className="t98-chart-legend t98-share-legend" aria-label={`${label} counts`}>
+          {parts.map(part => <li key={part.id}><span className={`t98-chart-swatch t98-chart-fill-${part.tone}`} aria-hidden="true" /><span>{part.label}: <strong>{known(part.count) ? formatCount(part.count) : 'Unavailable'}</strong></span></li>)}
+        </ul>}
+      </>
       : total === 0 ? <p className="t98-chart-empty">{emptyMessage}</p>
       : <>
         <div className="t98-share-body">
@@ -601,3 +608,27 @@ export function WeekdayHourGrid({ label, context, summary, values, weekdays, for
     </ul>
   </figure>;
 }
+
+/**
+ * Keeps the first `keep` series and folds the rest into one "Other" series, point by point. Bars have five distinct fills, so
+ * fold beyond five. A folded point is the sum of the known values; it is `partial` when some folded values are unavailable and
+ * unavailable when all are, never 0.
+ */
+export function foldChartSeries(series: readonly ChartSeries[], keep = 4, label = 'Other', id = 'other'): ChartSeries[] {
+  if (series.length <= keep + 1) return [...series];
+  const kept = series.slice(0, keep), rest = series.slice(keep);
+  const length = Math.max(0, ...rest.map(item => item.points.length));
+  const template = rest.find(item => item.points.length === length)!;
+  const points: ChartPoint[] = Array.from({ length }, (_, i) => {
+    let sum = 0, known = 0, missing = 0;
+    for (const item of rest) {
+      const point = item.points[i];
+      if (!point || item.unavailable || point.state === 'unavailable' || point.y === null || !Number.isFinite(point.y)) missing++;
+      else { sum += point.y; known++; if (point.state === 'partial') missing++; }
+    }
+    const base = template.points[i];
+    return known === 0 ? { x: base.x, xLabel: base.xLabel, y: null, state: 'unavailable' } : { x: base.x, xLabel: base.xLabel, y: sum, ...(missing > 0 ? { state: 'partial' as const } : {}) };
+  });
+  return [...kept, { id, label, points }];
+}
+

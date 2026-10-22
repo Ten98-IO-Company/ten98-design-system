@@ -225,3 +225,15 @@ test('a compressed 90-day chart fits its figure without scrolling and still insp
   for (let i = 1; i < boxes.length; i++) expect(boxes[i][0]).toBeGreaterThanOrEqual(boxes[i - 1][1] - 0.5);
   expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
 });
+
+test('BarList filter rows are 44px targets and the share donut fits its card at 320px with doubled text', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 900 });
+  await page.goto('/tests/charts.html');
+  for (const name of ['Search', 'Social']) expect((await page.getByRole('button', { name }).boundingBox())!.height).toBeGreaterThanOrEqual(43.5);
+  const restore = await doubleText(page);
+  const donut = page.locator('figure', { hasText: 'Delivery share' }).locator('.t98-share-donut');
+  const fits = await donut.evaluate(svg => svg.getBoundingClientRect().right <= svg.closest('figure')!.getBoundingClientRect().right + 0.5);
+  expect(fits, 'the donut stays inside its card').toBe(true);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
+  await restore();
+});

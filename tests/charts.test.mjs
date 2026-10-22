@@ -80,7 +80,11 @@ test('ShareChart and ProportionBar state Unavailable, empty and totals', () => {
   assert.match(share, /aria-hidden="true"[^>]*focusable="false"/);
   assert.match(share, /Opened: <strong>75%<\/strong> \(30\)/);
   assert.match(share, /<tfoot><tr><th scope="row">Total<\/th><td[^>]*>40<\/td>/);
-  assert.match(render(h(ShareChart, { label: 'Opens', segments: parts, total: null })), />Unavailable</);
+  // An unknown total keeps each segment's count and says only the shares are unavailable.
+  const unknownTotal = render(h(ShareChart, { label: 'Opens', segments: parts, total: null }));
+  assert.match(unknownTotal, />Total unavailable, so shares cannot be shown\.</);
+  assert.match(unknownTotal, /Opened: <strong>30<\/strong>/);
+  assert.doesNotMatch(unknownTotal, /%/);
   const none = render(h(ShareChart, { label: 'Opens', segments: parts, total: 0 }));
   assert.match(none, />No samples</);
   assert.doesNotMatch(none, /<svg/);
@@ -201,4 +205,18 @@ test('large inputs neither throw nor build a huge table until it is opened', () 
   assert.doesNotMatch(small, /rows\)/);
   // 200k values exceed the spread-argument limit of Math.min/Math.max.
   assert.doesNotThrow(() => render(h(Sparkline, { label: 'Spark', values: Array.from({ length: 200_000 }, (_, i) => i % 97) })));
+});
+
+test('series beyond five keep distinct line styles, and foldChartSeries folds the rest into Other without inventing zeros', async () => {
+  const { foldChartSeries } = await import('../dist/index.js');
+  const mk = (id, ys) => ({ id, label: id, points: ys.map((y, i) => ({ x: i, xLabel: `D${i}`, y })) });
+  const six = Array.from({ length: 6 }, (_, i) => mk(`s${i}`, [i, i + 1]));
+  const html = render(h(TimeSeriesChart, { label: 'L', summary: 's', kind: 'line', series: six }));
+  const dashes = (html.match(/<path class="t98-chart-line"[^>]*>/g) ?? []).map(tag => `${tag.match(/--t98-chart-(\d)/)[1]}:${tag.match(/stroke-dasharray="([^"]*)"/)?.[1] ?? 'solid'}`);
+  assert.equal(new Set(dashes).size, 6, dashes.join(' '));
+  const folded = foldChartSeries([mk('a', [1, 1]), mk('b', [2, 2]), mk('c', [3, null]), mk('d', [null, null]), mk('e', [5, 6]), mk('f', [7, null])], 3);
+  assert.deepEqual(folded.map(item => item.id), ['a', 'b', 'c', 'other']);
+  assert.deepEqual(folded[3].points.map(point => [point.y, point.state ?? 'observed']), [[12, 'partial'], [6, 'partial']]);
+  assert.deepEqual(foldChartSeries([mk('a', [null]), mk('b', [null]), mk('c', [null])], 1)[1].points[0], { x: 0, xLabel: 'D0', y: null, state: 'unavailable' });
+  assert.equal(foldChartSeries(six.slice(0, 5), 4).length, 5);
 });

@@ -60,7 +60,7 @@
 .t98-proportion-segment:last-child { border-inline-end: 0; }
 
 .t98-share-body { display: flex; flex-wrap: wrap; gap: var(--t98-space-4); align-items: center; }
-.t98-share-donut { flex: none; inline-size: 9rem; block-size: 9rem; }
+.t98-share-donut { flex: 0 1 9rem; inline-size: 9rem; max-inline-size: 100%; block-size: auto; aspect-ratio: 1; }
 .t98-share-slice { stroke: var(--t98-surface); stroke-width: 1.5; }
 .t98-bar-list-button[aria-disabled='true'] { cursor: not-allowed; opacity: .6; }
 .t98-share-legend { flex: 1 1 12rem; flex-direction: column; align-items: flex-start; }
@@ -71,7 +71,7 @@
 .t98-bar-list-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--t98-space-1) var(--t98-space-3); }
 .t98-bar-list-name { min-inline-size: 0; overflow-wrap: anywhere; font-weight: 600; color: var(--t98-text); text-align: start; }
 a.t98-bar-list-name { color: var(--t98-accent); }
-.t98-bar-list-button { all: unset; box-sizing: border-box; cursor: pointer; font: inherit; font-weight: 600; color: var(--t98-text); text-decoration: underline; text-underline-offset: 3px; }
+.t98-bar-list-button { all: unset; box-sizing: border-box; display: inline-flex; align-items: center; min-block-size: var(--t98-control-touch); cursor: pointer; font: inherit; font-weight: 600; color: var(--t98-text); text-decoration: underline; text-underline-offset: 3px; }
 .t98-bar-list-value { font-variant-numeric: tabular-nums; margin-inline-start: auto; }
 .t98-bar-list-secondary { color: var(--t98-muted); }
 .t98-bar-list-reason { margin: 0; color: var(--t98-muted); overflow-wrap: anywhere; }

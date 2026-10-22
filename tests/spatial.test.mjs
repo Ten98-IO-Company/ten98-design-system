@@ -140,3 +140,9 @@ test('heatmap click points carry a hover title with their label and count', () =
   const html = render(HeatmapPlane, { label: 'Page', geometry: { width: 100, height: 100 }, mode: 'click', points: [{ x: 10, y: 10, count: 4, label: 'Buy button' }] });
   assert.match(html, /class="t98-heatmap-point" title="Buy button: 4"/);
 });
+
+test('heatmap point size is configurable and clamped', () => {
+  const html = render(HeatmapPlane, { label: 'Page', geometry: { width: 100, height: 400 }, mode: 'click', points: [{ x: 1, y: 1, count: 1, label: 'a' }], pointSize: 2 });
+  assert.match(html, /--t98-heat-point:2%/);
+  assert.match(render(HeatmapPlane, { label: 'Page', geometry: { width: 100, height: 100 }, mode: 'click', points: [], pointSize: 90 }), /--t98-heat-point:25%/);
+});
