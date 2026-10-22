@@ -313,3 +313,18 @@ test('field descriptions keep their own rule: the counter styles never leak into
   assert.ok(styles.includes('.t98-field-description, .t98-field-error { margin: 0; font-size: 11px; line-height: 17px; }'));
   assert.doesNotMatch(styles, /\.t98-field-description,\s*\.t98-field-count/);
 });
+
+test('Combobox options can be listed but not pickable, with the reason stated', () => {
+  const html = renderToStaticMarkup(h(Combobox, { label: 'Interest', value: '', onValueChange() {}, options: [{ value: 'a', label: 'Running' }, { value: 'b', label: 'Cycling', disabled: true, disabledReason: 'Not available in this market' }] }));
+  assert.match(html, /aria-disabled="true"[^>]*><span class="t98-combobox-option-text"><span>Cycling<\/span><span class="t98-combobox-option-description">Not available in this market<\/span>/);
+  assert.doesNotMatch(html.slice(html.indexOf('Running') - 200, html.indexOf('Running')), /aria-disabled/);
+});
+
+test('MultiCombobox at its limit lists other options as not pickable, and a controlled input keeps its text', () => {
+  const options = [{ value: 'a', label: 'Dubai' }, { value: 'b', label: 'Doha' }, { value: 'c', label: 'Riyadh' }];
+  const html = renderToStaticMarkup(h(MultiCombobox, { label: 'Destinations', options, values: options.slice(0, 2), onValuesChange() {}, max: 2, inputValue: 'Ri', onInputValueChange() {} }));
+  assert.match(html, /aria-disabled="true"[^>]*>[\s\S]*?<span>Riyadh<\/span><span class="t98-combobox-option-description">You can pick up to 2\.<\/span>/);
+  assert.match(html, /role="combobox"[^>]*value="Ri"|value="Ri"[^>]*role="combobox"/);
+  // Picked options stay selectable so they can be removed at the limit.
+  assert.doesNotMatch(html.slice(html.indexOf('<span>Dubai') - 300, html.indexOf('<span>Dubai')), /aria-disabled/);
+});

@@ -32,6 +32,9 @@ function Screen() {
   const single = useSearch();
   const [values, setValues] = useState<ComboboxOption[]>([airports[0]]);
   const [submitted, setSubmitted] = useState('');
+  const [limited, setLimited] = useState<ComboboxOption[]>([]);
+  const [query, setQuery] = useState('');
+  const [rejected, setRejected] = useState('');
   return <Stack as="main" gap={6} id="combobox">
     <Heading level={1}>Combobox</Heading>
     <Combobox label="Airport" options={single.results} filter={false} loading={single.loading} loadError={single.loadError} onInputChange={single.search}
@@ -41,6 +44,11 @@ function Screen() {
       <Button type="submit">Save destinations</Button>
     </Stack>
     <Text id="submitted">{submitted}</Text>
+    <MultiCombobox label="Markets" max={2} options={[...airports, { value: 'XXX', label: 'Closed market (XXX)', disabled: true, disabledReason: 'Not sold here' }]} values={limited}
+      inputValue={query} onInputValueChange={setQuery}
+      onValuesChange={next => { const added = next.find(option => !limited.some(current => current.value === option.value)); if (added?.value === 'AUH') { setRejected(`${added.label} is not allowed.`); return; } setRejected(''); setLimited(next); }}
+      error={rejected || undefined} />
+    <Text id="query">{query}</Text>
   </Stack>;
 }
 

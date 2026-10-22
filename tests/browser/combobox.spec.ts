@@ -90,3 +90,31 @@ test('picked options and the highlighted option stay distinguishable in forced c
   expect(await options.nth(0).locator('svg').evaluate(icon => getComputedStyle(icon).visibility)).toBe('visible');
   expect(await options.nth(1).locator('svg').evaluate(icon => getComputedStyle(icon).visibility)).toBe('hidden');
 });
+
+test('MultiCombobox announces only committed picks, enforces its limit and keeps a controlled query', async ({ page }) => {
+  await page.goto('/tests/combobox.html');
+  const markets = page.getByRole('combobox', { name: 'Markets' });
+  const list = page.getByRole('listbox', { name: 'Markets', includeHidden: true });
+  const status = markets.locator('xpath=ancestor::div[contains(@class,"t98-combobox")][1]').getByRole('status').last();
+  await markets.focus();
+  await page.keyboard.type('a');
+  await expect(page.locator('#query')).toHaveText('a');
+  // The app rejects Abu Dhabi: nothing is added and nothing is announced as added.
+  await list.getByRole('option', { name: /Abu Dhabi/ }).click();
+  await expect(page.getByText('Abu Dhabi (AUH) is not allowed.')).toBeVisible();
+  await expect(status).not.toContainText('added');
+  // A disabled option cannot be picked.
+  await list.getByRole('option', { name: /Closed market/ }).click({ force: true });
+  await expect(page.getByRole('list', { name: 'Selected Markets' })).toHaveCount(0);
+  await list.getByRole('option', { name: /Dubai/ }).click();
+  await expect(status).toHaveText('Dubai (DXB) added');
+  // The controlled query is not cleared by the pick.
+  await expect(markets).toHaveValue('a');
+  await list.getByRole('option', { name: /Doha/ }).click();
+  await expect(page.getByRole('list', { name: 'Selected Markets' }).getByRole('listitem')).toHaveCount(2);
+  // At the limit, other options say why they cannot be picked.
+  await expect(list.getByRole('option', { name: /Riyadh/ })).toHaveAttribute('aria-disabled', 'true');
+  await expect(list.getByRole('option', { name: /Riyadh/ })).toContainText('You can pick up to 2.');
+  await list.getByRole('option', { name: /Riyadh/ }).click({ force: true });
+  await expect(page.getByRole('list', { name: 'Selected Markets' }).getByRole('listitem')).toHaveCount(2);
+});

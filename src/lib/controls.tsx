@@ -268,6 +268,9 @@ export interface ComboboxOption {
   label: string;
   /** Secondary text under the label, for example a category path or an audience size. Part of the option's description. */
   description?: string;
+  /** Listed but not pickable; `disabledReason` is shown under the label and stated with the option. */
+  disabled?: boolean;
+  disabledReason?: string;
 }
 
 interface ComboboxAsyncProps {
@@ -335,12 +338,17 @@ interface ComboboxControlProps extends ComboboxAsyncProps {
   /** Announced in place of the result count, for example after a pick; the owner clears it when the user types. */
   notice?: string;
   inputRef?: Ref<HTMLInputElement>;
+  /** Controlled typed text: the control reports changes through onInputValueChange and never clears it itself. */
+  inputValue?: string;
+  onInputValueChange?: (text: string) => void;
+  /** Options that cannot be picked right now (for example a selection limit), with the reason stated. */
+  blockReason?: (option: ComboboxOption) => string | undefined;
   /** Rendered before the input, such as picked tags. */
   before?: ReactNode;
   /** Rendered after the input, such as hidden form inputs. */
   children?: ReactNode;
 }
-function ComboboxControl({ id, options, text, onType, onPick, onClear, onLeave, label, placeholder, required, disabled, emptyMessage, picked, onRemoveLast, notice, inputRef, before, children, onInputChange, filter = true, loading = false, loadError, ...described }: ComboboxControlProps) {
+function ComboboxControl({ id, options, text, onType, onPick, onClear, onLeave, label, placeholder, required, disabled, emptyMessage, picked, onRemoveLast, notice, inputRef, inputValue, onInputValueChange, blockReason, before, children, onInputChange, filter = true, loading = false, loadError, ...described }: ComboboxControlProps) {
   const generated = useId();
   const listId = `${generated}-list`;
   const optionId = (index: number) => `${generated}-option-${index}`;
@@ -349,7 +357,9 @@ function ComboboxControl({ id, options, text, onType, onPick, onClear, onLeave, 
   const [active, setActive] = useState(-1);
   // The text typed since the field was last closed. It filters the options and is shown as typed, because a
   // typed value that happens to equal another option's value must not be rewritten to that option's label. Null shows every option.
-  const [query, setQuery] = useState<string | null>(null);
+  const [ownQuery, setQuery] = useState<string | null>(null);
+  // A controlled query belongs to the app: picks and closing never reset it, so its search results stay in step.
+  const query = inputValue !== undefined ? (inputValue === '' ? null : inputValue) : ownQuery;
   const list = useRef<HTMLUListElement>(null);
   const needle = filter ? query?.toLowerCase() : undefined;
   const shown = needle ? options.filter(option => option.label.toLowerCase().includes(needle)) : options;
@@ -360,9 +370,14 @@ function ComboboxControl({ id, options, text, onType, onPick, onClear, onLeave, 
     if (activeOption >= 0) list.current?.children[activeOption]?.scrollIntoView({ block: 'nearest' });
   }, [activeOption]);
 
-  function type(typed: string | null) { setQuery(typed); onInputChange?.(typed ?? ''); }
+  function type(typed: string | null) {
+    if (inputValue !== undefined) { if (typed !== null) onInputValueChange?.(typed); return; }
+    setQuery(typed); onInputChange?.(typed ?? '');
+  }
   function close() { setOpen(false); setActive(-1); if (query !== null) type(null); }
+  const reasonFor = (option: ComboboxOption) => option.disabled ? option.disabledReason ?? 'Unavailable' : blockReason?.(option);
   function accept(option: ComboboxOption) {
+    if (reasonFor(option) !== undefined) return;
     onPick(option);
     if (!multiple) close();
     else if (query) { type(null); setActive(-1); }
@@ -411,10 +426,11 @@ function ComboboxControl({ id, options, text, onType, onPick, onClear, onLeave, 
         {shown.map((option, index) => <li key={option.value} id={optionId(index)} role="option"
           // Single selection marks the highlighted option (APG); multiple selection marks picks and highlights with data-active.
           aria-selected={picked ? picked.has(option.value) : index === activeOption} className="t98-combobox-option" data-active={index === activeOption || undefined}
+          aria-disabled={reasonFor(option) !== undefined || undefined}
           // Keep focus in the input so the list does not close before the click is handled.
           onMouseDown={event => event.preventDefault()} onClick={() => accept(option)}>
           {multiple && <Icon name="check" size={16} className="t98-combobox-check" />}
-          {option.description ? <span className="t98-combobox-option-text"><span>{option.label}</span><span className="t98-combobox-option-description">{option.description}</span></span> : option.label}</li>)}
+          {option.description || reasonFor(option) !== undefined ? <span className="t98-combobox-option-text"><span>{option.label}</span>{option.description && <span className="t98-combobox-option-description">{option.description}</span>}{reasonFor(option) !== undefined && <span className="t98-combobox-option-description">{reasonFor(option)}</span>}</span> : option.label}</li>)}
       </ul>
       {loading ? <p className="t98-combobox-empty" aria-hidden="true">Loading results…</p>
         : loadError ? <p className="t98-combobox-empty" aria-hidden="true">{loadError}</p>
@@ -434,7 +450,7 @@ export function Combobox({ label, options, value, onValueChange, valueLabel, des
   // Field passes its id, description and invalid state to the first child, which hands them to the input.
   return <Field label={label} htmlFor={id} description={description} error={allowCustom || outside ? error : undefined} required={required}>
     <ComboboxControl {...async} options={normalized} text={normalized.find(option => option.value === value)?.label ?? valueLabel ?? value}
-      onType={typed => onValueChange(normalized.find(option => option.label === typed)?.value ?? typed)} onPick={option => onValueChange(option.value)} onClear={() => onValueChange('')}
+      onType={typed => onValueChange(normalized.find(option => option.label === typed && !option.disabled)?.value ?? typed)} onPick={option => onValueChange(option.value)} onClear={() => onValueChange('')}
       onLeave={() => setLeft(true)} label={label} placeholder={placeholder} required={required} disabled={disabled} emptyMessage={emptyMessage}>
       {/* A list-only field never posts text that is not one of its options. */}
       {name && <input type="hidden" name={name} value={allowCustom || listed ? value : ''} />}
@@ -457,27 +473,43 @@ export interface MultiComboboxProps extends ComboboxAsyncProps {
   required?: boolean;
   disabled?: boolean;
   emptyMessage?: string;
+  /** Most picks allowed; at the limit the other options are listed but not pickable, with the reason. */
+  max?: number;
+  /** Controlled typed text for app-run searches; the field never clears it on pick or blur. */
+  inputValue?: string;
+  onInputValueChange?: (text: string) => void;
 }
 
 /** Pick several listed options: the list stays open after each pick, picks are removable tags, and Backspace in the empty input removes the last one. */
-export function MultiCombobox({ label, options, values, onValuesChange, description, error, name, placeholder, required, disabled, emptyMessage = 'No matches', ...async }: MultiComboboxProps) {
+export function MultiCombobox({ label, options, values, onValuesChange, description, error, name, placeholder, required, disabled, emptyMessage = 'No matches', max, inputValue, onInputValueChange, ...async }: MultiComboboxProps) {
   const id = useId();
   const input = useRef<HTMLInputElement>(null);
   const [announcement, setAnnouncement] = useState('');
   const picked = new Set(values.map(option => option.value));
+  const full = max !== undefined && values.length >= max;
+  // Announce what the app actually committed, so a pick it rejects (values unchanged) is never announced as added.
+  const previous = useRef(values);
+  useEffect(() => {
+    const before = new Set(previous.current.map(option => option.value));
+    const after = new Set(values.map(option => option.value));
+    const added = values.filter(option => !before.has(option.value)).map(option => `${option.label} added`);
+    const removed = previous.current.filter(option => !after.has(option.value)).map(option => `${option.label} removed`);
+    previous.current = values;
+    if (added.length || removed.length) setAnnouncement([...removed, ...added].join(', '));
+  }, [values]);
   function remove(option: ComboboxOption) {
     onValuesChange(values.filter(current => current.value !== option.value));
-    setAnnouncement(`${option.label} removed`);
     input.current?.focus();
   }
   function toggle(option: ComboboxOption) {
     if (picked.has(option.value)) { remove(option); return; }
+    if (full) return;
     onValuesChange([...values, option]);
-    setAnnouncement(`${option.label} added`);
   }
   const labelText = typeof label === 'string' ? label : 'values';
   return <Field label={label} htmlFor={id} description={description} error={error} required={required}>
     <ComboboxControl {...async} options={options} text="" picked={picked} notice={announcement} onType={() => setAnnouncement('')} onPick={toggle} onClear={() => {}} onLeave={() => {}}
+      inputValue={inputValue} onInputValueChange={onInputValueChange} blockReason={option => full && !picked.has(option.value) ? `You can pick up to ${max}.` : undefined}
       onRemoveLast={() => { const last = values.at(-1); if (last) remove(last); }} inputRef={input}
       label={label} placeholder={placeholder} required={required && values.length === 0} disabled={disabled} emptyMessage={emptyMessage}
       before={values.length > 0 && <ul className="t98-combobox-tags" aria-label={`Selected ${labelText}`}>
