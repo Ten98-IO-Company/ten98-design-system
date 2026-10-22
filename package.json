@@ -1,6 +1,6 @@
 {
   "name": "@ten98/ui",
-  "version": "0.19.0",
+  "version": "0.20.0",
   "description": "Shared design tokens, React components and application patterns for the ten98 suite",
   "type": "module",
   "license": "MIT",
