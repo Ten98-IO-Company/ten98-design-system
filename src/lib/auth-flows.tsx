@@ -1,6 +1,6 @@
 'use client';
 
-import { Component, useId, useState, type FormEvent, type ReactNode } from 'react';
+import { useId, useState, type FormEvent, type ReactNode } from 'react';
 import { Alert, Button, Checkbox, Field, Icon, Input, type Tone } from './primitives.js';
 import { DescriptionList, Heading, Link, Stack, Text, type LinkProps } from './structure.js';
 import { AuthLayout } from './workspace.js';
@@ -469,54 +469,4 @@ export function AuthStory({ label, eyebrow, title, emphasis, lead, channels, foo
     </div>
     <small className="auth-story-footnote">{footnote}</small>
   </>;
-}
-
-export type AppStateKind = 'loading' | 'error' | 'boundary' | 'unconfirmed';
-export interface AppStateScreenProps {
-  state: AppStateKind;
-  brand: ReactNode;
-  title?: string;
-  message?: string;
-  onRetry?: () => void;
-  retryLabel?: string;
-}
-const stateCopy: Record<AppStateKind, { title: string; message: string; retryLabel: string }> = {
-  loading: { title: 'Loading', message: 'Loading your workspace…', retryLabel: '' },
-  error: { title: 'Could not load', message: 'The request did not complete.', retryLabel: 'Try again' },
-  boundary: { title: 'This screen stopped working', message: 'An unexpected error interrupted this screen.', retryLabel: 'Reload' },
-  unconfirmed: { title: 'Result not confirmed', message: 'The request may or may not have completed. Reload to check the current state before you try again.', retryLabel: 'Reload' },
-};
-/** Full-screen loading and failure states shown before the application shell is available. */
-export function AppStateScreen({ state, brand, title, message, onRetry, retryLabel }: AppStateScreenProps) {
-  const copy = stateCopy[state];
-  return <AuthLayout label={title ?? copy.title} brand={brand} title={title ?? copy.title}>
-    {state === 'loading'
-      ? <div className="t98-auth-state" role="status"><span className="t98-spinner" aria-hidden="true" /><Text as="span">{message ?? copy.message}</Text></div>
-      : <Stack gap={4}>
-        <Alert tone={state === 'unconfirmed' ? 'warning' : 'danger'} role="alert" title={message ?? copy.message} />
-        {onRetry && <Button type="button" onClick={onRetry}>{retryLabel ?? copy.retryLabel}</Button>}
-      </Stack>}
-  </AuthLayout>;
-}
-
-export interface AuthErrorBoundaryProps {
-  children: ReactNode;
-  fallback?: Partial<AppStateScreenProps>;
-  /** Defaults to reloading the page. */
-  onReload?: () => void;
-  /** Report the failure; the boundary itself logs nothing. */
-  onError?: (error: Error) => void;
-}
-/** Catches render failures below it and shows the boundary state with a reload action. */
-export class AuthErrorBoundary extends Component<AuthErrorBoundaryProps, { failed: boolean }> {
-  state = { failed: false };
-  static getDerivedStateFromError() { return { failed: true }; }
-  componentDidCatch(error: Error) { this.props.onError?.(error); }
-  render() {
-    if (!this.state.failed) return this.props.children;
-    const { fallback, onReload } = this.props;
-    // A custom onReload recovers in place, so clear the failure and render the children again.
-    const retry = onReload ? () => { this.setState({ failed: false }); onReload(); } : () => location.reload();
-    return <AppStateScreen brand={null} onRetry={retry} {...fallback} state="boundary" />;
-  }
 }

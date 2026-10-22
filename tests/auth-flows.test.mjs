@@ -281,3 +281,13 @@ test('every class emitted by the new flows is styled', () => {
   const emitted = new Set(screens.flatMap(classes));
   for (const name of emitted) if (/^t98-/.test(name) && !['t98-button--md', 't98-button--secondary', 't98-description-list--1'].includes(name)) assert.ok(styles.includes(`.${name}`), `${name} is styled`);
 });
+
+test('startup state screens live in their own module, so lazy-loaded sign-in flows stay out of an app\'s startup chunk', async () => {
+  const { readFileSync } = await import('node:fs');
+  const appState = readFileSync(new URL('../dist/app-state.js', import.meta.url), 'utf8');
+  const authFlows = readFileSync(new URL('../dist/auth-flows.js', import.meta.url), 'utf8');
+  assert.match(appState, /export function AppStateScreen/);
+  assert.match(appState, /export class AuthErrorBoundary/);
+  assert.doesNotMatch(appState, /auth-flows/);
+  assert.doesNotMatch(authFlows, /function AppStateScreen|class AuthErrorBoundary/);
+});
