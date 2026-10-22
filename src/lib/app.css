@@ -4,6 +4,12 @@
    Native Discover components keep their controllers; aliases bridge existing class names. */
 *{box-sizing:border-box}
 body{margin:0}
+/* Page base, zero specificity so an app can still restyle it. The 14px size sits on body, not :root, so rem tokens such as
+   --t98-control-touch keep their 16px-root sizes (a 14px root would shrink the 44px touch target to 38.5px). */
+:where(html){font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;font-synthesis:none;color:var(--color-text);background:var(--color-canvas)}
+:where(body){font-size:14px}
+/* 0s, not a tiny duration: a running transition makes a style change read back its old value until the next frame. */
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:0s!important;animation-iteration-count:1!important;transition-duration:0s!important;transition-delay:0s!important;scroll-behavior:auto!important}}
 button,input,select,textarea{font:inherit}
 button,a,input,select,textarea{-webkit-tap-highlight-color:transparent}
 button,a{touch-action:manipulation}
@@ -104,6 +110,8 @@ table{width:100%;border-collapse:collapse;text-align:left;white-space:nowrap}
 th{font-size:11px;letter-spacing:.2px;color:var(--color-text-muted);background:var(--color-surface-subtle);font-weight:500;padding:12px 22px;border-top:1px solid var(--color-border);border-bottom:1px solid var(--color-border)}
 td{font-size:12px;padding:18px 22px;border-bottom:1px solid var(--color-border);color:var(--color-text-muted)}
 td strong{font-weight:550;color:var(--color-text-muted)}
+:where(table:not(.t98-review-table)) tbody tr:last-child>td{border-bottom:0}
+:where(table:not(.t98-review-table)) tbody tr:hover{background:var(--color-surface-raised)}
 .badge{display:inline-flex;align-items:center;gap:5px;background:var(--color-surface-subtle);color:var(--color-text-muted);padding:4px 7px;border-radius:4px;font-size:10px;font-weight:500;white-space:nowrap}
 .badge i{height:4px;width:4px;border-radius:50%;background:currentColor}
 .badge.active,.badge.live,.badge.published,.badge.approved,.badge.configured{color:var(--color-success);background:var(--color-success-subtle)}
@@ -151,8 +159,9 @@ td strong{font-weight:550;color:var(--color-text-muted)}
 .auth-note{margin-top:23px;display:flex;align-items:center;gap:8px;font-size:11px;color:var(--color-text-muted);border-top:1px solid #f1e9f8;padding-top:17px}
 .field{display:flex;flex-direction:column;gap:8px;margin-bottom:17px;font-size:13px;color:var(--color-text-muted)}
 .field>span{font-weight:550}
-.field input,.field select,.field textarea{width:100%;background:var(--color-surface);border:1px solid var(--color-border-control);border-radius:6px;min-height:var(--control-md);padding:10px 11px;font-size:13px;color:var(--color-text-muted);box-shadow:0 1px 2px #20152e02}
-.field input::placeholder,.field textarea::placeholder{color:var(--color-text-muted)}
+.field input,.field select,.field textarea{width:100%;background:var(--color-surface);border:1px solid var(--color-border-control);border-radius:6px;min-height:var(--control-md);padding:10px 11px;font-size:13px;color:var(--color-text);box-shadow:0 1px 2px #20152e02}
+.field input::placeholder,.field textarea::placeholder{color:var(--color-text-placeholder)}
+.field .required{color:var(--color-text-muted)}
 .field textarea{min-height:100px;resize:vertical;line-height:1.65}
 .field :is(input,select,textarea):disabled{background:var(--color-disabled-surface);color:var(--color-disabled-text)}
 .field-help{display:block;color:var(--color-text-muted);font-size:12px;line-height:1.7;margin:-7px 0 17px}
@@ -180,6 +189,7 @@ td strong{font-weight:550;color:var(--color-text-muted)}
 .workspace-main{margin-left:245px;width:calc(100% - 245px)}
 }
 @media(max-width:1200px){
+:where(table:not(.t98-review-table)) :is(th,td){padding-inline:16px}
 .sidebar{width:210px;padding-left:12px;padding-right:12px}
 .workspace-main{margin-left:210px;width:calc(100% - 210px)}
 .topbar{padding:0 24px}
