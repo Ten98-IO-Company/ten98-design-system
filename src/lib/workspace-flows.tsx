@@ -217,7 +217,7 @@ export function TeamFlow({ currentUserId, members, roles, roleLabels, invitation
         <Heading level={3} size="sm">{copy.invitations}</Heading>
         {inviteLink && <OneTimeValue label={copy.linkLabel} value={inviteLink.url} masked={false} warning={copy.linkWarning} dismiss={onDismissInviteLink && { label: copy.linkDismiss, onClick: onDismissInviteLink }}
           messages={{ copy: copy.copy, copied: copy.copied, copyFailed: copy.copyFailed, select: copy.copyManual }} />}
-        <DataTable<TeamInvitation> ariaLabel={copy.invitations} columns={invitationColumns} rows={invitations} rowKey={row => row.id} {...staticTable} emptyTitle={copy.invitationsEmpty}
+        <DataTable<TeamInvitation> ariaLabel={copy.invitations} columns={invitationColumns} rows={invitations} rowKey={row => row.id} {...staticTable} emptyTitle={copy.invitationsEmpty} emptyDescription={null}
           rowActionsLabel={copy.actions} rowActions={row => row.status !== 'pending' ? null
             : <Button type="button" variant="secondary" size="sm" disabled={locked} aria-label={`${copy.revokeInvitation}: ${row.email}`} onClick={() => setRevoking(row)}>{copy.revokeInvitation}</Button>} />
         <form key={inviteLink?.id ?? 'invite'} onSubmit={event => {

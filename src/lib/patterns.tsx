@@ -102,6 +102,8 @@ interface DataTableBaseProps<T> {
   expandedKeys?: readonly string[];
   onExpandedChange?: (keys: string[]) => void;
   emptyTitle?: string;
+  /** Replaces the default empty-state description; `null` shows the title alone. */
+  emptyDescription?: ReactNode;
   /** Replaces the default empty state. */
   emptyState?: ReactNode;
   /** Server mode: the app sorts. Supplying `sort` or `onSortChange` stops local sorting. */
@@ -135,7 +137,7 @@ const interactiveTarget = 'a[href],button,input,select,textarea,label,summary,[r
 
 export function DataTable<T>({
   columns, rows, rowKey, caption, captionHidden = true, ariaLabel, searchable = true, sortable = true, pagination = true,
-  searchPlaceholder = 'Search records…', pageSize = 5, selectable = false, selectedKeys: selectedKeysProp, onSelectionChange, activeKey, onRowActivate, rowDetail, expandedKeys: expandedKeysProp, onExpandedChange, emptyTitle = 'No records found', emptyState,
+  searchPlaceholder = 'Search records…', pageSize = 5, selectable = false, selectedKeys: selectedKeysProp, onSelectionChange, activeKey, onRowActivate, rowDetail, expandedKeys: expandedKeysProp, onExpandedChange, emptyTitle = 'No records found', emptyDescription, emptyState,
   sort: sortProp, onSortChange, page: pageProp, onPageChange, search: searchProp, onSearchChange, rowActions, rowActionsLabel = 'Actions',
   loading = false, unavailable, stickyHeader = false, footerCells, density = 'comfortable', responsive = 'scroll',
 }: DataTableProps<T>) {
@@ -348,7 +350,7 @@ export function DataTable<T>({
           })}
           {hasUnavailable && <tr role={role('row')}><td colSpan={columnCount} role={role('cell')}><div className="t98-table-state">{unavailable}</div></td></tr>}
           {!hasUnavailable && !loading && visible.length === 0 && <tr role={role('row')}><td colSpan={columnCount} role={role('cell')}>
-            {emptyState ?? <EmptyState title={emptyTitle} description={query ? 'Try a different search or clear your search to see all records.' : 'New records will appear here.'}
+            {emptyState ?? <EmptyState title={emptyTitle} description={query ? 'Try a different search or clear your search to see all records.' : emptyDescription === undefined ? 'New records will appear here.' : emptyDescription}
               icon="search" action={query ? <Button variant="secondary" size="sm" onClick={() => changeQuery('')}>Clear search</Button> : undefined} />}
           </td></tr>}
         </tbody>
@@ -450,9 +452,9 @@ export function PageHeader({ eyebrow, title, description, actions }: { eyebrow?:
   </div>{actions && <div className="t98-page-actions">{actions}</div>}</header>;
 }
 
-export function EmptyState({ title, description, icon = 'inbox', action }: { title: string; description: ReactNode; icon?: string; action?: ReactNode }) {
+export function EmptyState({ title, description, icon = 'inbox', action }: { title: string; description?: ReactNode; icon?: string; action?: ReactNode }) {
   return <div className="t98-empty-state"><span className="t98-empty-icon"><Icon name={icon} size={23} /></span>
-    <h3>{title}</h3><p>{description}</p>{action && <div className="t98-empty-action">{action}</div>}
+    <h3>{title}</h3>{description != null && <p>{description}</p>}{action && <div className="t98-empty-action">{action}</div>}
   </div>;
 }
 

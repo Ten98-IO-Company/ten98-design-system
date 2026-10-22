@@ -160,3 +160,22 @@ test('spatial components stay visible in forced colors', async ({ page }, info) 
   await mkdir(evidence, { recursive: true });
   await page.screenshot({ path: resolve(evidence, `${info.project.name}-forced-colors.png`), fullPage: true });
 });
+
+for (const width of [1440, 375]) {
+  test(`long calendar entries wrap inside their day and past days offer no Create at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto('/tests/spatial.html');
+    const calendar = page.locator('section[aria-label$="calendar"]');
+    const label = calendar.locator('td[data-date="2026-10-23"] .t98-calendar-entry-label');
+    await expect(label).toBeVisible();
+    // The legacy global `table { white-space: nowrap }` must not reach the cells.
+    const fit = await label.evaluate(element => ({ whiteSpace: getComputedStyle(element).whiteSpace, overflow: element.scrollWidth - element.clientWidth, lines: (() => { const range = document.createRange(); range.selectNodeContents(element); return new Set([...range.getClientRects()].map(rect => Math.round(rect.top))).size; })() }));
+    expect(fit.whiteSpace).toBe('normal');
+    expect(fit.overflow).toBeLessThanOrEqual(1);
+    expect(fit.lines).toBeGreaterThan(1);
+    const scroll = await calendar.locator('.t98-calendar-scroll').evaluate(element => element.scrollWidth - element.clientWidth);
+    expect(scroll, 'the grid fits its own width').toBeLessThanOrEqual(1);
+    await expect(calendar.locator('td[data-date="2026-10-20"] .t98-calendar-create')).toHaveCount(0);
+    await expect(calendar.locator('td[data-date="2026-10-21"] .t98-calendar-create')).toHaveCount(1);
+  });
+}

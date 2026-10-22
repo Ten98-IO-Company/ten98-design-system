@@ -69,7 +69,8 @@
 .t98-calendar-button { min-block-size: var(--t98-control-touch); min-inline-size: var(--t98-control-touch); }
 .t98-calendar-reason { padding: var(--t98-space-2) var(--t98-space-3); border: var(--t98-border-width) solid var(--t98-border); border-inline-start: 4px solid var(--t98-warning); border-radius: var(--t98-radius); background: var(--t98-subtle); overflow-wrap: anywhere; }
 .t98-calendar-scroll { min-inline-size: 0; overflow-x: auto; }
-.t98-calendar-grid { inline-size: 100%; min-inline-size: calc(7 * var(--t98-control-touch)); table-layout: fixed; border-collapse: collapse; }
+/* white-space resets the legacy global `table { white-space: nowrap }` so long entries wrap inside their day. */
+.t98-calendar-grid { white-space: normal; inline-size: 100%; min-inline-size: calc(7 * var(--t98-control-touch)); table-layout: fixed; border-collapse: collapse; }
 .t98-calendar-weekday { padding: var(--t98-space-2) var(--t98-space-1); background: var(--t98-subtle); border: var(--t98-border-width) solid var(--t98-border); font-size: var(--t98-text-sm); font-weight: 600; text-align: center; overflow-wrap: anywhere; }
 .t98-calendar-cell { min-block-size: calc(var(--t98-control-touch) * 2); padding: var(--t98-space-1); border: var(--t98-border-width) solid var(--t98-border); background: var(--t98-surface); vertical-align: top; overflow-wrap: anywhere; }
 .t98-calendar-cell:focus-visible { outline: var(--t98-focus-width) solid var(--t98-focus); outline-offset: calc(var(--t98-focus-width) * -1); }

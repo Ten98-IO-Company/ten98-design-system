@@ -19,7 +19,7 @@ const bands = [{ from: 0, to: 180, share: 0.9, label: 'Top half' }, { from: 180,
 const doc = '<!doctype html><body><p>Synthetic replay document with a deliberately long unbroken sentence to test wrapping inside the sandbox.</p><img alt="" src="/tests/replay-probe.png"></body>';
 const days = new Map([
   ['2026-10-21', [{ id: 'launch', label: 'Launch the quarterly campaign post', time: '09:30', onSelect: () => {} }]],
-  ['2026-10-23', [{ id: 'review', label: 'Review draft' }]],
+  ['2026-10-23', [{ id: 'review', label: 'Review the draft announcement for the regional partner newsletter before Friday' }]],
 ]);
 
 function Screen() {
@@ -43,7 +43,7 @@ function Screen() {
     <ReplayViewer label="Session replay" context="Session demo-018 · captured 18 October 2026, 08:00 UTC" title="Synthetic session replay" srcDoc={doc}
       controls={{ playing: false, onPlayingChange: () => {}, currentTime: time, duration: 90, onSeek: setTime, playbackRate: 1, allowedRates: [0.5, 1, 2], onRateChange: () => {} }} />
     <CalendarMonth month={month} weekStartsOn={1} locale="en-GB" today="2026-10-21" days={days} onPrev={() => step(-1)} onNext={() => step(1)}
-      onToday={() => { setLog('today'); setMonth({ year: 2026, month: 10 }); }} onCreateDay={() => {}} createDisabledReason="Creating entries is disabled: read-only access." />
+      onToday={() => { setLog('today'); setMonth({ year: 2026, month: 10 }); }} onCreateDay={() => {}} isCreatable={iso => iso >= '2026-10-21'} createDisabledReason="Creating entries is disabled: read-only access." />
     <Text id="log">{log}</Text>
   </Stack>;
 }

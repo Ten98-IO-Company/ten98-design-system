@@ -30,6 +30,8 @@ export interface CalendarMonthProps {
   onCreateDay?: (iso: string) => void;
   /** When set, the buttons are disabled and this reason stays visible. */
   createDisabledReason?: ReactNode;
+  /** Days for which Create is offered, for example `iso => iso >= today` to hide it on past days. Defaults to every day of the month. */
+  isCreatable?: (iso: string) => boolean;
   className?: string;
 }
 
@@ -45,7 +47,7 @@ function shiftMonth(iso: string, delta: number) {
   return toIso(Date.UTC(target.getUTCFullYear(), target.getUTCMonth(), day));
 }
 
-export function CalendarMonth({ month, weekStartsOn, locale, today, days, onPrev, onNext, onToday, onCreateDay, createDisabledReason, className }: CalendarMonthProps) {
+export function CalendarMonth({ month, weekStartsOn, locale, today, days, onPrev, onNext, onToday, onCreateDay, createDisabledReason, isCreatable, className }: CalendarMonthProps) {
   const id = useId();
   const gridRef = useRef<HTMLTableElement>(null);
   const moveFocus = useRef(false);
@@ -135,7 +137,7 @@ export function CalendarMonth({ month, weekStartsOn, locale, today, days, onPrev
                 ? <button type="button" className="t98-calendar-entry" tabIndex={isActive ? 0 : -1} onClick={entry.onSelect}>{entry.time && <span className="t98-calendar-entry-time">{entry.time}</span>}<span className="t98-calendar-entry-label">{entry.label}</span></button>
                 : <span className="t98-calendar-entry t98-calendar-entry--static">{entry.time && <span className="t98-calendar-entry-time">{entry.time}</span>}<span className="t98-calendar-entry-label">{entry.label}</span></span>}
             </li>)}</ul>}
-            {creating && !outside && <button type="button" className="t98-calendar-create" tabIndex={isActive ? 0 : -1} disabled={createDisabledReason != null || !onCreateDay}
+            {creating && !outside && (isCreatable?.(iso) ?? true) && <button type="button" className="t98-calendar-create" tabIndex={isActive ? 0 : -1} disabled={createDisabledReason != null || !onCreateDay}
               aria-label={`Create on ${fullDate.format(toTime(iso))}`} aria-describedby={createDisabledReason != null ? `${id}-reason` : undefined} onClick={() => onCreateDay?.(iso)}>Create</button>}
           </td>;
         })}</tr>)}</tbody>

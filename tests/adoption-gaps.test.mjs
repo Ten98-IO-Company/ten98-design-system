@@ -84,3 +84,24 @@ test('useConfirmDialog renders nothing until a confirmation is requested', () =>
   function Probe() { const [, dialog] = ui.useConfirmDialog({ danger: true }); return h('div', null, dialog ?? 'idle'); }
   assert.equal(render(Probe, {}), '<div>idle</div>');
 });
+
+// Campaign's 0.18.0 adoption findings.
+test('CalendarMonth isCreatable limits Create to the days it accepts, and the grid resets the legacy table nowrap', () => {
+  const props = { month: { year: 2026, month: 10 }, weekStartsOn: 1, locale: 'en-GB', today: '2026-10-21', days: new Map(), onPrev() {}, onNext() {}, onToday() {}, onCreateDay() {} };
+  const html = render(ui.CalendarMonth, { ...props, isCreatable: iso => iso >= '2026-10-21' });
+  const created = [...html.matchAll(/aria-label="Create on [^"]*?(\d+) October 2026"/g)].map(match => Number(match[1]));
+  assert.deepEqual(created, Array.from({ length: 11 }, (_, index) => 21 + index));
+  assert.equal([...render(ui.CalendarMonth, props).matchAll(/t98-calendar-create/g)].length, 31);
+  assert.match(styles, /\.t98-calendar-grid\s*\{[^}]*white-space:\s*normal/);
+});
+
+test('DataTable emptyDescription replaces or removes the default, and TeamFlow states an empty invitation list once', () => {
+  const table = { ariaLabel: 'Keys', columns: [{ key: 'name', header: 'Name', render: row => row.name }], rows: [], rowKey: row => row.id, emptyTitle: 'No keys yet.' };
+  assert.match(render(ui.DataTable, table), /New records will appear here\./);
+  assert.match(render(ui.DataTable, { ...table, emptyDescription: 'Create a key to call the API.' }), /<p>Create a key to call the API\.<\/p>/);
+  assert.doesNotMatch(render(ui.DataTable, { ...table, emptyDescription: null }), /New records will appear here|<h3>No keys yet\.<\/h3><p>/);
+  const team = render(ui.TeamFlow, { currentUserId: 'me', onRoleChange() {}, onRemove() {}, onInvite() {}, onRevokeInvitation() {}, invitations: [],
+    roles: [{ value: 'editor', label: 'Editor' }], assignableRoles: () => [], members: [{ id: 'me', name: 'Me', email: 'me@example.test', role: 'owner' }] });
+  assert.match(team, /No pending invitations\./);
+  assert.doesNotMatch(team, /New records will appear here\./);
+});
