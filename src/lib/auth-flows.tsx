@@ -3,7 +3,7 @@
 import { useId, useState, type FormEvent, type ReactNode } from 'react';
 import { Alert, Button, Checkbox, Field, Icon, Input, type Tone } from './primitives.js';
 import { DescriptionList, Heading, Link, Stack, Text, type LinkProps } from './structure.js';
-import { AuthLayout } from './workspace.js';
+import { AuthLayout, type AuthSurface } from './workspace.js';
 import { FlowActionControl, FlowFrame, HiddenInputs, formatFlowDate, passwordHint, useSingleSubmit, type LabelledAction } from './flow-frame.js';
 
 /* Presentation-only authentication flows. Applications keep requests, sessions, routing, CSRF and OIDC redirects,
@@ -25,6 +25,8 @@ export interface AuthFormBaseProps<Values = AuthFormValues> {
   brand: ReactNode;
   /** Side panel, normally `AuthStory`. */
   aside?: ReactNode;
+  /** `card` centres the form as a bordered card when there is no `aside`. */
+  surface?: AuthSurface;
   footer?: ReactNode;
   /** Accessible name for the whole screen. */
   label?: string;
@@ -80,7 +82,7 @@ function readValues(form: HTMLFormElement): AuthFormValues {
   for (const [name, value] of new FormData(form)) if (typeof value === 'string') values[name] = value;
   return values;
 }
-function AuthFormFrame({ brand, aside, footer, label, eyebrow, title, description, onSubmit, action, method = 'post', hiddenFields, valueFields, busy = false, busyLabel, error, unconfirmed, notice, fieldErrors, submitLabel, validate, children, after, below }: AuthFormFrameProps) {
+function AuthFormFrame({ brand, aside, surface, footer, label, eyebrow, title, description, onSubmit, action, method = 'post', hiddenFields, valueFields, busy = false, busyLabel, error, unconfirmed, notice, fieldErrors, submitLabel, validate, children, after, below }: AuthFormFrameProps) {
   const once = useSingleSubmit();
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -94,7 +96,7 @@ function AuthFormFrame({ brand, aside, footer, label, eyebrow, title, descriptio
   }
 
   const hasForm = submitLabel !== undefined;
-  return <AuthLayout label={label ?? title} brand={brand} aside={aside} footer={footer}>
+  return <AuthLayout label={label ?? title} brand={brand} aside={aside} surface={surface} footer={footer}>
     <header className="t98-auth-heading">
       {eyebrow && <p className="eyebrow">{eyebrow}</p>}
       <h1 className="t98-auth-title">{title}</h1>

@@ -5,12 +5,14 @@
 import { Component, type ReactNode } from 'react';
 import { Alert, Button } from './primitives.js';
 import { Stack, Text } from './structure.js';
-import { AuthLayout } from './workspace.js';
+import { AuthLayout, type AuthSurface } from './workspace.js';
 
 export type AppStateKind = 'loading' | 'error' | 'boundary' | 'unconfirmed';
 export interface AppStateScreenProps {
   state: AppStateKind;
   brand: ReactNode;
+  /** `card` matches the sign-in screens' card presentation. */
+  surface?: AuthSurface;
   title?: string;
   message?: string;
   onRetry?: () => void;
@@ -23,9 +25,9 @@ const stateCopy: Record<AppStateKind, { title: string; message: string; retryLab
   unconfirmed: { title: 'Result not confirmed', message: 'The request may or may not have completed. Reload to check the current state before you try again.', retryLabel: 'Reload' },
 };
 /** Full-screen loading and failure states shown before the application shell is available. */
-export function AppStateScreen({ state, brand, title, message, onRetry, retryLabel }: AppStateScreenProps) {
+export function AppStateScreen({ state, brand, surface, title, message, onRetry, retryLabel }: AppStateScreenProps) {
   const copy = stateCopy[state];
-  return <AuthLayout label={title ?? copy.title} brand={brand} title={title ?? copy.title}>
+  return <AuthLayout label={title ?? copy.title} brand={brand} surface={surface} title={title ?? copy.title}>
     {state === 'loading'
       ? <div className="t98-auth-state" role="status"><span className="t98-spinner" aria-hidden="true" /><Text as="span">{message ?? copy.message}</Text></div>
       : <Stack gap={4}>

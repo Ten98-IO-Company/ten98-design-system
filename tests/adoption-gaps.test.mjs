@@ -139,3 +139,11 @@ test('U55: app.css owns the page base, reduced motion, legacy table rows and App
   assert.match(app, /\.field input::placeholder,\.field textarea::placeholder\{color:var\(--color-text-placeholder\)\}/);
   assert.match(app, /\.field \.required\{color:var\(--color-text-muted\)\}/);
 });
+
+test('U55: AuthLayout surface="card" is opt-in, threads through the flows and state screens, and needs no aside', () => {
+  const brand = h('span', null, 'Ten98');
+  assert.doesNotMatch(render(ui.SignInFlow, { brand, title: 'Sign in' }), /t98-auth-layout--card/);
+  assert.match(render(ui.SignInFlow, { brand, title: 'Sign in', surface: 'card' }), /class="t98-auth-layout auth-shell t98-auth-layout--card"/);
+  assert.match(render(ui.AppStateScreen, { brand, state: 'loading', surface: 'card' }), /t98-auth-layout--card/);
+  assert.doesNotMatch(render(ui.SignInFlow, { brand, title: 'Sign in', surface: 'card', aside: 'Story' }), /t98-auth-layout--card/);
+});

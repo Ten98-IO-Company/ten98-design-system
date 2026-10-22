@@ -112,3 +112,13 @@
 .t98-auth-layout .t98-auth-heading p,.t98-auth-layout .t98-description-list dd{overflow-wrap:anywhere}
 .t98-auth-layout .t98-description-list{margin-bottom:20px}
 .t98-auth-layout .t98-auth-title{overflow-wrap:anywhere}
+/* AuthLayout surface="card": the form becomes a centred card on the canvas (no aside). */
+.t98-auth-layout--card{display:flex;align-items:center;justify-content:center;background:var(--color-canvas,var(--t98-bg))}
+.t98-auth-layout--card .auth-form{display:block;inline-size:100%;max-inline-size:460px;margin:24px;padding:32px;border:1px solid var(--color-border,var(--t98-border));border-radius:8px;background:var(--color-surface,var(--t98-surface))}
+.t98-auth-layout--card .auth-form-inner{max-inline-size:none}
+.t98-auth-layout--card .brand{padding:0}
+.t98-auth-layout--card .t98-auth-title{font-size:24px;letter-spacing:-.5px;margin-top:28px}
+.t98-auth-layout--card .auth-form h2{font-size:16px;letter-spacing:-.35px}
+@media(max-width:1200px){.t98-auth-layout--card .auth-form{padding:35px}}
+@media(max-width:960px){.t98-auth-layout--card .auth-form{padding:30px}}
+@media(max-width:760px){.t98-auth-layout--card .auth-form{margin:16px;padding:24px}.t98-auth-layout--card .auth-form h2{font-size:25px}}
