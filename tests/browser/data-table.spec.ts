@@ -214,5 +214,7 @@ test('a large DataTable sorts once per sort change, not again when a row is sele
   expect(afterSort).toBeGreaterThan(0);
   await table.getByRole('checkbox').nth(1).check();
   await table.getByRole('checkbox').nth(2).check();
-  expect(await page.evaluate(() => window.sortCalls), 'selecting rows reuses the memoized sort').toBe(afterSort);
+  // Visible cells read the same accessor when they re-render (10 rows), but re-sorting 2,000 rows would call it tens of
+  // thousands of times (about 68,000 for two selections before the memo).
+  expect(await page.evaluate(() => window.sortCalls) - afterSort, 'selecting rows reuses the memoized sort').toBeLessThan(100);
 });
