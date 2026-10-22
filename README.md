@@ -29,14 +29,14 @@ npm run check:all
 npm pack
 ```
 
-`check:all` typechecks the project, emits the library into `dist`, builds the catalogue into `site-dist`, runs the native checks and executes Playwright. See [browser testing](docs/BROWSER-TESTING.md) for development and failure traces. `npm pack` creates `ten98-ui-0.18.0.tgz` for installation in another tool. These checks are development evidence, not an accessibility certification or a guarantee about a consuming application.
+`check:all` typechecks the project, emits the library into `dist`, builds the catalogue into `site-dist`, runs the native checks and executes Playwright. See [browser testing](docs/BROWSER-TESTING.md) for development and failure traces. `npm pack` creates `ten98-ui-0.18.1.tgz` for installation in another tool. These checks are development evidence, not an accessibility certification or a guarantee about a consuming application.
 
 ## Use in an application
 
 After building and packing this repository, copy the archive into the consuming application's `vendor` directory and install it:
 
 ```sh
-npm install ./vendor/ten98-ui-0.18.0.tgz
+npm install ./vendor/ten98-ui-0.18.1.tgz
 ```
 
 Commit the archive and the application's lockfile together. Campaign and Discover initially adopted the same 0.2.0 archive as `file:vendor/ten98-ui-0.2.0.tgz`; their builds do not require a sibling checkout. See [the integration contract](docs/INTEGRATION.md) for the shared application components and update workflow.
