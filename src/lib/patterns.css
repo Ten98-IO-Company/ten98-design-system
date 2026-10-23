@@ -6,8 +6,9 @@
 .t98-table-search input { padding-left: 2.25rem; width: 100%; }
 .t98-table-count { margin-left: auto; color: var(--t98-muted); font-size: .75rem; white-space: nowrap; }
 .t98-table-scroll { position: relative; overflow-x: auto; }
-.t98-table { border-collapse: collapse; width: 100%; text-align: left; white-space: nowrap; }
-.t98-table th { background: var(--t98-subtle); color: var(--t98-muted); font-size: .6875rem; font-weight: 600; border-top: 1px solid var(--t98-border); border-bottom: 1px solid var(--t98-border); }
+.t98-table { border-collapse: collapse; width: 100%; text-align: start; white-space: nowrap; }
+/* Headers set start themselves: the browser centres th when the table's own alignment is the initial value. */
+.t98-table th { text-align: start; background: var(--t98-subtle); color: var(--t98-muted); font-size: .6875rem; font-weight: 600; border-top: 1px solid var(--t98-border); border-bottom: 1px solid var(--t98-border); }
 .t98-table th, .t98-table td { padding: var(--t98-cell-padding, .875rem) 1.125rem; }
 .t98-table th { padding-top: .625rem; padding-bottom: .625rem; }
 .t98-table td { border-bottom: 1px solid var(--t98-border); }
@@ -34,7 +35,7 @@
 .t98-pagination-controls > span { min-width: 5rem; text-align: center; }
 .t98-table-caption { caption-side: top; padding: .75rem 1.125rem; text-align: start; color: var(--t98-text); font-weight: 600; }
 .t98-table-status { padding: 0 1.125rem .75rem; }
-.t98-table .t98-table-cell--end { text-align: end; }.t98-table .t98-table-cell--center { text-align: center; }
+.t98-table .t98-table-cell--start { text-align: start; }.t98-table .t98-table-cell--end { text-align: end; }.t98-table .t98-table-cell--center { text-align: center; }
 .t98-table .t98-table-cell--numeric { font-variant-numeric: tabular-nums; }
 /* break-word, not anywhere: a wrapping column keeps its longest word's width instead of collapsing to one letter per line. */
 .t98-table .t98-table-cell--wrap { white-space: normal; overflow-wrap: break-word; }
