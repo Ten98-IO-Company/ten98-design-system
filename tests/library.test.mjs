@@ -183,10 +183,12 @@ test('Field connects the direct control to its label, help and validation error'
   assert.doesNotMatch(valid, /aria-invalid|aria-describedby/);
 });
 
-test('Button defaults to a non-submit action and disables itself while loading', () => {
+test('Button defaults to a non-submit action and stays focusable but inert while loading', () => {
   const busy = render(ui.Button, { loading: true, disabled: false }, 'Save project');
   assert.match(busy, /^<button\b[^>]*type="button"/);
-  assert.match(busy, /\bdisabled=""/);
+  // aria-disabled, not disabled: a disabled button drops focus to <body> while it works (#82).
+  assert.doesNotMatch(busy, /\bdisabled=""/);
+  assert.match(busy, /aria-disabled="true"/);
   assert.match(busy, /aria-busy="true"/);
   assert.match(busy, /Save project/);
   const submit = render(ui.Button, { type: 'submit' }, 'Submit');

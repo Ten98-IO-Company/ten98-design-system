@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Button, Dialog, Field, Form, FormActions, Heading, Image, Input, Stack, Text, Textarea } from '@ten98/ui';
+import { Button, Dialog, Field, Form, FormActions, Heading, Image, Input, Stack, Text, Textarea, useFocusReturn } from '@ten98/ui';
 import '@ten98/ui/app-tokens.css';
 import '@ten98/ui/app.css';
 import '@ten98/ui/product.css';
@@ -21,6 +21,18 @@ function EditDialog() {
     <Text id="saved">{saved}</Text>
   </>;
 }
+// Busy actions (#82): a loading Button keeps focus itself; a control the app disables uses useFocusReturn.
+function BusyActions() {
+  const [loading, setLoading] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const remember = useFocusReturn(busy);
+  const work = (set: (value: boolean) => void) => { set(true); setTimeout(() => set(false), 300); };
+  return <Stack gap={2}>
+    <Button loading={loading} onClick={() => work(setLoading)}>Sync now</Button>
+    <Button disabled={busy} onClick={() => { remember(); work(setBusy); }}>Export report</Button>
+  </Stack>;
+}
+
 function Screen() {
   const [calls, setCalls] = useState<string[]>([]);
   const [message, setMessage] = useState('');
@@ -36,6 +48,7 @@ function Screen() {
     <Button variant="secondary" onClick={() => formRef.current?.requestSubmit()}>Submit from outside</Button>
     <Text id="calls">{calls.join(' | ')}</Text>
     <EditDialog />
+    <BusyActions />
     <Image src="/tests/missing-image.png" alt="Spring launch hero" aspect="video" />
     <Image src="/tests/missing-decorative.png" alt="" />
   </Stack>;

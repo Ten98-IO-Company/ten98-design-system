@@ -2,7 +2,7 @@
 
 import {
   Children, cloneElement, forwardRef, isValidElement, useEffect, useId, useRef, useState,
-  type ButtonHTMLAttributes, type ComponentType, type FormEvent, type HTMLAttributes, type InputHTMLAttributes,
+  type ButtonHTMLAttributes, type ComponentType, type FormEvent, type MouseEvent, type HTMLAttributes, type InputHTMLAttributes,
   type OptgroupHTMLAttributes, type OptionHTMLAttributes, type ReactElement, type ReactNode, type SelectHTMLAttributes,
   type SVGProps, type TextareaHTMLAttributes,
 } from 'react';
@@ -116,7 +116,10 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
     if (!inactive && Component) return <Component {...anchor} {...{ ref }} href={href} className={classes}>{content}</Component>;
     return <a {...anchor} ref={ref as never} href={inactive ? undefined : href} className={classes}>{content}</a>;
   }
-  return <button ref={ref} type={type} className={classes} disabled={disabled || loading} aria-pressed={pressed} aria-busy={loading || undefined} {...props}>{content}</button>;
+  // A loading button stays focusable (aria-disabled, clicks ignored) so focus is not dropped to <body> while it works;
+  // `disabled` still removes it from the tab order.
+  const guarded = loading ? (event: MouseEvent<HTMLButtonElement>) => event.preventDefault() : props.onClick;
+  return <button ref={ref} type={type} className={classes} disabled={disabled} aria-disabled={loading && !disabled ? true : props['aria-disabled']} aria-pressed={pressed} aria-busy={loading || undefined} {...props} onClick={guarded}>{content}</button>;
 });
 
 export type Tone = 'neutral' | 'accent' | 'success' | 'warning' | 'danger' | 'info';
