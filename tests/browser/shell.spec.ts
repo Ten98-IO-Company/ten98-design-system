@@ -372,3 +372,13 @@ for (const direction of ['ltr', 'rtl'] as const) {
     }
   });
 }
+
+test('the current crumb truncates with an ellipsis and keeps its full name in the title', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 800 });
+  await page.goto(appUrl('light'));
+  const current = page.locator('.t98-app-topbar__current');
+  // text-overflow applies only to a block container; the crumbs' inline-flex would clip without the ellipsis.
+  expect(await current.evaluate(element => getComputedStyle(element).display)).toBe('block');
+  await expect(current).toHaveAttribute('title', 'Overview');
+  await expect(current).toHaveCSS('text-overflow', 'ellipsis');
+});

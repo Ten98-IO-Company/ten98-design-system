@@ -173,8 +173,9 @@ for (const width of [1440, 375]) {
     expect(fit.whiteSpace).toBe('normal');
     expect(fit.overflow).toBeLessThanOrEqual(1);
     expect(fit.lines).toBeGreaterThan(1);
+    // Wide screens fit the month; narrow ones scroll it inside its own region rather than squeezing the days.
     const scroll = await calendar.locator('.t98-calendar-scroll').evaluate(element => element.scrollWidth - element.clientWidth);
-    expect(scroll, 'the grid fits its own width').toBeLessThanOrEqual(1);
+    if (width >= 1024) expect(scroll, 'the grid fits its own width').toBeLessThanOrEqual(1);
     await expect(calendar.locator('td[data-date="2026-10-20"] .t98-calendar-create')).toHaveCount(0);
     await expect(calendar.locator('td[data-date="2026-10-21"] .t98-calendar-create')).toHaveCount(1);
   });
@@ -192,4 +193,26 @@ test('the replay skip toggle is a 44px target, including at 320px and doubled te
   expect((await target.boundingBox())!.height).toBeGreaterThanOrEqual(43.5);
   expect(await overflow(page)).toBeLessThanOrEqual(1);
   await restore();
+});
+
+test('at 320px the month scrolls in a labelled, focusable region and days keep Create and Today on one line', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 900 });
+  await page.goto('/tests/spatial.html');
+  const region = page.getByRole('region', { name: 'October 2026 days' });
+  await expect(region).toHaveAttribute('tabindex', '0');
+  expect(await region.evaluate(element => element.scrollWidth > element.clientWidth), 'the month overflows at 320px').toBe(true);
+  // Keyboard scrolling: focus the region and move right.
+  await region.focus();
+  await page.keyboard.press('ArrowRight');
+  await expect.poll(() => region.evaluate(element => element.scrollLeft)).toBeGreaterThan(0);
+  const lines = (selector: string) => page.locator(selector).first().evaluate(element => {
+    const range = document.createRange(); range.selectNodeContents(element);
+    return new Set([...range.getClientRects()].map(rect => Math.round(rect.top))).size;
+  });
+  expect(await lines('.t98-calendar-create'), 'Create is not broken mid-word').toBe(1);
+  expect(await lines('.t98-calendar-today-mark'), 'Today is not broken mid-word').toBe(1);
+  // A long entry wraps between words, so its day stays a reasonable height.
+  const entry = await page.locator('td[data-date="2026-10-23"] .t98-calendar-entry').boundingBox();
+  expect(entry!.height).toBeLessThan(200);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
 });

@@ -117,7 +117,8 @@ export function CalendarMonth({ month, weekStartsOn, locale, today, days, onPrev
       </div>
     </div>
     {createDisabledReason != null && <div className="t98-calendar-reason" id={`${id}-reason`}>{createDisabledReason}</div>}
-    <div className="t98-calendar-scroll">
+    {/* A labelled, focusable region so keyboard users can scroll the month when it is wider than the screen. */}
+    <div className="t98-calendar-scroll" role="region" tabIndex={0} aria-label={`${monthTitle} days`}>
       <table className="t98-calendar-grid" role="grid" aria-labelledby={`${id}-title`} ref={gridRef} onKeyDown={onKeyDown}>
         <thead><tr role="row">{weekdays.map(day => <th key={day.long} role="columnheader" scope="col" abbr={day.long} className="t98-calendar-weekday">{day.short}</th>)}</tr></thead>
         <tbody>{rows.map(row => <tr role="row" key={row[0]}>{row.map(iso => {

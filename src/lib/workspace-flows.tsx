@@ -124,13 +124,13 @@ export interface TeamInvitation { id: string; email: string; role: string; expir
 export interface TeamPolicy { twoFactorRequired: boolean; onChange: (required: boolean) => void | Promise<void> }
 export interface TeamOwnership { candidates: SelectOption[]; onTransfer: Submit<{ userId: string }> }
 export interface TeamMessages {
-  members: string; member: string; email: string; role: string; twoFactor: string; twoFactorOn: string; twoFactorOff: string; actions: string; you: string; remove: string; removeTitle: string; removeDescription: string; membersEmpty: string;
+  members: string; member: string; email: string; role: string; twoFactor: string; twoFactorOn: string; twoFactorOff: string; twoFactorUnknown: string; actions: string; you: string; remove: string; removeTitle: string; removeDescription: string; membersEmpty: string;
   roleFor: string; invitations: string; invitationsEmpty: string; expires: string; status: string; revokeInvitation: string; revokeInvitationTitle: string; revokeInvitationDescription: string;
   inviteHeading: string; inviteEmail: string; inviteRole: string; invite: string; linkLabel: string; linkWarning: string; linkDismiss: string; copy: string; copied: string; copyFailed: string; copyManual: string;
   policy: string; policyLabel: string; ownership: string; ownershipDescription: string; ownershipCandidate: string; ownershipChoose: string; transfer: string; transferTitle: string; transferDescription: string; transferConfirmation: string;
 }
 const teamMessages: TeamMessages = {
-  members: 'Members', member: 'Member', email: 'Email', role: 'Role', twoFactor: 'Two-factor', twoFactorOn: 'On', twoFactorOff: 'Off', actions: 'Actions', you: 'You', remove: 'Remove', removeTitle: 'Remove this member?',
+  members: 'Members', member: 'Member', email: 'Email', role: 'Role', twoFactor: 'Two-factor', twoFactorOn: 'On', twoFactorOff: 'Off', twoFactorUnknown: 'Not reported', actions: 'Actions', you: 'You', remove: 'Remove', removeTitle: 'Remove this member?',
   removeDescription: 'They lose access to this workspace immediately.', membersEmpty: 'No members.', roleFor: 'Role for {name}', invitations: 'Invitations', invitationsEmpty: 'No pending invitations.', expires: 'Expires', status: 'Status',
   revokeInvitation: 'Revoke', revokeInvitationTitle: 'Revoke this invitation?', revokeInvitationDescription: 'The invitation link stops working.',
   inviteHeading: 'Invite someone', inviteEmail: 'Email address', inviteRole: 'Role', invite: 'Send invitation', linkLabel: 'Invitation link', linkWarning: 'Share this link now. It won’t be shown again.', linkDismiss: 'Done',
@@ -192,7 +192,7 @@ export function TeamFlow({ currentUserId, members, roles, roleLabels, invitation
       const options = [row.role, ...allowed.filter(role => role !== row.role)].map(role => ({ value: role, label: roleLabel(role) }));
       return <Select aria-label={copy.roleFor.replace('{name}', row.name)} options={options} value={row.role} disabled={locked} onChange={event => { const role = event.target.value; void singleFlight(() => onRoleChange({ id: row.id, role })); }} />;
     } },
-    { key: 'twoFactor', header: copy.twoFactor, render: row => row.twoFactor === undefined ? '' : <Badge tone={row.twoFactor ? 'success' : 'warning'}>{row.twoFactor ? copy.twoFactorOn : copy.twoFactorOff}</Badge> },
+    { key: 'twoFactor', header: copy.twoFactor, render: row => row.twoFactor === undefined ? <Text as="span" tone="muted">{copy.twoFactorUnknown}</Text> : <Badge tone={row.twoFactor ? 'success' : 'warning'}>{row.twoFactor ? copy.twoFactorOn : copy.twoFactorOff}</Badge> },
   ];
   const invitationColumns: DataColumn<TeamInvitation>[] = [
     { key: 'email', header: copy.email, rowHeader: true, wrap: true },
@@ -209,7 +209,7 @@ export function TeamFlow({ currentUserId, members, roles, roleLabels, invitation
       </Stack>}
       <Stack gap={2}>
         <Heading level={3} size="sm">{copy.members}</Heading>
-        <DataTable<TeamMember> ariaLabel={copy.members} columns={memberColumns} rows={members} rowKey={row => row.id} {...staticTable} emptyTitle={copy.membersEmpty}
+        <DataTable<TeamMember> ariaLabel={copy.members} columns={members.some(member => member.twoFactor !== undefined) ? memberColumns : memberColumns.filter(column => column.key !== 'twoFactor')} rows={members} rowKey={row => row.id} {...staticTable} emptyTitle={copy.membersEmpty}
           rowActionsLabel={copy.actions} rowActions={row => row.id === currentUserId || !assignableRoles(row).length ? null
             : <Button type="button" variant="secondary" size="sm" disabled={locked} aria-label={`${copy.remove}: ${row.name}`} onClick={() => setRemoving(row)}>{copy.remove}</Button>} />
       </Stack>

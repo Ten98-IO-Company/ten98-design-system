@@ -45,6 +45,7 @@
 .t98-input[aria-invalid='true'] { border-color: var(--t98-danger); }
 .t98-textarea { resize: vertical; min-height: 94px; }
 .t98-select { padding-right: 30px; cursor: pointer; }
+.t98-select--auto { width: auto; max-width: 100%; }
 .t98-field { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
 .t98-label { color: var(--t98-text); font-size: 12px; font-weight: 600; line-height: 18px; }
 .t98-field-description, .t98-field-error { margin: 0; font-size: 11px; line-height: 17px; overflow-wrap: anywhere; }

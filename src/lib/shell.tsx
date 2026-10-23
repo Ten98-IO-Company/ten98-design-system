@@ -270,7 +270,7 @@ export function AppTopbar({ breadcrumb, breadcrumbLabel = 'Breadcrumb', wrap = f
           </li>
           <li className="t98-app-topbar__separator" aria-hidden="true"><Icon name="chevron-right" size={14} /></li>
         </>}
-        <li className="t98-app-topbar__crumb t98-app-topbar__current" aria-current="page">{breadcrumb.current}</li>
+        <li className="t98-app-topbar__crumb t98-app-topbar__current" aria-current="page" title={typeof breadcrumb.current === 'string' ? breadcrumb.current : undefined}>{breadcrumb.current}</li>
       </ol>
     </nav>
     {search && <div className="t98-app-topbar__search">{search}</div>}

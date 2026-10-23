@@ -150,3 +150,19 @@ test('U56: AuthLayout defaults to the card surface without an aside; plain opts 
   assert.doesNotMatch(render(ui.SignInFlow, { brand, title: 'Sign in', aside: 'Story' }), /t98-auth-layout--card/);
   assert.match(render(ui.SignInFlow, { brand, title: 'Sign in', surface: 'card', aside: 'Story' }), /class="t98-auth-layout auth-shell auth-split t98-auth-layout--card"/);
 });
+
+// Campaign Lead's 0.21.0 browser pass (U57-U62); Form ref, calendar width and crumb ellipsis are browser-tested.
+test('U59: TeamFlow shows Two-factor only when members report it, and names an unreported status', () => {
+  const base = { currentUserId: 'me', onRoleChange() {}, onRemove() {}, onInvite() {}, onRevokeInvitation() {}, invitations: [], roles: [{ value: 'editor', label: 'Editor' }], assignableRoles: () => [] };
+  const unreported = render(ui.TeamFlow, { ...base, members: [{ id: 'me', name: 'Me', email: 'me@example.test', role: 'owner' }] });
+  assert.doesNotMatch(unreported, />Two-factor</);
+  const mixed = render(ui.TeamFlow, { ...base, members: [{ id: 'me', name: 'Me', email: 'me@example.test', role: 'owner', twoFactor: true }, { id: 'b', name: 'Bo', email: 'b@example.test', role: 'editor' }] });
+  assert.match(mixed, />Two-factor</);
+  assert.match(mixed, />Not reported</);
+});
+
+test('U62: Select width="auto" sizes to its options; the default still fills a Field', () => {
+  assert.match(render(ui.Select, { width: 'auto', options: [{ value: 'aed', label: 'AED' }] }), /class="t98-input t98-select t98-select--auto"/);
+  assert.match(render(ui.Select, { options: [] }), /class="t98-input t98-select"/);
+  assert.match(styles, /\.t98-select--auto\s*\{\s*width:\s*auto;\s*max-width:\s*100%;\s*\}/);
+});

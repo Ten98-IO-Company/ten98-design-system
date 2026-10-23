@@ -175,6 +175,7 @@ export const primitiveEntries: ComponentEntry[] = [
     props: [
       { name: 'options', type: '{ value: string; label: string; disabled?: boolean; group?: string }[]', description: 'Rendered before children. Options with the same group share one optgroup, placed where the group first appears.' },
       { name: 'placeholder', type: 'string', description: 'A disabled empty first option, selected while value and defaultValue are empty.' },
+      { name: 'width', type: "'full' | 'auto'", defaultValue: "'full'", description: 'full fills its container, as in a Field; auto sizes to the options, for example in a toolbar.' },
     ], nativeProps: 'All SelectHTMLAttributes<HTMLSelectElement> and HTMLSelectElement ref, including children, name, value/onChange, defaultValue, required, disabled, multiple and className. No readOnly attribute exists for native select; use a static value presentation when editing is unavailable but submission must be preserved.',
     tokens: controlTokens, accessibility: ['Use Field to label the control and associate help/errors.', 'Keyboard selection and the option menu are browser-native.', 'For type-to-filter choices use Combobox (WAI-ARIA APG list autocomplete); for several choices use CheckboxGroup.'],
     related: ['Field', 'ProductSwitcher', 'Input'], example: controlCode('Select', 'Empty'),
