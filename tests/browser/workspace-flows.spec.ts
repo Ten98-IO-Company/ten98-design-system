@@ -181,3 +181,10 @@ test('CopyButton shows a visible, selected fallback when the clipboard is denied
   await expect(manual).toBeFocused();
   expect(await manual.evaluate((input: HTMLInputElement) => input.value.slice(input.selectionStart ?? 0, input.selectionEnd ?? 0))).toContain('t98_live_');
 });
+
+test('a new invitation link takes focus when it appears (#83)', async ({ page }) => {
+  await page.goto('/tests/workspace-flows.html?theme=light');
+  await page.getByLabel('Email address').fill('teammate@example.com');
+  await page.getByRole('button', { name: 'Send invitation' }).click();
+  await expect(page.getByLabel('Invitation link')).toBeFocused();
+});
