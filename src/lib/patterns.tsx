@@ -113,9 +113,14 @@ interface DataTableBaseProps<T> {
   emptyDescription?: ReactNode;
   /** Replaces the default empty state. */
   emptyState?: ReactNode;
-  /** Server mode: the app sorts. Supplying `sort` or `onSortChange` stops local sorting. */
+  /** Server mode: the app sorts. Supplying `sort` or `onSortChange` stops local sorting. The next sort is predictable:
+   * the current column flips asc ↔ desc, and any other column starts asc. */
   sort?: TableSort;
   onSortChange?: (sort: TableSort) => void;
+  /** Disables the sort buttons, for example while a read or write is in flight. */
+  sortDisabled?: boolean;
+  /** Names each sort button from its column header, for example "Sort by Words" for the Words column; it should contain the header text. */
+  sortLabel?: (header: string) => string;
   /** Server mode: the app slices. The table shows `rows` as given. */
   /** Server paging. Pass `total` or a cursor: without either, Next stays enabled whenever a page is full, because the table cannot know a full page is the last. */
   page?: TableIndexPage | TableCursorPage;
@@ -145,7 +150,7 @@ const interactiveTarget = 'a[href],button,input,select,textarea,label,summary,[r
 export function DataTable<T>({
   columns, rows, rowKey, caption, captionHidden = true, ariaLabel, searchable = true, sortable = true, pagination = true,
   searchPlaceholder = 'Search records…', pageSize = 5, selectable = false, selectionLabel, selectionDisabled = false, selectedKeys: selectedKeysProp, onSelectionChange, activeKey, onRowActivate, rowDetail, expandedKeys: expandedKeysProp, onExpandedChange, emptyTitle = 'No records found', emptyDescription, emptyState,
-  sort: sortProp, onSortChange, page: pageProp, onPageChange, search: searchProp, onSearchChange, rowActions, rowActionsLabel = 'Actions',
+  sort: sortProp, onSortChange, sortDisabled = false, sortLabel, page: pageProp, onPageChange, search: searchProp, onSearchChange, rowActions, rowActionsLabel = 'Actions',
   loading = false, unavailable, stickyHeader = false, footerCells, density = 'comfortable', responsive = 'scroll',
 }: DataTableProps<T>) {
   const [localQuery, setQuery] = useState('');
@@ -310,7 +315,7 @@ export function DataTable<T>({
             const sorts = sortable && column.sortable !== false;
             return <th key={column.key} scope="col" className={cellClass(column)} role={role('columnheader')}
               aria-sort={sorts ? sort?.key === column.key ? sort.direction === 'asc' ? 'ascending' : 'descending' : 'none' : undefined}>
-              {sorts ? <button type="button" className="t98-sort-button" onClick={() => changeSort(column)}>
+              {sorts ? <button type="button" className="t98-sort-button" disabled={sortDisabled} aria-label={sortLabel?.(column.header)} onClick={() => changeSort(column)}>
                 {column.header}
                 <Icon name={sort?.key === column.key ? sort.direction === 'asc' ? 'arrow-up' : 'arrow-down' : 'chevrons-up-down'} size={13} />
               </button> : column.header}
