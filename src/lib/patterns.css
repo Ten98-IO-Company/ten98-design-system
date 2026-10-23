@@ -36,7 +36,8 @@
 .t98-table-status { padding: 0 1.125rem .75rem; }
 .t98-table .t98-table-cell--end { text-align: end; }.t98-table .t98-table-cell--center { text-align: center; }
 .t98-table .t98-table-cell--numeric { font-variant-numeric: tabular-nums; }
-.t98-table .t98-table-cell--wrap { white-space: normal; overflow-wrap: anywhere; }
+/* break-word, not anywhere: a wrapping column keeps its longest word's width instead of collapsing to one letter per line. */
+.t98-table .t98-table-cell--wrap { white-space: normal; overflow-wrap: break-word; }
 .t98-table .t98-table-cell--sm { min-width: 8rem; }.t98-table .t98-table-cell--md { min-width: 12rem; }.t98-table .t98-table-cell--lg { min-width: 16rem; }
 .t98-table .t98-table-actions { width: 1%; text-align: end; }
 .t98-table .t98-table-actions .t98-button { white-space: nowrap; overflow-wrap: normal; }

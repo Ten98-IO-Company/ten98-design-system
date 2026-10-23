@@ -193,3 +193,33 @@ test('U66: SectionNav drops hidden items and renders disabled ones as non-links 
   assert.doesNotMatch(html, /t98-section-nav__list--wrap/);
   assert.match(render(ui.SectionNav, { label: 'Settings', items, wrap: true }), /class="t98-section-nav__list t98-section-nav__list--wrap"/);
 });
+
+// Campaign Lead's second browser pass on 0.23.0 (#76-#81).
+test('#79: InvitationAcceptFlow labels the role and takes its terms from messages', () => {
+  const html = render(ui.InvitationAcceptFlow, { brand: h('span', null, 'Ten98'), state: 'details', token: 't', onAccept() {},
+    invitation: { workspaceName: 'Acme', email: 'a@example.test', role: 'editor', expiresAt: '2026-10-30T00:00:00Z' },
+    roleLabel: role => role === 'editor' ? 'Editor' : role, messages: { roleTerm: 'Access' }, formatDate: () => '30 Oct 2026' });
+  assert.match(html, />Access<\/dt><dd[^>]*>Editor</);
+  assert.match(html, />30 Oct 2026</);
+  assert.doesNotMatch(html, />editor</);
+});
+
+test('#80: TeamFlow marks the required invite email', () => {
+  const html = render(ui.TeamFlow, { currentUserId: 'me', onRoleChange() {}, onRemove() {}, onInvite() {}, onRevokeInvitation() {}, invitations: [], roles: [{ value: 'editor', label: 'Editor' }], assignableRoles: () => [], members: [{ id: 'me', name: 'Me', email: 'me@example.test', role: 'owner' }] });
+  assert.match(html, /Email address<span class="t98-label-required" aria-hidden="true"> \*<\/span>|<label[^>]*>[^<]*<span class="t98-label-required"/);
+});
+
+test('#81: DataTable names each row checkbox and can lock selection while busy', () => {
+  const props = { ariaLabel: 'Campaigns', columns: [{ key: 'name', header: 'Name' }], rows: [{ id: 'a', name: 'City after hours' }], rowKey: row => row.id, selectable: true };
+  const named = render(ui.DataTable, { ...props, selectionLabel: row => `Select ${row.name}` });
+  assert.match(named, /aria-label="Select City after hours"/);
+  const locked = render(ui.DataTable, { ...props, selectionDisabled: true });
+  assert.equal([...locked.matchAll(/<input type="checkbox"[^>]*disabled=""/g)].length, 2);
+  assert.match(render(ui.DataTable, props), /aria-label="Select row 1"/);
+});
+
+test('#76-#78: wrap columns keep their longest word, the status label keeps a basis, selected segments keep contrast on hover', () => {
+  assert.match(styles, /\.t98-table \.t98-table-cell--wrap\s*\{[^}]*overflow-wrap:\s*break-word/);
+  assert.match(styles, /\.t98-sidebar-status__label\s*\{[^}]*flex:\s*1 1 8rem/);
+  assert.match(styles, /\.t98-segmented-option:hover:not\(:disabled\):not\(\[aria-pressed='true'\]\)/);
+});

@@ -227,7 +227,7 @@ export function TeamFlow({ currentUserId, members, roles, roleLabels, invitation
         }}>
           <Stack gap={3}>
             <Heading level={4} size="sm">{copy.inviteHeading}</Heading>
-            <Field label={copy.inviteEmail} htmlFor={`${id}-email`} error={state.fieldErrors?.email}><Input name="email" type="email" autoComplete="off" required maxLength={254} /></Field>
+            <Field label={copy.inviteEmail} htmlFor={`${id}-email`} required error={state.fieldErrors?.email}><Input name="email" type="email" autoComplete="off" required maxLength={254} /></Field>
             <Field label={copy.inviteRole} htmlFor={`${id}-role`} error={state.fieldErrors?.role}><Select name="role" options={roles.map(role => ({ ...role, label: roleLabel(role.value) }))} defaultValue={defaultInviteRole} /></Field>
             <FormActions><Button type="submit">{copy.invite}</Button></FormActions>
           </Stack>

@@ -92,6 +92,10 @@ interface DataTableBaseProps<T> {
   searchPlaceholder?: string;
   pageSize?: number;
   selectable?: boolean;
+  /** Names each row's checkbox, for example "Select City after hours". Defaults to "Select row N". */
+  selectionLabel?: (row: T) => string;
+  /** Locks every selection checkbox, for example while a bulk action is running. */
+  selectionDisabled?: boolean;
   /** Controlled selection: the table keeps no selection state and the app owns pruning. Report changes through `onSelectionChange`. */
   selectedKeys?: readonly string[];
   onSelectionChange?: (keys: string[]) => void;
@@ -140,7 +144,7 @@ const interactiveTarget = 'a[href],button,input,select,textarea,label,summary,[r
 
 export function DataTable<T>({
   columns, rows, rowKey, caption, captionHidden = true, ariaLabel, searchable = true, sortable = true, pagination = true,
-  searchPlaceholder = 'Search records…', pageSize = 5, selectable = false, selectedKeys: selectedKeysProp, onSelectionChange, activeKey, onRowActivate, rowDetail, expandedKeys: expandedKeysProp, onExpandedChange, emptyTitle = 'No records found', emptyDescription, emptyState,
+  searchPlaceholder = 'Search records…', pageSize = 5, selectable = false, selectionLabel, selectionDisabled = false, selectedKeys: selectedKeysProp, onSelectionChange, activeKey, onRowActivate, rowDetail, expandedKeys: expandedKeysProp, onExpandedChange, emptyTitle = 'No records found', emptyDescription, emptyState,
   sort: sortProp, onSortChange, page: pageProp, onPageChange, search: searchProp, onSearchChange, rowActions, rowActionsLabel = 'Actions',
   loading = false, unavailable, stickyHeader = false, footerCells, density = 'comfortable', responsive = 'scroll',
 }: DataTableProps<T>) {
@@ -298,7 +302,7 @@ export function DataTable<T>({
         {caption !== undefined && <caption className={captionHidden ? 't98-visually-hidden' : 't98-table-caption'}>{caption}</caption>}
         <thead role={role('rowgroup')}><tr role={role('row')}>
           {selectable && <th className="t98-table-check" scope="col" role={role('columnheader')}>
-            <label className="t98-table-checkbox-target"><input ref={selectAll} type="checkbox" checked={allChecked} disabled={visible.length === 0}
+            <label className="t98-table-checkbox-target"><input ref={selectAll} type="checkbox" checked={allChecked} disabled={selectionDisabled || visible.length === 0}
               aria-label="Select all rows on this page" onChange={togglePage} /></label>
           </th>}
           {rowDetail && <th scope="col" className="t98-table-expand" role={role('columnheader')}><span className="t98-visually-hidden">Details</span></th>}
@@ -328,8 +332,8 @@ export function DataTable<T>({
               onClick={activatable ? event => onRowClick(event, row) : undefined}
               onKeyDown={activatable ? event => onRowKeyDown(event, row, index) : undefined}>
             {selectable && <td className="t98-table-check" role={role('cell')}>
-              <label className="t98-table-checkbox-target"><input type="checkbox" aria-label={`Select row ${offset + index + 1}`} checked={selectedSet.has(key)}
-                onChange={() => toggleRow(key)} /></label>
+              <label className="t98-table-checkbox-target"><input type="checkbox" aria-label={selectionLabel ? selectionLabel(row) : `Select row ${offset + index + 1}`} checked={selectedSet.has(key)}
+                disabled={selectionDisabled} onChange={() => toggleRow(key)} /></label>
             </td>}
             {rowDetail && <td className="t98-table-expand" role={role('cell')}>
               <Button variant="ghost" size="sm" aria-label={`Details for row ${offset + index + 1}`} aria-expanded={expanded} aria-controls={detailId} onClick={() => toggleExpanded(key)}>

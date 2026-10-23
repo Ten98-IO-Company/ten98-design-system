@@ -40,7 +40,8 @@
 .t98-segmented { display: inline-flex; flex-wrap: wrap; max-inline-size: 100%; border: 1px solid var(--t98-control-border); border-radius: var(--t98-radius); background: var(--t98-surface); overflow: hidden; }
 .t98-segmented-option { flex: 1 1 auto; min-block-size: 44px; min-inline-size: 44px; padding: 8px 14px; border: 0; border-inline-end: 1px solid var(--t98-control-border); background: transparent; color: var(--t98-text); font: 600 var(--t98-text-sm)/1.4 var(--t98-font); cursor: pointer; overflow-wrap: anywhere; }
 .t98-segmented-option:last-child { border-inline-end: 0; }
-.t98-segmented-option:hover:not(:disabled) { background: var(--t98-subtle); }
+/* Hover tints unselected options only; the selected option keeps its accent fill so its text keeps contrast. */
+.t98-segmented-option:hover:not(:disabled):not([aria-pressed='true']) { background: var(--t98-subtle); }
 .t98-segmented-option[aria-pressed='true'] { background: var(--t98-accent); color: var(--t98-on-accent); }
 .t98-segmented-option:disabled { opacity: .5; cursor: not-allowed; }
 .t98-segmented-option:focus-visible { outline-offset: -4px; }

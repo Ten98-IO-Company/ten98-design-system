@@ -288,17 +288,21 @@ export function PasswordRecoveryFlow({ stage, token, availability = 'enabled', s
 
 export type InvitationState = 'loading' | 'details' | 'signin-required' | 'mismatch' | 'unavailable' | 'accepted';
 export interface InvitationDetails { workspaceName: string; email: string; role: string; expiresAt: string | Date }
-export interface InvitationMessages { loading: string; mismatch: string; accepted: string; signInRequired: string }
+export interface InvitationMessages { loading: string; mismatch: string; accepted: string; signInRequired: string; workspaceTerm: string; emailTerm: string; roleTerm: string; expiresTerm: string }
 const invitationMessages: InvitationMessages = {
   loading: 'Loading the invitation…', mismatch: 'Signed in as {signedIn}; this invitation is for {invited}.', accepted: 'You joined {workspace}.',
   signInRequired: 'Sign in as {invited} to join {workspace}.',
+  workspaceTerm: 'Workspace', emailTerm: 'Invited email', roleTerm: 'Role', expiresTerm: 'Expires',
 };
 export interface InvitationAcceptFlowProps extends AuthFormBaseProps<InvitationValues> {
   state: InvitationState;
   /** Invitation token, held in memory by the application. It is posted as the hidden field `token` and included in the onSubmit values; the flow never reads or changes the address. */
   token?: string;
   invitation?: InvitationDetails;
+  /** Formats the expiry; pass a locale-aware formatter (the default is a medium English date in UTC). */
   formatDate?: (value: string | Date) => string;
+  /** The role's display name, for example "Editor" for `editor`. Defaults to the raw role. */
+  roleLabel?: (role: string) => string;
   /** Email of the current session, if any. */
   signedInEmail?: string;
   /** An account already exists for the invited email. */
@@ -317,17 +321,17 @@ export interface InvitationAcceptFlowProps extends AuthFormBaseProps<InvitationV
   cancel?: LabelledAction;
 }
 /** Workspace invitation screens for every step of acceptance. The application validates the invitation and the session. */
-export function InvitationAcceptFlow({ state, token, invitation, formatDate = formatFlowDate, signedInEmail, accountExists = false, providers, onSignIn, signInLabel, onSwitchAccount, onRetry, continueAction, passwordPolicy = defaultPasswordPolicy, messages, cancel, busyLabel, linkComponent, fieldErrors, onSubmit, ...frame }: InvitationAcceptFlowProps) {
+export function InvitationAcceptFlow({ state, token, invitation, formatDate = formatFlowDate, roleLabel = role => role, signedInEmail, accountExists = false, providers, onSignIn, signInLabel, onSwitchAccount, onRetry, continueAction, passwordPolicy = defaultPasswordPolicy, messages, cancel, busyLabel, linkComponent, fieldErrors, onSubmit, ...frame }: InvitationAcceptFlowProps) {
   const id = useId();
   const copy = { ...invitationMessages, ...messages };
   const fill = (text: string) => text.replace('{signedIn}', signedInEmail ?? '').replace('{invited}', invitation?.email ?? '').replace('{workspace}', invitation?.workspaceName ?? '');
   const effective = state === 'details' && !signedInEmail && accountExists ? 'signin-required' : state;
   const busy = frame.busy ?? false;
   const summary = invitation && <DescriptionList items={[
-    { key: 'workspace', term: 'Workspace', description: invitation.workspaceName },
-    { key: 'email', term: 'Invited email', description: invitation.email },
-    { key: 'role', term: 'Role', description: invitation.role },
-    { key: 'expires', term: 'Expires', description: formatDate(invitation.expiresAt) },
+    { key: 'workspace', term: copy.workspaceTerm, description: invitation.workspaceName },
+    { key: 'email', term: copy.emailTerm, description: invitation.email },
+    { key: 'role', term: copy.roleTerm, description: roleLabel(invitation.role) },
+    { key: 'expires', term: copy.expiresTerm, description: formatDate(invitation.expiresAt) },
   ]} />;
   const exit = cancel && <FlowActionControl key="exit" action={cancel} label={cancel.label ?? 'Cancel'} linkComponent={linkComponent} variant="ghost" />;
   const base = { ...frame, linkComponent, onSubmit: typed(onSubmit, raw => ({ ...optional(raw, 'name'), ...optional(raw, 'password'), ...optional(raw, 'token') })), valueFields: token ? { token } : undefined };

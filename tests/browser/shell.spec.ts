@@ -417,3 +417,11 @@ test('SectionNav at 320px fades the edge that hides sections and starts with the
   expect(inView).toBe(true);
   expect(await page.evaluate(() => window.scrollX)).toBe(0);
 });
+
+test('the sidebar status label keeps a readable width at 1280px, wrapping its action instead (#77)', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto(appUrl('light'));
+  await page.locator('.t98-sidebar-status__label').first().evaluate(element => { element.textContent = 'Connect your channels'; });
+  const width = await page.locator('.t98-sidebar-status__label').first().evaluate(element => element.getBoundingClientRect().width);
+  expect(width).toBeGreaterThanOrEqual(100);
+});

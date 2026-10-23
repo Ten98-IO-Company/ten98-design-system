@@ -259,7 +259,8 @@
 .t98-sidebar-status__dot { flex: none; width: .5rem; height: .5rem; border-radius: var(--t98-radius-pill); }
 .t98-sidebar-status--idle .t98-sidebar-status__dot { background: var(--t98-muted); }
 .t98-sidebar-status--connected .t98-sidebar-status__dot { background: var(--t98-success); }
-.t98-sidebar-status__label { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+/* A basis keeps the label readable: when the action does not fit beside it, the action wraps to its own line. */
+.t98-sidebar-status__label { flex: 1 1 8rem; min-width: 0; overflow-wrap: break-word; }
 .t98-sidebar-status__action { padding: 0 var(--t98-space-2); }
 
 @media (max-width: 760px) {

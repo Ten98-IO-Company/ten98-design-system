@@ -241,3 +241,12 @@ test('segmented control arrows follow the writing direction', async ({ page }) =
   await expect(group.getByRole('button').nth(1)).toBeFocused();
   await expect(group.getByRole('button').nth(1)).toHaveAttribute('aria-pressed', 'true');
 });
+
+test('a selected SegmentedControl option keeps its accent fill and text contrast on hover (#78)', async ({ page }) => {
+  await page.goto('/tests/controls.html');
+  const selected = page.locator('.t98-segmented-option[aria-pressed="true"]').first();
+  const colours = () => selected.evaluate(element => { const s = getComputedStyle(element); return `${s.backgroundColor} / ${s.color}`; });
+  const before = await colours();
+  await selected.hover();
+  expect(await colours()).toBe(before);
+});
