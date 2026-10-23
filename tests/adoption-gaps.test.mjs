@@ -134,7 +134,7 @@ test('U55: app.css owns the page base, reduced motion, legacy table rows and App
   assert.doesNotMatch(app, /:root\{[^}]*font-size/, 'a root font size would shrink rem tokens');
   assert.match(app, /prefers-reduced-motion: reduce\)\{\*,\*::before,\*::after\{animation-duration:0s!important/);
   assert.match(app, /:where\(table:not\(\.t98-review-table\)\) tbody tr:last-child>td\{border-bottom:0\}/);
-  assert.match(app, /:where\(table:not\(\.t98-review-table\)\) tbody tr:hover\{background:var\(--color-surface-raised\)\}/);
+  assert.match(app, /:where\(table:not\(\.t98-review-table\)\) tbody tr:hover\{background:var\(--color-surface-subtle\)\}/);
   assert.match(app, /max-width:1200px\)\{\n:where\(table:not\(\.t98-review-table\)\) :is\(th,td\)\{padding-inline:16px\}/);
   assert.match(app, /\.field input::placeholder,\.field textarea::placeholder\{color:var\(--color-text-placeholder\)\}/);
   assert.match(app, /\.field \.required\{color:var\(--color-text-muted\)\}/);

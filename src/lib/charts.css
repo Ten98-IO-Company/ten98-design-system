@@ -75,7 +75,7 @@ a.t98-bar-list-name { color: var(--t98-accent); }
 .t98-bar-list-value { font-variant-numeric: tabular-nums; margin-inline-start: auto; }
 .t98-bar-list-secondary { color: var(--t98-muted); }
 .t98-bar-list-reason { margin: 0; color: var(--t98-muted); overflow-wrap: anywhere; }
-.t98-bar-track { display: block; block-size: .75rem; border: 1px solid var(--t98-control-border); border-radius: var(--t98-radius-sm); overflow: hidden; background: var(--t98-subtle); }
+.t98-bar-track { display: block; block-size: .75rem; border: 1px solid var(--t98-border-strong); border-radius: var(--t98-radius-sm); overflow: hidden; background: var(--t98-subtle); }
 .t98-bar-track--secondary { block-size: .5rem; }
 .t98-bar-track--unavailable { background-image: repeating-linear-gradient(45deg, transparent 0 4px, var(--t98-muted) 4px 6px); border-style: dashed; }
 .t98-bar-fill { display: block; block-size: 100%; inline-size: var(--t98-bar-share, 0%); background: var(--t98-chart-1); }

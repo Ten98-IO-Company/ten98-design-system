@@ -19,7 +19,7 @@
 :root, [data-theme='light'], [data-theme='system'], .t98-theme {
   color-scheme: light;
   --t98-bg: #F7F7F8; --t98-surface: #FFFFFF; --t98-subtle: #F2F3F5;
-  --t98-text: #1C1D21; --t98-muted: #60646C; --t98-border: #E4E5E9; --t98-control-border: #8B8D98;
+  --t98-text: #1C1D21; --t98-muted: #60646C; --t98-border: #E4E5E9; --t98-border-strong: #D3D5DA; --t98-control-border: #8B8D98;
   --t98-accent: #5943CE; --t98-accent-hover: #4C37BE; --t98-accent-soft: #F0EEFC; --t98-on-accent: #FFFFFF;
   --t98-success: #176B49; --t98-success-soft: #EAF5EF;
   --t98-warning: #825208; --t98-warning-soft: #FFF5DC;
@@ -29,7 +29,7 @@
 [data-theme='dark'] {
   color-scheme: dark;
   --t98-bg: #121316; --t98-surface: #18191C; --t98-subtle: #222327;
-  --t98-text: #EDEEF0; --t98-muted: #9599A2; --t98-border: #2B2D32; --t98-control-border: #6C6F78;
+  --t98-text: #EDEEF0; --t98-muted: #9599A2; --t98-border: #2B2D32; --t98-border-strong: #3A3C42; --t98-control-border: #6C6F78;
   --t98-accent: #9D8FFF; --t98-accent-hover: #B1A6FF; --t98-accent-soft: #2A2550; --t98-on-accent: #140D33;
   --t98-success: #80D8AE; --t98-success-soft: #173C2D;
   --t98-warning: #F3CC78; --t98-warning-soft: #3E321B;
@@ -41,7 +41,7 @@
   [data-theme='system'] {
     color-scheme: dark;
     --t98-bg: #121316; --t98-surface: #18191C; --t98-subtle: #222327;
-    --t98-text: #EDEEF0; --t98-muted: #9599A2; --t98-border: #2B2D32; --t98-control-border: #6C6F78;
+    --t98-text: #EDEEF0; --t98-muted: #9599A2; --t98-border: #2B2D32; --t98-border-strong: #3A3C42; --t98-control-border: #6C6F78;
     --t98-accent: #9D8FFF; --t98-accent-hover: #B1A6FF; --t98-accent-soft: #2A2550; --t98-on-accent: #140D33;
     --t98-success: #80D8AE; --t98-success-soft: #173C2D; --t98-warning: #F3CC78; --t98-warning-soft: #3E321B;
     --t98-danger: #FFA399; --t98-danger-soft: #492A2A; --t98-info: #99C2FF; --t98-info-soft: #223751; --t98-overlay: rgb(0 0 0 / 60%); --t98-surface-raised: #202125; --t98-placeholder: #8F939C; --t98-accent-active: #C7BFFF; --t98-disabled-text: #8F939C; --t98-disabled-surface: #222327; --t98-focus: #9D8FFF; --t98-chart-1: #9D8FFF; --t98-chart-2: #71CFC3; --t98-chart-3: #E5BE73; --t98-chart-4: #E7A0CC; --t98-chart-5: #9599A2;

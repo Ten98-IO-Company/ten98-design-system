@@ -8,9 +8,9 @@
 .t98-table-scroll { position: relative; overflow-x: auto; }
 .t98-table { border-collapse: collapse; width: 100%; text-align: start; white-space: nowrap; }
 /* Headers set start themselves: the browser centres th when the table's own alignment is the initial value. */
-.t98-table th { text-align: start; background: var(--t98-subtle); color: var(--t98-muted); font-size: .75rem; font-weight: 600; border-top: 1px solid var(--t98-border); border-bottom: 1px solid var(--t98-border); }
-.t98-table th, .t98-table td { padding: var(--t98-cell-padding, .875rem) 1.125rem; }
-.t98-table th { padding-top: .625rem; padding-bottom: .625rem; }
+.t98-table th { text-align: start; background: var(--t98-surface); color: var(--t98-muted); font-size: .75rem; font-weight: 500; border-top: 1px solid var(--t98-border); border-bottom: 1px solid var(--t98-border); }
+.t98-table th, .t98-table td { padding: var(--t98-cell-padding, .625rem) 1rem; }
+.t98-table th { padding-top: .5rem; padding-bottom: .5rem; }
 .t98-table td { border-bottom: 1px solid var(--t98-border); }
 .t98-table .t98-badge { overflow-wrap: normal; }
 .t98-table tbody tr:last-child td { border-bottom: 0; }
@@ -68,7 +68,7 @@
   .t98-data-table--stack .t98-table td[data-label]::before, .t98-data-table--stack .t98-table th[data-label]::before { content: attr(data-label); display: block; color: var(--t98-muted); font-size: .75rem; font-weight: 600; }
   .t98-data-table--stack .t98-table td:empty { display: none; }
 }
-.t98-metric-card { min-width: 0; border: 1px solid var(--t98-border); border-radius: var(--t98-radius); padding: 1.25rem; background: var(--t98-surface); color: var(--t98-text); font-family: var(--t98-font); }
+.t98-metric-card { min-width: 0; border: 1px solid var(--t98-border); border-radius: calc(var(--t98-radius) + 2px); padding: 1rem 1.25rem; background: var(--t98-surface); color: var(--t98-text); font-family: var(--t98-font); }
 .t98-metric-label { margin: 0; color: var(--t98-muted); font-size: .75rem; font-weight: 500; }
 .t98-metric-body { display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-width: 0; margin-top: .75rem; }
 .t98-metric-value { min-width: 0; overflow-wrap: anywhere; font-size: clamp(1.5rem, 2.5vw, 2rem); line-height: 1.15; font-weight: 600; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
@@ -89,10 +89,10 @@
 .t98-page-description { overflow-wrap: anywhere; margin: .625rem 0 0; color: var(--t98-muted); font-size: .8125rem; line-height: 1.65; max-width: 44rem; }
 .t98-page-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; flex-shrink: 0; }
 .t98-empty-state { display: flex; flex-direction: column; align-items: center; padding: 2.5rem 1.5rem; text-align: center; white-space: normal; color: var(--t98-text); font-family: var(--t98-font); }
-.t98-empty-icon { display: grid; place-items: center; width: 3rem; height: 3rem; margin-bottom: 1rem; background: var(--t98-subtle); color: var(--t98-muted); border: 1px solid var(--t98-border); border-radius: var(--t98-radius); }
-.t98-empty-state h3 { margin: 0; font-size: .9375rem; font-weight: 600; }
-.t98-empty-state p { max-width: 24rem; margin: .5rem 0 0; color: var(--t98-muted); font-size: .8125rem; line-height: 1.6; }
-.t98-empty-action { margin-top: 1.25rem; }
+.t98-empty-icon { display: grid; place-items: center; width: 2.5rem; height: 2.5rem; margin-bottom: .75rem; background: var(--t98-subtle); color: var(--t98-muted); border-radius: var(--t98-radius); }
+.t98-empty-state h3 { margin: 0; font-size: .875rem; font-weight: 600; }
+.t98-empty-state p { max-width: 24rem; margin: .25rem 0 0; color: var(--t98-muted); font-size: .8125rem; line-height: 1.5; }
+.t98-empty-action { margin-top: 1rem; }
 .t98-activity-feed { display: flex; flex-direction: column; gap: 0; list-style: none; margin: 0; padding: 0; font-family: var(--t98-font); color: var(--t98-text); }
 .t98-activity-feed > li { display: flex; gap: .875rem; position: relative; padding: .875rem 0; }
 .t98-activity-feed > li:not(:last-child)::after { content: ''; position: absolute; left: .9375rem; top: 3rem; bottom: -.375rem; width: 1px; background: var(--t98-border); }
