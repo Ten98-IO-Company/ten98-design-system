@@ -38,16 +38,16 @@
 .t98-card-content > * { min-width: 0; margin-block: 0; }
 .t98-card-content > :where(.t98-button,.t98-badge,.t98-checkbox-label) { justify-self: start; }
 .t98-card-header + .t98-card-content { padding-top: 0; }
-.t98-input { box-sizing: border-box; width: 100%; min-height: var(--t98-control-height); padding: max(4px, calc((var(--t98-control-height) - 20px) / 2)) 11px; border: 1px solid var(--t98-control-border); border-radius: var(--t98-radius); background: var(--t98-surface); color: var(--t98-text); font-size: 13px; line-height: 18px; transition: border-color 140ms, box-shadow 140ms; }
-.t98-input::placeholder { color: var(--t98-muted); opacity: 1; }
+.t98-input { box-sizing: border-box; width: 100%; min-height: var(--t98-control-height); padding: max(4px, calc((var(--t98-control-height) - 20px) / 2)) 12px; border: 1px solid var(--t98-control-border); border-radius: var(--t98-radius); background: var(--t98-surface); color: var(--t98-text); font-size: 13px; line-height: 18px; transition: border-color 140ms, box-shadow 140ms; }
+.t98-input::placeholder { color: var(--t98-placeholder); opacity: 1; }
 .t98-input:hover:not(:disabled) { border-color: var(--t98-muted); }
-.t98-input:focus { border-color: var(--t98-accent); }
+.t98-input:focus { border-color: var(--t98-focus); }
 .t98-input[aria-invalid='true'] { border-color: var(--t98-danger); }
 .t98-textarea { resize: vertical; min-height: 94px; }
 .t98-select { padding-right: 30px; cursor: pointer; }
 .t98-select--auto { width: auto; max-width: 100%; }
-.t98-field { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
-.t98-label { color: var(--t98-text); font-size: 12px; font-weight: 600; line-height: 18px; }
+.t98-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.t98-label { color: var(--t98-text); font-size: 13px; font-weight: 500; line-height: 18px; }
 .t98-field-description, .t98-field-error { margin: 0; font-size: 12px; line-height: 18px; overflow-wrap: anywhere; }
 .t98-field-count { margin: 0; color: var(--t98-muted); font-size: 12px; line-height: 18px; font-variant-numeric: tabular-nums; text-align: end; }
 .t98-field-count--near { color: var(--t98-text); font-weight: var(--t98-weight-medium); }

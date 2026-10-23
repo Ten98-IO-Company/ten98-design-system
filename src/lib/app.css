@@ -157,17 +157,20 @@ td strong{font-weight:500;color:var(--color-text-muted)}
 .settings-connection .integration-logo,.settings-connection .drive-logo{height:35px;width:35px;border-radius:8px}
 .settings-connection .drive-logo{font-size:26px}
 .auth-note{margin-top:23px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--color-text-muted);border-top:1px solid #f1e9f8;padding-top:17px}
-.field{display:flex;flex-direction:column;gap:8px;margin-bottom:17px;font-size:13px;color:var(--color-text-muted)}
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:16px;font-size:13px;color:var(--color-text)}
 .field>span{font-weight:500}
-.field input,.field select,.field textarea{width:100%;background:var(--color-surface);border:1px solid var(--color-border-control);border-radius:6px;min-height:var(--control-md);padding:10px 11px;font-size:13px;color:var(--color-text);box-shadow:0 1px 2px #20152e02}
+.field input,.field select,.field textarea{width:100%;background:var(--color-surface);border:1px solid var(--color-border-control);border-radius:6px;min-height:var(--control-md);padding:8px 12px;font-size:13px;line-height:18px;color:var(--color-text);transition:border-color var(--motion-fast)}
 .field input::placeholder,.field textarea::placeholder{color:var(--color-text-placeholder)}
+.field :is(input,select,textarea):hover:not(:disabled){border-color:var(--color-text-muted)}
+.field :is(input,select,textarea):focus{border-color:var(--color-focus)}
+.field :is(input,select,textarea)[aria-invalid=true]{border-color:var(--color-danger)}
 .field .required{color:var(--color-text-muted)}
 .field textarea{min-height:100px;resize:vertical;line-height:1.65}
 .field :is(input,select,textarea):disabled{background:var(--color-disabled-surface);color:var(--color-disabled-text)}
-.field-help{display:block;color:var(--color-text-muted);font-size:12px;line-height:1.7;margin:-7px 0 17px}
+.field-help{display:block;color:var(--color-text-muted);font-size:12px;line-height:18px;margin:-10px 0 16px}
 .form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:17px}
 .form-grid>*{min-width:0}
-.field-label{display:block;font-size:13px;color:var(--color-text-muted);font-weight:500;margin-bottom:11px}
+.field-label{display:block;font-size:13px;color:var(--color-text);font-weight:500;margin-bottom:8px}
 .account-options{display:flex;flex-direction:column;gap:9px;margin-bottom:20px;font-size:12px;color:var(--color-text-muted)}
 .account-options label{display:flex;gap:7px;align-items:center}
 .details .field-help{margin-top:3px}
