@@ -52,6 +52,10 @@
 .t98-table tbody tr:last-child th[scope='row'] { border-bottom: 0; }
 .t98-table tfoot th, .t98-table tfoot td { background: var(--t98-subtle); border-top: 1px solid var(--t98-border); border-bottom: 0; font-weight: 600; }
 .t98-table-state { white-space: normal; }
+.t98-table-skeleton-row .t98-skeleton { display: block; inline-size: min(70%, 12rem); block-size: .75rem; margin-block: .25rem; }
+.t98-table-skeleton-row + .t98-table-skeleton-row .t98-skeleton { inline-size: min(55%, 9rem); }
+.t98-table-skeleton-row + .t98-table-skeleton-row + .t98-table-skeleton-row .t98-skeleton { inline-size: min(40%, 7rem); }
+.t98-table tbody tr.t98-table-skeleton-row:hover { background: transparent; }
 .t98-table-pager { border-top: 1px solid var(--t98-border); padding: .5rem 1.125rem; }
 .t98-data-table--compact { --t98-cell-padding: .375rem; }.t98-data-table--compact .t98-table th { padding-top: .375rem; padding-bottom: .375rem; }
 .t98-data-table--sticky .t98-table-scroll--sticky { max-block-size: 24rem; overflow-y: auto; }

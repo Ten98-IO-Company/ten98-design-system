@@ -365,6 +365,10 @@ export function DataTable<T>({
           {expanded && <tr id={detailId} className="t98-table-detail" role={role('row')}><td colSpan={columnCount} role={role('cell')}>{rowDetail(row)}</td></tr>}
           </Fragment>;
           })}
+          {/* A first load keeps the loaded table's height: decorative rows, announced only through aria-busy and the status line. */}
+          {loading && !hasUnavailable && visible.length === 0 && [0, 1, 2].map(index => <tr key={index} aria-hidden="true" className="t98-table-skeleton-row">
+            {Array.from({ length: columnCount }, (_, cell) => <td key={cell}><span className="t98-skeleton" /></td>)}
+          </tr>)}
           {hasUnavailable && <tr role={role('row')}><td colSpan={columnCount} role={role('cell')}><div className="t98-table-state">{unavailable}</div></td></tr>}
           {!hasUnavailable && !loading && visible.length === 0 && <tr role={role('row')}><td colSpan={columnCount} role={role('cell')}>
             {emptyState ?? <EmptyState title={emptyTitle} description={query ? 'Try a different search or clear your search to see all records.' : emptyDescription === undefined ? 'New records will appear here.' : emptyDescription}
