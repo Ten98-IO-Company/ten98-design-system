@@ -312,7 +312,9 @@ export function ProjectCreateFlow({ mode, defaultValues, originRequired = true, 
   return <NameForm {...state} title={title ?? (mode === 'create' ? copy.createTitle : copy.editTitle)} description={description} submitLabel={mode === 'create' ? copy.create : copy.save} cancel={cancel} cancelLabel={copy.cancel}
     onSubmit={form => onSubmit(showOrigin ? { name: formText(form, 'name'), origin: formText(form, 'origin') } : { name: formText(form, 'name') })}>
     <Field label={copy.nameLabel} htmlFor={`${id}-name`} error={state.fieldErrors?.name}><Input name="name" autoComplete="off" required maxLength={120} defaultValue={defaultValues.name} /></Field>
-    {showOrigin && <Field label={copy.originLabel} htmlFor={`${id}-origin`} description={copy.originHint} error={state.fieldErrors?.origin}><Input name="origin" type="url" inputMode="url" autoComplete="off" spellCheck={false} required={originRequired} maxLength={2048} defaultValue={defaultValues.origin} /></Field>}
+    {/* Text with a URL keyboard, not type="url": a bare domain such as example.com must reach the app's own validation
+        and field error rather than the browser's untranslatable bubble. */}
+    {showOrigin && <Field label={copy.originLabel} htmlFor={`${id}-origin`} description={copy.originHint} error={state.fieldErrors?.origin}><Input name="origin" type="text" inputMode="url" autoComplete="off" spellCheck={false} required={originRequired} maxLength={2048} defaultValue={defaultValues.origin} /></Field>}
   </NameForm>;
 }
 

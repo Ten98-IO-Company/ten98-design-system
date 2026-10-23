@@ -166,3 +166,11 @@ test('U62: Select width="auto" sizes to its options; the default still fills a F
   assert.match(render(ui.Select, { options: [] }), /class="t98-input t98-select"/);
   assert.match(styles, /\.t98-select--auto\s*\{\s*width:\s*auto;\s*max-width:\s*100%;\s*\}/);
 });
+
+test('U72: ProjectCreateFlow\'s origin is text with a URL keyboard, so the app validates bare domains itself', () => {
+  const html = render(ui.ProjectCreateFlow, { onSubmit() {}, showOrigin: true, defaultValues: { name: '', origin: '' } });
+  const origin = html.match(/<input[^>]*name="origin"[^>]*>/)[0];
+  assert.match(origin, /type="text"/);
+  assert.match(origin, /inputMode="url"|inputmode="url"/);
+  assert.doesNotMatch(origin, /type="url"/);
+});
