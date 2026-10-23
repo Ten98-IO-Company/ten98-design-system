@@ -193,7 +193,8 @@
 .t98-template-filters > :not(.t98-field) { flex-basis:100%; }
 .t98-template-metrics { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr)); gap:var(--t98-space-4); }
 .t98-template-body { display:grid; grid-template-columns:minmax(0,1fr); gap:var(--t98-space-6); align-items:start; }
-:where(.t98-template-main,.t98-template-aside,.t98-template-preview) { display:grid; gap:var(--t98-space-6); min-width:0; align-content:start; }
+/* minmax(0,1fr): a child holding a scrolling table scrolls inside its region instead of widening the page. */
+:where(.t98-template-main,.t98-template-aside,.t98-template-preview) { display:grid; grid-template-columns:minmax(0,1fr); gap:var(--t98-space-6); min-width:0; align-content:start; }
 .t98-template--detail .t98-template-body:has(> .t98-template-aside),.t98-template--editor .t98-template-body:has(> .t98-template-preview) { grid-template-columns:minmax(0,2fr) minmax(240px,1fr); }
 .t98-template--settings .t98-template-body:has(> .t98-template-navigation) { grid-template-columns:minmax(150px,1fr) minmax(0,4fr); }
 .t98-template--settings .t98-template-main { max-width:var(--t98-form-max); }
