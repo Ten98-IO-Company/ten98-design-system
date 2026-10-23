@@ -166,7 +166,8 @@ export function OptionGroup(props: Omit<OptgroupHTMLAttributes<HTMLOptGroupEleme
   return <optgroup {...props} />;
 }
 
-export interface SelectOption { value: string; label: string; disabled?: boolean; group?: string }
+/** `lang` and `dir` mark an option in another language or script, for example an Arabic locale name. */
+export interface SelectOption { value: string; label: string; disabled?: boolean; group?: string; lang?: string; dir?: 'ltr' | 'rtl' | 'auto' }
 export interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
   /** Rendered before `children`; options sharing a `group` form one optgroup, placed where the group first appears. */
   options?: SelectOption[];
@@ -184,7 +185,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
     if (!members) { members = []; groups.set(option.group, members); items.push({ group: option.group, members }); }
     members.push(option);
   }
-  const renderOption = (option: SelectOption) => <Option key={option.value} value={option.value} disabled={option.disabled}>{option.label}</Option>;
+  const renderOption = (option: SelectOption) => <Option key={option.value} value={option.value} disabled={option.disabled} lang={option.lang} dir={option.dir}>{option.label}</Option>;
   const selection = placeholder && props.value === undefined && props.defaultValue === undefined ? { defaultValue: '' } : undefined;
   return <select ref={ref} className={cx('t98-input', 't98-select', width === 'auto' && 't98-select--auto', className)} {...selection} {...props}>
     {placeholder && <Option value="" disabled>{placeholder}</Option>}

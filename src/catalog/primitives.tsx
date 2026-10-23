@@ -173,7 +173,7 @@ export const primitiveEntries: ComponentEntry[] = [
     name: 'Select', category: 'Controls', description: 'A native select for choosing from a short, explicit list of options.',
     usage: 'Supply option children and a value/onChange pair or defaultValue. Include an empty option when no selection is meaningful. Native menu rendering varies by platform.',
     props: [
-      { name: 'options', type: '{ value: string; label: string; disabled?: boolean; group?: string }[]', description: 'Rendered before children. Options with the same group share one optgroup, placed where the group first appears.' },
+      { name: 'options', type: "{ value: string; label: string; disabled?: boolean; group?: string; lang?: string; dir?: 'ltr' | 'rtl' | 'auto' }[]", description: 'Rendered before children. Options with the same group share one optgroup, placed where the group first appears.' },
       { name: 'placeholder', type: 'string', description: 'A disabled empty first option, selected while value and defaultValue are empty.' },
       { name: 'width', type: "'full' | 'auto'", defaultValue: "'full'", description: 'full fills its container, as in a Field; auto sizes to the options, for example in a toolbar.' },
     ], nativeProps: 'All SelectHTMLAttributes<HTMLSelectElement> and HTMLSelectElement ref, including children, name, value/onChange, defaultValue, required, disabled, multiple and className. No readOnly attribute exists for native select; use a static value presentation when editing is unavailable but submission must be preserved.',

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { Alert, Badge, Button, Field, Input, Select, type SelectOption } from './primitives.js';
 import { Combobox, CodeBlock, RadioGroup, StatusLine } from './controls.js';
 import { DataTable, type DataColumn } from './patterns.js';
@@ -31,7 +31,17 @@ export interface AccountProfileFlowProps extends FlowState {
   /** Read-only: changing it is a separate, verified process the application owns. */
   email: string;
   emailHref?: string;
+  /** The saved values: the form is dirty while the draft differs from them. */
   defaultValues: AccountProfileValues;
+  /** Starts the draft from these instead of `defaultValues`, for example staged defaults for "Restore default preferences".
+   * Remount the flow (a new `key`) to apply a new draft. */
+  initialValues?: AccountProfileValues;
+  /** Called with the draft whenever it changes, for example to drive a live format preview. */
+  onValuesChange?: (values: AccountProfileValues) => void;
+  /** Shown below the language and time zone fields, for example a preview of dates and numbers in the draft locale. */
+  preview?: ReactNode;
+  /** Extra buttons beside Save, for example "Restore default preferences" or "Reload saved preferences". */
+  extraActions?: ReactNode;
   /** Omit when the application stores no language preference: the field is not rendered or submitted. */
   localeOptions?: SelectOption[];
   /** Omit when the application stores no time zone: the field, its validation and detection are not rendered or submitted. */
@@ -46,10 +56,11 @@ export interface AccountProfileFlowProps extends FlowState {
   linkComponent?: LinkProps['component'];
 }
 /** Name, theme, language and time zone. The email is shown but never edited here. */
-export function AccountProfileFlow({ email, emailHref, defaultValues, localeOptions, timeZones, onDetectTimeZone, onSubmit, onDirtyChange, title = 'Profile', description, messages, linkComponent, fieldErrors, ...state }: AccountProfileFlowProps) {
+export function AccountProfileFlow({ email, emailHref, defaultValues, initialValues, onValuesChange, preview, extraActions, localeOptions, timeZones, onDetectTimeZone, onSubmit, onDirtyChange, title = 'Profile', description, messages, linkComponent, fieldErrors, ...state }: AccountProfileFlowProps) {
   const id = useId();
   const copy = { ...profileMessages, ...messages };
-  const [values, setValues] = useState<AccountProfileValues>(defaultValues);
+  const [values, setValues] = useState<AccountProfileValues>(initialValues ?? defaultValues);
+  useEffect(() => { onValuesChange?.(values); }, [values, onValuesChange]);
   const [zoneError, setZoneError] = useState<string>();
   const [detectStatus, setDetectStatus] = useState<{ tone: 'success' | 'warning'; text: string }>();
   const single = useSingleSubmit();
@@ -76,7 +87,7 @@ export function AccountProfileFlow({ email, emailHref, defaultValues, localeOpti
     if (timeZones) submitted.timeZone = values.timeZone ?? '';
     void single(() => onSubmit(submitted));
   }
-  return <SettingsFlow {...state} title={title} description={description} onSubmit={submit} submitLabel={copy.save} busyLabel={state.busyLabel ?? copy.saving} submitDisabled={!dirty && !state.busy}>
+  return <SettingsFlow {...state} title={title} description={description} onSubmit={submit} submitLabel={copy.save} busyLabel={state.busyLabel ?? copy.saving} submitDisabled={!dirty && !state.busy} extraActions={extraActions}>
     <Field label={copy.email} htmlFor={`${id}-email`}>
       <Input id={`${id}-email`} name="email" type="email" value={email} readOnly autoComplete="email" />
     </Field>
@@ -94,6 +105,7 @@ export function AccountProfileFlow({ email, emailHref, defaultValues, localeOpti
       <Button type="button" variant="secondary" onClick={detect}>{copy.detect}</Button>
       {detectStatus && <StatusLine tone={detectStatus.tone}>{detectStatus.text}</StatusLine>}
     </Stack>}
+    {preview}
   </SettingsFlow>;
 }
 
