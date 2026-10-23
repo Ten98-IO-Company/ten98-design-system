@@ -445,10 +445,11 @@ export function MetricGrid({ minItemWidth = 'md', children, list, label }: Metri
     : <div className={className} role={label ? 'group' : undefined} aria-label={label}>{children}</div>;
 }
 
-export function PageHeader({ eyebrow, title, description, actions }: { eyebrow?: string; title: string; description?: string; actions?: ReactNode }) {
+/** `title` and `description` accept elements, for example `<bdi>` around a user-supplied name or origin. */
+export function PageHeader({ eyebrow, title, description, actions }: { eyebrow?: string; title: ReactNode; description?: ReactNode; actions?: ReactNode }) {
   return <header className="t98-page-header"><div>
     {eyebrow && <p className="t98-eyebrow">{eyebrow}</p>}
-    <h1>{title}</h1>{description && <p className="t98-page-description">{description}</p>}
+    <h1>{title}</h1>{description != null && description !== '' && <p className="t98-page-description">{description}</p>}
   </div>{actions && <div className="t98-page-actions">{actions}</div>}</header>;
 }
 
