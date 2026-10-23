@@ -208,3 +208,26 @@ test('SettingsPanel posts natively when only action is given', async ({ page }, 
   await page.getByLabel('Endpoint URL').fill('https://example.test/native');
   await Promise.all([page.waitForURL(/url=https%3A%2F%2Fexample\.test%2Fnative/), page.getByRole('button', { name: 'Save' }).click()]);
 });
+
+test('two-factor enrolment without a QR image shows the key and the setup link, both copyable', async ({ page }, info) => {
+  await open(page, '2fa-enrolling-noqr', 'light', widthOf(info.project.name));
+  await expect(page.getByRole('img')).toHaveCount(0);
+  await expect(page.getByText('Enter the setup key in your authenticator app, or open the setup link on this device.')).toBeVisible();
+  await expect(page.getByText('otpauth://totp/Discover:ada%40example.test?secret=JBSWY3DPEHPK3PXP&issuer=Discover')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Copy key' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Copy link' })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
+});
+
+test('turning off two-factor can require an authenticator or recovery code as well as the password', async ({ page }, info) => {
+  await open(page, '2fa-on-code', 'light', widthOf(info.project.name));
+  const log = page.locator('#log');
+  await page.getByLabel('Current password').fill('synthetic-password');
+  await page.getByRole('button', { name: 'Turn off two-factor authentication' }).click();
+  await expect(page.getByText('Enter a code from your authenticator app or a recovery code.')).toBeVisible();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await page.getByLabel('Authenticator or recovery code').fill(' 123456 ');
+  await page.getByRole('button', { name: 'Turn off two-factor authentication' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Turn off two-factor authentication' }).click();
+  await expect(log).toHaveText('disable:synthetic-password:123456');
+});
