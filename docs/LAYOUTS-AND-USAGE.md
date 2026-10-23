@@ -62,7 +62,7 @@ Do not mount a page template inside a feature flow. Use a Card when a surface co
 | Controls and content | `--t98-space-4` / 16px | Fields, Card content children, flow body |
 | Separate feature sections | `--t98-space-6` / 24px | Template content and form sections |
 
-The parent owns the gap. Do not add margins to the same boundary. Card owns spacing between its direct content children and uses a 20px (`--t98-space-5`) inset, reduced to 16px (`--t98-space-4`) on narrow screens. Group related buttons with `t98-form-actions` and fields with `t98-form-grid`. Use `t98-control-stack` for related controls and `t98-feature-parts` or `t98-form-stack` for separate subparts. Short report filters use `t98-feature-controls`; results remain full width. These classes use shared tokens and preserve DOM order. Buttons keep intrinsic width unless a specific task requires a full-width action.
+The parent owns the gap. Do not add margins to the same boundary. Card owns spacing between its direct content children and uses a 20px (`--t98-space-5`) inset, reduced to 16px (`--t98-space-4`) on narrow screens. Group related buttons with `FormActions` and fields with `FormGrid`. Use `Stack gap={4}` for related controls and `Stack gap={6}` for separate subparts. Short report filters use `FeatureControls`; results remain full width. These components use shared tokens and preserve DOM order. Buttons keep intrinsic width unless a specific task requires a full-width action.
 
 An Alert’s explanation remains ordinary inline prose. Its optional `actions` slot places a wrapping row 12px below the explanation. Keep paragraphs and recovery actions stacked; never squeeze them into separate narrow columns. Use h3 for feature subparts beneath FlowSection’s h2.
 
@@ -95,4 +95,4 @@ This is a ten98 design decision inferred from [Plausible’s prominent applied f
 
 ## Acceptance before adoption
 
-A component needs typed props, canonical tokens, complete TSX and applicable state examples. A flow needs reference-backed interaction decisions plus actual keyboard, narrow-screen, failure/recovery and draft checks. Compilation and SSR are necessary checks, not proof of live-provider behavior. See [bounded workers](SWARM.md), [research](research/campaign-discover/recommendations.md) and [completion ledger](CAMPAIGN-DISCOVER-COMPLETION.md).
+A component needs typed props, canonical tokens, complete TSX and applicable state examples. A flow needs reference-backed interaction decisions plus actual keyboard, narrow-screen, failure/recovery and draft checks. Compilation and SSR are necessary checks, not proof of live-provider behavior. See [bounded workers](SWARM.md), [research](research/campaign-discover/recommendations.md) and [release validation](VALIDATION.md).

@@ -29,14 +29,14 @@ npm run check:all
 npm pack
 ```
 
-`check:all` typechecks the project, emits the library into `dist`, builds the catalogue into `site-dist`, runs the native checks and executes Playwright. See [browser testing](docs/BROWSER-TESTING.md) for development and failure traces. `npm pack` creates `ten98-ui-0.3.19.tgz` for installation in another tool. These checks are development evidence, not an accessibility certification or a guarantee about a consuming application.
+`check:all` typechecks the project, emits the library into `dist`, builds the catalogue into `site-dist`, runs the native checks and executes Playwright. See [browser testing](docs/BROWSER-TESTING.md) for development and failure traces. `npm pack` creates `ten98-ui-0.21.0.tgz` for installation in another tool. These checks are development evidence, not an accessibility certification or a guarantee about a consuming application.
 
 ## Use in an application
 
 After building and packing this repository, copy the archive into the consuming application's `vendor` directory and install it:
 
 ```sh
-npm install ./vendor/ten98-ui-0.3.19.tgz
+npm install ./vendor/ten98-ui-0.21.0.tgz
 ```
 
 Commit the archive and the application's lockfile together. Campaign and Discover initially adopted the same 0.2.0 archive as `file:vendor/ten98-ui-0.2.0.tgz`; their builds do not require a sibling checkout. See [the integration contract](docs/INTEGRATION.md) for the shared application components and update workflow.
@@ -68,7 +68,6 @@ React and React DOM are peer dependencies; the supported range for each is `^18.
 - [Competitive research](docs/research/README.md): suite coverage, source evidence and proposed flow decisions.
 - [Fixed layouts and usage](docs/LAYOUTS-AND-USAGE.md): template selection, hierarchy, slot order and consistent behavior.
 - [Component, flow and template critique](docs/reviews/2026-10-19/README.md): exhaustive review, modern SaaS references and verified remediation.
-- [Campaign and Discover completion](docs/CAMPAIGN-DISCOVER-COMPLETION.md): flow coverage and consumer acceptance.
 - [Release validation](docs/VALIDATION.md): automated and browser checks, package verification and integration limits.
 
 Start with the shared shell, field, button, table and state patterns. Keep routing, data fetching, permissions enforcement and product-specific business logic in each application. Add a new shared pattern when a real tool needs it and its behavior can be named clearly.

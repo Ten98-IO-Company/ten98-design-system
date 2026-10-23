@@ -57,6 +57,13 @@ function footerCode(connected = false, long = false) {
 </SidebarFooter>`);
 }
 
+const itemsCode = tsx(['AccountMenu'], `<AccountMenu name="Alex Morgan" email="alex@example.test" defaultOpen items={[
+  { id: 'profile', kind: 'link', label: 'Profile and appearance', icon: 'user', href: 'account' },
+  { id: 'security', kind: 'link', label: 'Account security', icon: 'shield', href: 'account/security' },
+  { id: 'sep', kind: 'separator' },
+  { id: 'out', kind: 'button', label: 'Sign out', busyLabel: 'Signing out…', busy: signingOut, danger: true, onSelect: signOut },
+]} />`, 'const signingOut = false;\nconst signOut = () => undefined;');
+
 export const accountMenuEntries: ComponentEntry[] = [
   {
     name: 'AccountMenu', category: 'Navigation',
@@ -66,7 +73,9 @@ export const accountMenuEntries: ComponentEntry[] = [
       { name: 'name', type: 'string', required: true, description: 'Display name shown inside the dropdown and used by the default initials avatar.' },
       { name: 'email', type: 'string', description: 'Optional account email, wrapped without truncating its value.' },
       { name: 'avatar', type: 'ReactNode', description: 'Optional non-interactive existing app avatar. Preserve the Campaign initials/image treatment.' },
-      { name: 'children', type: 'ReactNode', required: true, description: 'Native app or router links and buttons. Their handlers, hrefs, disabled states and business rules stay app-owned.' },
+      { name: 'items', type: 'AccountMenuItem[]', description: 'Preferred. { id, label, icon?, danger?, disabled?, busy?, busyLabel? } plus kind: "link" (href), "button" (onSelect) or "separator". Busy items are disabled, aria-busy and show busyLabel. Items render the same native links and buttons, so the dismissal rules are unchanged.' },
+      { name: 'linkComponent', type: 'NavLinkComponent', description: 'Renders link items through your router; href is then a key your component resolves.' },
+      { name: 'children', type: 'ReactNode', description: 'Deprecated in favour of items; native app or router links and buttons still render after items.' },
       { name: 'label', type: 'string', defaultValue: 'Account menu', description: 'Accessible label on the icon-only disclosure button.' },
       { name: 'defaultOpen', type: 'boolean', defaultValue: 'false', description: 'Initial disclosure state, useful for catalogue states. Does not take focus on mount.' },
     ],
@@ -75,6 +84,7 @@ export const accountMenuEntries: ComponentEntry[] = [
     related: ['Avatar', 'SidebarFooter', 'AppShell', 'useSidebarNavigation'],
     example: accountCode(),
     states: [
+      { name: 'Items', description: 'Declarative links, a separator and a danger action.', preview: <AccountMenu name="Alex Morgan" email="alex@example.test" defaultOpen items={[{ id: 'profile', kind: 'link', label: 'Profile and appearance', icon: 'user', href: '#profile' }, { id: 'sep', kind: 'separator' }, { id: 'out', kind: 'button', label: 'Sign out', busyLabel: 'Signing out…', danger: true, onSelect: () => undefined }]} />, code: itemsCode },
       { name: 'Closed', description: 'A single header avatar opens the account options; the draft below remains mounted.', preview: <AccountPreview/>, code: accountCode() },
       { name: 'Open', description: 'Identity, account links and sign out form one compact dropdown.', preview: <AccountPreview expanded/>, code: accountCode(true) },
       { name: 'Long identity', description: 'A long display name and email wrap inside the dropdown.', preview: <AccountPreview expanded long/>, code: accountCode(true, true) },

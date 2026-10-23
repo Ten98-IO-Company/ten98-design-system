@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createElement as h } from 'react';
@@ -55,4 +56,32 @@ test('sidebar footer retains supplied utilities and actual app version without a
   assert.equal([...html.matchAll(/<a\b/g)].length, 1);
   assert.equal([...html.matchAll(/<button\b/g)].length, 1);
   assert.doesNotMatch(html, /t98-account-menu|t98-avatar|Sign out|Profile/);
+});
+
+const items = [
+  { id: 'profile', kind: 'link', label: 'Profile', href: 'profile', icon: 'user' },
+  { id: 'sep', kind: 'separator' },
+  { id: 'out', kind: 'button', label: 'Sign out', busyLabel: 'Signing out…', busy: true, danger: true, onSelect: () => undefined },
+  { id: 'off', kind: 'button', label: 'Billing', disabled: true, onSelect: () => undefined },
+  { id: 'gone', kind: 'link', label: 'Locked', href: 'locked', disabled: true },
+];
+
+test('AccountMenu items render links through linkComponent, separators, danger, busy and disabled', () => {
+  const Route = ({ href, ...rest }) => h('a', { href: `/app/${href}`, 'data-route': href, ...rest });
+  const html = renderToStaticMarkup(h(AccountMenu, { name: 'Alex', items, linkComponent: Route }));
+  assert.match(html, /<a href="\/app\/profile" data-route="profile" class="t98-account-menu__item"><svg/);
+  assert.match(html, /<hr class="t98-account-menu__separator"\/>/);
+  assert.match(html, /<button type="button" class="t98-account-menu__item t98-account-menu__item--danger" disabled="" aria-busy="true"><span>Signing out…<\/span><\/button>/);
+  assert.match(html, /<button type="button" class="t98-account-menu__item" disabled=""><span>Billing/);
+  assert.match(html, /<a role="link" class="t98-account-menu__item" aria-disabled="true"><span>Locked/);
+  assert.ok(!html.includes('href="/app/locked"'));
+  const native = renderToStaticMarkup(h(AccountMenu, { name: 'Alex', items: items.slice(0, 1) }));
+  assert.match(native, /<a href="profile" class="t98-account-menu__item">/);
+});
+
+test('AccountMenu renders items before still-supported children and every class is styled', () => {
+  const html = renderToStaticMarkup(h(AccountMenu, { name: 'Alex', items }, h('a', { href: '/legacy' }, 'Legacy')));
+  assert.ok(html.indexOf('Profile') < html.indexOf('Legacy'));
+  const styles = readFileSync(new URL('../dist/styles.css', import.meta.url), 'utf8');
+  for (const name of new Set([...html.matchAll(/class="([^"]+)"/g)].flatMap(match => match[1].split(' ')).filter(name => name.startsWith('t98-') && !name.startsWith('t98-avatar')))) assert.ok(styles.includes(`.${name}`), `${name} is styled`);
 });

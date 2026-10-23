@@ -21,6 +21,13 @@ import './lib/patterns.css';
 import './lib/workspace.css';
 import './lib/products.css';
 import './lib/navigation.css';
+import './lib/structure.css';
+import './lib/shell.css';
+import './lib/controls.css';
+import './lib/account-flows.css';
+import './lib/workspace-flows.css';
+import './lib/charts.css';
+import './lib/spatial.css';
 import './showcase.css';
 
 const groups: { label: string; items: { name: Page; icon: string }[] }[] = [

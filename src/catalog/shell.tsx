@@ -1,0 +1,269 @@
+import { AccountMenu } from '../lib/account-menu';
+import { AppTopbar, Banner, SearchField, SectionNav, SidebarNav, SidebarStatus, WorkspaceProjectSwitcher } from '../lib';
+import { tsx, type ComponentEntry } from './model';
+
+const noop = () => undefined;
+const navCode = tsx(['SidebarNav'], `<SidebarNav
+  label="Main"
+  filter={filter}
+  groups={[
+    { id: 'work', label: 'Work', items: [
+      { id: 'overview', label: 'Overview', icon: 'home', href: 'overview', current: true },
+      { id: 'inbox', label: 'Inbox', icon: 'inbox', onSelect: () => openInbox(), badge: 3, badgeLabel: 'unread', keywords: ['messages'] },
+    ] },
+    { id: 'manage', label: 'Manage', items: [{ id: 'settings', label: 'Settings', icon: 'settings', href: 'settings' }] },
+  ]}
+  emptyFilter={query => \`No pages match "\${query}"\`}
+  onNavigate={() => closeDrawer()}
+/>`, "const filter = '';\nconst openInbox = () => undefined;\nconst closeDrawer = () => undefined;");
+const switcherCode = tsx(['WorkspaceProjectSwitcher'], `<WorkspaceProjectSwitcher
+  workspaces={[{ id: 'acme', name: 'Acme', roleLabel: 'Admin' }, { id: 'labs', name: 'Labs' }]}
+  projects={[{ id: 'launch', name: 'Spring launch' }]}
+  workspaceId="acme"
+  projectId="launch"
+  onWorkspaceChange={id => setWorkspace(id)}
+  onProjectChange={id => setProject(id)}
+  create={{ onSelect: () => openCreateProject() }}
+/>`, 'const setWorkspace = (id: string) => undefined;\nconst setProject = (id: string) => undefined;\nconst openCreateProject = () => undefined;');
+const searchCode = tsx(['SearchField'], `<SearchField
+  label="Search pages"
+  hideLabel
+  placeholder="Search"
+  shortcut="/"
+  value={query}
+  onValueChange={setQuery}
+  onClear={() => setQuery('')}
+  clearLabel="Clear search"
+  status="3 results"
+/>`, "const [query, setQuery] = useState('');", ['useState']);
+
+const nav = (jsx: string, setup = '') => tsx(['SidebarNav'], jsx, setup);
+const switcher = (jsx: string) => tsx(['WorkspaceProjectSwitcher'], jsx, "const noop = () => undefined;");
+const search = (jsx: string) => tsx(['SearchField'], jsx, "const noop = () => undefined;");
+
+const linkContract = 'With a linkComponent, `href` is a key your component resolves (for example a route id), not necessarily a URL. The component receives href, className, children, aria-current and onClick.';
+const presentation = 'Presentation only: routing, authorization, data loading and draft guards stay in the application.';
+
+const topbarCode = tsx(['AppTopbar', 'AccountMenu', 'SearchField'], `<AppTopbar
+  menuToggle
+  breadcrumb={{ icon: 'home', scope: 'Acme', current: 'Overview' }}
+  search={<SearchField variant="topbar" label="Search" hideLabel placeholder="Search" shortcut="/" value={query} onValueChange={setQuery} />}
+  badge={{ label: 'Beta', hideOnMobile: true }}
+  actions={<AccountMenu name="Alex Morgan" email="alex@example.test" items={[{ id: 'profile', kind: 'link', label: 'Profile', href: 'account' }]} />}
+/>`, "const [query, setQuery] = useState('');", ['useState']);
+const bannerCode = tsx(['Banner'], `<Banner tone="sample" pill="Sample" title="Demo data" icon="box" action={{ label: 'Connect real data', href: 'connections' }}>
+  Figures are illustrative.
+</Banner>`);
+const statusCode = tsx(['SidebarStatus', 'SidebarFooter'], `<SidebarFooter version="1.4.0">
+  <SidebarStatus tone="connected" label="Channels connected" action={{ label: 'Manage', href: 'connections' }} />
+</SidebarFooter>`);
+
+const sectionCode = tsx(['SectionNav'], `<SectionNav
+  label="Campaign sections"
+  items={[
+    { id: 'overview', label: 'Overview', href: '/campaigns/spring', current: true },
+    { id: 'audience', label: 'Audience', href: '/campaigns/spring/audience' },
+    { id: 'reports', label: 'Reports', href: '/campaigns/spring/reports', badge: 2 },
+  ]}
+  onSelect={(item, event) => { if (hasDraft) event.preventDefault(); }}
+/>`, 'const hasDraft = false;');
+
+export const shellEntries: ComponentEntry[] = [
+  {
+    name: 'SectionNav', category: 'Navigation',
+    description: 'A URL-bound strip of sibling sections: tabs without panels.',
+    usage: `Use when each section has its own URL and the page below changes with it. Use Tabs when panels share one page and state. Items are links in a navigation landmark, so people move between them with Tab, not arrow keys. On narrow screens the strip scrolls horizontally in one row, like Tabs; its links are focusable, so keyboard users reach every one. onSelect(item, event) runs first on a plain primary click; event.preventDefault() cancels navigation, for example while a draft is unsaved. ${linkContract} ${presentation}`,
+    props: [
+      { name: 'label', type: 'string', required: true, description: 'Accessible name of the navigation landmark.' },
+      { name: 'items', type: '{ id; label; href; current?; badge? }[]', required: true, description: 'Sections in order. The current one exposes aria-current="page".' },
+      { name: 'linkComponent', type: 'ComponentType<{ href; className?; children?; aria-current?; onClick? }>', description: 'Router link used for every item. Defaults to a native anchor.' },
+      { name: 'onSelect', type: '(item, event) => void', description: 'Guard that runs before navigation; modified clicks skip it.' },
+    ],
+    tokens: ['--t98-control-touch', '--t98-accent', '--t98-muted', '--t98-border', '--t98-focus'],
+    accessibility: ['A labelled nav landmark containing a list of links; no tab roles.', 'The current link exposes aria-current="page" and an underline.', 'Links are at least 44px tall and use logical properties, so the strip mirrors in right-to-left.'],
+    related: ['Tabs', 'SidebarNav'],
+    example: sectionCode,
+    states: [{
+      name: 'Default', description: 'Current section and a badge.', code: sectionCode,
+      preview: <SectionNav label="Campaign sections" items={[
+        { id: 'overview', label: 'Overview', href: '#overview', current: true },
+        { id: 'audience', label: 'Audience', href: '#audience' },
+        { id: 'reports', label: 'Reports', href: '#reports', badge: 2 },
+      ]} />,
+    }],
+  },
+  {
+    name: 'SidebarNav', category: 'Navigation',
+    description: 'Grouped navigation list with current-page state, badges and a client-side filter.',
+    usage: `Place inside the sidebar. Items with href render links (through linkComponent when given); items with only onSelect render buttons. Give href plus onSelect for a guarded link: preventDefault in onSelect while a draft is unsaved. A linkComponent must honour event.defaultPrevented. ${linkContract} ${presentation}`,
+    props: [
+      { name: 'label', type: 'string', required: true, description: 'Accessible name of the navigation landmark.' },
+      { name: 'groups', type: '{ id; label?; items }[]', required: true, description: 'Each item has id, label, icon, current, badge, badgeLabel, hidden, keywords, disabled and href, onSelect or both (onSelect(item, event) runs first on a plain click; event.preventDefault() cancels navigation and onNavigate; modified clicks skip both).' },
+      { name: 'linkComponent', type: 'ComponentType<{ href; className?; children?; aria-current?; onClick? }>', description: 'Router link used for href items. Defaults to a native anchor.' },
+      { name: 'filter', type: 'string', description: 'Case-insensitive match on label and keywords; other items get the hidden attribute.' },
+      { name: 'onNavigate', type: '(item) => void', description: 'Called after the item’s own handler unless it prevented the default action, for example to close a mobile drawer. A group whose items are all hidden or filtered is hidden.' },
+      { name: 'emptyFilter', type: '(query: string) => ReactNode', description: 'Content shown when the filter matches nothing.' },
+    ],
+    tokens: ['--t98-control-touch', '--t98-accent-soft', '--t98-accent', '--t98-muted', '--t98-focus'],
+    accessibility: ['Rendered as a labelled nav landmark with one list per group.', 'The current item exposes aria-current="page".', 'The badge label is visually hidden text announced with the item.', 'Items are at least 44px tall and use logical properties, so the layout mirrors in right-to-left.'],
+    related: ['SearchField', 'WorkspaceProjectSwitcher', 'SidebarFooter'],
+    example: navCode,
+    states: [{
+      name: 'Default', description: 'Current page, badge and a button item.', code: navCode,
+      preview: <SidebarNav label="Main" groups={[
+        { id: 'work', label: 'Work', items: [
+          { id: 'overview', label: 'Overview', icon: 'home', href: '#overview', current: true },
+          { id: 'inbox', label: 'Inbox', icon: 'inbox', onSelect: noop, badge: 3, badgeLabel: 'unread' },
+        ] },
+      ]} />,
+    }, {
+      name: 'Filtered', description: 'Non-matching items are hidden.',
+      code: nav(`<SidebarNav label="Filtered" filter="set" groups={[{ id: 'all', items: [
+  { id: 'overview', label: 'Overview', icon: 'home', href: 'overview' },
+  { id: 'settings', label: 'Settings', icon: 'settings', href: 'settings' },
+] }]} />`),
+      preview: <SidebarNav label="Filtered" filter="set" groups={[{ id: 'all', items: [
+        { id: 'overview', label: 'Overview', icon: 'home', href: '#overview' },
+        { id: 'settings', label: 'Settings', icon: 'settings', href: '#settings' },
+      ] }]} />,
+    }],
+  },
+  {
+    name: 'WorkspaceProjectSwitcher', category: 'Navigation',
+    description: 'Workspace and project selectors with loading, empty and create states.',
+    usage: `Shows the signed-in user's current workspace and project (User > Workspace > Project). Pass create only when the user may create projects. ${linkContract} ${presentation}`,
+    props: [
+      { name: 'workspaces', type: '{ id; name; roleLabel?; initials? }[]', required: true, description: 'Empty renders text instead of a disabled select. initials (one or two characters) shows a decorative avatar beside the select.' },
+      { name: 'projects', type: '{ id; name }[] | null', required: true, description: 'null means loading.' },
+      { name: 'workspaceId / projectId', type: 'string | null', required: true, description: 'Selected ids.' },
+      { name: 'onWorkspaceChange / onProjectChange', type: '(id: string) => void', required: true, description: 'Called with the chosen id.' },
+      { name: 'create', type: '{ label? } & ({ href } | { onSelect })', description: 'Absent means the user cannot create projects.' },
+      { name: 'labels', type: '{ workspace; project; noWorkspaces; loading; choose; noProjects }', description: 'Localised copy.' },
+      { name: 'disabled', type: 'boolean', description: 'Disables every control.' },
+      { name: 'linkComponent', type: 'NavLinkComponent', description: 'Router link used for create.href.' },
+    ],
+    tokens: ['--t98-control-touch', '--t98-muted', '--t98-control-border', '--t98-focus'],
+    accessibility: ['The role caption is connected to the workspace select with aria-describedby.', 'Loading sets aria-busy on the project select.', 'The create control’s accessible name includes the workspace name.'],
+    related: ['SidebarNav', 'Select'],
+    example: switcherCode,
+    states: [{
+      name: 'Default', description: 'Workspace with role caption and a create action.', code: switcherCode,
+      preview: <WorkspaceProjectSwitcher workspaces={[{ id: 'acme', name: 'Acme', roleLabel: 'Admin' }, { id: 'labs', name: 'Labs' }]} projects={[{ id: 'launch', name: 'Spring launch' }]} workspaceId="acme" projectId="launch" onWorkspaceChange={noop} onProjectChange={noop} create={{ onSelect: noop }} />,
+    }, {
+      name: 'Loading', description: 'Projects are loading.',
+      code: switcher(`<WorkspaceProjectSwitcher workspaces={[{ id: 'acme', name: 'Acme' }]} projects={null} workspaceId="acme" projectId={null} onWorkspaceChange={noop} onProjectChange={noop} />`),
+      preview: <WorkspaceProjectSwitcher workspaces={[{ id: 'acme', name: 'Acme' }]} projects={null} workspaceId="acme" projectId={null} onWorkspaceChange={noop} onProjectChange={noop} />,
+    }, {
+      name: 'No projects', description: 'The project list is empty.',
+      code: switcher(`<WorkspaceProjectSwitcher workspaces={[{ id: 'acme', name: 'Acme' }]} projects={[]} workspaceId="acme" projectId={null} onWorkspaceChange={noop} onProjectChange={noop} />`),
+      preview: <WorkspaceProjectSwitcher workspaces={[{ id: 'acme', name: 'Acme' }]} projects={[]} workspaceId="acme" projectId={null} onWorkspaceChange={noop} onProjectChange={noop} />,
+    }],
+  },
+  {
+    name: 'SearchField', category: 'Navigation',
+    description: 'Search input with an optional shortcut hint, clear button and polite status region.',
+    usage: `Use in the top bar (variant="topbar") or inline above a list. Pair it with SidebarNav filter or a results list, and report counts through status. ${presentation}`,
+    props: [
+      { name: 'label', type: 'string', required: true, description: 'Accessible name.' },
+      { name: 'value / onValueChange', type: 'string / (value: string) => void', required: true, description: 'Controlled value.' },
+      { name: 'placeholder', type: 'string', description: 'Hint text.' },
+      { name: 'hideLabel', type: 'boolean', description: 'Hides the label visually; it stays in the accessibility tree.' },
+      { name: 'shortcut', type: 'string', description: 'Display-only keyboard hint, hidden from assistive technology. Register the key in the application.' },
+      { name: 'inputRef', type: 'Ref<HTMLInputElement>', description: 'Ref to the input, for example to focus it from a shortcut.' },
+      { name: 'status', type: 'ReactNode', description: 'Announced politely from a status region that exists before any text.' },
+      { name: 'onClear / clearLabel', type: '() => void / string', description: 'The clear button appears only while there is a value.' },
+      { name: 'variant', type: "'topbar' | 'inline'", defaultValue: "'inline'", description: 'Pill shape for the top bar.' },
+    ],
+    tokens: ['--t98-control-touch', '--t98-subtle', '--t98-muted', '--t98-radius-pill'],
+    accessibility: ['A native type="search" input with a real label.', 'The status region is always in the DOM so later text is announced.', 'The clear button is at least 44px and named by clearLabel.'],
+    related: ['SidebarNav', 'Input'],
+    example: searchCode,
+    states: [{
+      name: 'Default', description: 'Hidden label with a shortcut hint.', code: searchCode,
+      preview: <SearchField label="Search pages" hideLabel placeholder="Search" shortcut="/" value="" onValueChange={noop} />,
+    }, {
+      name: 'With value', description: 'Clear button and status.',
+      code: search(`<SearchField label="Search results" value="launch" onValueChange={noop} onClear={noop} status="3 results" />`),
+      preview: <SearchField label="Search results" value="launch" onValueChange={noop} onClear={noop} status="3 results" />,
+    }],
+  },
+  {
+    name: 'AppTopbar', category: 'Navigation',
+    description: 'Top bar content for AppShell: breadcrumb, drawer toggle, search, badge and actions.',
+    usage: `Pass to AppShell \`topbar\`; it renders inside a header landmark outside main. menuToggle needs AppShell \`navigation\` and is hidden on desktop. The breadcrumb names the current page with aria-current="page". ${presentation}`,
+    props: [
+      { name: 'breadcrumb', type: '{ icon?; scope?; current }', required: true, description: 'Optional icon and scope before the current page.' },
+      { name: 'wrap', type: 'boolean', defaultValue: 'false', description: 'Wraps long scope and current labels instead of truncating them with an ellipsis, so they stay visible at 320px and 200% text.' },
+      { name: 'menuToggle', type: 'boolean', description: 'Shows the button that opens the AppShell drawer (aria-controls, aria-expanded).' },
+      { name: 'menuLabel / breadcrumbLabel', type: 'string', description: 'Localised names; default "Open navigation" and "Breadcrumb".' },
+      { name: 'search', type: 'ReactNode', description: 'Usually a SearchField variant="topbar"; wraps to its own row on narrow screens.' },
+      { name: 'badge', type: '{ label; hideOnMobile? }', description: 'Environment or plan tag.' },
+      { name: 'actions', type: 'ReactNode', description: 'Trailing controls such as AccountMenu.' },
+    ],
+    tokens: ['--t98-control-touch', '--t98-muted', '--t98-text', '--t98-control-border', '--t98-focus'],
+    accessibility: ['Breadcrumb is a labelled nav with an ordered list; the separator is aria-hidden.', 'The menu toggle is a native button at least 44px square and reflects the drawer with aria-expanded.', 'Logical properties mirror the bar in right-to-left.'],
+    related: ['AppShell', 'SearchField', 'AccountMenu'],
+    example: topbarCode,
+    states: [{
+      name: 'Default', description: 'Breadcrumb, search, badge and an account action.', code: topbarCode,
+      preview: <AppTopbar breadcrumb={{ icon: 'home', scope: 'Acme', current: 'Overview' }} search={<SearchField variant="topbar" label="Search" hideLabel placeholder="Search" shortcut="/" value="" onValueChange={noop} />} badge={{ label: 'Beta' }} actions={<AccountMenu name="Alex Morgan" email="alex@example.test" items={[{ id: 'profile', kind: 'link', label: 'Profile', href: '#profile' }]} />} />,
+    }, {
+      name: 'Wrapping labels', description: 'wrap lets long labels flow onto several lines rather than truncating.', code: tsx(['AppTopbar'], `<AppTopbar wrap breadcrumb={{ icon: 'home', scope: 'Acme International Marketing Group', current: 'Quarterly campaign performance review' }} />`),
+      preview: <div style={{ maxWidth: 320 }}><AppTopbar wrap breadcrumb={{ icon: 'home', scope: 'Acme International Marketing Group', current: 'Quarterly campaign performance review' }} /></div>,
+    }],
+  },
+  {
+    name: 'Banner', category: 'Feedback',
+    description: 'Full-width notice with an optional tag, action and dismiss button.',
+    usage: `Pass to AppShell \`banners\` or place above page content. Tones: sample (dashed, for demo data), info, success, warning, danger. Set live for notices that appear after load. Keep the app in charge of dismissal state. ${linkContract} ${presentation}`,
+    props: [
+      { name: 'tone', type: "'sample' | 'info' | 'success' | 'warning' | 'danger'", defaultValue: "'info'", description: 'Colour treatment.' },
+      { name: 'pill / title / children / icon', type: 'string / string / ReactNode / IconName', description: 'Tag, bold lead-in, message and decorative icon.' },
+      { name: 'action', type: '{ label; icon? } & ({ href } | { onSelect })', description: 'A link (through linkComponent) or a button.' },
+      { name: 'linkComponent', type: 'NavLinkComponent', description: 'Router link for action.href.' },
+      { name: 'onDismiss / dismissLabel', type: '() => void / string', description: 'Shows a labelled dismiss button.' },
+      { name: 'live', type: 'boolean', description: 'role="status" so changes are announced politely.' },
+    ],
+    tokens: ['--t98-info-soft', '--t98-success-soft', '--t98-warning-soft', '--t98-danger-soft', '--t98-control-touch', '--t98-focus'],
+    accessibility: ['Action and dismiss controls are native and at least 44px.', 'The icon is decorative; tone is also carried by the text.'],
+    related: ['AppShell', 'Alert'],
+    example: bannerCode,
+    states: [{
+      name: 'Sample data', description: 'Dashed banner marking demo content.', code: bannerCode,
+      preview: <Banner tone="sample" pill="Sample" title="Demo data" icon="box" action={{ label: 'Connect real data', onSelect: noop }}>Figures are illustrative.</Banner>,
+    }, {
+      name: 'Dismissible info', description: 'Labelled dismiss button.',
+      code: tsx(['Banner'], `<Banner title="New reports" icon="bell" onDismiss={() => hide()}>Weekly reports are available.</Banner>`, 'const hide = () => undefined;'),
+      preview: <Banner title="New reports" icon="bell" onDismiss={noop}>Weekly reports are available.</Banner>,
+    }, {
+      name: 'Security requirement (403)', description: 'A workspace requires two-factor authentication; the server answered 403 and the app shows the requirement with its action.',
+      code: tsx(['Banner'], `<Banner tone="warning" live icon="shield" title="Two-factor authentication required" action={{ label: 'Set up two-factor authentication', href: 'account/security' }}>
+  This workspace requires two-factor authentication before you can open its data.
+</Banner>`),
+      preview: <Banner tone="warning" live icon="shield" title="Two-factor authentication required" action={{ label: 'Set up two-factor authentication', href: '#account/security' }}>This workspace requires two-factor authentication before you can open its data.</Banner>,
+    }],
+  },
+  {
+    name: 'SidebarStatus', category: 'Layout',
+    description: 'Connection status line with an optional action for the SidebarFooter slot.',
+    usage: `Place inside SidebarFooter. The label carries the state; the coloured dot is decorative. ${linkContract} ${presentation}`,
+    props: [
+      { name: 'tone', type: "'connected' | 'idle'", required: true, description: 'Dot colour.' },
+      { name: 'label', type: 'string', required: true, description: 'Spoken status text.' },
+      { name: 'action', type: '{ label; icon? } & ({ href } | { onSelect })', description: 'Optional link or button, for example Manage.' },
+      { name: 'linkComponent', type: 'NavLinkComponent', description: 'Router link for action.href.' },
+    ],
+    tokens: ['--t98-success', '--t98-muted', '--t98-control-touch'],
+    accessibility: ['The dot is aria-hidden; do not rely on colour alone.', 'The action is at least 44px tall.'],
+    related: ['SidebarFooter', 'AppShell'],
+    example: statusCode,
+    states: [{
+      name: 'Connected', description: 'With a manage action.', code: statusCode,
+      preview: <SidebarStatus tone="connected" label="Channels connected" action={{ label: 'Manage', onSelect: noop }} />,
+    }, {
+      name: 'Idle', description: 'Nothing connected yet.',
+      code: tsx(['SidebarStatus'], '<SidebarStatus tone="idle" label="No channels connected" />'),
+      preview: <SidebarStatus tone="idle" label="No channels connected" />,
+    }],
+  },
+];

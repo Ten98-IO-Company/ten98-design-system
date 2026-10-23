@@ -1,10 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { createElement as h } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { ConversationThread, DetailWorkspace, PublishingAgenda } from '../dist/coordination.js';
+import { ConversationThread, DetailWorkspace, PublishingAgenda, SelectableList } from '../dist/coordination.js';
 
 const render = (component, props) => renderToStaticMarkup(h(component, props));
+const styles = readFileSync(new URL('../dist/styles.css', import.meta.url), 'utf8');
 
 test('agenda preserves app order, display labels and instants while retaining context through loading and errors', () => {
   const entries = Object.freeze([
@@ -44,6 +46,26 @@ test('workspace selection is explicit and deselection retains mounted draft and 
   assert.doesNotMatch(empty, /class="[^"]*\bt98-detail-back\b/);
 });
 
+test('conversation messages show direction as text, group per-message actions and withhold removed content', () => {
+  const messages = [
+    { id: 'a', author: 'Visitor', time: '13:00', visibility: 'public', direction: 'inbound', content: 'Secret original text', attachments: h('span', null, 'Original attachment'), removed: true, removedReason: 'Hidden by a teammate.', actions: h('button', { type: 'button' }, 'Unhide') },
+    { id: 'b', author: 'Studio team', time: '13:05', visibility: 'public', direction: 'outbound', content: 'Reply', actions: h('button', { type: 'button' }, 'Copy link') },
+    { id: 'c', author: 'Legacy', time: '13:06', visibility: 'note', content: 'No direction' },
+  ];
+  const html = render(ConversationThread, { label: 'Comments', messages });
+  assert.match(html, /data-direction="inbound" data-removed="true"/);
+  assert.match(html, /data-direction="outbound"/);
+  assert.match(html, />Received</);
+  assert.match(html, />Sent</);
+  assert.match(html, /Message removed\.[\s\S]*Hidden by a teammate\./);
+  assert.doesNotMatch(html, /Secret original text|Original attachment/);
+  assert.match(html, /role="group" aria-label="Actions for the message from Visitor, 13:00"><button type="button">Unhide/);
+  assert.match(html, /aria-label="Actions for the message from Studio team, 13:05"/);
+  const legacy = html.slice(html.indexOf('data-message-id="c"'));
+  assert.doesNotMatch(legacy, /data-direction|Received|Sent<|t98-conversation-actions/);
+  for (const name of ['t98-conversation-direction', 't98-conversation-actions', 't98-conversation-removed-label', 't98-conversation-removed-reason']) assert.ok(styles.includes(`.${name}`), `${name} is styled`);
+});
+
 test('conversation distinguishes public, private and note text and never infers send success from a composer', () => {
   const messages = Object.freeze(['public', 'private', 'note'].map((visibility, index) => Object.freeze({ id: `${index}`, author: `Author ${index}`, time: `App time ${index}`, dateTime: '2026-10-19T09:00:00Z', visibility, content: `Content ${index}`, ...(index === 2 ? { attachments: h('span', null, 'Attachment failed'), status: 'Receipt unknown' } : {}) })));
   const html = render(ConversationThread, { label: 'Studio conversation', messages, loading: true, error: 'Partial history unavailable.', status: 'Send outcome unknown. Reconcile first.', composer: h('form', null, h('textarea', { defaultValue: 'Retained reply' }), h('button', { disabled: true }, 'Reply pending')) });
@@ -55,4 +77,42 @@ test('conversation distinguishes public, private and note text and never infers 
   assert.match(readonly, /Read only. Replies are unavailable/);
   assert.match(readonly, /class="t98-conversation-composer" hidden=""><textarea>Preserved draft/);
   assert.match(render(ConversationThread, { label: 'Studio', messages: [], emptyMessage: 'No matching messages.' }), /No matching messages/);
+});
+
+test('SelectableList is one listbox with a roving stop on the selection and states unread counts in text', () => {
+  const items = [
+    { id: 'a', title: 'Lina Haddad', preview: 'Is the studio open on Friday?', meta: '10:42', unread: 3 },
+    { id: 'b', title: 'Omar Saleh', preview: 'Thanks!', meta: 'Yesterday' },
+    { id: 'c', title: 'Archived thread', disabled: true },
+  ];
+  const html = render(SelectableList, { label: 'Conversations', items, selectedId: 'b', onSelect() {} });
+  assert.match(html, /<ul class="t98-selectable-list" role="listbox" aria-label="Conversations">/);
+  assert.equal((html.match(/role="option"/g) ?? []).length, 3);
+  assert.match(html, /data-item-id="b" aria-selected="true" tabindex="0"/);
+  assert.match(html, /data-item-id="a" aria-selected="false" tabindex="-1" class="t98-selectable-item t98-selectable-item--unread"/);
+  assert.match(html, /<span aria-hidden="true">3<\/span><span class="t98-visually-hidden">, 3 unread<\/span>/);
+  assert.match(html, /data-item-id="c" aria-selected="false" aria-disabled="true"/);
+  const none = render(SelectableList, { label: 'Conversations', items, onSelect() {} });
+  assert.match(none, /data-item-id="a" aria-selected="false" tabindex="0"/);
+  assert.match(render(SelectableList, { label: 'C', items: [], onSelect() {}, emptyMessage: 'No conversations match.' }), /No conversations match\./);
+  assert.match(render(SelectableList, { label: 'C', items: [{ id: 'x', title: 'X', unread: 250 }], onSelect() {} }), />99\+</);
+  for (const name of ['t98-selectable', 't98-selectable-item', 't98-selectable-unread', 't98-selectable-preview']) assert.ok(styles.includes(`.${name}`), name);
+});
+
+test('conversation threads nest replies up to three levels and offer older messages through LoadMore', () => {
+  const reply = (id, depth, replies) => ({ id, author: `Author ${id}`, time: `t${id}`, visibility: 'public', content: `Reply ${id} at ${depth}`, ...(replies ? { replies } : {}) });
+  const messages = [{ id: 'root', author: 'Visitor', time: '10:00', visibility: 'public', content: 'Love this!', replies: [reply('r1', 1, [reply('r2', 2, [reply('r3', 3, [reply('r4', 4)])])])] }];
+  const html = render(ConversationThread, { label: 'Comments', messages, hasOlder: true, onLoadOlder() {} });
+  assert.match(html, /<ol class="t98-conversation-replies" aria-label="1 reply to Visitor">/);
+  assert.match(html, /data-message-id="r1"[^>]*data-depth="1"/);
+  assert.match(html, /data-message-id="r3"[^>]*data-depth="3"/);
+  // Deeper replies stay at the third level instead of indenting further.
+  assert.match(html, /data-message-id="r4"[^>]*data-depth="3"/);
+  assert.match(html, /aria-label="1 reply to Author r2" data-flat="true"/);
+  assert.match(html, />Load older messages</);
+  assert.ok(html.indexOf('Load older messages') < html.indexOf('data-message-id="root"'));
+  assert.match(render(ConversationThread, { label: 'C', messages, hasOlder: false, onLoadOlder() {} }), /This is the start of the conversation\./);
+  assert.match(render(ConversationThread, { label: 'C', messages, hasOlder: true, onLoadOlder() {}, olderUnavailableReason: 'The provider only returns the last 50 messages.' }), /The provider only returns the last 50 messages\./);
+  assert.doesNotMatch(render(ConversationThread, { label: 'C', messages }), /Load older|start of the conversation/);
+  for (const name of ['t98-conversation-replies', 't98-conversation-older']) assert.ok(styles.includes(`.${name}`), name);
 });

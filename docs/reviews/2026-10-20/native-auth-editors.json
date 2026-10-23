@@ -239,7 +239,7 @@
       "theme": "dark",
       "width": 320,
       "batch": 1,
-      "publicImage": "images/campaign-auth-editors/signin-dark-320.png",
+      "publicImage": "../2026-10-19/images/consumer/campaign-login-dark-after-320-0.3.11.png",
       "documentWidth": 320,
       "documentContained": true,
       "dialogsContained": true,

@@ -1,7 +1,9 @@
 import { useId, useRef, useState } from 'react';
-import { ConversationThread, DetailWorkspace, PublishingAgenda, type ConversationMessage, type PublishingAgendaEntry } from '../lib/coordination.js';
-import { Badge, Button, Field, Textarea } from '../lib/primitives.js';
-import { tsx, type ComponentEntry, type ComponentProp } from './model.js';
+import { ConversationThread, DetailWorkspace, PublishingAgenda, SelectableList, type ConversationMessage, type PublishingAgendaEntry, type SelectableListItem } from '../lib/coordination.js';
+import { Avatar, Badge, Button, Field, Textarea } from '../lib/primitives.js';
+import { LoadMore, MediaPlayer } from '../lib/controls.js';
+import { Blockquote } from '../lib/structure.js';
+import { tsx, type ComponentEntry, type ComponentProp, type ComponentState } from './model.js';
 
 const prop = (name: string, type: string, description: string, required = false, defaultValue?: string): ComponentProp => ({ name, type, description, required, defaultValue });
 const surfaceTokens = ['--t98-font', '--t98-surface', '--t98-subtle', '--t98-text', '--t98-muted', '--t98-border', '--t98-radius', '--t98-space-2', '--t98-space-3', '--t98-space-4'];
@@ -74,6 +76,51 @@ function ConversationDemo({ mode = 'default' }: { mode?: ConversationMode }) {
   return <ConversationThread label="Studio opening conversation" messages={mode === 'empty' ? [] : sampleMessages} loading={mode === 'loading'} readOnly={mode === 'readonly'} status={<p role="status">{receipt || threadStatus[mode]}</p>} error={mode === 'error' ? 'The attachment was not sent. Review it before any app-authorized retry.' : undefined}
     composer={<form onSubmit={event => { event.preventDefault(); setReceipt('Local draft preview recorded. No provider send was attempted.'); }}><Field htmlFor={id} label="Public reply draft"><Textarea value={draft} onChange={event => setDraft(event.target.value)} /></Field><Button type="submit" disabled={!draft.trim() || mode === 'pending' || mode === 'unknown'}>Preview local reply</Button><p>The app owns reply eligibility, attachments and sending. This example retains its draft.</p></form>} />;
 }
+function ConversationExchangeDemo() {
+  const [hidden, setHidden] = useState(false);
+  const messages: ConversationMessage[] = [
+    { id: 'in-1', author: 'Studio visitor', time: '19 October · 13:00 Dubai', dateTime: '2026-10-19T09:00:00Z', visibility: 'public', direction: 'inbound', content: 'What time does the studio open?',
+      attachments: <MediaPlayer kind="video" label="Video from Studio visitor" unavailable="The provider has not finished processing this video." />,
+      actions: <Button variant="secondary" onClick={() => setHidden(true)} disabled={hidden}>Hide</Button>, removed: hidden, removedReason: hidden ? 'Hidden by Studio teammate. It is still visible to its author.' : undefined },
+    { id: 'out-1', author: 'Studio team', time: '19 October · 13:05 Dubai', dateTime: '2026-10-19T09:05:00Z', visibility: 'public', direction: 'outbound',
+      content: <><Blockquote source="Studio visitor">What time does the studio open?</Blockquote>We open at 10:00 every day.</>,
+      actions: <Button variant="secondary">Copy link</Button> },
+  ];
+  return <ConversationThread label="Studio comments" messages={messages} status={<p role="status">{hidden ? 'Comment hidden.' : 'History supplied by the app.'}</p>} />;
+}
+function CommentsDemo() {
+  const [older, setOlder] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const base: ConversationMessage[] = [
+    { id: 'c1', author: 'Studio visitor', time: '19 October · 13:00 Dubai', visibility: 'public', content: 'Love this colour! Is it available in the larger size?', replies: [
+      { id: 'c2', author: 'Studio team', time: '19 October · 13:05 Dubai', visibility: 'public', direction: 'outbound', content: 'Yes, the large size ships next week.', replies: [
+        { id: 'c3', author: 'Studio visitor', time: '19 October · 13:07 Dubai', visibility: 'public', content: 'Perfect, thank you.' }] }] },
+  ];
+  const earlier: ConversationMessage[] = [{ id: 'c0', author: 'Another visitor', time: '18 October · 09:12 Dubai', visibility: 'public', content: 'When does the studio open?' }];
+  return <ConversationThread label="Comments on the Spring launch post" messages={older ? [...earlier, ...base] : base} hasOlder={!older} olderLoading={loading}
+    onLoadOlder={() => { setLoading(true); setTimeout(() => { setOlder(true); setLoading(false); }, 700); }} />;
+}
+const commentsCode = tsx(['ConversationThread', 'type ConversationMessage'], `<ConversationThread label="Comments on the Spring launch post" messages={messages}
+  hasOlder={cursor !== null} olderLoading={loading} onLoadOlder={loadOlder} />`, `const messages: ConversationMessage[] = [
+  { id: 'c1', author: 'Studio visitor', time: '13:00', visibility: 'public', content: 'Love this colour!', replies: [
+    { id: 'c2', author: 'Studio team', time: '13:05', visibility: 'public', direction: 'outbound', content: 'Thank you!' },
+  ] },
+];
+const cursor: string | null = 'page-2';
+const loading = false;
+const loadOlder = () => {};`);
+
+const exchangeCode = tsx(['ConversationThread', 'Blockquote', 'Button', 'MediaPlayer', 'type ConversationMessage'], `<ConversationThread label="Studio comments" messages={messages} />`, `const [hidden, setHidden] = useState(false);
+const hide = () => setHidden(true);
+const messages: ConversationMessage[] = [
+  { id: 'in-1', author: 'Studio visitor', time: '19 October · 13:00 Dubai', visibility: 'public', direction: 'inbound',
+    content: 'What time does the studio open?',
+    attachments: <MediaPlayer kind="video" label="Video from Studio visitor" unavailable="The provider has not finished processing this video." />,
+    actions: <Button variant="secondary" onClick={hide}>Hide</Button>,
+    removed: hidden, removedReason: hidden ? 'Hidden by Studio teammate.' : undefined },
+  { id: 'out-1', author: 'Studio team', time: '19 October · 13:05 Dubai', visibility: 'public', direction: 'outbound',
+    content: <><Blockquote source="Studio visitor">What time does the studio open?</Blockquote>We open at 10:00 every day.</> },
+];`, ['useState']);
 function conversationCode(mode: ConversationMode = 'default') {
   return tsx(['ConversationThread', 'Button', 'Field', 'Textarea', 'type ConversationMessage'], `<ConversationThread label="Studio opening conversation" messages={${mode === 'empty' ? '[]' : 'messages'}}${mode === 'loading' ? ' loading' : ''}${mode === 'readonly' ? ' readOnly' : ''}
   status={<p role="status">{receipt || ${JSON.stringify(threadStatus[mode])}}</p>}${mode === 'error' ? ' error="The attachment was not sent. Review it before any app-authorized retry."' : ''}
@@ -86,6 +133,22 @@ const [draft, setDraft] = useState('We will confirm the opening time.');
 const [receipt, setReceipt] = useState('');
 const messages: ConversationMessage[] = ${JSON.stringify(sampleMessages, null, 2)};`, ['useId', 'useState']);
 }
+
+const conversations: SelectableListItem[] = [
+  { id: 'lina', title: 'Lina Haddad', preview: 'Is the studio open on Friday? We would like to book the larger room for an afternoon shoot.', meta: '10:42', unread: 3, leading: <Avatar name="Lina Haddad" size="sm" /> },
+  { id: 'omar', title: 'Omar Saleh', preview: 'Thanks, see you then.', meta: 'Yesterday', status: 'Assigned to you', leading: <Avatar name="Omar Saleh" size="sm" /> },
+  { id: 'meta', title: 'Comment on Spring launch post', preview: 'Love this colour!', meta: 'Mon', leading: <Avatar name="Spring launch" size="sm" /> },
+];
+function SelectableDemo() {
+  const [selected, setSelected] = useState<string | null>('omar');
+  return <SelectableList label="Conversations" items={conversations} selectedId={selected} onSelect={setSelected}
+    footer={<LoadMore hasMore shown={3} total={48} itemLabel="conversations" onLoadMore={() => {}} />} />;
+}
+const selectableCode = tsx(['SelectableList', 'Avatar', 'type SelectableListItem'], `<SelectableList label="Conversations" items={items} selectedId={selected} onSelect={setSelected} />`, `const [selected, setSelected] = useState<string | null>(null);
+const items: SelectableListItem[] = [
+  { id: 'lina', title: 'Lina Haddad', preview: 'Is the studio open on Friday?', meta: '10:42', unread: 3, leading: <Avatar name="Lina Haddad" size="sm" /> },
+  { id: 'omar', title: 'Omar Saleh', preview: 'Thanks, see you then.', meta: 'Yesterday', status: 'Assigned to you' },
+];`, ['useState']);
 
 export const coordinationEntries: ComponentEntry[] = [
   {
@@ -103,10 +166,19 @@ export const coordinationEntries: ComponentEntry[] = [
     states: ([['Selected desktop', 'selected', 'Edit a draft, return to the list and reopen it; draft remains controlled by this example.'], ['No selection', 'empty', 'The list is available with an explicit desktop detail placeholder.'], ['Narrow with back', 'narrow', 'A 21rem wrapper demonstrates one pane and a labelled Back action; reopening preserves the draft.'], ['Loading detail', 'loading', 'App-owned loading content preserves the reply draft.'], ['Detail refresh error', 'error', 'App-owned failure context leaves the draft available.']] as const).map(([name, mode, description]) => ({ name, description, preview: <DetailDemo mode={mode} />, code: detailCode(mode) })),
   },
   {
+    name: 'SelectableList', category: 'Data display', description: 'The list side of DetailWorkspace: conversations, contacts or queue items as one keyboard listbox with unread counts and a selected item.',
+    usage: 'Use beside DetailWorkspace or a detail pane. Arrow keys, Home and End move focus without opening anything; Enter, Space or a click calls onSelect. Put LoadMore in footer for cursor paging. Titles stay on one line; previews clip to two.',
+    props: [prop('label', 'string', 'Accessible name of the list.', true), prop('items', 'readonly SelectableListItem[]', 'id, title, preview, meta, leading, unread, status, disabled.', true), prop('selectedId', 'string | null', 'The open item; marked aria-selected and with a bar and tint.'), prop('onSelect', '(id: string) => void', 'Called on Enter, Space or click.', true), prop('loading', 'boolean', 'Shows a loading status and keeps items.'), prop('emptyMessage', 'ReactNode', 'Shown when there are no items.'), prop('footer', 'ReactNode', 'Rendered after the list, for example LoadMore.')],
+    tokens: [...surfaceTokens, '--t98-accent', '--t98-accent-soft', '--t98-focus', '--t98-control-touch'],
+    accessibility: ['A listbox with one roving tab stop that returns to the selected item; selection does not follow focus, so browsing never opens a conversation.', 'Unread counts are stated in text (", 3 unread") and the selected item has a bar as well as a tint.', 'Rows are at least 44px tall; leading avatars are decorative.'],
+    related: ['DetailWorkspace', 'ConversationThread', 'LoadMore'], example: selectableCode,
+    states: [{ name: 'Inbox list', description: 'Unread, assigned and selected conversations with a load-more footer.', preview: <SelectableDemo />, code: selectableCode }],
+  },
+  {
     name: 'ConversationThread', category: 'Data display', description: 'Readonly conversation history with explicit public, private and internal-note labels and an app-owned composer slot.',
     usage: 'Use within inbox details after the app resolves message order, authorization and provenance. Message labels describe supplied history and do not enable notes or assignment in Campaign. App owns drafts, recipients, send windows, templates, attachments, pending keys, receipt reconciliation and supported actions. Unknown sends require app reconciliation before retry.',
-    props: [prop('label', 'string', 'Visible conversation title and accessible section name.', true), prop('messages', 'readonly ConversationMessage[]', 'Stable id, author:string, time:string, optional dateTime, visibility:public | private | note, content:ReactNode, optional attachments/status:ReactNode. Rendered without sorting.', true), prop('composer', 'ReactNode', 'App-owned, visibly labelled form with its own submit, drafts and eligibility. No submit handler is added by the library.'), prop('status', 'ReactNode', 'Thread-level sync, permission or uncertain-send context; app chooses live announcement semantics.'), prop('loading', 'boolean', 'Announces loading and preserves supplied history.', false, 'false'), prop('readOnly', 'boolean', 'Shows a reply restriction and hides the mounted composer. App still enforces permission at send boundaries.', false, 'false'), prop('error', 'ReactNode', 'Visible alert retaining messages and draft slot.'), prop('emptyMessage', 'ReactNode', 'Explanation for empty or filtered history.', false, 'No messages in this conversation.'), prop('className', 'string', 'Additional thread class.')],
-    tokens: [...surfaceTokens, '--t98-info-soft', '--t98-warning-soft'], accessibility: ['Ordered history keeps author, formatted time and visible Public reply, Private message or Internal note text for every message. Distinction never relies on color.', 'Optional machine-readable dates pass through without localization. Attachments and status slots retain their app-supplied accessible labels.', 'History is not a live log, avoiding repeated announcements on mount. App can supply a focused status announcement for new or pending events.', 'Readonly composer stays mounted under hidden so it cannot receive keyboard focus. The app labels composer fields and buttons and preserves its draft across record changes.'], related: ['DetailWorkspace', 'Textarea', 'Alert', 'Badge'], example: conversationCode(),
-    states: ([['Public, private and note', 'default', 'Edit and preview a local public reply; history labels do not change. No provider send runs.'], ['Empty history', 'empty', 'Empty message list is explicit while the app-owned draft remains.'], ['Loading history', 'loading', 'Messages and draft survive an app-supplied refresh state.'], ['Read only', 'readonly', 'Readable history is retained while the composer is hidden.'], ['Failed attachment', 'error', 'An app-supplied error retains history and text.'], ['Reply pending', 'pending', 'A pending receipt prevents the demo from offering another submission.'], ['Unknown send outcome', 'unknown', 'An explicit reconciliation message and disabled demo action distinguish uncertainty from failure.']] as const).map(([name, mode, description]) => ({ name, description, preview: <ConversationDemo mode={mode} />, code: conversationCode(mode) })),
+    props: [prop('label', 'string', 'Visible conversation title and accessible section name.', true), prop('messages', 'readonly ConversationMessage[]', 'Stable id, author:string, time:string, optional dateTime, visibility:public | private | note, content:ReactNode, optional attachments/status:ReactNode, direction:inbound | outbound, actions:ReactNode, removed:boolean, removedReason:ReactNode and replies (nested up to three levels). Rendered without sorting.'), prop('hasOlder / onLoadOlder / olderLoading / olderUnavailableReason', 'boolean / () => void / boolean / ReactNode', 'A LoadMore control above the first message for older pages; the button keeps focus while loading.', true), prop('composer', 'ReactNode', 'App-owned, visibly labelled form with its own submit, drafts and eligibility. No submit handler is added by the library.'), prop('status', 'ReactNode', 'Thread-level sync, permission or uncertain-send context; app chooses live announcement semantics.'), prop('loading', 'boolean', 'Announces loading and preserves supplied history.', false, 'false'), prop('readOnly', 'boolean', 'Shows a reply restriction and hides the mounted composer. App still enforces permission at send boundaries.', false, 'false'), prop('error', 'ReactNode', 'Visible alert retaining messages and draft slot.'), prop('emptyMessage', 'ReactNode', 'Explanation for empty or filtered history.', false, 'No messages in this conversation.'), prop('className', 'string', 'Additional thread class.')],
+    tokens: [...surfaceTokens, '--t98-info-soft', '--t98-warning-soft'], accessibility: ['Ordered history keeps author, formatted time and visible Public reply, Private message or Internal note text for every message. Distinction never relies on color.', 'Optional machine-readable dates pass through without localization. Attachments and status slots retain their app-supplied accessible labels.', 'History is not a live log, avoiding repeated announcements on mount. App can supply a focused status announcement for new or pending events.', 'Readonly composer stays mounted under hidden so it cannot receive keyboard focus. The app labels composer fields and buttons and preserves its draft across record changes.', 'Direction is shown as Received or Sent text, not only by position. Per-message actions form a group named after the author and time. A removed message says so and withholds its content and attachments.'], related: ['DetailWorkspace', 'Textarea', 'Alert', 'Badge', 'MediaPlayer', 'Blockquote'], example: conversationCode(),
+    states: ([['Public, private and note', 'default', 'Edit and preview a local public reply; history labels do not change. No provider send runs.'], ['Empty history', 'empty', 'Empty message list is explicit while the app-owned draft remains.'], ['Loading history', 'loading', 'Messages and draft survive an app-supplied refresh state.'], ['Read only', 'readonly', 'Readable history is retained while the composer is hidden.'], ['Failed attachment', 'error', 'An app-supplied error retains history and text.'], ['Reply pending', 'pending', 'A pending receipt prevents the demo from offering another submission.'], ['Unknown send outcome', 'unknown', 'An explicit reconciliation message and disabled demo action distinguish uncertainty from failure.']] as const).map(([name, mode, description]): ComponentState => ({ name, description, preview: <ConversationDemo mode={mode} />, code: conversationCode(mode) })).concat({ name: 'Older pages and nested replies', description: 'Load older comments at the top; replies nest up to three levels.', preview: <CommentsDemo />, code: commentsCode }, { name: 'Direction, actions and removal', description: 'Received and sent messages with a quoted reply, a pending video and a Hide action that removes the message.', preview: <ConversationExchangeDemo />, code: exchangeCode }),
   },
 ];

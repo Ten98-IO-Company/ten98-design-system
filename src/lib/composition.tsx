@@ -1,7 +1,11 @@
 'use client';
 
-import { useId, type ReactNode } from 'react';
-import { Alert, Badge, Button, Checkbox, Field, Input, Textarea, cx } from './primitives.js';
+import { useId, useState, type ReactNode } from 'react';
+import { Alert, Avatar, Badge, Button, Checkbox, Field, Input, Textarea, cx } from './primitives.js';
+import { MediaPlayer } from './controls.js';
+import { Image } from './structure.js';
+import { formatDuration, formatFileSize } from './format.js';
+import { contentPolicyMeta, prefixDocument } from './sandbox.js';
 
 export type DestinationAccount = {
   id: string;
@@ -58,10 +62,41 @@ export interface MediaItem {
   statusLabel?: string;
   error?: string;
   altText: string;
+  /** Media URL. With `type`, the strip previews it when `preview` is not supplied. */
+  url?: string;
+  /** MIME type, such as image/jpeg or video/mp4. */
+  type?: string;
+  /** Pixel dimensions, shown as width × height. */
+  width?: number;
+  height?: number;
+  /** Length in seconds for audio and video. */
+  duration?: number;
+  /** Size in bytes. */
+  size?: number;
+}
+
+const positive = (value: number | undefined): value is number => value !== undefined && Number.isFinite(value) && value > 0;
+/** Facts known about the media; missing or invalid values are left out rather than shown as 0. */
+function mediaFacts(item: MediaItem) {
+  return [
+    positive(item.width) && positive(item.height) ? `${Math.round(item.width)} × ${Math.round(item.height)} px` : '',
+    item.duration === undefined ? '' : formatDuration(item.duration),
+    item.size === undefined ? '' : formatFileSize(item.size),
+  ].filter(Boolean);
+}
+function mediaPreview(item: MediaItem) {
+  if (item.preview != null) return item.preview;
+  if (!item.url || !item.type) return <span className="t98-media-placeholder">Preview unavailable</span>;
+  if (item.type.startsWith('image/')) return <Image src={item.url} alt={item.altText} fit="contain" width={positive(item.width) ? item.width : undefined} height={positive(item.height) ? item.height : undefined} />;
+  const kind = item.type.startsWith('video/') ? 'video' : item.type.startsWith('audio/') ? 'audio' : null;
+  if (!kind) return <span className="t98-media-placeholder">Preview unavailable</span>;
+  return <MediaPlayer kind={kind} label={`Preview of ${item.name}`} src={item.url} type={item.type} width={positive(item.width) ? item.width : undefined} height={positive(item.height) ? item.height : undefined} />;
 }
 
 export interface MediaStripProps {
   label: string;
+  /** Longest alt text a destination accepts; the field stops at it and shows a counter. */
+  altMaxLength?: number;
   items: readonly MediaItem[];
   onItemsChange: (items: MediaItem[]) => void;
   onFilesSelect?: (files: File[]) => void;
@@ -74,7 +109,7 @@ export interface MediaStripProps {
 }
 
 /** Controlled draft media; the app supplies previews and owns upload, validation and rights. */
-export function MediaStrip({ label, items, onItemsChange, onFilesSelect, accept, pending = false, readOnly = false, error, emptyMessage = 'No media attached.', className }: MediaStripProps) {
+export function MediaStrip({ label, altMaxLength, items, onItemsChange, onFilesSelect, accept, pending = false, readOnly = false, error, emptyMessage = 'No media attached.', className }: MediaStripProps) {
   const id = useId();
   const locked = pending || readOnly;
   function move(index: number, target: number) {
@@ -95,13 +130,14 @@ export function MediaStrip({ label, items, onItemsChange, onFilesSelect, accept,
       event.currentTarget.value = '';
     }} /></Field>}
     {items.length ? <ol className="t98-media-list">{items.map((item, index) => <li key={item.id} className="t98-media-item" data-media-id={item.id} aria-busy={item.status === 'pending' || undefined}>
-      <div className="t98-media-preview">{item.preview ?? <span className="t98-media-placeholder">Preview unavailable</span>}</div>
+      <div className="t98-media-preview">{mediaPreview(item)}</div>
       <div className="t98-media-details">
         <p className="t98-media-name">{item.name}</p>
+        {mediaFacts(item).length > 0 && <p className="t98-media-facts">{mediaFacts(item).join(' · ')}</p>}
         <Badge tone={item.status === 'ready' ? 'success' : item.status === 'error' ? 'danger' : item.status === 'unverified' ? 'neutral' : 'info'}>{item.statusLabel ?? (item.status === 'ready' ? 'Ready' : item.status === 'error' ? 'Failed' : item.status === 'unverified' ? 'Metadata unverified' : 'Processing')}</Badge>
         {item.error && <p className="t98-media-error" role="alert">{item.error}</p>}
-        <Field htmlFor={`${id}-alt-${encodeURIComponent(item.id)}`} label={`Alt text for ${item.name}`}>
-          <Textarea rows={2} value={item.altText} readOnly={readOnly} disabled={pending} onChange={event => {
+        <Field htmlFor={`${id}-alt-${encodeURIComponent(item.id)}`} label={`Alt text for ${item.name}`} count={altMaxLength ? { value: item.altText, max: altMaxLength } : undefined}>
+          <Textarea rows={2} value={item.altText} readOnly={readOnly} disabled={pending} maxLength={altMaxLength} onChange={event => {
             if (!locked) onItemsChange(items.map(current => current.id === item.id ? { ...current, altText: event.target.value } : current));
           }} />
         </Field>
@@ -115,6 +151,43 @@ export function MediaStrip({ label, items, onItemsChange, onFilesSelect, accept,
   </section>;
 }
 
+export interface SandboxedPreviewProps {
+  /** Visible heading and the frame's accessible name, for example "Email preview: Spring sale". */
+  title: string;
+  /** Untrusted HTML document or fragment, such as a rendered email. */
+  html?: string;
+  /** Allows https images. Off by default, so opening a preview cannot fire tracking pixels or read receipts. */
+  allowRemoteImages?: boolean;
+  /** Frame width: 375px for mobile or 600px for desktop email. Wider than the space available, the frame scrolls sideways. */
+  viewport?: 'mobile' | 'desktop';
+  /** Frame height: 20, 32 or 48rem. The document scrolls inside the frame. */
+  height?: 'sm' | 'md' | 'lg';
+  /** Context shown above the frame, such as the subject, sender or an approximation notice. */
+  notice?: ReactNode;
+  /** Shown instead of the frame when there is nothing to preview or it is not authorized. */
+  unavailable?: ReactNode;
+  className?: string;
+}
+
+/** Scripts, forms and plugins never run; only inline styles and data images load (plus https images when allowed). */
+const previewPolicy = (remoteImages: boolean) => `default-src 'none'; style-src 'unsafe-inline' data:; img-src data:${remoteImages ? ' https:' : ''}; font-src data:; form-action 'none'; base-uri 'none'`;
+
+/** Renders untrusted HTML, such as an email, in a frame with every sandbox restriction and a content policy that blocks
+ * scripts and network loads. Links cannot navigate: they target a new window, which the sandbox does not allow. */
+export function SandboxedPreview({ title, html, allowRemoteImages = false, viewport = 'desktop', height = 'md', notice, unavailable, className }: SandboxedPreviewProps) {
+  const id = useId();
+  const prefix = `${contentPolicyMeta(previewPolicy(allowRemoteImages))}<base target="_blank"><meta name="color-scheme" content="light">`;
+  return <section className={cx('t98-sandboxed-preview', className)} aria-labelledby={`${id}-title`}>
+    <h3 id={`${id}-title`} className="t98-sandboxed-preview-title">{title}</h3>
+    {notice != null && <div className="t98-sandboxed-preview-notice">{notice}</div>}
+    {unavailable != null || !html ? <p className="t98-sandboxed-preview-empty">{unavailable ?? 'Nothing to preview.'}</p>
+      : <div className="t98-sandboxed-preview-scroll" role="region" aria-label={`${title}, scrollable`} tabIndex={0}>
+        <iframe className={cx('t98-sandboxed-preview-frame', `t98-sandboxed-preview-frame--${viewport}`, `t98-sandboxed-preview-frame--${height}`)}
+          title={title} sandbox="" referrerPolicy="no-referrer" srcDoc={prefixDocument(html, prefix)} />
+      </div>}
+  </section>;
+}
+
 export interface ContentPreviewProps {
   label: string;
   destination: string;
@@ -122,24 +195,66 @@ export interface ContentPreviewProps {
   text?: ReactNode;
   media?: ReactNode;
   footer?: ReactNode;
+  /** Neutral layout that approximates where the content appears: a plain card, a feed post, a 9:16 story or a direct message.
+   * No platform logos, colours or trademarks are drawn. */
+  chrome?: 'card' | 'post' | 'story' | 'message';
+  /** Width of the previewed device: `mobile` (375px) or `desktop` (600px). Omit to fill the space. */
+  device?: 'mobile' | 'desktop';
+  /** Later posts of a thread, shown after the first one and numbered as a sequence. */
+  thread?: readonly { id: string; text?: ReactNode; media?: ReactNode }[];
+  /** Characters of a plain-text caption shown before "Show full caption", as feeds truncate long captions. */
+  captionLimit?: number;
+  /** A poll attached to the post. */
+  poll?: { question?: ReactNode; options: readonly string[]; duration?: ReactNode };
+  /** The first comment posted with the content. */
+  firstComment?: ReactNode;
   pending?: boolean;
   error?: string;
   emptyMessage?: string;
   className?: string;
 }
 
+/** A plain-text caption cut at a limit, with a toggle that names what it does and states its state. */
+function Caption({ text, limit }: { text: string; limit: number }) {
+  const [expanded, setExpanded] = useState(false);
+  const chars = [...text];
+  if (chars.length <= limit) return <>{text}</>;
+  return <>{expanded ? text : `${chars.slice(0, limit).join('').trimEnd()}…`}{' '}
+    <button type="button" className="t98-content-preview-more" aria-expanded={expanded} onClick={() => setExpanded(value => !value)}>{expanded ? 'Show less' : 'Show full caption'}</button></>;
+}
+
 /** Approximate presentation only; no provider rules, remote fetching or send behavior. */
-export function ContentPreview({ label, destination, provider, text, media, footer, pending = false, error, emptyMessage = 'No content supplied for this destination.', className }: ContentPreviewProps) {
+export function ContentPreview({ label, destination, provider, text, media, footer, chrome = 'card', device, thread, captionLimit, poll, firstComment, pending = false, error, emptyMessage = 'No content supplied for this destination.', className }: ContentPreviewProps) {
   const id = useId();
-  return <section className={cx('t98-content-preview-frame', className)} aria-labelledby={`${id}-label`} aria-describedby={`${id}-notice`} aria-busy={pending || undefined}>
+  const empty = text == null && media == null;
+  const identity = chrome === 'card' ? <div className="t98-content-preview-identity"><strong>{destination}</strong><span>{provider}</span></div>
+    : <div className="t98-content-preview-identity"><Avatar name={destination} size="sm" /><span className="t98-content-preview-who"><strong>{destination}</strong><span>{provider}</span></span></div>;
+  const body = <>
+    {empty && <p className="t98-content-preview-empty">{emptyMessage}</p>}
+    {/* A story shows the media first with the text over its lower edge; every other layout reads text, then media. */}
+    {chrome === 'story' && media != null && <div className="t98-content-preview-media">{media}</div>}
+    {text != null && <div className="t98-content-preview-text">{typeof text === 'string' && captionLimit !== undefined && captionLimit > 0 ? <Caption text={text} limit={captionLimit} /> : text}</div>}
+    {chrome !== 'story' && media != null && <div className="t98-content-preview-media">{media}</div>}
+    {poll && poll.options.length > 0 && <div className="t98-content-preview-poll">
+      {poll.question != null && <p className="t98-content-preview-poll-question">{poll.question}</p>}
+      <ul className="t98-content-preview-poll-options" aria-label="Poll options">{poll.options.map(option => <li key={option}>{option}</li>)}</ul>
+      {poll.duration != null && <p className="t98-content-preview-poll-duration">{poll.duration}</p>}
+    </div>}
+    {thread && thread.length > 0 && <ol className="t98-content-preview-thread" aria-label={`Thread, ${thread.length + 1} posts`}>
+      {thread.map((entry, index) => <li key={entry.id} className="t98-content-preview-thread-item">
+        <span className="t98-content-preview-thread-index">{index + 2} / {thread.length + 1}</span>
+        {entry.text != null && <div className="t98-content-preview-text">{entry.text}</div>}
+        {entry.media != null && <div className="t98-content-preview-media">{entry.media}</div>}
+      </li>)}
+    </ol>}
+    {firstComment != null && <div className="t98-content-preview-comment"><p className="t98-content-preview-comment-label">First comment</p><div className="t98-content-preview-text">{firstComment}</div></div>}
+    {footer != null && <div className="t98-content-preview-footer">{footer}</div>}
+  </>;
+  return <section className={cx('t98-content-preview-frame', `t98-content-preview-frame--${chrome}`, device && `t98-content-preview-frame--${device}`, className)} aria-labelledby={`${id}-label`} aria-describedby={`${id}-notice`} aria-busy={pending || undefined}>
     <h3 id={`${id}-label`} className="t98-content-preview-label">{label}</h3>
     <p id={`${id}-notice`} className="t98-content-preview-notice">Approximate preview. Final delivery may look different.</p>
-    <div className="t98-content-preview-identity"><strong>{destination}</strong><span>{provider}</span></div>
     {pending && <p className="t98-content-preview-status" role="status">Preview update pending. Previously supplied content is retained.</p>}
     {error && <Alert title="Preview needs attention" tone="danger">{error}</Alert>}
-    {text == null && media == null && <p className="t98-content-preview-empty">{emptyMessage}</p>}
-    {text != null && <div className="t98-content-preview-text">{text}</div>}
-    {media != null && <div className="t98-content-preview-media">{media}</div>}
-    {footer != null && <div className="t98-content-preview-footer">{footer}</div>}
+    {chrome === 'card' ? <>{identity}{body}</> : <div className="t98-content-preview-surface">{identity}{chrome === 'message' ? <div className="t98-content-preview-bubble">{body}</div> : body}</div>}
   </section>;
 }

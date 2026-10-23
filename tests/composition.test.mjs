@@ -1,8 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { createElement as h } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { DestinationPicker, MediaStrip, ContentPreview } from '../dist/composition.js';
+
+const styles = readFileSync(new URL('../dist/styles.css', import.meta.url), 'utf8');
 
 const render = (Component, props) => renderToStaticMarkup(h(Component, props));
 const accounts = [
@@ -92,4 +95,53 @@ test('unverified media metadata does not imply processing or readiness', () => {
   const html = render(MediaStrip, { label: 'Media', items: [{ id: 'unknown', name: 'image.jpg', status: 'unverified', altText: '' }], onItemsChange() {}, readOnly: true });
   assert.match(html, /Metadata unverified/);
   assert.doesNotMatch(html, /aria-busy="true"|>Processing<|>Ready</);
+});
+
+test('MediaStrip previews a url by type and lists known facts, leaving out missing or invalid ones', () => {
+  const items = [
+    { id: 'i', name: 'poster.jpg', status: 'ready', altText: 'Poster', url: '/p.jpg', type: 'image/jpeg', width: 1080, height: 1350, size: 48200 },
+    { id: 'v', name: 'tour.mp4', status: 'ready', altText: '', url: '/t.mp4', type: 'video/mp4', width: 1080, height: 1920, duration: 3725, size: 18400000 },
+    { id: 'x', name: 'unknown.bin', status: 'unverified', altText: '', url: '/u.bin', type: 'application/octet-stream', width: 0, height: Number.NaN, duration: -1, size: Number.NaN },
+  ];
+  const html = render(MediaStrip, { label: 'Draft media', items, onItemsChange() {} });
+  assert.match(html, /<img[^>]*src="\/p.jpg"[^>]*alt="Poster"|<img[^>]*alt="Poster"[^>]*src="\/p.jpg"/);
+  assert.match(html, /1080 × 1350 px · 47.1 KB/);
+  assert.match(html, /<video[^>]*aria-label="Preview of tour.mp4"/);
+  assert.match(html, /1080 × 1920 px · 1:02:05 · 17.5 MB/);
+  const unknown = html.slice(html.indexOf('data-media-id="x"'));
+  assert.match(unknown, /Preview unavailable/);
+  assert.doesNotMatch(unknown, /t98-media-facts|0 × |0:00|NaN/);
+  assert.ok(styles.includes('.t98-media-facts'));
+});
+
+test('ContentPreview chrome layouts stay neutral and keep text, media and identity readable', () => {
+  const base = { label: 'Preview', destination: 'Studio main', provider: 'Social connection', text: 'Opening Saturday', media: h('img', { src: '/s.jpg', alt: 'Studio' }) };
+  const card = render(ContentPreview, base);
+  assert.match(card, /t98-content-preview-frame t98-content-preview-frame--card/);
+  assert.doesNotMatch(card, /t98-content-preview-surface|t98-avatar/);
+  const post = render(ContentPreview, { ...base, chrome: 'post' });
+  assert.match(post, /t98-content-preview-surface"><div class="t98-content-preview-identity"><span[^>]*t98-avatar/);
+  assert.ok(post.indexOf('Opening Saturday') < post.indexOf('alt="Studio"'));
+  const story = render(ContentPreview, { ...base, chrome: 'story' });
+  assert.ok(story.indexOf('alt="Studio"') < story.indexOf('Opening Saturday'), 'story media comes first, under the text');
+  const message = render(ContentPreview, { ...base, chrome: 'message' });
+  assert.match(message, /t98-content-preview-bubble"><div class="t98-content-preview-text">Opening Saturday/);
+  for (const html of [post, story, message]) assert.match(html, /Approximate preview\. Final delivery may look different\./);
+  for (const name of ['t98-content-preview-surface', 't98-content-preview-bubble', 't98-content-preview-who', 't98-content-preview-frame--story', 't98-content-preview-frame--post', 't98-content-preview-frame--message']) assert.ok(styles.includes(`.${name}`), name);
+});
+
+test('ContentPreview shows a numbered thread, a poll, a first comment and a truncated caption with a stateful toggle', () => {
+  const caption = 'Our studio opens this weekend with a full programme of workshops, talks and late-night viewings for everyone.';
+  const html = render(ContentPreview, { label: 'Preview', destination: 'Studio', provider: 'Social connection', chrome: 'post', text: caption, captionLimit: 40,
+    thread: [{ id: 't2', text: 'Saturday: workshops from 10:00.' }, { id: 't3', text: 'Sunday: talks.' }],
+    poll: { question: 'Which day will you come?', options: ['Saturday', 'Sunday'], duration: 'Poll closes in 1 day' }, firstComment: 'Tickets: example.com/studio' });
+  assert.match(html, /Our studio opens this weekend with a ful… <button type="button" class="t98-content-preview-more" aria-expanded="false">Show full caption<\/button>/);
+  assert.doesNotMatch(html, /late-night viewings/);
+  assert.match(html, /<ol class="t98-content-preview-thread" aria-label="Thread, 3 posts">/);
+  assert.match(html, />2 \/ 3<\/span>[\s\S]*Saturday: workshops[\s\S]*>3 \/ 3</);
+  assert.match(html, /<ul class="t98-content-preview-poll-options" aria-label="Poll options"><li>Saturday<\/li><li>Sunday<\/li><\/ul>/);
+  assert.match(html, />First comment<\/p><div class="t98-content-preview-text">Tickets: example.com\/studio</);
+  // A caption under the limit, or a non-string caption, is shown whole.
+  assert.doesNotMatch(render(ContentPreview, { label: 'P', destination: 'S', provider: 'p', text: 'Short', captionLimit: 40 }), /Show full caption/);
+  for (const name of ['t98-content-preview-more', 't98-content-preview-thread', 't98-content-preview-poll', 't98-content-preview-comment']) assert.ok(styles.includes(`.${name}`), name);
 });

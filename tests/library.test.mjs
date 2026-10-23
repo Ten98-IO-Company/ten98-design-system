@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, accessSync } from 'node:fs';
+import { readFileSync, readdirSync, accessSync } from 'node:fs';
 import { createElement as h } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import * as ui from '../dist/index.js';
@@ -84,6 +84,26 @@ test('DateRangeField labels both dates and supplies native range boundaries', ()
   assert.match(html, /max="2026-10-19"/);
   assert.match(html, /min="2026-10-01"/);
   assert.equal([...html.matchAll(/<label\b/g)].length, 2);
+  assert.doesNotMatch(html, /aria-invalid|role="alert"/);
+});
+
+test('DateRangeField explains an invalid range instead of blocking it, and shows an exclusive end as the last included day', () => {
+  const error = (props) => render(ui.DateRangeField, { label: 'Period', onChange() {}, ...props }).match(/role="alert">([^<]+)</)?.[1];
+  assert.equal(error({ start: '2026-10-19', end: '2026-10-01' }), 'End date must be on or after the start date.');
+  assert.equal(error({ start: '2025-12-30', end: '2026-01-05', min: '2026-01-01' }), 'Start on or after 2026-01-01.');
+  assert.equal(error({ start: '2026-10-01', end: '2026-10-30', max: '2026-10-21' }), 'End on or before 2026-10-21.');
+  assert.equal(error({ start: '2026-10-01', end: '2026-11-01', maxDays: 31 }), 'Choose at most 31 days; this range has 32.');
+  assert.equal(error({ start: '2026-10-01', end: '2026-10-31', maxDays: 31 }), undefined);
+  // Half-open end: [1 Oct, 1 Nov) is 31 days and the field shows 31 Oct.
+  const exclusive = render(ui.DateRangeField, { label: 'Period', start: '2026-10-01', end: '2026-11-01', endExclusive: true, maxDays: 31, onChange() {} });
+  assert.match(exclusive, /Last day included/);
+  assert.match(exclusive, /value="2026-10-31"/);
+  assert.doesNotMatch(exclusive, /role="alert"/);
+  assert.equal(error({ start: '2026-10-01', end: '2026-10-01', error: 'Server says no.' }), 'Server says no.');
+  const invalid = render(ui.DateRangeField, { label: 'Period', start: '2026-10-19', end: '2026-10-01', onChange() {} });
+  assert.equal([...invalid.matchAll(/aria-invalid="true"/g)].length, 2);
+  const id = invalid.match(/id="([^"]+-error)"/)[1];
+  assert.equal([...invalid.matchAll(new RegExp(`aria-describedby="${id}"`, 'g'))].length, 3);
 });
 
 test('PermissionMatrix handles inherited role names and labels every grant', () => {
@@ -174,8 +194,13 @@ test('Button defaults to a non-submit action and disables itself while loading',
   assert.doesNotMatch(submit, /disabled|aria-busy/);
 });
 
-test('Progress clamps out-of-range values and handles nonfinite input', () => {
-  for (const [value, expected] of [[-10, 0], [125, 100], [42.4, 42.4], [NaN, 0], [Infinity, 0], [-Infinity, 0]]) {
+test('Progress clamps out-of-range values and shows nonfinite input as indeterminate, never 0%', () => {
+  for (const value of [NaN, Infinity, -Infinity]) {
+    const html = render(ui.Progress, { value, label: 'Upload' });
+    assert.match(html, /<progress class="t98-progress" aria-label="Upload" aria-busy="true">/);
+    assert.doesNotMatch(html, /value=|%|NaN|Infinity/);
+  }
+  for (const [value, expected] of [[-10, 0], [125, 100], [42.4, 42.4]]) {
     const html = render(ui.Progress, { value, label: 'Upload' });
     const progress = html.match(/<progress\b[^>]*>/)?.[0];
     assert.ok(progress);
@@ -240,7 +265,8 @@ test('DataTable renders semantic empty state and safe paging for invalid page si
 test('the distributable resolves its public exports, client boundaries and combined stylesheet', () => {
   const manifest = JSON.parse(readFileSync(file('package.json'), 'utf8'));
   for (const target of Object.values(manifest.exports)) {
-    for (const path of typeof target === 'string' ? [target] : Object.values(target)) accessSync(file(path));
+    // A subpath pattern (./css/*.css) is checked by the per-sheet test; every literal target must exist.
+    for (const path of typeof target === 'string' ? [target] : Object.values(target)) if (!path.includes('*')) accessSync(file(path));
   }
   for (const name of ['Button', 'Input', 'Field', 'Dialog', 'Tabs', 'DataTable', 'AppShell', 'Sparkline', 'filterAndSortRows', 'ProductSwitcher', 'DateRangeField', 'CopyButton', 'SecretField', 'ConfirmDialog', 'ToastProvider', 'useToast', 'AuthLayout', 'PermissionMatrix']) {
     assert.ok(ui[name], `Public export ${name} resolves`);
@@ -310,4 +336,49 @@ test('standalone components set their font and scope border-box sizing to ten98 
   assert.ok(sizing, 'Both first and later ten98 classes receive scoped border-box sizing');
   assert.match(sizing.selector, /::before/);
   assert.match(sizing.selector, /::after/);
+});
+
+test('the catalogue loads every stylesheet bundled into styles.css, so previews match what apps get', () => {
+  const build = readFileSync(new URL('../scripts/build.mjs', import.meta.url), 'utf8');
+  const main = readFileSync(new URL('../src/main.tsx', import.meta.url), 'utf8');
+  const bundled = [...build.match(/writeFileSync\('dist\/styles\.css', \[([^\]]+)\]/)[1].matchAll(/'([^']+\.css)'/g)].map(match => match[1]);
+  assert.ok(bundled.length > 5, 'found the bundled stylesheet list');
+  for (const file of bundled.filter(file => file !== 'tokens.css')) assert.ok(main.includes(`import './lib/${file}';`), `catalogue imports ${file}`);
+});
+
+test('styles.css bundles every component stylesheet in src/lib', () => {
+  const build = readFileSync(new URL('../scripts/build.mjs', import.meta.url), 'utf8');
+  const bundled = [...build.match(/writeFileSync\('dist\/styles\.css', \[([^\]]+)\]/)[1].matchAll(/'([^']+\.css)'/g)].map(match => match[1]);
+  // auth.css is inlined into workspace.css; app, app-tokens and product are separate entry points.
+  const entryPoints = new Set(['auth.css', 'app.css', 'app-tokens.css', 'product.css']);
+  for (const file of readdirSync(new URL('../src/lib/', import.meta.url)).filter(name => name.endsWith('.css') && !entryPoints.has(name))) assert.ok(bundled.includes(file), `styles.css bundles ${file}`);
+});
+
+test('shipped sources and docs use LF only, so npm pack is byte-identical on every OS', () => {
+  const offenders = [];
+  const walk = url => { for (const entry of readdirSync(url, { withFileTypes: true })) {
+    const child = new URL(entry.name + (entry.isDirectory() ? '/' : ''), url);
+    if (entry.isDirectory()) walk(child);
+    else if (/\.(css|tsx?|mjs|md|json)$/.test(entry.name) && readFileSync(child, 'utf8').includes('\r')) offenders.push(child.pathname);
+  } };
+  for (const dir of ['../src/lib/', '../docs/', '../dist/']) walk(new URL(dir, import.meta.url));
+  for (const file of ['../README.md', '../package.json', '../THIRD_PARTY_NOTICES.md']) if (readFileSync(new URL(file, import.meta.url), 'utf8').includes('\r')) offenders.push(file);
+  assert.deepEqual(offenders, []);
+});
+
+test('Dialog takes an eyebrow and, with onSubmit, makes body and footer one form', () => {
+  const html = render(ui.Dialog, { open: true, onOpenChange() {}, title: 'Edit placement', eyebrow: 'Dubai Marina billboard', onSubmit() {}, footer: h(ui.Button, { type: 'submit' }, 'Save placement') }, 'Fields');
+  assert.match(html, /<p class="t98-dialog-eyebrow">Dubai Marina billboard<\/p><h2[^>]*class="t98-dialog-title">Edit placement<\/h2>/);
+  assert.match(html, /<form class="t98-dialog-form"><fieldset class="t98-dialog-fieldset"><div class="t98-dialog-body">Fields<\/div><div class="t98-dialog-footer"><button type="submit"/);
+  assert.doesNotMatch(render(ui.Dialog, { open: true, onOpenChange() {}, title: 'T', children: 'x' }), /<form|t98-dialog-eyebrow/);
+  const css = readFileSync(new URL('../dist/styles.css', import.meta.url), 'utf8');
+  for (const name of ['t98-dialog-eyebrow', 't98-dialog-form', 't98-dialog-discard']) assert.ok(css.includes(`.${name}`), name);
+});
+
+test('each component stylesheet is published under @ten98/ui/css/<sheet>.css', () => {
+  const manifest = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+  assert.equal(manifest.exports['./css/*.css'], './dist/*.css');
+  for (const sheet of ['tokens', 'primitives', 'structure', 'patterns', 'workspace', 'products', 'navigation', 'shell', 'controls', 'account-flows', 'workspace-flows', 'charts', 'spatial']) {
+    assert.doesNotThrow(() => accessSync(new URL(`../dist/${sheet}.css`, import.meta.url)), sheet);
+  }
 });

@@ -23,7 +23,7 @@
 .auth-story>.brand{padding:0}
 .auth-story>div:not(.auth-orbit){padding:60px 0}
 .auth-story .eyebrow{color:light-dark(#766088,var(--color-text-muted,var(--t98-muted)));font-size:11px;letter-spacing:2px;margin-bottom:25px}
-.auth-story :is(h1,.auth-story-title){font-size:clamp(40px,5vw,76px);line-height:1.1;letter-spacing:-4px;font-weight:750;color:light-dark(#785793,var(--color-text,var(--t98-text)))}
+.auth-story :is(h1,.auth-story-title){overflow-wrap:anywhere;font-size:clamp(40px,5vw,76px);line-height:1.1;letter-spacing:-4px;font-weight:750;color:light-dark(#785793,var(--color-text,var(--t98-text)))}
 .auth-story :is(h1,.auth-story-title) em{color:light-dark(#745c89,var(--color-accent,var(--t98-accent)));font-style:normal}
 .auth-story p:not(.auth-story-title){font-size:13px;color:light-dark(#736180,var(--color-text-muted,var(--t98-muted)));margin-top:30px;line-height:1.9}
 .auth-channels{display:flex;gap:22px;margin-top:38px;color:var(--color-text-muted,var(--t98-muted));font-size:12px}
@@ -36,9 +36,9 @@
 .auth-form .eyebrow{font-size:10px;margin-bottom:15px;color:var(--color-text-muted,var(--t98-muted))}
 .auth-form h2,.auth-form .t98-auth-title{font-size:27px;letter-spacing:-1px;color:var(--color-text-muted,var(--t98-muted))}
 .auth-form h2+p,.auth-form .t98-auth-title+p{font-size:13px;color:var(--color-text-muted,var(--t98-muted));margin-top:10px;margin-bottom:32px}
-.auth-form .field{margin-bottom:20px}
-.auth-form .field input{height:43px}
-.auth-form :is(.button,.btn){min-height:43px;margin-top:5px}
+.auth-form :is(.field,.t98-field){margin-bottom:20px}
+.auth-form :is(input:not([type=checkbox]):not([type=radio]):not([type=hidden]),select,button,.button,.btn){min-block-size:max(44px,var(--t98-control-touch,2.75rem))}
+.auth-form :is(.button,.btn,.t98-button){margin-top:5px}
 .checkbox-label{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--color-text-muted,var(--t98-muted));margin:20px 0}
 .checkbox-label input{accent-color:var(--color-accent,var(--t98-accent));width:14px;height:14px}
 .auth-footnote{font-size:11px;color:var(--color-text-muted,var(--t98-muted));display:flex;align-items:center;justify-content:center;gap:6px;margin-top:25px}
@@ -79,3 +79,51 @@
 .auth-form .eyebrow{font-size:9px}
 .auth-form-inner{max-width:420px}
 }
+@media(min-width:761px){
+/* The split story panel fills at least the viewport, as Campaign's split did, so it cannot float on tall screens. */
+.auth-shell.auth-split{min-block-size:100vh;min-block-size:100dvh}
+.auth-shell.auth-split>.auth-story{min-block-size:100vh;min-block-size:100dvh;align-self:stretch}
+}
+/* Shared authentication flows (SignInFlow, FirstUserSetupFlow, OidcProviderButtons, AppStateScreen) */
+.t98-auth-layout .t98-auth-heading .t98-auth-title:last-child{margin-bottom:32px}
+/* Shared by the authentication, account and workspace flows (flow-frame.tsx). */
+.t98-flow-fieldset{border:0;margin:0;padding:0;min-width:0}
+.t98-flow-feedback{margin-bottom:20px}
+.t98-flow-error:focus-visible{outline:3px solid var(--color-accent,var(--t98-accent));outline-offset:2px}
+.t98-settings-flow{min-width:0}
+.t98-settings-flow :is(.t98-button,.t98-input,.t98-select){min-block-size:var(--t98-control-touch,2.75rem)}
+.t98-settings-flow td .t98-select{min-inline-size:8rem}
+.t98-auth-layout .t98-auth-submit{width:100%}
+.t98-auth-layout .t98-auth-inline-action{display:flex;justify-content:flex-end;margin:-8px 0 12px}
+.t98-auth-layout .t98-auth-aux{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px 16px;margin-top:16px}
+.t98-auth-layout .t98-auth-aux>form{display:contents}
+.t98-auth-layout .t98-auth-choice{margin:4px 0 16px}
+.t98-auth-layout .t98-auth-providers{margin-top:8px}
+.t98-auth-layout .t98-auth-providers>ul{padding:0;margin:0;list-style:none}
+.t98-auth-layout .t98-auth-providers>ul~*{margin-top:12px}
+.t98-auth-layout .t98-auth-provider{width:100%;justify-content:center;text-decoration:none;margin-top:0}
+.t98-auth-layout .t98-auth-state{display:flex;align-items:center;gap:12px;color:var(--color-text-muted,var(--t98-muted));font-size:13px}
+.t98-auth-layout .t98-auth-state .t98-spinner{flex-shrink:0}
+.t98-auth-layout :is(.t98-auth-aux,.t98-auth-inline-action) :is(a,button){font-size:13px}
+/* A second-level heading inside the form must not inherit the h1 treatment of `.auth-form h2`. */
+.t98-auth-layout .auth-form h2.t98-auth-subheading{font-size:18px;letter-spacing:0;color:var(--color-text,var(--t98-text))}
+.t98-auth-layout .auth-form h2.t98-auth-subheading+p{margin:0 0 16px;font-size:13px}
+.t98-auth-layout .t98-flow-fieldset>.t98-auth-subheading{margin-bottom:8px}
+.t98-auth-layout .t98-auth-heading p,.t98-auth-layout .t98-description-list dd{overflow-wrap:anywhere}
+.t98-auth-layout .t98-description-list{margin-bottom:20px}
+.t98-auth-layout .t98-auth-title{overflow-wrap:anywhere}
+/* AuthLayout surface="card": the form becomes a card on the canvas, centred alone or in the form column beside an aside. */
+.t98-auth-layout--card{background:var(--color-canvas,var(--t98-bg))}
+.t98-auth-layout--card:not(.auth-split){display:flex;align-items:center;justify-content:center}
+/* Beside an aside the card centres in the form column; the grid keeps the two columns. */
+.t98-auth-layout--card.auth-split .auth-form{align-self:center;justify-self:center;inline-size:calc(100% - 48px)}
+/* The brand is in the aside, so the title opens the card. */
+.t98-auth-layout--card.auth-split .t98-auth-title{margin-top:0}
+.t98-auth-layout--card .auth-form{display:block;inline-size:100%;max-inline-size:460px;margin:24px;padding:32px;border:1px solid var(--color-border,var(--t98-border));border-radius:8px;background:var(--color-surface,var(--t98-surface))}
+.t98-auth-layout--card .auth-form-inner{max-inline-size:none}
+.t98-auth-layout--card .brand{padding:0}
+.t98-auth-layout--card .t98-auth-title{font-size:24px;letter-spacing:-.5px;margin-top:28px}
+.t98-auth-layout--card .auth-form h2{font-size:16px;letter-spacing:-.35px}
+@media(max-width:1200px){.t98-auth-layout--card .auth-form{padding:35px}}
+@media(max-width:960px){.t98-auth-layout--card .auth-form{padding:30px}}
+@media(max-width:760px){.t98-auth-layout--card .auth-form{margin:16px;padding:24px}.t98-auth-layout--card.auth-split .auth-form{inline-size:calc(100% - 32px)}.t98-auth-layout--card .auth-form h2{font-size:25px}}

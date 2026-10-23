@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import {
   Accordion, Alert, Avatar, Badge, Breadcrumb, Button, Card, Checkbox, Dialog, Field,
-  Icon, Input, Progress, Select, Separator, Skeleton, Switch, Tabs, Textarea, Tooltip,
+  Icon, Input, Meter, Progress, Select, Separator, Skeleton, Switch, Tabs, Textarea, Tooltip,
 } from '../lib/primitives.js';
 import { tsx, type ComponentEntry, type ComponentState } from './model.js';
 import primitivesSource from '../lib/primitives.tsx?raw';
@@ -74,11 +74,11 @@ function SwitchPreview({ initial = false, disabled = false }: { initial?: boolea
   return <Switch label="Email notifications" checked={enabled} onCheckedChange={setEnabled} disabled={disabled} />;
 }
 
-function TabsPreview({ initial = 'overview' }: { initial?: string }) {
+function TabsPreview({ initial = 'overview', lazy = false }: { initial?: string; lazy?: boolean }) {
   const [value, setValue] = useState(initial);
-  return <Tabs label="Campaign details" value={value} onValueChange={setValue} items={[
+  return <Tabs label="Campaign details" value={value} onValueChange={setValue} keepMounted={!lazy} items={[
     { value: 'overview', label: 'Overview', content: 'Campaign summary and confirmed metrics.' },
-    { value: 'activity', label: 'Activity', content: 'Recent campaign changes appear here.' },
+    { value: 'activity', label: 'Activity', content: 'Recent campaign changes appear here.', disabled: lazy },
     { value: 'settings', label: 'Settings', content: 'Campaign preferences appear here.' },
   ]} />;
 }
@@ -107,12 +107,21 @@ function dialogCode(pending = false) {
   return tsx(['Button', 'Dialog', 'Field', 'Input'], `<>\n  <Button onClick={() => { setBusy(${pending}); setOpen(true); }}>Open dialog</Button>\n  <Dialog\n    open={open}\n    onOpenChange={setOpen}\n    title="Edit project"\n    description="Dialog state belongs to the application."\n    closeDisabled={busy}\n    footer={busy\n      ? <Button onClick={() => setBusy(false)}>Finish simulated save</Button>\n      : <Button variant="secondary" onClick={() => setOpen(false)}>Done</Button>}\n  >\n    {busy\n      ? <p role="status">Simulated save is pending. Finish it to enable dismissal.</p>\n      : <Field htmlFor={id} label="Project name"><Input defaultValue="Launch campaign" /></Field>}\n  </Dialog>\n</>`, 'const [open, setOpen] = useState(false);\nconst [busy, setBusy] = useState(false);\nconst id = useId();', ['useState', 'useId']);
 }
 
+const regionOptions = [
+  { value: 'dubai', label: 'Dubai', group: 'Middle East' }, { value: 'riyadh', label: 'Riyadh', group: 'Middle East' },
+  { value: 'london', label: 'London', group: 'Europe' }, { value: 'other', label: 'Other', disabled: true },
+];
 const buttonExample = tsx(['Button', 'Icon'], '<Button icon={<Icon name="plus" />}>Create project</Button>');
 const fieldExample = tsx(['Field', 'Input'], '<Field htmlFor={id} label="Project name" description="Visible to everyone in this workspace.">\n  <Input name="projectName" />\n</Field>', 'const id = useId();', ['useId']);
 const checkboxExample = tsx(['Checkbox'], '<Checkbox label="Include archived campaigns" checked={checked} onChange={event => setChecked(event.currentTarget.checked)} />', 'const [checked, setChecked] = useState(false);', ['useState']);
 const switchCode = (initial: boolean, disabled = false) => tsx(['Switch'], `<Switch label="Email notifications" checked={enabled} onCheckedChange={setEnabled}${disabled ? ' disabled' : ''} />`, `const [enabled, setEnabled] = useState(${initial});`, ['useState']);
 const tooltipExample = tsx(['Button', 'Tooltip'], '<Tooltip content="Download the current report as CSV.">\n  <Button variant="secondary">Export report</Button>\n</Tooltip>');
 const accordionExample = tsx(['Accordion'], `<Accordion items={[\n  { title: 'What is shared?', content: 'Tokens, components and common interaction patterns.' },\n  { title: 'Where do business rules live?', content: 'In each consuming application.' },\n]} />`);
+
+function CountPreview() {
+  const [message, setMessage] = useState('Your studio session is confirmed for Saturday at 10:00.');
+  return <Field label="SMS message" count={{ value: message, max: 160 }}><Textarea value={message} onChange={event => setMessage(event.target.value)} /></Field>;
+}
 
 export const primitiveEntries: ComponentEntry[] = [
   {
@@ -122,16 +131,25 @@ export const primitiveEntries: ComponentEntry[] = [
       { name: 'variant', type: "'primary' | 'secondary' | 'ghost' | 'danger'", defaultValue: "'primary'", description: 'Visual emphasis; does not change action behavior.' },
       { name: 'size', type: "'sm' | 'md' | 'lg'", defaultValue: "'md'", description: 'Control size; medium responds to the inherited density token.' },
       { name: 'loading', type: 'boolean', defaultValue: 'false', description: 'Shows a decorative spinner, disables interaction and sets aria-busy.' },
-      { name: 'icon', type: 'ReactNode', description: 'Optional leading visual. Replaced by the spinner while loading.' },
+      { name: 'icon', type: 'ReactNode', description: 'Optional leading visual. Replaced by the spinner while loading. With no children it becomes an icon-only 44px square button that needs an aria-label (development warning).' },
+      { name: 'href', type: 'string', description: 'Renders a styled anchor instead of a button. When disabled or loading the anchor drops href and sets aria-disabled.' },
+      { name: 'component', type: 'ComponentType<{ href: string; className?: string; children?: ReactNode }>', description: 'Router link used for href, the same contract as Link.component.' },
+      { name: 'pressed', type: 'boolean', description: 'Sets aria-pressed for a toggle button and applies the pressed style.' },
+      { name: 'fullWidth', type: 'boolean', defaultValue: 'false', description: 'Fills the width of its container.' },
     ], nativeProps: 'All native button attributes, children, className and HTMLButtonElement ref. type defaults to "button"; disabled defaults to false. onClick does not run while disabled or loading.',
     tokens: ['--t98-font', '--t98-control-height', '--t98-control-border', '--t98-radius', '--t98-surface', '--t98-text', '--t98-subtle', '--t98-muted', '--t98-accent', '--t98-accent-hover', '--t98-on-accent', '--t98-danger'],
-    accessibility: ['Use clear visible action text; give icon-only buttons an aria-label.', 'Tab focuses; Enter and Space activate. Disabled/loading buttons leave the Tab order.', 'Hover, keyboard focus and native pressed interaction are tested by actually interacting. There is no selected or pressed visual variant API; use aria-pressed only for a real application-owned toggle.'],
+    accessibility: ['Use clear visible action text; give icon-only buttons an aria-label.', 'Tab focuses; Enter and Space activate. Disabled/loading buttons leave the Tab order.', 'Hover, keyboard focus and native pressed interaction are tested by actually interacting. Use pressed only for a real application-owned toggle.'],
     related: ['Icon', 'ConfirmDialog', 'CopyButton'], example: buttonExample,
     states: [
       ...(['primary', 'secondary', 'ghost', 'danger'] as const).map(variant => ({ name: variant, description: `${variant[0].toUpperCase() + variant.slice(1)} emphasis. Hover to inspect its supported hover styling.`, preview: <Button variant={variant}>{variant === 'danger' ? 'Delete draft' : 'Create project'}</Button>, code: tsx(['Button'], `<Button variant="${variant}">${variant === 'danger' ? 'Delete draft' : 'Create project'}</Button>`) })),
       ...(['sm', 'md', 'lg'] as const).map(size => ({ name: `Size ${size}`, description: 'The same native action at a supported size.', preview: <Button size={size}>Create project</Button>, code: tsx(['Button'], `<Button size="${size}">Create project</Button>`) })),
       { name: 'With icon', description: 'The decorative icon supports a visible text label.', preview: <Button icon={<Icon name="plus" />}>Create project</Button>, code: buttonExample },
       { name: 'Disabled', description: 'Unavailable action; explain the reason near the action when users need it.', preview: <Button disabled>Create project</Button>, code: tsx(['Button'], '<Button disabled>Create project</Button>') },
+      { name: 'Link button', description: 'href renders a styled anchor; pass component for a router link.', preview: <Button href="/reports" variant="secondary">Open reports</Button>, code: tsx(['Button'], '<Button href="/reports" variant="secondary">Open reports</Button>') },
+      { name: 'Disabled link button', description: 'A disabled anchor has no href and exposes aria-disabled.', preview: <Button href="/reports" disabled>Open reports</Button>, code: tsx(['Button'], '<Button href="/reports" disabled>Open reports</Button>') },
+      { name: 'Pressed toggle', description: 'pressed sets aria-pressed and the pressed style.', preview: <Button variant="secondary" pressed>Show archived</Button>, code: tsx(['Button'], '<Button variant="secondary" pressed>Show archived</Button>') },
+      { name: 'Icon only', description: 'A 44px square target; the accessible name comes from aria-label.', preview: <Button variant="secondary" icon={<Icon name="plus" />} aria-label="Add project" />, code: tsx(['Button', 'Icon'], '<Button variant="secondary" icon={<Icon name="plus" />} aria-label="Add project" />') },
+      { name: 'Full width', description: 'Fills its container, for example in a narrow panel.', preview: <Button fullWidth>Create project</Button>, code: tsx(['Button'], '<Button fullWidth>Create project</Button>') },
       { name: 'Loading', description: 'Pending feedback retains the text and prevents repeated activation.', preview: <Button loading>Creating project…</Button>, code: tsx(['Button'], '<Button loading>Creating project…</Button>') },
       { name: 'Hover, focus and press', description: 'Hover this button, Tab to it, then hold Space or click. The browser owns focus and press behavior; the library supplies hover and focus-visible styles.', preview: <Button variant="secondary">Try native interactions</Button>, code: tsx(['Button'], '<Button variant="secondary">Try native interactions</Button>') },
     ],
@@ -154,26 +172,37 @@ export const primitiveEntries: ComponentEntry[] = [
   {
     name: 'Select', category: 'Controls', description: 'A native select for choosing from a short, explicit list of options.',
     usage: 'Supply option children and a value/onChange pair or defaultValue. Include an empty option when no selection is meaningful. Native menu rendering varies by platform.',
-    props: [], nativeProps: 'All SelectHTMLAttributes<HTMLSelectElement> and HTMLSelectElement ref, including children, name, value/onChange, defaultValue, required, disabled, multiple and className. No readOnly attribute exists for native select; use a static value presentation when editing is unavailable but submission must be preserved.',
-    tokens: controlTokens, accessibility: ['Use Field to label the control and associate help/errors.', 'Keyboard selection and the option menu are browser-native.', 'No searchable combobox, custom menu, readonly state or multi-select chip presentation is included.'],
-    related: ['Field', 'ProductSwitcher', 'Input'], example: controlCode('Select', 'Empty'), states: controlStates('Select'),
+    props: [
+      { name: 'options', type: '{ value: string; label: string; disabled?: boolean; group?: string }[]', description: 'Rendered before children. Options with the same group share one optgroup, placed where the group first appears.' },
+      { name: 'placeholder', type: 'string', description: 'A disabled empty first option, selected while value and defaultValue are empty.' },
+    ], nativeProps: 'All SelectHTMLAttributes<HTMLSelectElement> and HTMLSelectElement ref, including children, name, value/onChange, defaultValue, required, disabled, multiple and className. No readOnly attribute exists for native select; use a static value presentation when editing is unavailable but submission must be preserved.',
+    tokens: controlTokens, accessibility: ['Use Field to label the control and associate help/errors.', 'Keyboard selection and the option menu are browser-native.', 'For type-to-filter choices use Combobox (WAI-ARIA APG list autocomplete); for several choices use CheckboxGroup.'],
+    related: ['Field', 'ProductSwitcher', 'Input'], example: controlCode('Select', 'Empty'),
+    states: [
+      ...controlStates('Select'),
+      { name: 'Options and groups', description: 'options replaces hand-written option children; group creates optgroups.', preview: <Field label="Region"><Select name="region" placeholder="Choose a region" options={regionOptions} /></Field>, code: tsx(['Field', 'Select'], '<Field label="Region">\n  <Select name="region" placeholder="Choose a region" options={[\n    { value: \'dubai\', label: \'Dubai\', group: \'Middle East\' },\n    { value: \'riyadh\', label: \'Riyadh\', group: \'Middle East\' },\n    { value: \'london\', label: \'London\', group: \'Europe\' },\n    { value: \'other\', label: \'Other\', disabled: true },\n  ]} />\n</Field>') },
+    ],
   },
   {
     name: 'Field', category: 'Controls', description: 'Connects a visible label, description and error to one direct form-control child.',
     usage: 'Use a unique htmlFor, normally from useId. Leave the direct child’s id unset or set it to the same value. The child must forward generated ARIA attributes to its native control.',
     props: [
       { name: 'label', type: 'ReactNode', required: true, description: 'Visible control label.' },
-      { name: 'htmlFor', type: 'string', required: true, description: 'Unique control ID and prefix for description/error IDs.' },
+      { name: 'htmlFor', type: 'string', description: 'Control ID and prefix for description/error IDs. Optional: when omitted an ID is generated and applied to a child without one.' },
+      { name: 'required', type: 'boolean', defaultValue: 'false', description: 'Adds an aria-hidden " *" marker to the label. Set required on the control itself for validation.' },
       { name: 'description', type: 'ReactNode', description: 'Help text associated through aria-describedby.' },
       { name: 'error', type: 'ReactNode', description: 'Error text with role="alert"; sets the direct child’s aria-invalid.' },
+      { name: 'count', type: '{ value: string; max: number; measure?: (value: string) => number }', description: 'Shows "used / max characters" linked to the control, marks it invalid when over, and announces only when it nears or passes the limit. measure supplies grapheme or weighted counting; the control is not hard-capped.' },
       { name: 'children', type: 'ReactNode', description: 'Use one direct control; existing aria-describedby is preserved and extended.' },
-    ], nativeProps: 'HTMLAttributes<HTMLDivElement>, including className, are applied to the wrapper. Set required, disabled and value on the control, not the Field.',
+    ], nativeProps: 'HTMLAttributes<HTMLDivElement>, including className, are applied to the wrapper. Set required (validation), disabled and value on the control; the Field required prop only adds the visual marker.',
     tokens: ['--t98-font', '--t98-text', '--t98-muted', '--t98-danger'],
-    accessibility: ['Label, help and errors are programmatically associated.', 'A nested wrapper is not a substitute for a direct control child. Custom children must forward id, aria-describedby and aria-invalid.', 'Field does not validate, mark a field required or disable its child automatically.'],
+    accessibility: ['Label, help and errors are programmatically associated.', 'A nested wrapper is not a substitute for a direct control child. Custom children must forward id, aria-describedby and aria-invalid.', 'Field does not validate or disable its child automatically; the required marker is visual only.'],
     related: ['Input', 'Textarea', 'Select'], example: fieldExample,
     states: [
       { name: 'Description', description: 'Visible supporting text connected to the input.', preview: <FieldPreview mode="description" />, code: fieldExample },
       { name: 'Error', description: 'The description is retained; error text and invalid state are added.', preview: <FieldPreview mode="error" />, code: tsx(['Field', 'Input'], '<Field htmlFor={id} label="Project name" description="Visible to everyone in this workspace." error="Use a name with at least three characters.">\n  <Input name="projectName" defaultValue="AB" />\n</Field>', 'const id = useId();', ['useId']) },
+      { name: 'Generated ID and required marker', description: 'Without htmlFor the label is linked to the control through a generated ID.', preview: <Field label="Project name" required description="Visible to everyone in this workspace."><Input name="projectName" required /></Field>, code: tsx(['Field', 'Input'], '<Field label="Project name" required description="Visible to everyone in this workspace.">\n  <Input name="projectName" required />\n</Field>') },
+      { name: 'Character count', description: 'A 160-character limit; over the limit the counter turns red, the control is invalid and the state is announced once.', preview: <CountPreview />, code: tsx(['Field', 'Textarea'], '<Field label="SMS message" count={{ value: message, max: 160 }}>\n  <Textarea value={message} onChange={event => setMessage(event.target.value)} />\n</Field>', "const [message, setMessage] = useState('Your studio session is confirmed for Saturday at 10:00.');", ['useState']) },
       { name: 'Required composition', description: 'The label states the requirement and the native input enforces it on submission.', preview: <FieldPreview mode="required" />, code: tsx(['Field', 'Input'], '<Field htmlFor={id} label="Project name (required)" description="Visible to everyone in this workspace.">\n  <Input name="projectName" required />\n</Field>', 'const id = useId();', ['useId']) },
     ],
   },
@@ -218,12 +247,14 @@ export const primitiveEntries: ComponentEntry[] = [
     usage: 'Use a meaningful text label and an appropriate semantic tone. Badge is display-only; use a Button or link for actions.',
     props: [
       { name: 'tone', type: "'neutral' | 'accent' | 'success' | 'warning' | 'danger' | 'info'", defaultValue: "'neutral'", description: 'Semantic foreground and soft background pair.' },
+      { name: 'palette', type: "'rose' | 'amber' | 'lime' | 'emerald' | 'sky' | 'violet' | 'fuchsia'", description: 'Decorative colour for user tags; replaces the tone colours and meets 4.5:1 in both themes. Use tone for status.' },
       { name: 'dot', type: 'boolean', defaultValue: 'false', description: 'Adds a decorative dot in the foreground color.' },
     ], nativeProps: 'HTMLAttributes<HTMLSpanElement>, including children and className. No disabled, selected or loading state API.',
     tokens: ['--t98-font', ...toneTokens], accessibility: ['Include readable text; the dot and color alone do not communicate status.', 'No live-region role is added automatically; use Alert or a status region for meaningful asynchronous updates.'],
     related: ['Alert', 'ResourceCard'], example: tsx(['Badge'], '<Badge tone="success" dot>Connected</Badge>'),
     states: [
       ...tones.map(tone => ({ name: `Tone ${tone}`, description: 'Semantic color pair; the text carries the meaning.', preview: <Badge tone={tone}>{tone === 'success' ? 'Connected' : tone === 'danger' ? 'Failed' : tone === 'warning' ? 'Needs attention' : tone === 'info' ? 'Processing' : tone === 'accent' ? 'Featured' : 'Draft'}</Badge>, code: tsx(['Badge'], `<Badge tone="${tone}">${tone === 'success' ? 'Connected' : tone === 'danger' ? 'Failed' : tone === 'warning' ? 'Needs attention' : tone === 'info' ? 'Processing' : tone === 'accent' ? 'Featured' : 'Draft'}</Badge>`) })),
+      ...(['rose', 'amber', 'lime', 'emerald', 'sky', 'violet', 'fuchsia'] as const).map(palette => ({ name: `Palette ${palette}`, description: 'Decorative tag colour with no status meaning.', preview: <Badge palette={palette}>{palette}</Badge>, code: tsx(['Badge'], `<Badge palette="${palette}">${palette}</Badge>`) })),
       { name: 'With dot', description: 'A decorative marker supplements readable text.', preview: <Badge tone="success" dot>Connected</Badge>, code: tsx(['Badge'], '<Badge tone="success" dot>Connected</Badge>') },
     ],
   },
@@ -246,37 +277,42 @@ export const primitiveEntries: ComponentEntry[] = [
     name: 'Card', category: 'Layout', description: 'A surface with an optional title, description, action slot and content.',
     usage: 'Group related information and controls on a surface. Card owns a 16px gap between direct content children; put related buttons in t98-form-actions and fields in t98-form-grid. Use FlowSection for a feature boundary without a second surface. Use ResourceCard for resource/connection composition. Cards are not interactive by themselves.',
     props: [
-      { name: 'title', type: 'ReactNode', description: 'Optional title rendered inside an h3.' },
+      { name: 'title', type: 'ReactNode', description: 'Optional title rendered inside a heading (h3 by default).' },
+      { name: 'as', type: "'div' | 'section' | 'article'", defaultValue: "'div'", description: 'Element for the card. A titled section or article is named by its title.' },
+      { name: 'headingLevel', type: '2 | 3 | 4 | 5 | 6', defaultValue: '3', description: 'Outline level of the title.' },
       { name: 'description', type: 'ReactNode', description: 'Optional supporting text rendered inside a paragraph.' },
       { name: 'actions', type: 'ReactNode', description: 'Optional header action slot; provide labelled controls.' },
       { name: 'children', type: 'ReactNode', description: 'Optional padded card body.' },
     ], nativeProps: 'HTMLAttributes<HTMLDivElement> except the native title attribute; includes className. No clickable, disabled, loading or selected state API.',
     tokens: ['--t98-font', '--t98-border', '--t98-radius', '--t98-surface', '--t98-text', '--t98-muted'],
-    accessibility: ['The title is an h3; place the card where this fits the page’s heading hierarchy.', 'Put actions in actual buttons/links. Do not turn the whole card into an unlabelled clickable div.'],
+    accessibility: ['The title is an h3 unless headingLevel is set; place the card where this fits the page’s heading hierarchy.', 'Put actions in actual buttons/links. Do not turn the whole card into an unlabelled clickable div.'],
     related: ['ResourceCard', 'MetricCard', 'Skeleton'], example: tsx(['Button', 'Card'], '<Card title="Launch campaign" description="Draft campaign in this workspace." actions={<Button variant="secondary">Edit campaign</Button>}>\n  <p>Add content and choose publishing channels.</p>\n</Card>'),
     states: [
       { name: 'Content only', description: 'A simple panel without a generated heading.', preview: <Card><p>Add content and choose publishing channels.</p></Card>, code: tsx(['Card'], '<Card><p>Add content and choose publishing channels.</p></Card>') },
       { name: 'Title and description', description: 'Optional header content above the padded body.', preview: <Card title="Launch campaign" description="Draft campaign in this workspace."><p>Add content and choose publishing channels.</p></Card>, code: tsx(['Card'], '<Card title="Launch campaign" description="Draft campaign in this workspace.">\n  <p>Add content and choose publishing channels.</p>\n</Card>') },
+      { name: 'Section with heading level', description: 'A named section landmark whose title is an h2.', preview: <Card as="section" headingLevel={2} title="Launch campaign"><p>Add content and choose publishing channels.</p></Card>, code: tsx(['Card'], '<Card as="section" headingLevel={2} title="Launch campaign">\n  <p>Add content and choose publishing channels.</p>\n</Card>') },
       { name: 'With actions', description: 'Actions wrap at narrow widths; all behavior remains in the provided control.', preview: <Card title="Launch campaign" description="Draft campaign in this workspace." actions={<Button variant="secondary">Edit campaign</Button>}><p>Add content and choose publishing channels.</p></Card>, code: tsx(['Button', 'Card'], '<Card title="Launch campaign" description="Draft campaign in this workspace." actions={<Button variant="secondary">Edit campaign</Button>}>\n  <p>Add content and choose publishing channels.</p>\n</Card>') },
     ],
   },
   {
     name: 'Tabs', category: 'Navigation', description: 'Controlled tab buttons and associated panels for related content on one page.',
-    usage: 'Supply stable item values and keep the active value in app state. Use real route links for navigation between pages. No disabled-tab API is included.',
+    usage: 'Supply stable item values and keep the active value in app state. Use real route links for navigation between pages. Mark unavailable tabs disabled; set keepMounted={false} to render only the active panel.',
     props: [
-      { name: 'items', type: 'TabItem[]', required: true, description: 'Each item has value:string, label:ReactNode and optional content:ReactNode. Values must be unique.' },
+      { name: 'items', type: 'TabItem[]', required: true, description: 'Each item has value:string, label:ReactNode and optional content:ReactNode and optional disabled:boolean (aria-disabled, skipped by arrow keys, not activatable). Values must be unique.' },
       { name: 'value', type: 'string', required: true, description: 'Active value. An unmatched value renders the first item active.' },
       { name: 'onValueChange', type: '(value: string) => void', required: true, description: 'Called on click or supported keyboard navigation.' },
       { name: 'label', type: 'string', defaultValue: "'Sections'", description: 'Accessible name of the tablist.' },
+      { name: 'keepMounted', type: 'boolean', defaultValue: 'true', description: 'Keeps inactive panels mounted but hidden. False renders only the active panel, so inactive content is absent from the DOM until selected.' },
       { name: 'className', type: 'string', description: 'Additional class on the wrapping div.' },
-    ], nativeProps: 'No general native attribute spread. Item content remains mounted in hidden panels; preserve application state with stable values.',
+    ], nativeProps: 'No general native attribute spread. By default item content remains mounted in hidden panels; preserve application state with stable values or use keepMounted={false} for lazy panels.',
     tokens: ['--t98-font', '--t98-border', '--t98-muted', '--t98-text', '--t98-accent'],
-    accessibility: ['Tab enters at the selected tab; ArrowLeft/ArrowRight wrap and select immediately. Home/End select the first/last tab.', 'Generated IDs associate each tab with its panel; inactive panels are hidden.', 'Arrow keys currently follow the listed left/right sequence in both text directions. There is no vertical orientation or manual-activation option.'],
+    accessibility: ['Tab enters at the selected tab; ArrowLeft/ArrowRight wrap and select immediately. Home/End select the first/last tab.', 'Generated IDs associate each tab with its panel; inactive panels are hidden (or absent with keepMounted={false}).', 'Disabled tabs keep aria-disabled so they are still announced, but arrow keys and Home/End skip them and activation is ignored.', 'Arrow keys currently follow the listed left/right sequence in both text directions. There is no vertical orientation or manual-activation option.'],
     related: ['PageHeader', 'Breadcrumb'], example: tabsCode(),
     states: [
       { name: 'First tab selected', description: 'Overview is selected and its panel is visible.', preview: <TabsPreview />, code: tabsCode() },
       { name: 'Alternate tab selected', description: 'The active value can begin on any existing item.', preview: <TabsPreview initial="activity" />, code: tabsCode('activity') },
       { name: 'Keyboard selection and hover', description: 'Tab into the list, use ArrowLeft/ArrowRight or Home/End, and hover the other tabs. These are actual interactions.', preview: <TabsPreview />, code: tabsCode() },
+      { name: 'Disabled tab and lazy panels', description: 'Activity is disabled: arrow keys skip it and it cannot be activated. With keepMounted={false} only the selected panel is in the DOM.', preview: <TabsPreview lazy />, code: tsx(['Tabs'], `<Tabs label="Campaign details" value={value} onValueChange={setValue} keepMounted={false} items={[\n  { value: 'overview', label: 'Overview', content: 'Campaign summary and confirmed metrics.' },\n  { value: 'activity', label: 'Activity', content: 'Recent campaign changes appear here.', disabled: true },\n  { value: 'settings', label: 'Settings', content: 'Campaign preferences appear here.' },\n]} />`, "const [value, setValue] = useState('overview');", ['useState']) },
       { name: 'Empty items', description: 'An empty items array renders an empty tablist. Prefer a meaningful empty state in the consuming app.', preview: <Tabs label="Campaign details" items={[]} value="" onValueChange={() => {}} />, code: tsx(['Tabs'], '<Tabs label="Campaign details" items={[]} value={value} onValueChange={setValue} />', "const [value, setValue] = useState('');", ['useState']) },
     ],
   },
@@ -291,6 +327,10 @@ export const primitiveEntries: ComponentEntry[] = [
       { name: 'children', type: 'ReactNode', required: true, description: 'Dialog body; provide labelled controls where applicable.' },
       { name: 'footer', type: 'ReactNode', description: 'Optional action area beneath the body.' },
       { name: 'className', type: 'string', description: 'Additional class on the native dialog.' },
+      { name: 'onBeforeClose', type: "(reason: 'escape' | 'backdrop' | 'close-button') => boolean | void", description: 'Called before Escape, backdrop or close-button closes. Return false to keep the dialog open (for example to show a discard-changes prompt); focus stays inside. Not called while closeDisabled.' },
+      { name: 'eyebrow', type: 'ReactNode', description: 'Short context above the title, for example the record being edited.' },
+      { name: 'onSubmit', type: '(data: FormData, event) => void | Promise<void>', description: 'Makes body and footer one form; type="submit" footer buttons submit it. Called once per submit; the dialog cannot close until it settles.' },
+      { name: 'dirty / discardMessage', type: 'boolean / ReactNode', description: 'Unsaved changes: Escape, the backdrop and the close button show a "Discard unsaved changes?" prompt; Escape there means keep editing.' },
       { name: 'closeDisabled', type: 'boolean', defaultValue: 'false', description: 'Disables close button and suppresses Escape/backdrop close requests. Parent code can still set open=false.' },
     ], nativeProps: 'No general native dialog attribute spread. Do not force the open attribute or use CSS to simulate a modal. Native showModal requires browser support.',
     tokens: ['--t98-font', '--t98-border', '--t98-surface', '--t98-text', '--t98-muted', '--t98-bg', '--t98-overlay'],
@@ -305,31 +345,61 @@ export const primitiveEntries: ComponentEntry[] = [
     name: 'Alert', category: 'Feedback', description: 'Inline status, explanation or error with a title and optional supporting content.',
     usage: 'Keep information requiring action visible in the page. Choose the tone by meaning and include text that explains the condition and next step.',
     props: [
-      { name: 'title', type: 'ReactNode', required: true, description: 'Concise visible title rendered in a paragraph.' },
+      { name: 'title', type: 'ReactNode', description: 'Optional concise visible title rendered in a paragraph; children alone make a message-only alert.' },
+      { name: 'variant', type: "'default' | 'inline' | 'banner'", defaultValue: "'default'", description: 'inline is compact with no border or padding; banner is full width without side borders.' },
+      { name: 'onDismiss', type: '() => void', description: 'Adds a labelled dismiss button. The application removes the alert.' },
+      { name: 'dismissLabel', type: 'string', defaultValue: "'Dismiss'", description: 'Accessible name of the dismiss button.' },
       { name: 'tone', type: "'neutral' | 'accent' | 'success' | 'warning' | 'danger' | 'info'", defaultValue: "'info'", description: 'Semantic tone. danger supplies role="alert"; other tones supply role="status".' },
       { name: 'actions', type: 'ReactNode', description: 'Optional wrapping action row below the message, separated by the shared 12px action gap. Keep related buttons here instead of beside inline prose.' },
-    ], nativeProps: 'HTMLAttributes<HTMLDivElement> except native title; children form the optional description. Includes className. No dismiss, disabled or loading API; compose those behaviors explicitly.',
+    ], nativeProps: 'HTMLAttributes<HTMLDivElement> except native title; children form the optional description. Includes className. Pass role to override the default announcement. No disabled or loading API.',
     tokens: ['--t98-font', '--t98-radius', ...toneTokens], accessibility: ['Danger uses an assertive alert role; other tones use a polite status role.', 'Use live updates sparingly and avoid repeating the same message unnecessarily.', 'The icon is decorative; readable text explains the condition.'],
     related: ['ToastProvider', 'Badge', 'EmptyState'], example: tsx(['Alert'], '<Alert title="Connection saved" tone="success">New events will appear after the next successful sync.</Alert>'),
     states: [
       ...tones.map(tone => ({ name: `Tone ${tone}`, description: tone === 'danger' ? 'An assertive alert for a failure that needs attention.' : 'A polite status message with supporting text.', preview: <Alert title={tone === 'danger' ? 'Connection failed' : 'Connection status'} tone={tone}>{tone === 'danger' ? 'Check the credentials and try again.' : 'The application supplies this message from its actual connection state.'}</Alert>, code: tsx(['Alert'], `<Alert title="${tone === 'danger' ? 'Connection failed' : 'Connection status'}" tone="${tone}">${tone === 'danger' ? 'Check the credentials and try again.' : 'The application supplies this message from its actual connection state.'}</Alert>`) })),
       { name: 'Title only', description: 'Short status without a description.', preview: <Alert title="Changes saved" tone="success" />, code: tsx(['Alert'], '<Alert title="Changes saved" tone="success" />') },
+      { name: 'Without title', description: 'Children alone form the message.', preview: <Alert tone="warning">Your trial ends in three days.</Alert>, code: tsx(['Alert'], '<Alert tone="warning">Your trial ends in three days.</Alert>') },
+      { name: 'Inline', description: 'Compact message with no border or padding.', preview: <Alert variant="inline" tone="danger">Enter a valid email address.</Alert>, code: tsx(['Alert'], '<Alert variant="inline" tone="danger">Enter a valid email address.</Alert>') },
+      { name: 'Banner', description: 'Full-width message for the top of a page or panel.', preview: <Alert variant="banner" title="Maintenance tonight" tone="info">Reports may be unavailable from 22:00.</Alert>, code: tsx(['Alert'], '<Alert variant="banner" title="Maintenance tonight" tone="info">Reports may be unavailable from 22:00.</Alert>') },
+      { name: 'Dismissible', description: 'A labelled dismiss button calls onDismiss; the component keeps no state.', preview: <Alert title="Changes saved" tone="success" onDismiss={() => {}} dismissLabel="Dismiss message" />, code: tsx(['Alert'], '<>{open && <Alert title="Changes saved" tone="success" onDismiss={() => setOpen(false)} dismissLabel="Dismiss message" />}</>', 'const [open, setOpen] = useState(true);', ['useState']) },
       { name: 'Recovery action', description: 'Recovery follows the complete message and wraps without squeezing the text into columns.', preview: <Alert title="Outcome unknown" tone="warning" actions={<><Button variant="secondary">Check outcome</Button><Button variant="ghost">Keep receipt</Button></>}>Keep this receipt while checking the existing operation before trying again.</Alert>, code: tsx(['Alert', 'Button'], '<Alert title="Outcome unknown" tone="warning" actions={<><Button variant="secondary">Check outcome</Button><Button variant="ghost">Keep receipt</Button></>}>Keep this receipt while checking the existing operation before trying again.</Alert>') },
     ],
   },
   {
-    name: 'Progress', category: 'Feedback', description: 'A labelled native determinate progress bar showing a percentage from zero to one hundred.',
-    usage: 'Use measured completion from a real operation. For unknown duration, use a loading status and Skeleton rather than inventing a progress percentage.',
+    name: 'Progress', category: 'Feedback', description: 'A labelled native progress bar: a percentage from zero to one hundred, or indeterminate when value is omitted.',
+    usage: 'Use measured completion from a real operation. For unknown duration, omit value for an indeterminate bar rather than inventing a percentage.',
     props: [
-      { name: 'value', type: 'number', required: true, description: 'Completion percentage. Finite values clamp to 0–100; nonfinite values become 0. Visible text rounds to an integer.' },
+      { name: 'value', type: 'number', description: 'Completion percentage; omit for an indeterminate bar (aria-busy, no value). Finite values clamp to 0–100; nonfinite values become 0. Visible text rounds to an integer.' },
       { name: 'label', type: 'string', defaultValue: "'Progress'", description: 'Visible label and accessible name.' },
       { name: 'className', type: 'string', description: 'Additional class on the outer progress group.' },
-    ], nativeProps: 'No general native attribute spread. Fixed native max=100. Display-only; no disabled, loading, error or indeterminate prop.',
+    ], nativeProps: 'No general native attribute spread. Fixed native max=100. Display-only; no disabled, loading or error prop.',
     tokens: ['--t98-font', '--t98-muted', '--t98-subtle', '--t98-accent'], accessibility: ['Native progress semantics include the numeric value and supplied label.', 'A completed percentage is not proof of a successful business operation; show the confirmed result separately.'],
     related: ['Skeleton', 'Alert', 'Stepper'], example: tsx(['Progress'], '<Progress value={64} label="Files uploaded" />'),
     states: [
       ...([0, 64, 100] as const).map(value => ({ name: value === 0 ? 'Not started' : value === 100 ? 'Complete' : 'In progress', description: 'A confirmed determinate value supplied by the application.', preview: <Progress value={value} label="Files uploaded" />, code: tsx(['Progress'], `<Progress value={${value}} label="Files uploaded" />`) })),
+      { name: 'Indeterminate', description: 'No value: the bar is busy with an animation that stops under prefers-reduced-motion.', preview: <Progress label="Syncing" />, code: tsx(['Progress'], '<Progress label="Syncing" />') },
       { name: 'Out-of-range guard', description: 'A value of 140 is clamped to 100. Validate incoming values at application boundaries too.', preview: <Progress value={140} label="Guard example" />, code: tsx(['Progress'], '<Progress value={140} label="Guard example" />') },
+    ],
+  },
+  {
+    name: 'Meter', category: 'Feedback', description: 'A labelled native meter for a scalar measurement within a known range, such as quota used.',
+    usage: 'Use for a measurement with a meaningful scale (storage, score, capacity), not for task progress; use Progress for that. Set low, high and optimum so the colour reflects whether the reading is good.',
+    props: [
+      { name: 'value', type: 'number', required: true, description: 'Current measurement.' },
+      { name: 'min', type: 'number', defaultValue: '0', description: 'Lower bound.' },
+      { name: 'max', type: 'number', defaultValue: '100', description: 'Upper bound.' },
+      { name: 'low', type: 'number', description: 'Upper edge of the low range.' },
+      { name: 'high', type: 'number', description: 'Lower edge of the high range.' },
+      { name: 'optimum', type: 'number', description: 'Best value; with low and high it decides whether the colour is good, cautionary or poor.' },
+      { name: 'label', type: 'string', defaultValue: "'Meter'", description: 'Visible label and accessible name.' },
+      { name: 'valueLabel', type: 'ReactNode', description: 'Visible reading; defaults to the numeric value.' },
+      { name: 'className', type: 'string', description: 'Additional class on the outer group.' },
+    ], nativeProps: 'No general native attribute spread. Display-only native meter element.',
+    tokens: ['--t98-font', '--t98-muted', '--t98-subtle', '--t98-success', '--t98-warning', '--t98-danger'], accessibility: ['Native meter semantics expose value, range and the supplied label.', 'The visible reading is text; colour alone does not communicate the range.'],
+    related: ['Progress', 'MetricCard'], example: tsx(['Meter'], '<Meter label="Storage used" value={72} valueLabel="72 GB of 100 GB" low={60} high={85} optimum={20} />'),
+    states: [
+      { name: 'Good', description: 'Within the optimum range.', preview: <Meter label="Storage used" value={20} valueLabel="20 GB of 100 GB" low={60} high={85} optimum={10} />, code: tsx(['Meter'], '<Meter label="Storage used" value={20} valueLabel="20 GB of 100 GB" low={60} high={85} optimum={10} />') },
+      { name: 'Caution', description: 'In the middle range.', preview: <Meter label="Storage used" value={72} valueLabel="72 GB of 100 GB" low={60} high={85} optimum={10} />, code: tsx(['Meter'], '<Meter label="Storage used" value={72} valueLabel="72 GB of 100 GB" low={60} high={85} optimum={10} />') },
+      { name: 'Poor', description: 'In the range furthest from optimum.', preview: <Meter label="Storage used" value={95} valueLabel="95 GB of 100 GB" low={60} high={85} optimum={10} />, code: tsx(['Meter'], '<Meter label="Storage used" value={95} valueLabel="95 GB of 100 GB" low={60} high={85} optimum={10} />') },
     ],
   },
   {
@@ -405,7 +475,7 @@ export const primitiveEntries: ComponentEntry[] = [
     name: 'Icon', category: 'Data display', description: 'A bundled current-color stroke SVG with decorative and meaning-bearing modes.',
     usage: 'Use a bundled name for navigation, controls and status. Pair with visible text where possible; give icon-only buttons their own accessible action name.',
     props: [
-      { name: 'name', type: 'IconName | (string & {})', required: true, description: 'Bundled icon name. Unknown strings render the components fallback glyph. Names include plus, search, check, x, copy, download, settings, users, shield, server, phone and workflow.' },
+      { name: 'name', type: 'IconName | (string & {})', required: true, description: 'Bundled icon name. Unknown strings render the components fallback glyph. Names include plus, search, check, x, copy, download, settings, users, shield, server, phone, workflow, send, calendar, target, billboard, link, image and chart. Lucide-derived glyphs are credited in THIRD_PARTY_NOTICES.md.' },
       { name: 'size', type: 'number', defaultValue: '18', description: 'Default SVG width and height in pixels. Native SVG width/height can override dimensions.' },
       { name: 'title', type: 'string', description: 'Adds an SVG title, role="img" and removes the default aria-hidden. Omit for decorative icons.' },
     ], nativeProps: 'SVGProps<SVGSVGElement> except native name; includes className, aria-* and stroke attributes. Uses a 24×24 viewBox and stroke=currentColor by default. No disabled, loading or selected state API.',

@@ -55,3 +55,41 @@ test('operation stages preserve submitted accepted delivery and observed distinc
   for (const label of ['Submitted', 'Accepted', 'Delivered', 'Observed']) assert.ok(html.includes('>'+label+'<'));
   assert.match(html, /does not establish delivery/);
 });
+
+test('suppressed and skipped targets are labelled as deliberately not sent, never as failures', async () => {
+  const { OperationResults } = await import('../dist/evidence.js');
+  const { renderToStaticMarkup } = await import('react-dom/server');
+  const { createElement } = await import('react');
+  const html = renderToStaticMarkup(createElement(OperationResults, { items: [{ id: 's', target: 'a', status: 'suppressed' }, { id: 'k', target: 'b', status: 'skipped' }] }));
+  assert.match(html, /t98-operation-item--suppressed[\s\S]*>Suppressed<[\s\S]*Not sent: the target is suppressed/);
+  assert.match(html, /t98-operation-item--skipped[\s\S]*>Skipped<[\s\S]*Not attempted\./);
+  assert.doesNotMatch(html, /Failed|t98-tone--danger/);
+  assert.equal((html.match(/t98-badge t98-tone--neutral/g) ?? []).length, 2);
+});
+
+test('ValidationSummary counts problems as a status, links each message to its fix, and marks stale results', async () => {
+  const { ValidationSummary } = await import('../dist/evidence.js');
+  const { renderToStaticMarkup } = await import('react-dom/server');
+  const { createElement } = await import('react');
+  const items = [
+    { id: 'ig', target: 'Instagram · Studio', status: 'error', messages: [{ id: 'm1', text: 'Caption is longer than 2,200 characters.', href: '#caption' }] },
+    { id: 'li', target: 'LinkedIn · Studio', status: 'warning', messages: [{ id: 'm2', text: 'The link preview image is missing.' }] },
+    { id: 'fb', target: 'Facebook · Studio', status: 'ok' },
+  ];
+  const html = renderToStaticMarkup(createElement(ValidationSummary, { title: 'Before publishing', items, checkedAt: '10:42', onRecheck() {} }));
+  assert.match(html, /role="status">1 destination needs a fix, 1 destination to check\.</);
+  assert.match(html, /Checked 10:42/);
+  assert.match(html, /<a href="#caption" class="t98-link t98-link--inline">Caption is longer than 2,200 characters\.<\/a>/);
+  assert.match(html, />Needs a fix<[\s\S]*>Check this<[\s\S]*>Ready</);
+  assert.match(html, />Check again</);
+  const ready = renderToStaticMarkup(createElement(ValidationSummary, { items: [items[2]] }));
+  assert.match(ready, />All 1 destination is ready\.</);
+  const stale = renderToStaticMarkup(createElement(ValidationSummary, { items, stale: true, onRecheck() {} }));
+  assert.match(stale, /class="t98-validation t98-validation--stale"/);
+  assert.match(stale, /Changed since the last check[\s\S]*Check again before publishing\./);
+  assert.equal((stale.match(/>Check again</g) ?? []).length, 1);
+  const busy = renderToStaticMarkup(createElement(ValidationSummary, { items: [], busy: true }));
+  assert.match(busy, /role="status">Checking…</);
+  assert.doesNotMatch(busy, /Nothing has been checked yet/);
+  assert.match(renderToStaticMarkup(createElement(ValidationSummary, { items: [] })), /Nothing has been checked yet\./);
+});

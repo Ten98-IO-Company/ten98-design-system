@@ -1,0 +1,2 @@
+.t98-account-qr { inline-size: min(100%, 12rem); padding: var(--t98-space-2); border-radius: var(--t98-radius-md); background: Canvas; color-scheme: light; }
+.t98-account-key { display: block; padding: var(--t98-space-2) var(--t98-space-3); border: 1px solid var(--t98-border); border-radius: var(--t98-radius-md); background: var(--t98-subtle); overflow-wrap: anywhere; user-select: all; }

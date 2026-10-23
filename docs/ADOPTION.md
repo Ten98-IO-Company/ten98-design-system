@@ -11,13 +11,13 @@ npm run check:all
 npm pack
 ```
 
-The emitted archive is `ten98-ui-0.3.19.tgz`. Copy that archive into the consuming application's `vendor` directory, then run:
+The emitted archive is `ten98-ui-0.21.0.tgz`. Copy that archive into the consuming application's `vendor` directory, then run:
 
 ```sh
-npm install ./vendor/ten98-ui-0.3.19.tgz
+npm install ./vendor/ten98-ui-0.21.0.tgz
 ```
 
-Commit the archive and updated lockfile together. Use `file:vendor/ten98-ui-0.3.19.tgz` in the application's dependency manifest. An installed archive gives the application a fixed build without requiring a sibling checkout or registry publication. Generate a new versioned archive for an update rather than changing an archive in place. See [the Campaign and Discover integration contract](INTEGRATION.md) for the application-compatible entry points and release workflow.
+Commit the archive and updated lockfile together. Use `file:vendor/ten98-ui-0.21.0.tgz` in the application's dependency manifest. An installed archive gives the application a fixed build without requiring a sibling checkout or registry publication. Generate a new versioned archive for an update rather than changing an archive in place. See [the Campaign and Discover integration contract](INTEGRATION.md) for the application-compatible entry points and release workflow.
 
 The package's public entry points are:
 
@@ -112,35 +112,79 @@ The library does not install TanStack Router, Start, Query or Table into a consu
 
 Theme values are `light`, `dark` and `system`. `system` follows the browser's color-scheme preference. Density values are `comfortable` and `compact`; compact suits information-heavy desktop work. Keep comfortable spacing for touch-oriented tasks and forms. The consuming app owns storing the user's preference and rendering the chosen attributes consistently across server and client.
 
-Use semantic variables when adding a product-specific surface:
-
-```css
-.project-note {
-  color: var(--t98-text);
-  background: var(--t98-surface);
-  border: 1px solid var(--t98-border);
-  border-radius: var(--t98-radius);
-  padding: var(--t98-space-4);
-  font-family: var(--t98-font);
-}
-```
-
-Typed references resolve to CSS variables rather than fixed colors:
-
-```tsx
-import { tokens } from '@ten98/ui/tokens';
-
-export function ProjectNote() {
-  return <p style={{ color: tokens.color.muted }}>Last checked a moment ago.</p>;
-}
-```
+Applications do not add their own surfaces, CSS or inline styles. When a screen needs something the library lacks, add it here as a component, flow section or template, release a version, and import it. The typed `tokens` export exists for library code and charts that need a CSS variable reference in JavaScript, not for styling app elements.
 
 Keep the standard accent across products. Differentiate products through their name, icon and task navigation. Use semantic success, warning, danger and information colors for meaning. A local override must be checked in both themes, interaction states and forced-colors mode.
+
+## Applications write no elements
+
+`@ten98/ui` is the only place frontend elements are authored. Application source composes library components, flow sections and templates and never renders raw JSX elements (`div`, `button`, `svg`…), passes `className` or `style`, or imports its own stylesheets. Layout and text come from `Stack`, `Inline`, `Grid`, `FormGrid`, `FormActions`, `FeatureControls`, `Text`, `Heading`, `Link`, `Image`, `List` and `DescriptionList`; router links pass the router's link component to `Link`. The `@ten98/runtime` architecture check enforces this in each app's `test` and `build` scripts, with a per-app baseline that can only go down until it reaches zero.
+
+## Upgrading across releases
+
+Apps can jump several versions at once; every release body lists breaking and behaviour changes first. The ones to check when moving from 0.5.x to 0.21.0:
+
+| Since | Change | What to do |
+|---|---|---|
+| 0.6.0 | `TimeSeriesChart` stretches to its container width instead of a fixed natural width | Check layouts that sized a wrapper around a chart. |
+| 0.6.0, 0.7.0 | Skip these as pins: their `ReplayViewer` content policy could be bypassed by a document starting with `<!--<head>-->` | Use 0.8.0 or later. |
+| 0.8.0 | `Progress` with a non-finite value is indeterminate instead of 0% | Pass a finite number to show a percentage. |
+| 0.9.0 | `DateRangeField` calls `onChange(range, problem)` on every edit, including an invalid range | Keep the second argument and block submission while it is non-null. |
+| 0.9.0 | TypeScript: `ShareSegment.count` is `number \| null` | Handle `null` where you read counts back. |
+| 0.9.0 | `AppTopbar` `wrap` clamps the scope to two lines, with the full name in its `title` | Check screens with long workspace or project names. |
+| 0.11.0 | `Image` replaces a failed image with a fallback ("Image unavailable") | Pass `fallback` for your own wording. |
+| 0.14.1 | `ReplayViewer` `srcDoc` runs no scripts by default; a scripted policy must pin scripts with hashes or nonces of at least 22 characters | Pass a pinned `contentPolicy` if your replay document needs scripts, or use `IsolatedPlayerFrame`. |
+| 0.15.0 | `Dialog` footers stay visible while the body scrolls; `TeamFlow` invitation statuses are sentence case | Check long dialogs; override `invitationStatusLabels` if you relied on the raw values. |
+| 0.16.0 | `MultiCombobox` announces adds and removals | Remove any app-side announcement to avoid hearing it twice. |
+| 0.17.0 | `BarList` selectable rows are 44px; `ShareChart` with a null total shows counts; `TimeSeriesChart` series 6+ change dash pattern | Check dense bar lists and many-series charts. |
+| 0.18.1 | `CalendarMonth` entries wrap inside their day; empty `TeamFlow` invitations show the title only | None, unless you worked around either. |
+| 0.19.0 | `Checkbox` and `Switch` labels are at least 44px tall | Check dense checkbox and switch lists; remove local min-height stopgaps. |
+| 0.20.0 | `app.css`: global reduced motion (0s); `.field` text uses `--color-text`; raw tables lose the last-row border and gain hover and 16px cell padding under 1200px; page base on `:where(html)` and 14px on `:where(body)` | Remove matching app CSS; don't set a 14px root font size (it shrinks rem tokens). |
+| 0.21.0 | `AuthLayout`, the auth flows and `AppStateScreen` show a centred card when there is no `aside` | Pass `surface="plain"` to keep the open form column; pass `surface="card"` to card the form beside an `aside` too. |
+
+## Replace these app patterns
+
+| App pattern | Library component (release) |
+|---|---|
+| Raw `form` with a busy flag | `Form` (0.11.0); `Dialog` `onSubmit` for modal forms (0.13.0) |
+| `label` + `span` + `input`, help text, counters | `Field` (with `count`, 0.11.0), `Input`, `Textarea`, `Select` |
+| Raw `div` sized by className for a map or other SDK mount | `EmbedHost` (0.19.0) |
+| Inline "I reviewed … then Confirm" blocks | `ReviewConfirm` (0.12.0); `ConfirmDialog` for modal confirmation |
+| Pre-publish checks per destination | `ValidationSummary` (0.12.0) |
+| "Load more" / "Load older" cursor buttons | `LoadMore` (0.11.0); `ConversationThread` `onLoadOlder` (0.13.0) |
+| Inbox or contact lists beside a detail pane | `SelectableList` (0.13.0) with `DetailWorkspace` |
+| Message history, comments and replies | `ConversationThread` (`direction`, `actions`, `removed` 0.7.0; `replies` 0.13.0) |
+| Editor modals with unsaved changes | `Dialog` `dirty` (0.13.0) |
+| Social post, thread, poll and story previews | `ContentPreview` `chrome`, `thread`, `captionLimit`, `poll`, `firstComment` (0.9.0, 0.13.0) |
+| Email HTML previews | `SandboxedPreview` (0.8.0) |
+| Asset thumbnails and image placeholders | `ResourceCard` `media`/`tags`, `Image` `fallback` (0.11.0); `MediaStrip` facts (0.8.0) |
+| Audio, video and quotes in messages | `MediaPlayer`, `Blockquote` (0.7.0) |
+| Searchable selects, async results, tags | `Combobox` (async 0.7.0, option `description` 0.11.0), `MultiCombobox` (0.7.0) |
+| Hand-drawn SVG charts | `TimeSeriesChart`, `BarList`, `ShareChart`, `WeekdayHourGrid` (0.9.0) |
+| Session replay players | `IsolatedPlayerFrame` (0.10.0); `ReplayViewer` for simple `srcDoc` players |
+
+Import `@ten98/ui/app-tokens.css`, `@ten98/ui/app.css` and `@ten98/ui/product.css` once: component styles live in `product.css`.
+
+`product.css` loads every component sheet. To load only what a screen family uses, import the sheets directly from `@ten98/ui/css/<sheet>.css` instead (keep `app-tokens.css` and `app.css` first):
+
+| Sheet | Styles |
+|---|---|
+| `tokens.css`, `primitives.css`, `structure.css` | Always needed: tokens, Button, Field, Dialog, Alert, Badge, layout and text primitives |
+| `patterns.css` | DataTable, MetricCard, ResourceCard, AppShell, PageHeader, Stepper |
+| `workspace.css` | ConfirmDialog, ReviewConfirm, CopyButton, DateRangeField, AuthLayout |
+| `products.css` | Evidence, composition, coordination and analytics components (ConversationThread, SelectableList, ContentPreview, SandboxedPreview, ValidationSummary, OperationResults …) |
+| `navigation.css`, `shell.css` | Sidebar, AppTopbar, SectionNav, search and banners |
+| `controls.css` | Form, Combobox, MultiCombobox, Popover, FieldList, FileField, MediaPlayer, LoadMore and other controls |
+| `account-flows.css`, `workspace-flows.css` | Settings and workspace flows |
+| `charts.css` | TimeSeriesChart, BarList, ShareChart, ProportionBar, WeekdayHourGrid |
+| `spatial.css` | CountryMap, heatmaps, ReplayViewer, IsolatedPlayerFrame, CalendarMonth |
+
+For example, an app with no maps, heatmaps, replays or calendar can leave out `spatial.css` (about 10.9 KB minified, 1.5 KB gzip in Campaign's build). Removing unused rules inside the sheets an app does load is a build-time purge in the app.
 
 ## Incremental migration
 
 1. Build and install a fixed package version; import its CSS once.
-2. Replace local color, spacing and typography literals with `--t98-*` tokens.
+2. Replace local elements, `className`/`style` props and app CSS with library components, starting from the layout primitives (`Stack`, `Inline`, `Grid`, `Text`, `Heading`, `Link`) and the gaps listed for the app.
 3. Adopt the shared shell and page hierarchy without changing the app's route behavior.
 4. Replace repeated controls and states one screen at a time.
 5. Adopt table, settings, integration and activity patterns where they fit real flows.

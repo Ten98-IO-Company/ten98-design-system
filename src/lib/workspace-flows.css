@@ -1,0 +1,2 @@
+.t98-workspace-danger-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--t98-space-3); padding: var(--t98-space-3); border: 1px solid var(--t98-border); border-radius: var(--t98-radius-md); }
+.t98-workspace-danger-row > :first-child { flex: 1 1 16rem; min-inline-size: 0; }

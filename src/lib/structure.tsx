@@ -1,0 +1,177 @@
+'use client';
+
+import { useState, type ComponentType, type HTMLAttributes, type Ref, type ImgHTMLAttributes, type LiHTMLAttributes, type ReactNode } from 'react';
+import { Icon, cx } from './primitives.js';
+
+/* Layout and text primitives let applications compose screens without authoring elements or styles.
+ * Spacing, size and tone props accept design-token steps only, so a screen cannot introduce ad-hoc values. */
+
+export type Space = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 8 | 10 | 12 | 16;
+export type Align = 'start' | 'center' | 'end' | 'stretch' | 'baseline';
+export type Justify = 'start' | 'center' | 'end' | 'between';
+type BlockTag = 'div' | 'section' | 'article' | 'aside' | 'header' | 'footer' | 'nav' | 'main' | 'form' | 'fieldset' | 'ul' | 'ol' | 'li' | 'dl' | 'figure';
+
+interface BoxProps extends Omit<HTMLAttributes<HTMLElement>, 'style'> {
+  as?: BlockTag;
+  /** Forwarded to the rendered element (React 19 ref as a prop), for example a host for a third-party map. */
+  ref?: Ref<HTMLElement>;
+  gap?: Space;
+  align?: Align;
+  /** Native form attributes, applied when `as="form"`. */
+  action?: string;
+  method?: 'get' | 'post' | 'dialog';
+  noValidate?: boolean;
+  /** Native fieldset attribute, applied when `as="fieldset"`. */
+  disabled?: boolean;
+}
+
+function layoutClasses(base: string, gap: Space | undefined, align: Align | undefined) {
+  return cx(base, gap != null && `t98-gap-${gap}`, align && `t98-align-${align}`);
+}
+
+/** Vertical rhythm: children stacked with one token gap. */
+// Tag is a union of elements, so TypeScript wants a ref valid for all of them at once; every one is an HTMLElement, so the
+// element-agnostic ref is passed through unchanged with this single cast.
+const boxRef = (ref: Ref<HTMLElement> | undefined) => ref as never;
+export function Stack({ as: Tag = 'div', gap = 4, align, className, ref, ...props }: BoxProps) {
+  return <Tag {...props} ref={boxRef(ref)} className={cx(layoutClasses('t98-stack', gap, align), className)} />;
+}
+
+export interface InlineProps extends BoxProps { justify?: Justify; wrap?: boolean }
+/** Horizontal run that wraps by default, for actions, badges and metadata. */
+export function Inline({ as: Tag = 'div', gap = 2, align = 'center', justify, wrap = true, className, ref, ...props }: InlineProps) {
+  return <Tag {...props} ref={boxRef(ref)} className={cx(layoutClasses('t98-inline', gap, align), justify && `t98-justify-${justify}`, !wrap && 't98-nowrap', className)} />;
+}
+
+export interface GridProps extends BoxProps {
+  /** Fixed column count from desktop width; collapses to one column on narrow screens. `auto` fills columns of at least `minItemWidth`. */
+  columns?: 1 | 2 | 3 | 4 | 6 | 'auto';
+  minItemWidth?: 'sm' | 'md' | 'lg';
+}
+export function Grid({ as: Tag = 'div', gap = 4, align, columns = 'auto', minItemWidth = 'md', className, ref, ...props }: GridProps) {
+  return <Tag {...props} ref={boxRef(ref)} className={cx(layoutClasses('t98-grid', gap, align), `t98-grid--${columns}`, columns === 'auto' && `t98-grid--min-${minItemWidth}`, className)} />;
+}
+
+/** Field layout for forms: responsive columns with the shared form spacing. */
+export function FormGrid({ className, ...props }: Omit<HTMLAttributes<HTMLDivElement>, 'style'>) {
+  return <div {...props} className={cx('t98-form-grid', className)} />;
+}
+
+/** Wrapping action row placed after the controls it submits. */
+export function FormActions({ className, ...props }: Omit<HTMLAttributes<HTMLDivElement>, 'style'>) {
+  return <div {...props} className={cx('t98-form-actions', className)} />;
+}
+
+export type TextTone = 'default' | 'muted' | 'accent' | 'success' | 'warning' | 'danger';
+export type TextSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+export interface TextProps extends Omit<HTMLAttributes<HTMLElement>, 'style'> {
+  as?: 'p' | 'span' | 'div' | 'strong' | 'em' | 'small' | 'code' | 'time' | 'dt' | 'dd' | 'figcaption' | 'label';
+  size?: TextSize;
+  tone?: TextTone;
+  weight?: 'regular' | 'medium' | 'semibold';
+  align?: 'start' | 'center' | 'end';
+  mono?: boolean;
+  /** Numerals keep equal widths so values align in columns. */
+  numeric?: boolean;
+  /** Single line with an ellipsis; supply the full value in `title` when it can be cut. */
+  truncate?: boolean;
+  /** Keeps the line breaks and spacing of multi-line user or model text; long words still wrap. */
+  preserveWhitespace?: boolean;
+  dateTime?: string;
+  htmlFor?: string;
+}
+export function Text({ as: Tag = 'p', size, tone = 'default', weight, align, mono, numeric, truncate, preserveWhitespace, className, ...props }: TextProps) {
+  return <Tag {...props} className={cx('t98-text', size && `t98-text--${size}`, tone !== 'default' && `t98-text-tone-${tone}`, weight && `t98-weight-${weight}`, align && `t98-text-align-${align}`, mono && 't98-mono', numeric && 't98-numeric', truncate && 't98-truncate', preserveWhitespace && 't98-text--pre', className)} />;
+}
+
+export interface HeadingProps extends Omit<HTMLAttributes<HTMLHeadingElement>, 'style'> {
+  /** Document outline level. Choose it from the page structure, not the desired size. */
+  level: 1 | 2 | 3 | 4 | 5 | 6;
+  ref?: Ref<HTMLHeadingElement>;
+  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
+}
+const headingSize = { 1: '2xl', 2: 'xl', 3: 'lg', 4: 'md', 5: 'sm', 6: 'sm' } as const;
+export function Heading({ level, size = headingSize[level], className, ...props }: HeadingProps) {
+  const Tag = `h${level}` as const;
+  return <Tag {...props} className={cx('t98-heading', `t98-heading--${size}`, className)} />;
+}
+
+/** Text only screen readers announce, for icon-only context or table captions. */
+export function VisuallyHidden({ as: Tag = 'span', ref, ...props }: Omit<HTMLAttributes<HTMLElement>, 'className' | 'style'> & { as?: 'span' | 'div' | 'h2' | 'h3' | 'caption'; ref?: Ref<HTMLElement> }) {
+  return <Tag {...props} ref={boxRef(ref)} className="t98-visually-hidden" />;
+}
+
+export interface LinkProps extends Omit<HTMLAttributes<HTMLAnchorElement>, 'style'> {
+  href: string;
+  variant?: 'inline' | 'standalone' | 'quiet';
+  target?: '_blank' | '_self';
+  rel?: string;
+  download?: boolean | string;
+  /** A router link component (for example TanStack Router `Link`) that renders an anchor and accepts `href`/`className`. */
+  component?: ComponentType<{ href: string; className?: string; children?: ReactNode }>;
+}
+/** Navigation link. External new-tab links get `noopener noreferrer` unless `rel` is given. */
+export function Link({ variant = 'inline', component: Component, className, target, rel, ...props }: LinkProps) {
+  const classes = cx('t98-link', `t98-link--${variant}`, className);
+  const safeRel = rel ?? (target === '_blank' ? 'noopener noreferrer' : undefined);
+  if (Component) return <Component {...props} className={classes} />;
+  return <a {...props} target={target} rel={safeRel} className={classes} />;
+}
+
+export interface ImageProps extends Omit<ImgHTMLAttributes<HTMLImageElement>, 'style' | 'alt'> {
+  /** Required; use an empty string only for decorative images. */
+  alt: string;
+  fit?: 'cover' | 'contain';
+  aspect?: 'auto' | 'square' | 'video' | 'portrait';
+  rounded?: boolean;
+  /** Shown in place of the image when it cannot load (never a broken-image glyph). Defaults to "Image unavailable". */
+  fallback?: ReactNode;
+}
+export function Image({ fit = 'cover', aspect = 'auto', rounded = true, loading = 'lazy', decoding = 'async', fallback = 'Image unavailable', className, onError, ...props }: ImageProps) {
+  const [failedSrc, setFailedSrc] = useState<string | undefined>();
+  const classes = cx('t98-image', `t98-image--${fit}`, aspect !== 'auto' && `t98-aspect-${aspect}`, rounded && 't98-image--rounded', className);
+  if (props.src !== undefined && failedSrc === props.src) {
+    // A described image keeps its alternative text as the fallback's name; a decorative one stays hidden.
+    return <span className={cx(classes, 't98-image-fallback')} role={props.alt ? 'img' : undefined} aria-label={props.alt || undefined} aria-hidden={props.alt ? undefined : true}
+      style={props.width && props.height ? { aspectRatio: `${props.width} / ${props.height}` } : undefined}>
+      <Icon name="image" size={20} aria-hidden="true" /><span aria-hidden={props.alt ? true : undefined}>{fallback}</span>
+    </span>;
+  }
+  return <img {...props} loading={loading} decoding={decoding} className={classes} onError={event => { setFailedSrc(props.src); onError?.(event); }} />;
+}
+
+export interface BlockquoteProps extends Omit<HTMLAttributes<HTMLElement>, 'style'> {
+  /** Visible attribution, such as the author or the message being replied to. */
+  source?: ReactNode;
+  /** URL of the quoted source, for machines; it is not shown. */
+  cite?: string;
+}
+/** Quoted text with an optional visible attribution. Use inside messages, reviews and evidence. */
+export function Blockquote({ source, cite, className, children, ...props }: BlockquoteProps) {
+  return <figure {...props} className={cx('t98-quote', className)}>
+    <blockquote className="t98-quote-text" cite={cite}>{children}</blockquote>
+    {source != null && <figcaption className="t98-quote-source">{source}</figcaption>}
+  </figure>;
+}
+
+export interface DescriptionItem { term: ReactNode; description: ReactNode; key?: string }
+/** Label/value pairs for identity, settings or review details. `columns` places pairs side by side on wide screens. */
+export function DescriptionList({ items, columns = 1, className, ...props }: Omit<HTMLAttributes<HTMLDListElement>, 'style' | 'children'> & { items: DescriptionItem[]; columns?: 1 | 2 | 3 }) {
+  return <dl {...props} className={cx('t98-description-list', `t98-description-list--${columns}`, className)}>
+    {items.map((item, index) => <div key={item.key ?? index}><dt>{item.term}</dt><dd>{item.description}</dd></div>)}
+  </dl>;
+}
+
+/** Prose list with visible markers. For unmarked layout lists use `Stack as="ul"` with `Stack as="li"` items. */
+export function List({ ordered = false, gap = 1, className, ...props }: Omit<HTMLAttributes<HTMLUListElement | HTMLOListElement>, 'style'> & { ordered?: boolean; gap?: Space }) {
+  const Tag = ordered ? 'ol' : 'ul';
+  return <Tag {...props} className={cx('t98-list', `t98-gap-${gap}`, className)} />;
+}
+export function ListItem({ className, ...props }: Omit<LiHTMLAttributes<HTMLLIElement>, 'style'>) {
+  return <li {...props} className={cx('t98-list-item', className)} />;
+}
+
+/** Short report filters: fields share a row up to 18rem each; other children (results, notes) take the full width. */
+export function FeatureControls({ className, ...props }: Omit<HTMLAttributes<HTMLDivElement>, 'style'>) {
+  return <div {...props} className={cx('t98-feature-controls', className)} />;
+}

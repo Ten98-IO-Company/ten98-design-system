@@ -1,23 +1,49 @@
 'use client';
 
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
-import { Avatar, Icon, cx } from './primitives.js';
+import { Avatar, Icon, cx, type IconName } from './primitives.js';
+import type { NavLinkComponent } from './shell.js';
 
 function isUnavailable(element: Element) {
   return element.matches(':disabled') || Boolean(element.closest('[aria-disabled="true"], [aria-busy="true"]'));
+}
+
+export type AccountMenuItem = { id: string } & (
+  | { kind: 'link'; label: string; href: string; icon?: IconName; danger?: boolean; disabled?: boolean; busy?: boolean; busyLabel?: string }
+  | { kind: 'button'; label: string; onSelect: () => void; icon?: IconName; danger?: boolean; disabled?: boolean; busy?: boolean; busyLabel?: string }
+  | { kind: 'separator' });
+
+function AccountMenuItems({ items, linkComponent: LinkComponent }: { items: AccountMenuItem[]; linkComponent?: NavLinkComponent }) {
+  return <>{items.map(item => {
+    if (item.kind === 'separator') return <hr key={item.id} className="t98-account-menu__separator" />;
+    const className = cx('t98-account-menu__item', item.danger && 't98-account-menu__item--danger');
+    const content = <>{item.icon && <Icon name={item.icon} size={17} aria-hidden="true" />}<span>{item.busy ? item.busyLabel ?? item.label : item.label}</span></>;
+    const unavailable = item.disabled || item.busy;
+    if (item.kind === 'button') return <button key={item.id} type="button" className={className} disabled={unavailable} aria-busy={item.busy || undefined} onClick={item.onSelect}>{content}</button>;
+    // A link has no native disabled state; without an href it is neither focusable nor navigable.
+    if (unavailable) return <a key={item.id} role="link" className={className} aria-disabled="true" aria-busy={item.busy || undefined}>{content}</a>;
+    return LinkComponent
+      ? <LinkComponent key={item.id} href={item.href} className={className}>{content}</LinkComponent>
+      : <a key={item.id} href={item.href} className={className}>{content}</a>;
+  })}</>;
 }
 
 export interface AccountMenuProps {
   name: string;
   email?: string;
   avatar?: ReactNode;
-  children: ReactNode;
+  /** Declarative links, buttons and separators; the preferred way to fill the menu. */
+  items?: AccountMenuItem[];
+  /** Renders `link` items; `href` is then a key your component resolves. */
+  linkComponent?: NavLinkComponent;
+  /** @deprecated Prefer `items`. Still renders native app elements after `items`. */
+  children?: ReactNode;
   label?: string;
   defaultOpen?: boolean;
 }
 
 /** A nonmodal disclosure; applications own its links, forms and account actions. */
-export function AccountMenu({ name, email, avatar, children, label = 'Account menu', defaultOpen = false }: AccountMenuProps) {
+export function AccountMenu({ name, email, avatar, items, linkComponent, children, label = 'Account menu', defaultOpen = false }: AccountMenuProps) {
   const [open, setOpen] = useState(defaultOpen);
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -83,7 +109,7 @@ export function AccountMenu({ name, email, avatar, children, label = 'Account me
         <strong>{name}</strong>
         {email && <span>{email}</span>}
       </div>
-      <div className="t98-account-menu__actions">{children}</div>
+      <div className="t98-account-menu__actions">{items && <AccountMenuItems items={items} linkComponent={linkComponent} />}{children}</div>
     </div>
   </div>;
 }

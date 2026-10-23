@@ -99,7 +99,7 @@ Compact `EvidenceSummary` omits reasons for current freshness and complete cover
 
 Every C1–C8 and D1–D17 reference flow has a complete local TSX example, research references and acceptance cases in the catalogue. These are synthetic presentation/controller examples; app sessions validate their actual adapters and existing features. Paid/provider operations, billing, database work and deployment remain outside this integration wave.
 
-Campaign and Discover consume `@ten98/ui` through a versioned archive committed in `vendor`, with a matching `file:vendor/ten98-ui-<version>.tgz` dependency. The initial adoption used 0.2.0. Current app acceptance is recorded in the [completion ledger](CAMPAIGN-DISCOVER-COMPLETION.md). Their builds require no sibling repository at runtime or during dependency installation.
+Campaign and Discover consume `@ten98/ui` through a versioned archive committed in `vendor`, with a matching `file:vendor/ten98-ui-<version>.tgz` dependency. The initial adoption used 0.2.0. Current app acceptance is recorded in the [release validation](VALIDATION.md). Their builds require no sibling repository at runtime or during dependency installation.
 
 Version 0.2.1 fixes ResourceCard status wrapping at narrow widths without changing its API. Existing 0.2.0 archives remain immutable. Each app session owns adopting the new `vendor/ten98-ui-0.2.1.tgz` archive and regenerating its lockfile before its release.
 

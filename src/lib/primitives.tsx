@@ -2,8 +2,8 @@
 
 import {
   Children, cloneElement, forwardRef, isValidElement, useEffect, useId, useRef, useState,
-  type ButtonHTMLAttributes, type HTMLAttributes, type InputHTMLAttributes,
-  type ReactElement, type ReactNode, type SelectHTMLAttributes,
+  type ButtonHTMLAttributes, type ComponentType, type FormEvent, type HTMLAttributes, type InputHTMLAttributes,
+  type OptgroupHTMLAttributes, type OptionHTMLAttributes, type ReactElement, type ReactNode, type SelectHTMLAttributes,
   type SVGProps, type TextareaHTMLAttributes,
 } from 'react';
 
@@ -69,6 +69,15 @@ const iconPaths = {
   'arrow-up': 'M12 20V4M6 10l6-6 6 6',
   'arrow-down': 'M12 4v16M6 14l6 6 6-6',
   github: 'M9 19c-5 1.5-5-2.5-7-3M16 22v-4c0-1-.3-2-1-2.5 3-.3 6-1.5 6-6A5 5 0 0 0 19.5 6a4.6 4.6 0 0 0-.1-3.5S18 2 15 4a13 13 0 0 0-6 0C6 2 4.6 2.5 4.6 2.5A4.6 4.6 0 0 0 4.5 6 5 5 0 0 0 3 9.5c0 4.5 3 5.7 6 6-.7.5-1 1.5-1 2.5v4',
+  /* The seven icons below are path data from Lucide 0.468.0 (ISC, https://lucide.dev), with rect/circle elements
+   * converted to path commands. billboard = Lucide "presentation" (a sign board on a post), chart = "chart-column". */
+  send: 'M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11zM21.854 2.147l-10.94 10.939',
+  calendar: 'M8 2v4M16 2v4M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM3 10h18',
+  target: 'M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0zM18 12a6 6 0 1 1-12 0 6 6 0 0 1 12 0zM14 12a2 2 0 1 1-4 0 2 2 0 0 1 4 0z',
+  billboard: 'M2 3h20M21 3v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V3M7 21l5-5 5 5',
+  link: 'M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71',
+  image: 'M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zM11 9a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM21 15l-3.086-3.086a2 2 0 0 0-2.828 0L6 21',
+  chart: 'M3 3v16a2 2 0 0 0 2 2h16M18 17V9M13 17V5M8 17v-3',
 } as const;
 
 export type IconName = keyof typeof iconPaths;
@@ -83,16 +92,39 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   size?: 'sm' | 'md' | 'lg';
   loading?: boolean;
   icon?: ReactNode;
+  /** Renders a styled anchor. Disabled or loading anchors drop `href` and set `aria-disabled`. */
+  href?: string;
+  /** A router link component (same contract as `Link.component`) used when `href` is set. */
+  component?: ComponentType<{ href: string; className?: string; children?: ReactNode }>;
+  /** Sets `aria-pressed` for a toggle button and applies the pressed style. */
+  pressed?: boolean;
+  fullWidth?: boolean;
 }
-export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button({ variant = 'primary', size = 'md', loading = false, icon, className, children, disabled, type = 'button', ...props }, ref) {
-  return <button ref={ref} type={type} className={cx('t98-button', `t98-button--${variant}`, `t98-button--${size}`, className)} disabled={disabled || loading} aria-busy={loading || undefined} {...props}>
-    {loading ? <span className="t98-spinner" aria-hidden="true" /> : icon}{children}
-  </button>;
+let warnedIconOnly = false;
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button({ variant = 'primary', size = 'md', loading = false, icon, href, component: Component, pressed, fullWidth = false, className, children, disabled, type = 'button', ...props }, ref) {
+  const iconOnly = icon != null && icon !== false && Children.toArray(children).length === 0;
+  if (iconOnly && !warnedIconOnly && !props['aria-label'] && !props['aria-labelledby'] && (globalThis as { process?: { env?: { NODE_ENV?: string } } }).process?.env?.NODE_ENV !== 'production') {
+    warnedIconOnly = true;
+    console.warn('@ten98/ui Button: an icon-only Button needs an aria-label.');
+  }
+  const classes = cx('t98-button', `t98-button--${variant}`, `t98-button--${size}`, iconOnly && 't98-button--icon', fullWidth && 't98-button--full', className);
+  const content = <>{loading ? <span className="t98-spinner" aria-hidden="true" /> : icon}{children}</>;
+  if (href !== undefined) {
+    const inactive = disabled || loading;
+    const anchor = { ...props, 'aria-pressed': pressed, 'aria-busy': loading || undefined, 'aria-disabled': inactive || undefined } as Record<string, unknown>;
+    // React 19 passes ref as a prop, so focus management reaches the router link's anchor.
+    if (!inactive && Component) return <Component {...anchor} {...{ ref }} href={href} className={classes}>{content}</Component>;
+    return <a {...anchor} ref={ref as never} href={inactive ? undefined : href} className={classes}>{content}</a>;
+  }
+  return <button ref={ref} type={type} className={classes} disabled={disabled || loading} aria-pressed={pressed} aria-busy={loading || undefined} {...props}>{content}</button>;
 });
 
 export type Tone = 'neutral' | 'accent' | 'success' | 'warning' | 'danger' | 'info';
-export function Badge({ tone = 'neutral', dot = false, className, children, ...props }: HTMLAttributes<HTMLSpanElement> & { tone?: Tone; dot?: boolean }) {
-  return <span className={cx('t98-badge', `t98-tone--${tone}`, className)} {...props}>{dot && <span className="t98-badge-dot" aria-hidden="true" />}{children}</span>;
+export const badgePalettes = ['rose', 'amber', 'lime', 'emerald', 'sky', 'violet', 'fuchsia'] as const;
+export type BadgePalette = typeof badgePalettes[number];
+/** `tone` carries status meaning; `palette` is a decorative colour for user tags and replaces the tone colours. */
+export function Badge({ tone = 'neutral', palette, dot = false, className, children, ...props }: HTMLAttributes<HTMLSpanElement> & { tone?: Tone; palette?: BadgePalette; dot?: boolean }) {
+  return <span className={cx('t98-badge', palette ? `t98-palette--${palette}` : `t98-tone--${tone}`, className)} {...props}>{dot && <span className="t98-badge-dot" aria-hidden="true" />}{children}</span>;
 }
 
 export function Avatar({ name, size = 'md', className, ...props }: HTMLAttributes<HTMLSpanElement> & { name: string; size?: 'sm' | 'md' | 'lg' }) {
@@ -100,12 +132,21 @@ export function Avatar({ name, size = 'md', className, ...props }: HTMLAttribute
   return <span className={cx('t98-avatar', `t98-avatar--${size}`, className)} role="img" aria-label={name || 'Unknown user'} {...props}>{initials}</span>;
 }
 
-export interface CardProps extends Omit<HTMLAttributes<HTMLDivElement>, 'title'> { title?: ReactNode; description?: ReactNode; actions?: ReactNode }
-export function Card({ title, description, actions, className, children, ...props }: CardProps) {
-  return <div className={cx('t98-card', className)} {...props}>
-    {(title || description || actions) && <div className="t98-card-header"><div>{title && <h3 className="t98-card-title">{title}</h3>}{description && <p className="t98-card-description">{description}</p>}</div>{actions && <div className="t98-card-actions">{actions}</div>}</div>}
+export interface CardProps extends Omit<HTMLAttributes<HTMLDivElement>, 'title'> {
+  title?: ReactNode; description?: ReactNode; actions?: ReactNode;
+  /** Landmark-capable element; a titled `section` or `article` is named by its title. */
+  as?: 'div' | 'section' | 'article';
+  /** Outline level of the title. */
+  headingLevel?: 2 | 3 | 4 | 5 | 6;
+}
+export function Card({ title, description, actions, as: Tag = 'div', headingLevel = 3, className, children, ...props }: CardProps) {
+  const titleId = useId();
+  const Heading = `h${headingLevel}` as 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
+  const named = Tag !== 'div' && title && !props['aria-label'] && !props['aria-labelledby'];
+  return <Tag className={cx('t98-card', className)} aria-labelledby={named ? titleId : undefined} {...props}>
+    {(title || description || actions) && <div className="t98-card-header"><div>{title && <Heading id={named ? titleId : undefined} className="t98-card-title">{title}</Heading>}{description && <p className="t98-card-description">{description}</p>}</div>{actions && <div className="t98-card-actions">{actions}</div>}</div>}
     {children && <div className="t98-card-content">{children}</div>}
-  </div>;
+  </Tag>;
 }
 
 export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(function Input({ className, ...props }, ref) {
@@ -114,18 +155,73 @@ export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputE
 export const Textarea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<HTMLTextAreaElement>>(function Textarea({ className, rows = 4, ...props }, ref) {
   return <textarea ref={ref} className={cx('t98-input', 't98-textarea', className)} rows={rows} {...props} />;
 });
-export const Select = forwardRef<HTMLSelectElement, SelectHTMLAttributes<HTMLSelectElement>>(function Select({ className, children, ...props }, ref) {
-  return <select ref={ref} className={cx('t98-input', 't98-select', className)} {...props}>{children}</select>;
+/** Choice inside `Select`. */
+export function Option(props: Omit<OptionHTMLAttributes<HTMLOptionElement>, 'className' | 'style'>) {
+  return <option {...props} />;
+}
+export function OptionGroup(props: Omit<OptgroupHTMLAttributes<HTMLOptGroupElement>, 'className' | 'style'> & { label: string }) {
+  return <optgroup {...props} />;
+}
+
+export interface SelectOption { value: string; label: string; disabled?: boolean; group?: string }
+export interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
+  /** Rendered before `children`; options sharing a `group` form one optgroup, placed where the group first appears. */
+  options?: SelectOption[];
+  /** A disabled empty first option, selected while the value is empty. */
+  placeholder?: string;
+}
+export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select({ className, children, options, placeholder, ...props }, ref) {
+  const items: (SelectOption | { group: string; members: SelectOption[] })[] = [];
+  const groups = new Map<string, SelectOption[]>();
+  for (const option of options ?? []) {
+    if (option.group === undefined) { items.push(option); continue; }
+    let members = groups.get(option.group);
+    if (!members) { members = []; groups.set(option.group, members); items.push({ group: option.group, members }); }
+    members.push(option);
+  }
+  const renderOption = (option: SelectOption) => <Option key={option.value} value={option.value} disabled={option.disabled}>{option.label}</Option>;
+  const selection = placeholder && props.value === undefined && props.defaultValue === undefined ? { defaultValue: '' } : undefined;
+  return <select ref={ref} className={cx('t98-input', 't98-select', className)} {...selection} {...props}>
+    {placeholder && <Option value="" disabled>{placeholder}</Option>}
+    {items.map(item => 'members' in item ? <OptionGroup key={`group:${item.group}`} label={item.group}>{item.members.map(renderOption)}</OptionGroup> : renderOption(item))}
+    {children}
+  </select>;
 });
 
 type DescribedProps = { id?: string; 'aria-describedby'?: string; 'aria-invalid'?: boolean | 'true' | 'false' | 'grammar' | 'spelling' };
-export function Field({ label, description, error, htmlFor, children, className, ...props }: HTMLAttributes<HTMLDivElement> & { label: ReactNode; description?: ReactNode; error?: ReactNode; htmlFor: string }) {
-  const describedBy = [description && `${htmlFor}-description`, error && `${htmlFor}-error`].filter(Boolean).join(' ');
+export interface FieldCount {
+  /** The control's current value. */
+  value: string;
+  /** The limit. The control is not hard-capped, so pasted text stays visible and can be edited down. */
+  max: number;
+  /** Custom length, for example grapheme or weighted (SMS, social) counting. Defaults to code points. */
+  measure?: (value: string) => number;
+}
+const fieldCount = ({ value, max, measure }: FieldCount) => {
+  const used = measure ? measure(value) : [...value].length;
+  const remaining = max - used;
+  // The live region changes only when the state changes, never on every keystroke; the visible counter has the numbers.
+  const state = remaining < 0 ? 'over' : remaining <= Math.max(10, Math.ceil(max * 0.1)) ? 'near' : 'ok';
+  return { used, remaining, state };
+};
+export function Field({ label, description, error, htmlFor, required, count, children, className, ...props }: HTMLAttributes<HTMLDivElement> & { label: ReactNode; description?: ReactNode; error?: ReactNode; /** Optional; generated and applied to the control when omitted. */ htmlFor?: string; /** Shows a visual marker only; set `required` on the control itself. */ required?: boolean; /** Shows "used / max" linked to the control, marks it invalid when over, and announces only near and over the limit. */ count?: FieldCount }) {
+  const generated = useId();
+  // Only the first element child is the labelled control; later children (units, hints) keep their own ids.
+  const firstId = Children.toArray(children).find(isValidElement<DescribedProps>)?.props.id;
+  let labelled = 0;
+  const id = htmlFor ?? firstId ?? generated;
+  const counted = count && Number.isFinite(count.max) && count.max > 0 ? fieldCount(count) : null;
+  const over = counted?.state === 'over';
+  const describedBy = [description && `${id}-description`, counted && `${id}-count`, error && `${id}-error`].filter(Boolean).join(' ');
   return <div className={cx('t98-field', className)} {...props}>
-    <label className="t98-label" htmlFor={htmlFor}>{label}</label>
-    {Children.map(children, child => isValidElement<DescribedProps>(child) ? cloneElement(child, { id: child.props.id ?? htmlFor, 'aria-describedby': cx(child.props['aria-describedby'], describedBy) || undefined, 'aria-invalid': error ? true : child.props['aria-invalid'] }) : child)}
-    {description && <p className="t98-field-description" id={`${htmlFor}-description`}>{description}</p>}
-    {error && <p className="t98-field-error" id={`${htmlFor}-error`} role="alert">{error}</p>}
+    <label className="t98-label" htmlFor={id}>{label}{required && <span className="t98-label-required" aria-hidden="true"> *</span>}</label>
+    {Children.map(children, child => isValidElement<DescribedProps>(child) && !(labelled++) ? cloneElement(child, { id: child.props.id ?? id, 'aria-describedby': cx(child.props['aria-describedby'], describedBy) || undefined, 'aria-invalid': error || over ? true : child.props['aria-invalid'] }) : child)}
+    {description && <p className="t98-field-description" id={`${id}-description`}>{description}</p>}
+    {counted && count && <p className={cx('t98-field-count', counted.state !== 'ok' && `t98-field-count--${counted.state}`)} id={`${id}-count`}>
+      {counted.used} / {count.max} characters{over ? `, ${-counted.remaining} over the limit` : ''}
+    </p>}
+    {counted && <span className="t98-visually-hidden" role="status">{counted.state === 'over' ? 'Over the character limit' : counted.state === 'near' ? 'Approaching the character limit' : ''}</span>}
+    {error && <p className="t98-field-error" id={`${id}-error`} role="alert">{error}</p>}
   </div>;
 }
 
@@ -139,31 +235,64 @@ export function Switch({ label, checked, onCheckedChange, disabled = false, clas
   </button>;
 }
 
-export interface TabItem { value: string; label: ReactNode; content?: ReactNode }
-export function Tabs({ items, value, onValueChange, label = 'Sections', className }: { items: TabItem[]; value: string; onValueChange: (value: string) => void; label?: string; className?: string }) {
+export interface TabItem { value: string; label: ReactNode; content?: ReactNode; /** Announced as unavailable, skipped by arrow keys and not activatable. */ disabled?: boolean }
+/* Keyboard model from the WAI-ARIA Authoring Practices Guide Tabs pattern (W3C, W3C Software and Document licence):
+ * automatic activation, ArrowLeft/ArrowRight wrap, Home/End. Disabled tabs stay in the accessibility tree (aria-disabled) but are skipped. */
+export function Tabs({ items, value, onValueChange, label = 'Sections', className, keepMounted = true }: { items: TabItem[]; value: string; onValueChange: (value: string) => void; label?: string; className?: string;
+  /** Keep inactive panels mounted but hidden (default, preserves their state). False renders only the active panel. */
+  keepMounted?: boolean }) {
   const id = useId();
   const tabList = useRef<HTMLDivElement>(null);
-  const active = items.some(item => item.value === value) ? value : items[0]?.value;
+  const active = items.some(item => item.value === value) ? value : (items.find(item => !item.disabled) ?? items[0])?.value;
+  const enabled = items.flatMap((item, index) => item.disabled ? [] : [index]);
+  // The roving tab stop: the active tab, or the first enabled one when the active tab is disabled, so the list stays reachable.
+  const activeIndex = items.findIndex(item => item.value === active);
+  const stop = activeIndex >= 0 && !items[activeIndex].disabled ? activeIndex : enabled[0];
   return <div className={cx('t98-tabs', className)}><div className="t98-tab-list" role="tablist" aria-label={label} ref={tabList}>
-    {items.map((item, index) => <button key={item.value} type="button" role="tab" id={`${id}-tab-${index}`} aria-controls={`${id}-panel-${index}`} aria-selected={active === item.value} tabIndex={active === item.value ? 0 : -1} className="t98-tab" onClick={() => onValueChange(item.value)} onKeyDown={event => {
-      let next: number;
-      if (event.key === 'ArrowRight') next = (index + 1) % items.length;
-      else if (event.key === 'ArrowLeft') next = (index - 1 + items.length) % items.length;
-      else if (event.key === 'Home') next = 0;
-      else if (event.key === 'End') next = items.length - 1;
-      else return;
+    {items.map((item, index) => <button key={item.value} type="button" role="tab" id={`${id}-tab-${index}`} aria-controls={keepMounted || active === item.value ? `${id}-panel-${index}` : undefined} aria-selected={active === item.value} aria-disabled={item.disabled || undefined} tabIndex={index === stop ? 0 : -1} className="t98-tab" onClick={() => { if (!item.disabled) onValueChange(item.value); }} onKeyDown={event => {
+      const at = enabled.indexOf(index);
+      let next: number | undefined;
+      if (!enabled.length) return;
+      // Arrows follow the writing direction (APG): in RTL, ArrowLeft moves to the next tab.
+      const rtl = tabList.current ? getComputedStyle(tabList.current).direction === 'rtl' : false;
+      if (event.key === (rtl ? 'ArrowLeft' : 'ArrowRight')) next = enabled[(at + 1) % enabled.length];
+      else if (event.key === (rtl ? 'ArrowRight' : 'ArrowLeft')) next = enabled[(at - 1 + enabled.length) % enabled.length];
+      else if (event.key === 'Home') next = enabled[0];
+      else if (event.key === 'End') next = enabled[enabled.length - 1];
+      if (next === undefined) return;
       event.preventDefault();
       onValueChange(items[next].value);
       tabList.current?.querySelectorAll<HTMLButtonElement>('[role="tab"]')[next]?.focus();
     }}>{item.label}</button>)}
-  </div>{items.map((item, index) => <div key={item.value} role="tabpanel" id={`${id}-panel-${index}`} aria-labelledby={`${id}-tab-${index}`} hidden={active !== item.value} tabIndex={0} className="t98-tab-panel">{item.content}</div>)}</div>;
+  </div>{items.map((item, index) => (keepMounted || active === item.value) && <div key={item.value} role="tabpanel" id={`${id}-panel-${index}`} aria-labelledby={`${id}-tab-${index}`} hidden={active !== item.value} tabIndex={0} className="t98-tab-panel">{item.content}</div>)}</div>;
 }
 
-export interface DialogProps { open: boolean; onOpenChange: (open: boolean) => void; title: ReactNode; description?: ReactNode; children: ReactNode; footer?: ReactNode; className?: string; closeDisabled?: boolean }
-export function Dialog({ open, onOpenChange, title, description, children, footer, className, closeDisabled = false }: DialogProps) {
+export interface DialogProps { open: boolean; onOpenChange: (open: boolean) => void; title: ReactNode; description?: ReactNode; children: ReactNode; footer?: ReactNode; className?: string; closeDisabled?: boolean;
+  /** Called before Escape, backdrop and close-button closes; return false to keep the dialog open (for example to show a discard prompt). */
+  onBeforeClose?: (reason: DialogCloseReason) => boolean | void;
+  /** Short context above the title, for example the record being edited. Sentence case, not a label. */
+  eyebrow?: ReactNode;
+  /** Makes body and footer one form: footer buttons with type="submit" submit it. Called once per submit with FormData
+   * (including the submitter); the dialog cannot close and repeat submits are ignored until it settles. */
+  onSubmit?: (data: FormData, event: FormEvent<HTMLFormElement>) => void | Promise<void>;
+  /** There are unsaved changes: Escape, the backdrop and the close button ask before discarding them. */
+  dirty?: boolean;
+  discardMessage?: ReactNode;
+  /** `wide` fits editors such as a post composer (up to 880px). */
+  size?: 'default' | 'wide' }
+export type DialogCloseReason = 'escape' | 'backdrop' | 'close-button';
+/* Behaviour follows the WAI-ARIA APG Modal Dialog pattern and react-aria's useOverlay close interception (Apache-2.0); no code is copied. */
+export function Dialog({ open, onOpenChange, title, description, children, footer, className, closeDisabled = false, onBeforeClose, eyebrow, onSubmit, dirty = false, discardMessage = 'Your changes have not been saved.', size = 'default' }: DialogProps) {
   const id = useId();
   const ref = useRef<HTMLDialogElement>(null);
   const trigger = useRef<HTMLElement | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const submitLock = useRef(false);
+  const [confirmingDiscard, setConfirmingDiscard] = useState(false);
+  const keepEditing = useRef<HTMLButtonElement>(null);
+  const locked = closeDisabled || submitting;
+  useEffect(() => { if (!open) setConfirmingDiscard(false); }, [open]);
+  useEffect(() => { if (confirmingDiscard) keepEditing.current?.focus(); }, [confirmingDiscard]);
   useEffect(() => {
     const dialog = ref.current;
     if (!dialog) return;
@@ -173,19 +302,71 @@ export function Dialog({ open, onOpenChange, title, description, children, foote
     } else if (!open && dialog.open) dialog.close();
   }, [open]);
   useEffect(() => () => { trigger.current?.focus(); }, []);
-  return <dialog ref={ref} className={cx('t98-dialog', className)} aria-labelledby={`${id}-title`} aria-describedby={description ? `${id}-description` : undefined} onCancel={event => { event.preventDefault(); if (!closeDisabled) onOpenChange(false); }} onClose={() => { if (open) onOpenChange(false); trigger.current?.focus(); trigger.current = null; }} onClick={event => { if (!closeDisabled && event.target === event.currentTarget) { const bounds = event.currentTarget.getBoundingClientRect(); if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) onOpenChange(false); } }}>
-    <div className="t98-dialog-header"><div><h2 id={`${id}-title`} className="t98-dialog-title">{title}</h2>{description && <p id={`${id}-description`} className="t98-dialog-description">{description}</p>}</div><Button variant="ghost" aria-label="Close dialog" disabled={closeDisabled} className="t98-icon-button" onClick={() => onOpenChange(false)} icon={<Icon name="x" />} /></div>
-    <div className="t98-dialog-body">{children}</div>{footer && <div className="t98-dialog-footer">{footer}</div>}
+  function requestClose(reason: DialogCloseReason) {
+    if (locked) return;
+    // While the discard prompt is open, Escape and the close button mean "keep editing", never a silent discard.
+    if (confirmingDiscard) { setConfirmingDiscard(false); return; }
+    if (onBeforeClose?.(reason) === false) {
+      const dialog = ref.current;
+      if (dialog && !dialog.contains(document.activeElement)) dialog.querySelector<HTMLElement>('[autofocus], input, select, textarea, button:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])')?.focus();
+      return;
+    }
+    if (dirty) { setConfirmingDiscard(true); return; }
+    onOpenChange(false);
+  }
+  return <dialog ref={ref} className={cx('t98-dialog', size === 'wide' && 't98-dialog--wide', className)} aria-labelledby={`${id}-title`} aria-describedby={description ? `${id}-description` : undefined} onCancel={event => { event.preventDefault(); requestClose('escape'); }} onClose={() => {
+    // Chrome's close watcher closes the dialog without a cancelable cancel event when Escape is pressed twice without
+    // other interaction. If the app still wants it open and guards closing, reopen it and ask the guard first.
+    const dialog = ref.current;
+    if (open && (onBeforeClose || dirty) && dialog && !locked) {
+      dialog.showModal();
+      requestClose('escape');
+      return;
+    }
+    if (open) onOpenChange(false); trigger.current?.focus(); trigger.current = null;
+  }} onClick={event => { if (!closeDisabled && event.target === event.currentTarget) { const bounds = event.currentTarget.getBoundingClientRect(); if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) requestClose('backdrop'); } }}>
+    <div className="t98-dialog-header"><div>{eyebrow != null && <p className="t98-dialog-eyebrow">{eyebrow}</p>}<h2 id={`${id}-title`} className="t98-dialog-title">{title}</h2>{description && <p id={`${id}-description`} className="t98-dialog-description">{description}</p>}</div><Button variant="ghost" aria-label="Close dialog" disabled={locked} className="t98-icon-button" onClick={() => requestClose('close-button')} icon={<Icon name="x" />} /></div>
+    {confirmingDiscard && <div className="t98-dialog-discard" role="alertdialog" aria-labelledby={`${id}-discard`} aria-describedby={`${id}-discard-message`}>
+      <p className="t98-dialog-discard-title" id={`${id}-discard`}>Discard unsaved changes?</p>
+      <p className="t98-dialog-discard-message" id={`${id}-discard-message`}>{discardMessage}</p>
+      <div className="t98-form-actions"><Button variant="danger" onClick={() => { setConfirmingDiscard(false); onOpenChange(false); }}>Discard changes</Button><Button ref={keepEditing} variant="secondary" onClick={() => setConfirmingDiscard(false)}>Keep editing</Button></div>
+    </div>}
+    {onSubmit ? <form className="t98-dialog-form" aria-busy={submitting || undefined} onSubmit={event => {
+      event.preventDefault();
+      if (submitLock.current) return;
+      const submitter = (event.nativeEvent as SubmitEvent).submitter as HTMLElement | null;
+      const data = new FormData(event.currentTarget, submitter);
+      submitLock.current = true; setSubmitting(true);
+      void (async () => { try { await onSubmit(data, event); } finally { submitLock.current = false; setSubmitting(false); } })();
+    }}><fieldset className="t98-dialog-fieldset" disabled={submitting || confirmingDiscard}><div className="t98-dialog-body">{children}</div>{footer && <div className="t98-dialog-footer">{footer}</div>}</fieldset></form>
+      : <><div className="t98-dialog-body">{children}</div>{footer && <div className="t98-dialog-footer">{footer}</div>}</>}
   </dialog>;
 }
 
-export function Alert({ title, tone = 'info', children, actions, className, ...props }: Omit<HTMLAttributes<HTMLDivElement>, 'title'> & { title: ReactNode; tone?: Tone; actions?: ReactNode }) {
-  return <div className={cx('t98-alert', `t98-tone--${tone}`, className)} role={tone === 'danger' ? 'alert' : 'status'} {...props}><Icon name={tone === 'success' ? 'check' : tone === 'danger' ? 'shield' : 'bell'} /><div className="t98-alert-content"><p className="t98-alert-title">{title}</p>{children && <div className="t98-alert-description">{children}</div>}{actions != null && <div className="t98-form-actions t98-alert-actions">{actions}</div>}</div></div>;
+export interface AlertProps extends Omit<HTMLAttributes<HTMLDivElement>, 'title'> {
+  title?: ReactNode; tone?: Tone; actions?: ReactNode;
+  variant?: 'default' | 'inline' | 'banner';
+  /** Adds a labelled dismiss button; the application removes the alert. */
+  onDismiss?: () => void;
+  dismissLabel?: string;
+}
+/** Danger announces as `alert`, other tones as `status`; pass `role` to override. */
+export function Alert({ title, tone = 'info', variant = 'default', onDismiss, dismissLabel = 'Dismiss', children, actions, className, ...props }: AlertProps) {
+  return <div className={cx('t98-alert', `t98-tone--${tone}`, variant !== 'default' && `t98-alert--${variant}`, className)} role={tone === 'danger' ? 'alert' : 'status'} {...props}><Icon name={tone === 'success' ? 'check' : tone === 'danger' ? 'shield' : 'bell'} /><div className="t98-alert-content">{title && <p className="t98-alert-title">{title}</p>}{children && <div className="t98-alert-description">{children}</div>}{actions != null && <div className="t98-form-actions t98-alert-actions">{actions}</div>}</div>{onDismiss && <Button variant="ghost" size="sm" className="t98-alert-dismiss" aria-label={dismissLabel} icon={<Icon name="x" />} onClick={onDismiss} />}</div>;
 }
 
-export function Progress({ value, label = 'Progress', className }: { value: number; label?: string; className?: string }) {
-  const safeValue = Number.isFinite(value) ? Math.max(0, Math.min(100, value)) : 0;
+/** Omit `value` for an indeterminate operation of unknown length. */
+/** Task progress from 0 to 100. Without a finite value it is indeterminate, never 0%. */
+export function Progress({ value, label = 'Progress', className }: { value?: number; label?: string; className?: string }) {
+  if (value === undefined || !Number.isFinite(value)) return <div className={cx('t98-progress-group', className)}><div className="t98-progress-label"><span>{label}</span></div><progress className="t98-progress" aria-label={label} aria-busy="true" /></div>;
+  const safeValue = Math.max(0, Math.min(100, value));
   return <div className={cx('t98-progress-group', className)}><div className="t98-progress-label"><span>{label}</span><span>{Math.round(safeValue)}%</span></div><progress className="t98-progress" value={safeValue} max={100} aria-label={label}>{Math.round(safeValue)}%</progress></div>;
+}
+
+export interface MeterProps { value: number; min?: number; max?: number; low?: number; high?: number; optimum?: number; label?: string; /** Visible reading; defaults to the numeric value. */ valueLabel?: ReactNode; className?: string }
+/** A scalar measurement within a known range (for example quota used), not task progress. */
+export function Meter({ value, min = 0, max = 100, low, high, optimum, label = 'Meter', valueLabel, className }: MeterProps) {
+  return <div className={cx('t98-progress-group', className)}><div className="t98-progress-label"><span>{label}</span><span>{valueLabel ?? value}</span></div><meter className="t98-meter" value={value} min={min} max={max} low={low} high={high} optimum={optimum} aria-label={label}>{valueLabel ?? value}</meter></div>;
 }
 
 export function Skeleton({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
