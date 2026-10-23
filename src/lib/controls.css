@@ -57,7 +57,7 @@
 .t98-media-player--video .t98-media-player-element { block-size: auto; border-radius: var(--t98-radius-sm); background: var(--t98-subtle); }
 .t98-media-player-reason { margin: 0; color: var(--t98-muted); font-size: var(--t98-text-sm); overflow-wrap: anywhere; }
 .t98-code-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--t98-space-2); }
-.t98-code-language { color: var(--t98-muted); font-size: var(--t98-text-xs); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+.t98-code-language { color: var(--t98-muted); font-size: var(--t98-text-xs); font-weight: 500; }
 .t98-code-pre { margin: 0; padding: var(--t98-space-3); overflow: auto; border: 1px solid var(--t98-border); border-radius: var(--t98-radius); background: var(--t98-subtle); color: var(--t98-text); font: var(--t98-text-sm)/1.6 var(--t98-mono); tab-size: 2; min-inline-size: 0; }
 .t98-code-pre--wrap { white-space: pre-wrap; overflow-wrap: anywhere; }
 .t98-code-pre code { font: inherit; }

@@ -126,7 +126,7 @@
 .t98-stepper { display: flex; list-style: none; margin: 0; padding: 0; gap: 1rem; color: var(--t98-muted); font: 500 .75rem/1.5 var(--t98-font); }
 .t98-stepper li { display: flex; align-items: center; flex: 1; gap: .625rem; }
 .t98-stepper li:not(:last-child)::after { content: ''; height: 1px; background: var(--t98-border); flex: 1; margin-left: .375rem; }
-.t98-step-marker { display: grid; place-items: center; flex-shrink: 0; width: 1.75rem; height: 1.75rem; border-radius: 50%; border: 1px solid var(--t98-control-border); font: .6875rem var(--t98-mono); }
+.t98-step-marker { display: grid; place-items: center; flex-shrink: 0; width: 1.75rem; height: 1.75rem; border-radius: 50%; border: 1px solid var(--t98-control-border); font: .75rem var(--t98-font); font-variant-numeric: tabular-nums; }
 .t98-stepper .t98-step-current { color: var(--t98-text); }.t98-step-current .t98-step-marker { background: var(--t98-accent); border-color: var(--t98-accent); color: var(--t98-on-accent); }
 .t98-stepper .t98-step-complete { color: var(--t98-muted); }.t98-step-complete .t98-step-marker { background: var(--t98-accent-soft); border-color: transparent; color: var(--t98-accent); }
 .t98-app-shell { display: grid; grid-template-columns: var(--t98-sidebar-width, 15rem) minmax(0, 1fr); min-height: 100dvh; color: var(--t98-text); background: var(--t98-bg); font-family: var(--t98-font); }
