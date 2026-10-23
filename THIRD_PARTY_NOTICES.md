@@ -94,8 +94,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 ## Inter typeface
 
-- Source: https://github.com/rsms/inter, as packaged by Fontsource: `@fontsource-variable/inter` 5.3.0 (Google Fonts build v20, 2025-09-10). Integrity: sha512-OupL48va4JNofb97w6NYeF9S7W/kHNKM0Er8Dem5nqi4jeOLrVJDoE8tZEpnMJmtkvNbB1EIPPwHcdkF6b1oUA==
-- Licence: SIL Open Font License 1.1. Copyright 2016 The Inter Project Authors.
+- Source: Inter 4.001, https://github.com/rsms/inter at commit 66647c0bb (the version string in both font files: "Version 4.001;git-66647c0bb"). Built by Google Fonts (build v20, 2025-09-10, https://github.com/google/fonts/tree/main/ofl/inter) and packaged by Fontsource as `@fontsource-variable/inter` 5.3.0 (https://fontsource.org/fonts/inter; npm integrity sha512-OupL48va4JNofb97w6NYeF9S7W/kHNKM0Er8Dem5nqi4jeOLrVJDoE8tZEpnMJmtkvNbB1EIPPwHcdkF6b1oUA==).
+- Licence: SIL Open Font License 1.1. Copyright 2016 The Inter Project Authors (https://github.com/rsms/inter).
 - Use: two unmodified variable-weight WOFF2 subsets, `inter-latin-wght-normal.woff2` and `inter-latin-ext-wght-normal.woff2`, shipped in `dist/fonts/` with `OFL.txt`. The `@font-face` rules in `tokens.css` are ours; they reuse Fontsource's unicode ranges. The font is not sold on its own, and the Reserved Font Name is not used for any modified version.
 
 ```text
