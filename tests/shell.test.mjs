@@ -122,7 +122,7 @@ test('AppTopbar exposes the breadcrumb, current page and the drawer toggle wirin
   const html = shellFrame({ navigation: { open: true, onOpenChange: noop } });
   assert.match(html, /<nav aria-label="Breadcrumb"[^>]*><ol/);
   assert.match(html, /<li class="t98-app-topbar__separator" aria-hidden="true">/);
-  assert.match(html, /<li class="t98-app-topbar__crumb t98-app-topbar__current" aria-current="page">Overview<\/li>/);
+  assert.match(html, /<li class="t98-app-topbar__crumb t98-app-topbar__current" aria-current="page" title="Overview">Overview<\/li>/);
   const sidebarId = html.match(/<aside[^>]*id="([^"]+)"/)[1];
   assert.match(html, new RegExp(`aria-label="Open navigation" aria-controls="${sidebarId.replace(/:/g, '\:')}" aria-expanded="true"`));
   assert.match(html, /t98-app-topbar__badge t98-app-topbar__badge--hide-mobile/);

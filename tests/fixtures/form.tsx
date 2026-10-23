@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Button, Dialog, Field, Form, FormActions, Heading, Image, Input, Stack, Text, Textarea } from '@ten98/ui';
 import '@ten98/ui/app-tokens.css';
@@ -24,13 +24,16 @@ function EditDialog() {
 function Screen() {
   const [calls, setCalls] = useState<string[]>([]);
   const [message, setMessage] = useState('');
+  const formRef = useRef<HTMLFormElement>(null);
   return <Stack as="main" gap={6}>
     <Heading level={1}>Form</Heading>
-    <Form onSubmit={data => new Promise<void>(resolve => { setCalls(current => [...current, `${data.get('name')} via ${data.get('intent')}`]); window.finish = resolve; })}>
+    <Form ref={formRef} onSubmit={data => new Promise<void>(resolve => { setCalls(current => [...current, `${data.get('name')} via ${data.get('intent')}`]); window.finish = resolve; })}>
       <Field label="Project name"><Input name="name" required defaultValue="Spring launch" /></Field>
       <Field label="SMS message" count={{ value: message, max: 20 }}><Textarea name="sms" value={message} onChange={event => setMessage(event.target.value)} /></Field>
       <FormActions><Button type="submit" name="intent" value="save">Save</Button></FormActions>
     </Form>
+    {/* An app action outside the form that submits it through the forwarded ref, as Campaign's "Save and check audience" does. */}
+    <Button variant="secondary" onClick={() => formRef.current?.requestSubmit()}>Submit from outside</Button>
     <Text id="calls">{calls.join(' | ')}</Text>
     <EditDialog />
     <Image src="/tests/missing-image.png" alt="Spring launch hero" aspect="video" />

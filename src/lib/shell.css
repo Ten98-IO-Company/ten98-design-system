@@ -78,8 +78,10 @@
 .t98-search-field { display: grid; gap: var(--t98-space-1); min-width: 0; font-family: var(--t98-font); color: var(--t98-text); }
 .t98-search-field__label { color: var(--t98-muted); font-size: var(--t98-text-sm); font-weight: var(--t98-weight-medium); }
 .t98-search-field__control { position: relative; display: flex; align-items: center; min-width: 0; }
-.t98-search-field__icon { position: absolute; inset-inline-start: var(--t98-space-3); color: var(--t98-muted); pointer-events: none; }
-.t98-search-field .t98-search-field__input { min-height: var(--t98-control-touch); padding-inline: var(--t98-space-10) var(--t98-space-10); appearance: none; }
+.t98-search-field__icon { position: absolute; inset-inline-start: var(--t98-space-3, .75rem); color: var(--t98-muted); pointer-events: none; }
+/* The text starts after the icon (its inset + 17px glyph + a gap), with fallbacks so a missing token never puts the
+   placeholder under the magnifier. The end leaves room for the clear button or shortcut hint. */
+.t98-search-field .t98-search-field__input { min-height: var(--t98-control-touch, 2.75rem); padding-inline: calc(var(--t98-space-3, .75rem) + 17px + var(--t98-space-2, .5rem)) var(--t98-space-10, 2.5rem); appearance: none; }
 .t98-search-field__input::-webkit-search-cancel-button,
 .t98-search-field__input::-webkit-search-decoration { appearance: none; display: none; }
 .t98-search-field__clear {
@@ -160,7 +162,8 @@
 .t98-app-topbar__crumbs { display: flex; align-items: center; gap: var(--t98-space-2); min-width: 0; margin: 0; padding: 0; list-style: none; font-size: var(--t98-text-md); line-height: var(--t98-leading-normal); }
 .t98-app-topbar__crumb { display: inline-flex; align-items: center; gap: var(--t98-space-2); min-width: 0; color: var(--t98-muted); }
 .t98-app-topbar__scope,
-.t98-app-topbar__current { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Block, not the crumbs' inline-flex: text-overflow only applies to text in a block container. */
+.t98-app-topbar__current { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .t98-app-topbar__current { color: var(--t98-text); font-weight: var(--t98-weight-semibold); }
 /* Wrapping crumbs keep a readable width: without a basis the breadcrumb only got what search and actions left over,
    so long names broke a few characters per line. The basis scales with the bar (8rem leaves room for the menu and

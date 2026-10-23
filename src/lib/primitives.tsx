@@ -169,8 +169,10 @@ export interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
   options?: SelectOption[];
   /** A disabled empty first option, selected while the value is empty. */
   placeholder?: string;
+  /** `full` (default) fills its container, as in a Field; `auto` sizes to the options, for example in a toolbar. */
+  width?: 'full' | 'auto';
 }
-export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select({ className, children, options, placeholder, ...props }, ref) {
+export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select({ className, children, options, placeholder, width = 'full', ...props }, ref) {
   const items: (SelectOption | { group: string; members: SelectOption[] })[] = [];
   const groups = new Map<string, SelectOption[]>();
   for (const option of options ?? []) {
@@ -181,7 +183,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
   }
   const renderOption = (option: SelectOption) => <Option key={option.value} value={option.value} disabled={option.disabled}>{option.label}</Option>;
   const selection = placeholder && props.value === undefined && props.defaultValue === undefined ? { defaultValue: '' } : undefined;
-  return <select ref={ref} className={cx('t98-input', 't98-select', className)} {...selection} {...props}>
+  return <select ref={ref} className={cx('t98-input', 't98-select', width === 'auto' && 't98-select--auto', className)} {...selection} {...props}>
     {placeholder && <Option value="" disabled>{placeholder}</Option>}
     {items.map(item => 'members' in item ? <OptionGroup key={`group:${item.group}`} label={item.group}>{item.members.map(renderOption)}</OptionGroup> : renderOption(item))}
     {children}

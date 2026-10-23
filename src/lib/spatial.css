@@ -69,10 +69,12 @@
 .t98-calendar-button { min-block-size: var(--t98-control-touch); min-inline-size: var(--t98-control-touch); }
 .t98-calendar-reason { padding: var(--t98-space-2) var(--t98-space-3); border: var(--t98-border-width) solid var(--t98-border); border-inline-start: 4px solid var(--t98-warning); border-radius: var(--t98-radius); background: var(--t98-subtle); overflow-wrap: anywhere; }
 .t98-calendar-scroll { min-inline-size: 0; overflow-x: auto; }
+.t98-calendar-scroll:focus-visible { outline: var(--t98-focus-width) solid var(--t98-focus); outline-offset: var(--t98-focus-offset); }
 /* white-space resets the legacy global `table { white-space: nowrap }` so long entries wrap inside their day. */
-.t98-calendar-grid { white-space: normal; inline-size: 100%; min-inline-size: calc(7 * var(--t98-control-touch)); table-layout: fixed; border-collapse: collapse; }
-.t98-calendar-weekday { padding: var(--t98-space-2) var(--t98-space-1); background: var(--t98-subtle); border: var(--t98-border-width) solid var(--t98-border); font-size: var(--t98-text-sm); font-weight: 600; text-align: center; overflow-wrap: anywhere; }
-.t98-calendar-cell { min-block-size: calc(var(--t98-control-touch) * 2); padding: var(--t98-space-1); border: var(--t98-border-width) solid var(--t98-border); background: var(--t98-surface); vertical-align: top; overflow-wrap: anywhere; }
+/* Days keep a readable width (Create, Today and short words on one line); narrower screens scroll the month. */
+.t98-calendar-grid { white-space: normal; inline-size: 100%; min-inline-size: calc(7 * 5.5rem); table-layout: fixed; border-collapse: collapse; }
+.t98-calendar-weekday { padding: var(--t98-space-2) var(--t98-space-1); background: var(--t98-subtle); border: var(--t98-border-width) solid var(--t98-border); font-size: var(--t98-text-sm); font-weight: 600; text-align: center; overflow-wrap: break-word; }
+.t98-calendar-cell { min-block-size: calc(var(--t98-control-touch) * 2); padding: var(--t98-space-1); border: var(--t98-border-width) solid var(--t98-border); background: var(--t98-surface); vertical-align: top; overflow-wrap: break-word; }
 .t98-calendar-cell:focus-visible { outline: var(--t98-focus-width) solid var(--t98-focus); outline-offset: calc(var(--t98-focus-width) * -1); }
 .t98-calendar-cell--outside { background: var(--t98-subtle); color: var(--t98-muted); }
 .t98-calendar-cell--today { border-width: 2px; border-color: var(--t98-accent); }
@@ -80,7 +82,7 @@
 .t98-calendar-today-mark { color: var(--t98-accent); font-size: var(--t98-text-sm); }
 .t98-calendar-entries { display: grid; gap: var(--t98-space-1); margin: var(--t98-space-1) 0 0; padding: 0; list-style: none; }
 .t98-calendar-entry-item { min-inline-size: 0; }
-.t98-calendar-entry, .t98-calendar-create { display: block; inline-size: 100%; box-sizing: border-box; min-block-size: var(--t98-control-touch); padding: var(--t98-space-1); border: var(--t98-border-width) solid var(--t98-border); border-radius: var(--t98-radius); background: var(--t98-accent-soft); color: var(--t98-text); font: inherit; font-size: var(--t98-text-sm); text-align: start; overflow-wrap: anywhere; }
+.t98-calendar-entry, .t98-calendar-create { display: block; inline-size: 100%; box-sizing: border-box; min-block-size: var(--t98-control-touch); padding: var(--t98-space-1); border: var(--t98-border-width) solid var(--t98-border); border-radius: var(--t98-radius); background: var(--t98-accent-soft); color: var(--t98-text); font: inherit; font-size: var(--t98-text-sm); text-align: start; overflow-wrap: break-word; }
 button.t98-calendar-entry, .t98-calendar-create { cursor: pointer; }
 .t98-calendar-entry--static { cursor: default; }
 .t98-calendar-entry-time { display: block; color: var(--t98-muted); font-variant-numeric: tabular-nums; }

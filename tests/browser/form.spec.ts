@@ -76,3 +76,10 @@ test('a dirty Dialog asks before discarding, Escape keeps editing, and submittin
   await expect(page.getByRole('button', { name: 'Edit placement' })).toBeFocused();
   await expect(page.locator('#saved')).toHaveText('Dubai Marina billboard, north face');
 });
+
+test('Form forwards its ref, so an app action can submit it from outside', async ({ page }) => {
+  await page.goto('/tests/form.html');
+  await page.getByRole('button', { name: 'Submit from outside' }).click();
+  await expect(page.locator('#calls')).toHaveText('Spring launch via null');
+  await page.evaluate(() => window.finish());
+});

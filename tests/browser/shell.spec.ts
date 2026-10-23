@@ -372,3 +372,27 @@ for (const direction of ['ltr', 'rtl'] as const) {
     }
   });
 }
+
+test('the current crumb truncates with an ellipsis and keeps its full name in the title', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 800 });
+  await page.goto(appUrl('light'));
+  const current = page.locator('.t98-app-topbar__current');
+  // text-overflow applies only to a block container; the crumbs' inline-flex would clip without the ellipsis.
+  expect(await current.evaluate(element => getComputedStyle(element).display)).toBe('block');
+  await expect(current).toHaveAttribute('title', 'Overview');
+  await expect(current).toHaveCSS('text-overflow', 'ellipsis');
+});
+
+test('the topbar search text starts after the magnifier, even when the spacing token is missing', async ({ page }) => {
+  await page.goto(appUrl('light'));
+  const gap = () => page.evaluate(() => {
+    const input = document.querySelector<HTMLInputElement>('.t98-search-field--topbar .t98-search-field__input')!;
+    const icon = document.querySelector('.t98-search-field--topbar .t98-search-field__icon')!;
+    const textStart = input.getBoundingClientRect().left + parseFloat(getComputedStyle(input).paddingInlineStart);
+    return textStart - icon.getBoundingClientRect().right;
+  });
+  expect(await gap()).toBeGreaterThanOrEqual(4);
+  // An app stylesheet that drops or overrides the token must not collapse the padding.
+  await page.addStyleTag({ content: '.t98-search-field { --t98-space-10: initial; --t98-space-3: initial; --t98-space-2: initial; }' });
+  expect(await gap()).toBeGreaterThanOrEqual(4);
+});

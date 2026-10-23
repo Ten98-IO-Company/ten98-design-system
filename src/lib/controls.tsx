@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useId, useRef, useState, type ChangeEvent, type DragEvent, type FormEvent, type FormHTMLAttributes, type KeyboardEvent, type ReactNode, type Ref } from 'react';
+import { useCallback, useEffect, useId, useRef, useState, type ChangeEvent, type DragEvent, type FormEvent, type FormHTMLAttributes, type KeyboardEvent, type ReactNode, type Ref } from 'react';
 import { Badge, Button, Checkbox, Field, Icon, Input, Progress, cx, type IconName } from './primitives.js';
 import { Link, Stack, VisuallyHidden, type Space } from './structure.js';
 import { CopyButton } from './workspace.js';
@@ -635,6 +635,8 @@ export function FileField({ label, accept, multiple, name, onFiles, description,
 }
 
 export interface FormProps extends Omit<FormHTMLAttributes<HTMLFormElement>, 'style' | 'onSubmit'> {
+  /** The native form element, alongside the form's own reference (for example to call `requestSubmit()`). */
+  ref?: Ref<HTMLFormElement>;
   /** Called once per submit with the form data (including the submit button's own name and value). Repeat submits are
    * ignored until it settles. Omit it for a native form that posts and navigates. Native validation runs first. */
   onSubmit?: (data: FormData, event: FormEvent<HTMLFormElement>) => void | Promise<void>;
@@ -649,8 +651,13 @@ export interface FormProps extends Omit<FormHTMLAttributes<HTMLFormElement>, 'st
 
 /** A native form that locks its controls while a submit is pending (or `busy`) and ignores repeat submits. Focus returns
  * to the control that submitted when the lock lifts, so keyboard users keep their place. */
-export function Form({ onSubmit, busy = false, gap = 4, fieldErrors, className, children, ...props }: FormProps) {
-  const formRef = useRef<HTMLFormElement>(null);
+export function Form({ onSubmit, busy = false, gap = 4, fieldErrors, className, children, ref, ...props }: FormProps) {
+  const formRef = useRef<HTMLFormElement | null>(null);
+  // The form needs the element for error focus, and the caller may need it too: set both.
+  const setRef = useCallback((node: HTMLFormElement | null) => {
+    formRef.current = node;
+    if (typeof ref === 'function') ref(node); else if (ref) ref.current = node;
+  }, [ref]);
   const errorKey = fieldErrors ? Object.entries(fieldErrors).filter(([, message]) => message).map(([name]) => name).join('|') : '';
 
   const single = useSingleSubmit();
@@ -673,7 +680,7 @@ export function Form({ onSubmit, busy = false, gap = 4, fieldErrors, className, 
       ?? form?.querySelector<HTMLElement>('[aria-invalid="true"]');
     first?.focus();
   }, [errorKey, locked]);
-  return <form {...props} ref={formRef} className={cx('t98-form', 't98-stack', `t98-gap-${gap}`, className)} aria-busy={locked || undefined}
+  return <form {...props} ref={setRef} className={cx('t98-form', 't98-stack', `t98-gap-${gap}`, className)} aria-busy={locked || undefined}
     onSubmit={event => {
       if (!onSubmit) { if (locked) event.preventDefault(); return; }
       event.preventDefault();
