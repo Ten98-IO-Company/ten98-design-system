@@ -218,3 +218,20 @@ test('a large DataTable sorts once per sort change, not again when a row is sele
   // thousands of times (about 68,000 for two selections before the memo).
   expect(await page.evaluate(() => window.sortCalls) - afterSort, 'selecting rows reuses the memoized sort').toBeLessThan(100);
 });
+
+test('a filter cell is a named button that applies its filter and stays inside a stacked card at 320px and 200% text', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 900 });
+  await page.goto('/tests/data-table.html');
+  const stacked = page.getByRole('table', { name: 'Stacked table' });
+  const chip = stacked.getByRole('button', { name: 'Filter by /campaigns/c1/landingpagewithalongunbrokenpathsegment' });
+  await chip.click();
+  expect(await page.evaluate(() => window.filterApplied)).toBe('c1');
+  await page.addStyleTag({ content: 'html { font-size: 200% !important; } * { font-size: inherit; }' });
+  const fit = await chip.evaluate(element => {
+    const card = element.closest('tr')!.getBoundingClientRect(), box = element.getBoundingClientRect();
+    return { left: box.left - card.left, right: card.right - box.right, page: document.documentElement.scrollWidth - document.documentElement.clientWidth };
+  });
+  expect(fit.left).toBeGreaterThanOrEqual(-1);
+  expect(fit.right).toBeGreaterThanOrEqual(-1);
+  expect(fit.page).toBeLessThanOrEqual(1);
+});

@@ -30,6 +30,9 @@ export interface DataColumn<T> {
   hidden?: boolean;
   /** Set to `false` to keep one column from sorting. */
   sortable?: boolean;
+  /** Makes each cell a button that applies a filter for its value, for example a path chip. Its name is
+   * "<actionLabel> <cell text>" (default "Filter by"), so it includes the visible text. */
+  filter?: { onApply: (row: T) => void; actionLabel?: string };
 }
 
 export interface TableSort {
@@ -338,10 +341,15 @@ export function DataTable<T>({
               const children = isMissing(content)
                 ? <><span aria-hidden="true">—</span><span className="t98-visually-hidden">Not available</span></>
                 : column.render ? content as ReactNode : cellText(content);
+              const cell = column.filter && !isMissing(content)
+                ? <button type="button" className="t98-table-filter" onClick={() => column.filter!.onApply(row)}>
+                  <Icon name="filter" size={14} aria-hidden="true" /><span className="t98-visually-hidden">{column.filter.actionLabel ?? 'Filter by'} </span><span className="t98-table-filter__value">{children}</span>
+                </button>
+                : children;
               const label = stack ? column.header : undefined;
               return column.rowHeader
-                ? <th key={column.key} scope="row" className={cellClass(column)} data-label={label} role={role('rowheader')}>{children}</th>
-                : <td key={column.key} className={cellClass(column)} data-label={label} role={role('cell')}>{children}</td>;
+                ? <th key={column.key} scope="row" className={cellClass(column)} data-label={label} role={role('rowheader')}>{cell}</th>
+                : <td key={column.key} className={cellClass(column)} data-label={label} role={role('cell')}>{cell}</td>;
             })}
             {rowActions && <td className="t98-table-actions" data-label={stack ? rowActionsLabel : undefined} role={role('cell')}>{rowActions(row)}</td>}
           </tr>

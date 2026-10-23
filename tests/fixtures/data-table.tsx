@@ -28,7 +28,11 @@ const wideColumns: DataColumn<Campaign>[] = [
   { key: 'region', header: 'Region', minWidth: 'md' },
   { key: 'note', header: 'Note', minWidth: 'lg' },
 ];
-const stackColumns = wideColumns.slice(0, 4);
+// A filter-action cell (Discover's path chip): a long unbroken path must stay inside its stacked card at 200% text.
+declare global { interface Window { filterApplied: string } }
+const pathColumn: DataColumn<Campaign> = { key: 'path', header: 'Landing path', render: row => `/campaigns/${row.id}/landingpagewithalongunbrokenpathsegment`,
+  filter: { onApply: row => { window.filterApplied = row.id; } } };
+const stackColumns = [...wideColumns.slice(0, 4), pathColumn];
 const serverColumns = [wideColumns[0], wideColumns[2], wideColumns[3]];
 const wrapColumns: DataColumn<Campaign>[] = [{ ...wideColumns[0], wrap: true }, { ...wideColumns[6], wrap: true }];
 
