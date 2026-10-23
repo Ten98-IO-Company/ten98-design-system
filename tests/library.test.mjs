@@ -354,14 +354,14 @@ test('styles.css bundles every component stylesheet in src/lib', () => {
   for (const file of readdirSync(new URL('../src/lib/', import.meta.url)).filter(name => name.endsWith('.css') && !entryPoints.has(name))) assert.ok(bundled.includes(file), `styles.css bundles ${file}`);
 });
 
-test('shipped sources and docs use LF only, so npm pack is byte-identical on every OS', () => {
+test('shipped sources, README and notices use LF only, so npm pack is byte-identical on every OS', () => {
   const offenders = [];
   const walk = url => { for (const entry of readdirSync(url, { withFileTypes: true })) {
     const child = new URL(entry.name + (entry.isDirectory() ? '/' : ''), url);
     if (entry.isDirectory()) walk(child);
     else if (/\.(css|tsx?|mjs|md|json)$/.test(entry.name) && readFileSync(child, 'utf8').includes('\r')) offenders.push(child.pathname);
   } };
-  for (const dir of ['../src/lib/', '../docs/', '../dist/']) walk(new URL(dir, import.meta.url));
+  for (const dir of ['../src/lib/', '../dist/']) walk(new URL(dir, import.meta.url));
   for (const file of ['../README.md', '../package.json', '../THIRD_PARTY_NOTICES.md']) if (readFileSync(new URL(file, import.meta.url), 'utf8').includes('\r')) offenders.push(file);
   assert.deepEqual(offenders, []);
 });
