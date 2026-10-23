@@ -287,8 +287,7 @@ test('isolated component previews resize and settle after content grows and shri
   const before = (await frame.boundingBox())!.height;
   await frame.evaluate(element => {
     const doc = (element as HTMLIFrameElement).contentDocument!;
-    const target = doc.defaultView as Window & { previewErrors: string[] };
-    target.previewErrors = [];
+    const target = Object.assign(doc.defaultView!, { previewErrors: [] as string[] });
     target.addEventListener('error', event => target.previewErrors.push(event.message));
     const content = doc.createElement('div');
     content.id = 'qa-dynamic-preview-content';

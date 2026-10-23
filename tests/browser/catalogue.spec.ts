@@ -53,7 +53,7 @@ test('every component state page renders without browser errors or page overflow
       await expect(page.locator('.reference-state').first()).toBeVisible();
       // Catalogue previews render in reference frames; components such as ReplayViewer add their own sandboxed frames.
       for (const frame of page.frames().filter(frame => frame !== page.mainFrame())) {
-        const isPreview = await (await frame.frameElement()).evaluate(element => element.classList.contains('reference-app-frame'));
+        const isPreview = await (await frame.frameElement()).evaluate(element => (element as Element).classList.contains('reference-app-frame'));
         if (isPreview) await expect(frame.locator('.specimen')).toBeVisible();
       }
       expect(await page.locator('.reference-state').count()).toBeGreaterThan(0);

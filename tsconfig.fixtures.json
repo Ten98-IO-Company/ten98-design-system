@@ -1,5 +1,5 @@
 {
   "extends": "./tsconfig.json",
-  "compilerOptions": { "types": ["vite/client"] },
+  "compilerOptions": { "types": ["vite/client"], "paths": {} },
   "include": ["tests/fixtures/**/*.tsx"]
 }

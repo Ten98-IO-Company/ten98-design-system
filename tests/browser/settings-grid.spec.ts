@@ -35,7 +35,7 @@ async function oldMinimumOverflows(page: Page) {
   }));
   expect(overflow.document).toBeGreaterThan(1);
   expect(overflow.child).toBeGreaterThan(1);
-  await old.evaluate(element => element.remove());
+  await old.evaluate(element => (element as Element).remove());
 }
 
 test('native settings columns contain their table at desktop and 320px with doubled text', async ({ page }, info) => {
