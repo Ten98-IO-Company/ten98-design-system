@@ -261,7 +261,7 @@ h1{font-size:25px}
 /* No forced table min-width: nowrap cells already set a wide table's width and the wrapper scrolls it; small tables fit. */
 th{font-size:12px}
 td{font-size:13px}
-.badge{font-size:12px}
+.badge{white-space:normal;max-width:100%}
 .tabs{gap:16px}
 .standalone>:is(.button,.btn){font-size:12px;padding:6px 9px;min-height:31px}
 .integration-header>:is(.button,.btn){font-size:12px;min-height:33px;margin-left:54px}
