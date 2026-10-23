@@ -438,7 +438,8 @@ test('tracking stays between -0.04em (display headlines) and 0, and nothing is s
 });
 
 test('colours come from tokens, apart from named exemptions', () => {
-  const literal = offences((property, value, where) => !property.startsWith('--')
+  // Masks use #000 only as an alpha stop, never as a visible colour.
+  const literal = offences((property, value, where) => !property.startsWith('--') && !/(^|-)mask(-image)?$/.test(property)
     && /#[0-9a-f]{3,8}\b/i.test(value.replace(/var\(--[\w-]+,\s*#[0-9a-f]{3,8}\)/gi, ''))
     && !hexAllowed.some(pattern => pattern.test(where)) && !brandLockup.test(where));
   assert.deepEqual(literal, []);
