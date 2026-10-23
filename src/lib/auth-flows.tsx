@@ -153,6 +153,8 @@ export interface FirstUserSetupFlowProps extends AuthFormBaseProps<FirstUserSetu
   tokenHint?: string;
   /** Show a workspace name field. */
   workspaceName?: boolean;
+  /** `false` makes the workspace name optional, for example when it is prefilled with a default such as "My workspace". */
+  workspaceNameRequired?: boolean;
   /** Checkbox for sample content; `false` or omitted hides it. */
   sampleOptIn?: { label: string; defaultChecked?: boolean } | false;
   signInInstead?: AuthAction & { label?: string };
@@ -160,7 +162,7 @@ export interface FirstUserSetupFlowProps extends AuthFormBaseProps<FirstUserSetu
 }
 /** Owner account creation for a new installation: optionally gated by a setup token the application verifies, or, with
  * `setupToken={false}`, the first sign-up becomes the owner. */
-export function FirstUserSetupFlow({ defaultValues, passwordPolicy = defaultPasswordPolicy, setupToken = true, tokenLength, tokenHint, workspaceName = false, sampleOptIn = false, signInInstead, submitLabel = 'Create owner account', busyLabel = 'Creating account…', linkComponent, fieldErrors, onSubmit, ...frame }: FirstUserSetupFlowProps) {
+export function FirstUserSetupFlow({ defaultValues, passwordPolicy = defaultPasswordPolicy, setupToken = true, tokenLength, tokenHint, workspaceName = false, workspaceNameRequired = true, sampleOptIn = false, signInInstead, submitLabel = 'Create owner account', busyLabel = 'Creating account…', linkComponent, fieldErrors, onSubmit, ...frame }: FirstUserSetupFlowProps) {
   const id = useId();
   return <AuthFormFrame {...frame} onSubmit={typed(onSubmit, raw => ({ name: text(raw, 'name'), ...(setupToken ? { token: text(raw, 'token') } : {}), email: text(raw, 'email'), password: text(raw, 'password'), ...(workspaceName ? optional(raw, 'workspaceName') : {}), sample: raw.sample === 'true' }))} fieldErrors={fieldErrors} linkComponent={linkComponent} submitLabel={submitLabel} busyLabel={busyLabel}
     after={signInInstead && <div className="t98-auth-aux"><FlowActionControl action={signInInstead} label={signInInstead.label ?? 'Sign in instead'} linkComponent={linkComponent} variant="ghost" /></div>}>
@@ -177,7 +179,7 @@ export function FirstUserSetupFlow({ defaultValues, passwordPolicy = defaultPass
       <Input name="password" type="password" autoComplete="new-password" required minLength={passwordPolicy.minLength} maxLength={passwordPolicy.maxLength} />
     </Field>
     {workspaceName && <Field label="Workspace name" htmlFor={`${id}-workspace`} error={fieldErrors?.workspaceName}>
-      <Input name="workspaceName" autoComplete="organization" required maxLength={120} defaultValue={defaultValues?.workspaceName} />
+      <Input name="workspaceName" autoComplete="organization" required={workspaceNameRequired} maxLength={120} defaultValue={defaultValues?.workspaceName} />
     </Field>}
     {sampleOptIn && <div className="t98-auth-choice"><Checkbox name="sample" value="true" label={sampleOptIn.label} defaultChecked={sampleOptIn.defaultChecked} /></div>}
   </AuthFormFrame>;
@@ -393,14 +395,18 @@ export interface WorkspaceOnboardingProps extends Omit<AuthFormBaseProps<Workspa
   signOut?: WorkspaceSignOut;
   /** Link to account settings, shown with Refresh and Sign out. */
   account?: AuthAction & { label: string };
+  /** Shows a secondary button beside the submit button, for example "Skip for now" on a create-first-project step. */
+  onSkip?: () => void;
+  skipLabel?: string;
   /** Extra content below the actions, for example pending invitations. */
   children?: ReactNode;
 }
 /** Shown to a signed-in account that has no workspace access yet: create one, refresh access or sign out. */
-export function WorkspaceOnboarding({ title = 'Workspace access', email, subheading = 'Create a workspace', help, defaultValues, nameLabel = 'Workspace name', sampleOptIn = false, submitLabel = 'Create workspace', busyLabel = 'Creating workspace…', onRefresh, refreshLabel = 'Refresh access', signOut, account, children, fieldErrors, onSubmit, ...frame }: WorkspaceOnboardingProps) {
+export function WorkspaceOnboarding({ title = 'Workspace access', email, subheading = 'Create a workspace', help, defaultValues, nameLabel = 'Workspace name', sampleOptIn = false, onSkip, skipLabel = 'Skip for now', submitLabel = 'Create workspace', busyLabel = 'Creating workspace…', onRefresh, refreshLabel = 'Refresh access', signOut, account, children, fieldErrors, onSubmit, ...frame }: WorkspaceOnboardingProps) {
   const id = useId();
   const signOutLabel = signOut?.label ?? 'Sign out';
   return <AuthFormFrame {...frame} onSubmit={typed(onSubmit, raw => ({ name: text(raw, 'name'), ...(sampleOptIn ? { sample: raw.sample === 'true' } : {}) }))} title={title} description={`Signed in as ${email}`} fieldErrors={fieldErrors} submitLabel={submitLabel} busyLabel={busyLabel}
+    after={onSkip && actionRow([<Button key="skip" type="button" variant="ghost" size="sm" onClick={onSkip}>{skipLabel}</Button>])}
     below={(onRefresh || signOut || account || children) && <Stack gap={4}>
       {(onRefresh || signOut || account) && <div className="t98-auth-aux">
         {onRefresh && <Button type="button" variant="secondary" size="sm" onClick={onRefresh}>{refreshLabel}</Button>}

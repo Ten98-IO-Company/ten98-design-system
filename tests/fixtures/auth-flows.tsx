@@ -54,13 +54,13 @@ const invitationFrame = { brand, title: 'Join Acme Marketing', description: 'You
 function FirstProjectProbe() {
   const [values, setValues] = useState('');
   return <WorkspaceOnboarding brand={brand} email="owner@example.test" subheading="Create your first project" nameLabel="Project name" submitLabel="Create project"
-    sampleOptIn={{ label: 'Add sample data' }} onSubmit={submitted => setValues(JSON.stringify(submitted))} notice={values ? { tone: 'info', text: values } : undefined} />;
+    sampleOptIn={{ label: 'Add sample data' }} onSkip={() => setValues('skipped')} onSubmit={submitted => setValues(JSON.stringify(submitted))} notice={values ? { tone: 'info', text: values } : undefined} />;
 }
 
 /** Shows the typed values a flow hands to the application. */
-function ValuesProbe({ optIn, setupToken = true }: { optIn: boolean; setupToken?: boolean }) {
+function ValuesProbe({ optIn, setupToken = true, easy = false }: { optIn: boolean; setupToken?: boolean; easy?: boolean }) {
   const [values, setValues] = useState('');
-  return <FirstUserSetupFlow brand={brand} title="Create owner account" setupToken={setupToken} workspaceName sampleOptIn={optIn ? { label: 'Add sample content' } : false} hiddenFields={{ csrf: 'token-from-server' }} onSubmit={submitted => setValues(JSON.stringify(submitted))} notice={values ? { tone: 'info', text: values } : undefined} />;
+  return <FirstUserSetupFlow brand={brand} title="Create owner account" setupToken={setupToken} workspaceNameRequired={!easy} defaultValues={easy ? { workspaceName: 'My workspace' } : undefined} workspaceName sampleOptIn={optIn ? { label: 'Add sample content' } : false} hiddenFields={{ csrf: 'token-from-server' }} onSubmit={submitted => setValues(JSON.stringify(submitted))} notice={values ? { tone: 'info', text: values } : undefined} />;
 }
 
 const screens: Record<string, ReactNode> = {
@@ -86,6 +86,8 @@ const screens: Record<string, ReactNode> = {
   'values-hidden': <ValuesProbe optIn={false} />,
   // The first sign-up becomes the owner: no setup token.
   'values-no-token': <ValuesProbe optIn={false} setupToken={false} />,
+  // "Make it super easy": the workspace name is optional and prefilled.
+  'values-easy': <ValuesProbe optIn={false} setupToken={false} easy />,
   '2fa-authenticator': <TwoFactor initial="authenticator" />,
   '2fa-recovery': <TwoFactor initial="recovery" />,
   '2fa-error': <TwoFactorChallengeFlow brand={brand} title="Verify your identity" mode="authenticator" onModeChange={noop} onSubmit={noop} error="The code is incorrect or expired." fieldErrors={{ code: 'Enter the 6-digit code.' }} cancel={{ href: '#signin' }} />,
