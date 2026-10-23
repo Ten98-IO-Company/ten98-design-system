@@ -4,7 +4,7 @@
     "moduleResolution": "Bundler", "jsx": "react-jsx", "strict": true, "skipLibCheck": true,
     "esModuleInterop": true, "resolveJsonModule": true, "noEmit": true,
     "noUnusedLocals": true, "noUnusedParameters": true, "erasableSyntaxOnly": true,
-    "types": ["vite/client"],
+    "types": ["vite/client", "node"],
     "paths": { "@ten98/ui": ["./src/lib/index.ts"], "@ten98/ui/app": ["./src/lib/app.tsx"], "@ten98/ui/*.css": ["./src/lib/*.css"] }
   },
   "include": ["src", "tests/browser", "tests/fixtures"]

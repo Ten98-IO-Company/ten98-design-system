@@ -1,5 +1,5 @@
 {
   "extends": "./tsconfig.json",
-  "compilerOptions": {"noEmit": false, "declaration": true, "outDir": "dist", "rootDir": "src/lib", "module": "NodeNext", "moduleResolution": "NodeNext"},
+  "compilerOptions": {"types": [], "paths": {}, "noEmit": false, "declaration": true, "outDir": "dist", "rootDir": "src/lib", "module": "NodeNext", "moduleResolution": "NodeNext"},
   "include": ["src/lib"]
 }
