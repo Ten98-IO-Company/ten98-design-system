@@ -1,8 +1,8 @@
 /* One cool-neutral grey ramp (hue ~250) shared by both themes; the brand violet is reserved for primary actions,
    selection, links and focus. Text pairs meet 4.5:1 and control borders 3:1 (tests/library.test.mjs). */
 :root, .t98-theme {
-  --t98-font: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
-  --t98-heading: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  --t98-font: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, Roboto, "Helvetica Neue", Arial, sans-serif;
+  --t98-heading: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, Roboto, "Helvetica Neue", Arial, sans-serif;
   --t98-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   --t98-space-1: 0.25rem; --t98-space-2: 0.5rem; --t98-space-3: 0.75rem;
   --t98-space-4: 1rem; --t98-space-5: 1.25rem; --t98-space-6: 1.5rem;
