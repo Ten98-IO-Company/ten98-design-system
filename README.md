@@ -43,7 +43,7 @@ Running the catalogue, framework examples, the full component reference, upgrade
 ## Community
 
 - Questions and ideas: [Discussions](https://github.com/Ten98-IO-Company/ten98-design-system/discussions)
-- Bugs and adoption gaps: [Issues](https://github.com/Ten98-IO-Company/ten98-design-system/issues), tracked on the [Ten98 project](https://github.com/orgs/Ten98-IO-Company/projects/1)
+- Bugs and adoption gaps: [Issues](https://github.com/Ten98-IO-Company/ten98-design-system/issues), tracked on the [Design System project](https://github.com/orgs/Ten98-IO-Company/projects/4)
 - Releases: [GitHub Releases](https://github.com/Ten98-IO-Company/ten98-design-system/releases)
 - Contributing: [contributing guide](https://github.com/Ten98-IO-Company/.github/blob/main/CONTRIBUTING.md) and [Code of Conduct](https://github.com/Ten98-IO-Company/.github/blob/main/CODE_OF_CONDUCT.md)
 
