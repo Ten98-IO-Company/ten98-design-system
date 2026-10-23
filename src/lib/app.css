@@ -93,12 +93,12 @@ fieldset{border:0;margin:0;padding:0;min-width:0}
 .page-heading p{font-size:13px;color:var(--color-text-muted);margin-top:5px}
 .heading-actions{display:flex;align-items:center;gap:9px;padding-top:13px}
 .stat-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:15px;margin-bottom:22px}
-.stat-card{border:1px solid var(--color-border);border-radius:9px;background:var(--color-surface);padding:19px 19px 17px;box-shadow:none}
+.stat-card{border:1px solid var(--color-border);border-radius:8px;background:var(--color-surface);padding:19px 19px 17px;box-shadow:none}
 .stat-card>div{display:flex;align-items:center;justify-content:space-between;color:var(--color-text-muted);font-size:12px;margin-bottom:14px}
 .stat-card svg{color:var(--color-text-muted);width:16px;height:16px}
 .stat-card>strong{display:block;font-family:var(--font-heading);font-size:24px;letter-spacing:-.02em;font-weight:600}
 .stat-card p{font-size:12px;color:var(--color-text-muted);margin-top:9px}
-:is(.panel,.card){border:1px solid var(--color-border);border-radius:9px;background:var(--color-surface);min-width:0;box-shadow:var(--shadow-panel);margin-bottom:22px}
+:is(.panel,.card){border:1px solid var(--color-border);border-radius:8px;background:var(--color-surface);min-width:0;box-shadow:var(--shadow-panel);margin-bottom:22px}
 .overview-grid>:is(.panel,.card){margin-bottom:0}
 .panel-heading{padding:21px 22px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px}
 .panel-heading p{font-size:12px;color:var(--color-text-muted);margin-top:5px}
@@ -129,7 +129,7 @@ td strong{font-weight:500;color:var(--color-text-muted)}
 .tabs :is(button,a)>span{font-size:12px;padding:2px 5px;margin-left:4px;background:var(--color-surface-subtle);border-radius:4px}
 .standalone .tabs :is(button,a){padding-top:8px}
 .empty{padding:42px 24px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:10px}
-.empty-icon{background:var(--color-accent-subtle);width:48px;height:48px;border-radius:13px;display:flex;align-items:center;justify-content:center;color:var(--color-accent);margin-bottom:4px}
+.empty-icon{background:var(--color-accent-subtle);width:48px;height:48px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;color:var(--color-accent);margin-bottom:4px}
 .empty h3{font-size:15px;color:var(--color-text)}
 .empty p{color:var(--color-text-muted);font-size:13px;max-width:340px}
 .empty :is(.button,.btn){margin-top:7px}
@@ -174,7 +174,7 @@ td strong{font-weight:500;color:var(--color-text-muted)}
 .account-options{display:flex;flex-direction:column;gap:9px;margin-bottom:20px;font-size:12px;color:var(--color-text-muted)}
 .account-options label{display:flex;gap:7px;align-items:center}
 .details .field-help{margin-top:3px}
-.modal{border:1px solid var(--color-border);border-radius:13px;background:var(--color-surface);padding:0;width:min(550px,calc(100% - 32px));max-height:90dvh;color:var(--color-text);box-shadow:var(--shadow-dialog);overflow-y:auto}
+.modal{border:1px solid var(--color-border);border-radius:var(--radius-lg);background:var(--color-surface);padding:0;width:min(550px,calc(100% - 32px));max-height:90dvh;color:var(--color-text);box-shadow:var(--shadow-dialog);overflow-y:auto}
 .modal::backdrop{background:var(--color-overlay);backdrop-filter:blur(3px)}
 .modal-heading{display:flex;align-items:center;justify-content:space-between;padding:25px 28px 20px;border-bottom:1px solid var(--color-border);position:sticky;top:0;background:var(--color-surface);z-index:1}
 .modal-heading h2{font-size:18px;letter-spacing:-.01em;color:var(--color-text)}
@@ -332,7 +332,7 @@ td{font-size:13px}
 :is(.table-scroll,.table-wrap).table-cards table{min-width:0}
 .table-cards :is(table,tbody,tr,td){display:block;inline-size:100%}
 .table-cards thead{position:absolute;inline-size:1px;block-size:1px;overflow:hidden;clip-path:inset(50%)}
-.table-cards tr{margin-block:12px;border:1px solid var(--color-border);border-radius:7px;padding:12px}
+.table-cards tr{margin-block:12px;border:1px solid var(--color-border);border-radius:8px;padding:12px}
 .table-cards :is(table,td){white-space:normal}
 .table-cards td{border:0;padding:6px 0;overflow-wrap:anywhere;min-width:0}
 /* Base tables keep cells on one line; cards must wrap, and controls inside a card keep within it. */
