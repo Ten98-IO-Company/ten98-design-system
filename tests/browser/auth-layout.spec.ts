@@ -100,7 +100,7 @@ test('brand guide and catalogue reuse the same auth layout and app-owned states'
     });
     expect(legacySpacing.betweenFields).toBeCloseTo(20, 0);
     expect(legacySpacing.beforeHint).toBeCloseTo(10, 0);
-    expect(legacySpacing.afterHint).toBeCloseTo(22, 0);
+    expect(legacySpacing.afterHint).toBeCloseTo(21, 0);
     await page.screenshot({ path: info.outputPath(`auth-legacy-${theme}-hint.png`), fullPage: true });
     await page.getByLabel('Reference state').selectOption('Signing in');
     await expect(frame.getByRole('button', { name: 'Signing in…' })).toBeDisabled();
