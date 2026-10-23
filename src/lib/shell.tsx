@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useId, type ComponentType, type MouseEvent, type ReactNode, type Ref, type RefObject } from 'react';
+import { createContext, useContext, useEffect, useId, useRef, useState, type ComponentType, type MouseEvent, type ReactNode, type Ref, type RefObject } from 'react';
 import { Avatar, Badge, Icon, Input, Option, Select, cx, type IconName, type Tone } from './primitives.js';
 import { VisuallyHidden } from './structure.js';
 
@@ -101,7 +101,15 @@ export function SidebarNav({ label, groups, linkComponent: LinkComponent, filter
   </nav>;
 }
 
-export interface SectionNavItem { id: string; label: string; href: string; /** Exposed as aria-current="page". */ current?: boolean; badge?: ReactNode }
+export interface SectionNavItem {
+  id: string; label: string; href: string;
+  /** Exposed as aria-current="page". */
+  current?: boolean; badge?: ReactNode;
+  /** Removes the item for this user, for example a role-gated section, without the app filtering its own list. */
+  hidden?: boolean;
+  /** Shown but not a link; `disabledReason` is read after the label. */
+  disabled?: boolean; disabledReason?: string;
+}
 export interface SectionNavProps {
   /** Accessible name of the navigation landmark. */
   label: string;
@@ -110,14 +118,44 @@ export interface SectionNavProps {
   linkComponent?: NavLinkComponent;
   /** Runs first on a plain primary click; `event.preventDefault()` cancels navigation (for example to guard an unsaved draft). Modified clicks skip it. */
   onSelect?: (item: SectionNavItem, event: MouseEvent<HTMLElement>) => void;
+  /** Wrap the sections onto more lines instead of scrolling them in one row, for example on narrow settings screens. */
+  wrap?: boolean;
 }
 
 /** A URL-bound strip of sibling sections: tabs without panels. These are links in a navigation landmark, so they use Tab, not arrow keys. */
-export function SectionNav({ label, items, linkComponent: LinkComponent, onSelect }: SectionNavProps) {
+export function SectionNav({ label, items, linkComponent: LinkComponent, onSelect, wrap = false }: SectionNavProps) {
+  const listRef = useRef<HTMLUListElement>(null);
+  const [overflow, setOverflow] = useState('');
+  const currentId = items.find(item => item.current && !item.hidden)?.id;
+  // In one scrolling row, mark which edges hide sections so CSS can fade them: a visible cue that more tabs exist.
+  useEffect(() => {
+    const list = listRef.current;
+    if (!list || wrap) { setOverflow(''); return; }
+    const measure = () => {
+      const offset = Math.abs(list.scrollLeft);
+      const start = offset > 1, end = list.scrollWidth - list.clientWidth - offset > 1;
+      setOverflow([start && 'start', end && 'end'].filter(Boolean).join(' '));
+    };
+    measure();
+    list.addEventListener('scroll', measure, { passive: true });
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure);
+    observer?.observe(list);
+    return () => { list.removeEventListener('scroll', measure); observer?.disconnect(); };
+  }, [wrap, items.length]);
+  // Bring the current section into the row's view without scrolling the page.
+  useEffect(() => {
+    const list = listRef.current, current = list?.querySelector<HTMLElement>('[aria-current="page"]');
+    if (!list || !current || wrap) return;
+    const row = list.getBoundingClientRect(), box = current.getBoundingClientRect();
+    if (box.right > row.right) list.scrollBy({ left: box.right - row.right + 16 });
+    else if (box.left < row.left) list.scrollBy({ left: box.left - row.left - 16 });
+  }, [currentId, wrap]);
   return <nav aria-label={label} className="t98-section-nav">
-    <ul className="t98-section-nav__list">
-      {items.map(item => {
+    <ul ref={listRef} className={cx('t98-section-nav__list', wrap && 't98-section-nav__list--wrap')} data-overflow={overflow || undefined}>
+      {items.filter(item => !item.hidden).map(item => {
         const content = <>{item.label}{item.badge != null && item.badge !== false && <Badge>{item.badge}</Badge>}</>;
+        if (item.disabled) return <li key={item.id} className="t98-section-nav__entry"><span className="t98-section-nav__link" aria-disabled="true">
+          {content}{item.disabledReason && <VisuallyHidden>, {item.disabledReason}</VisuallyHidden>}</span></li>;
         const props = { href: item.href, className: 't98-section-nav__link', 'aria-current': item.current ? 'page' as const : undefined, onClick: (event: MouseEvent<HTMLElement>) => runSelect(item, event, onSelect) };
         return <li key={item.id} className="t98-section-nav__entry">{LinkComponent ? <LinkComponent {...props}>{content}</LinkComponent> : <a {...props}>{content}</a>}</li>;
       })}

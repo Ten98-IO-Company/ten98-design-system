@@ -65,7 +65,7 @@ function GuardedNav() {
 
 function Sections() {
   const [dirty, setDirty] = useState(true);
-  const [current, setCurrent] = useState('overview');
+  const [current, setCurrent] = useState(params.get('section') ?? 'overview');
   const [log, setLog] = useState('none');
   const items = ['overview', 'audience', 'creative assets', 'delivery schedule', 'reports', 'billing and invoices', 'settings'].map(label => ({ id: label, label: label[0].toUpperCase() + label.slice(1), href: label, current: current === label, badge: label === 'reports' ? 3 : undefined }));
   return <Stack gap={3}>

@@ -179,3 +179,17 @@ test('U64: legacy tables are not forced to 600px under 760px; only their own con
   const app = readFileSync(new URL('../dist/app.css', import.meta.url), 'utf8');
   assert.doesNotMatch(app, /table\{min-width:600px\}/);
 });
+
+test('U66: SectionNav drops hidden items and renders disabled ones as non-links with their reason; wrap is opt-in', () => {
+  const items = [
+    { id: 'account', label: 'Your account', href: 'account', current: true },
+    { id: 'billing', label: 'Billing', href: 'billing', hidden: true },
+    { id: 'api', label: 'API access', href: 'api', disabled: true, disabledReason: 'Owners only' },
+  ];
+  const html = render(ui.SectionNav, { label: 'Settings', items });
+  assert.doesNotMatch(html, /Billing/);
+  assert.match(html, /<span class="t98-section-nav__link" aria-disabled="true">API access<span[^>]*>, Owners only<\/span><\/span>/);
+  assert.doesNotMatch(html, /href="api"/);
+  assert.doesNotMatch(html, /t98-section-nav__list--wrap/);
+  assert.match(render(ui.SectionNav, { label: 'Settings', items, wrap: true }), /class="t98-section-nav__list t98-section-nav__list--wrap"/);
+});
