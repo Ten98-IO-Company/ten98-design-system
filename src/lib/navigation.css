@@ -71,7 +71,7 @@
   border-bottom: 1px solid var(--t98-border);
   overflow-wrap: anywhere;
 }
-.t98-account-menu__identity strong { color: var(--t98-text); font-weight: 650; }
+.t98-account-menu__identity strong { color: var(--t98-text); font-weight: 600; }
 .t98-account-menu__identity span { color: var(--t98-muted); font-size: var(--t98-text-sm); }
 .t98-account-menu__actions,
 .t98-sidebar-footer__actions { display: grid; gap: var(--t98-space-1); min-width: 0; }

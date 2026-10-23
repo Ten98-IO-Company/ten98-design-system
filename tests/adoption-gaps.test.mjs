@@ -129,7 +129,7 @@ test('U54: Card titles can sit at h5 and h6 under deeper pane headings', () => {
 
 test('U55: app.css owns the page base, reduced motion, legacy table rows and AppField colours', () => {
   const app = readFileSync(new URL('../dist/app.css', import.meta.url), 'utf8');
-  assert.match(app, /:where\(html\)\{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;font-synthesis:none;color:var\(--color-text\);background:var\(--color-canvas\)\}/);
+  assert.match(app, /:where\(html\)\{font-family:var\(--font-sans\);font-synthesis:none;color:var\(--color-text\);background:var\(--color-canvas\)\}/);
   assert.match(app, /:where\(body\)\{font-size:14px\}/);
   assert.doesNotMatch(app, /:root\{[^}]*font-size/, 'a root font size would shrink rem tokens');
   assert.match(app, /prefers-reduced-motion: reduce\)\{\*,\*::before,\*::after\{animation-duration:0s!important/);
