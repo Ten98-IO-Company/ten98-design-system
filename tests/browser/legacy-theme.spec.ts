@@ -68,7 +68,7 @@ async function colors(page: Page) {
         fill: color(story.backgroundColor),
         orbit: color(style('.auth-orbit').borderColor),
         text: Object.fromEntries(['wordmark', 'eyebrow', 'headline', 'emphasis', 'copy', 'channels', 'footer'].map(id => [id, color(style(`#auth-${id}`).color)])),
-        roles: Object.fromEntries(['surface-subtle', 'surface-raised', 'text', 'text-muted', 'accent'].map(role => [role, color(story.getPropertyValue(`--color-${role}`))])),
+        roles: Object.fromEntries(['canvas', 'accent-subtle', 'text', 'text-muted', 'accent'].map(role => [role, color(story.getPropertyValue(`--color-${role}`))])),
       },
     };
   });
@@ -76,20 +76,13 @@ async function colors(page: Page) {
 
 function expectAuthStory(auth: Awaited<ReturnType<typeof colors>>['auth'], scheme: 'light' | 'dark') {
   expect(auth.scheme).toBe(scheme);
-  if (scheme === 'light') {
-    expect(auth.fill.slice(0, 3)).toEqual([238, 233, 250]);
-    expect(auth.orbit.slice(0, 3)).toEqual([228, 218, 243]);
-    for (const [id, expected] of Object.entries({ eyebrow: [118, 96, 136], headline: [120, 87, 147], emphasis: [116, 92, 137], copy: [115, 97, 128], footer: [113, 99, 122] })) {
-      expect(auth.text[id].slice(0, 3), `${id} legacy light color`).toEqual(expected);
-    }
-  } else {
-    expect(auth.fill).toEqual(auth.roles['surface-subtle']);
-    expect(auth.orbit).toEqual(auth.roles['surface-raised']);
-    expect(auth.orbit).not.toEqual(auth.fill);
-    expect(auth.text.headline).toEqual(auth.roles.text);
-    expect(auth.text.emphasis).toEqual(auth.roles.accent);
-    for (const id of ['eyebrow', 'copy', 'footer']) expect(auth.text[id]).toEqual(auth.roles['text-muted']);
-  }
+  // Both themes draw the story from tokens: the page canvas, a faint accent orbit, text-colour headline and muted copy.
+  expect(auth.fill).toEqual(auth.roles.canvas);
+  expect(auth.orbit).toEqual(auth.roles['accent-subtle']);
+  expect(auth.orbit).not.toEqual(auth.fill);
+  expect(auth.text.headline).toEqual(auth.roles.text);
+  expect(auth.text.emphasis).toEqual(auth.roles.accent);
+  for (const id of ['eyebrow', 'copy', 'footer']) expect(auth.text[id]).toEqual(auth.roles['text-muted']);
   for (const [id, foreground] of Object.entries(auth.text)) {
     expect(contrast(foreground, auth.fill), `auth ${id} on ${scheme} story`).toBeGreaterThanOrEqual(id === 'headline' || id === 'emphasis' ? 3 : 4.5);
   }
@@ -104,23 +97,28 @@ for (const [theme, system, expected] of [
     await page.goto(`/tests/legacy-theme.html?theme=${theme}`);
     const rendered = await colors(page);
     // Independent palette expectations guard against two aliases agreeing on a wrong fill.
-    const surface = expected === 'dark' ? [23, 32, 44] : [255, 255, 255];
-    const disabled = expected === 'dark' ? [29, 41, 56] : [245, 244, 250];
+    const surface = expected === 'dark' ? [24, 25, 28] : [255, 255, 255];
+    const disabled = expected === 'dark' ? [34, 35, 39] : [242, 243, 245];
+    const subtle = disabled, muted = expected === 'dark' ? [149, 153, 162] : [96, 100, 108], accent = expected === 'dark' ? [157, 143, 255] : [89, 67, 206];
+    // color-mix rounding can differ by one unit per channel.
+    const near = (actual: Color, target: number[], label: string) => target.forEach((value, index) => expect(Math.abs(actual[index] - value), label).toBeLessThanOrEqual(1));
     expect(rendered.scheme).toBe(expected);
     expectAuthStory(rendered.auth, expected);
     const error = rendered.error;
-    expect(error.text.slice(0, 3)).toEqual(expected === 'dark' ? [255, 163, 153] : [105, 99, 116]);
-    expect(error.fill.slice(0, 3)).toEqual(expected === 'dark' ? [73, 42, 42] : [253, 240, 245]);
-    expect(error.border.slice(0, 3)).toEqual(expected === 'dark' ? [255, 163, 153] : [242, 212, 224]);
+    expect(error.text.slice(0, 3)).toEqual(expected === 'dark' ? [255, 163, 153] : [180, 35, 24]);
+    expect(error.fill.slice(0, 3)).toEqual(expected === 'dark' ? [73, 42, 42] : [254, 237, 235]);
+    near(error.border, expected === 'dark' ? [128, 78, 75] : [232, 176, 172], 'form error border');
     expect(contrast(error.text, error.fill), 'form error text').toBeGreaterThanOrEqual(4.5);
-    expect(rendered.tag.fill.slice(0, 3)).toEqual(expected === 'dark' ? [29, 41, 56] : [249, 247, 253]);
-    expect(rendered.tag.border.slice(0, 3)).toEqual(expected === 'dark' ? [52, 66, 88] : [240, 236, 247]);
-    expect(rendered.tag.text.slice(0, 3)).toEqual(expected === 'dark' ? [173, 185, 202] : [105, 99, 116]);
+    expect(rendered.tag.fill.slice(0, 3)).toEqual(subtle);
+    expect(rendered.tag.border.slice(0, 3)).toEqual(expected === 'dark' ? [43, 45, 50] : [228, 229, 233]);
+    expect(rendered.tag.text.slice(0, 3)).toEqual(muted);
     expect(contrast(rendered.tag.text, rendered.tag.fill), 'subtle tag text').toBeGreaterThanOrEqual(4.5);
-    for (const [id, lightFill] of Object.entries({ 'search-key': [248, 247, 251], 'tab-count': [244, 238, 249], 'active-tab-count': [244, 238, 249], 'integration-initial': [241, 237, 252], 'native-count': [244, 238, 249], 'native-avatar': [239, 225, 212] })) {
-      const item = rendered.compatibility[id], accent = id === 'active-tab-count' || id === 'integration-initial';
-      expect(item.fill.slice(0, 3), `${id} fill`).toEqual(expected === 'dark' ? (['search-key', 'native-count', 'native-avatar'].includes(id) ? [29, 41, 56] : [53, 42, 84]) : lightFill);
-      expect(item.text.slice(0, 3), `${id} text`).toEqual(expected === 'dark' ? (accent ? [194, 182, 255] : [173, 185, 202]) : (accent ? [89, 67, 206] : [105, 99, 116]));
+    // Counts, keys and avatars sit on the neutral subtle fill; only the active count and the integration initial carry the accent.
+    for (const id of ['search-key', 'tab-count', 'active-tab-count', 'integration-initial', 'native-count', 'native-avatar']) {
+      const item = rendered.compatibility[id], accented = id === 'active-tab-count' || id === 'integration-initial';
+      const accentSoft = expected === 'dark' ? [42, 37, 80] : [240, 238, 252];
+      expect(item.fill.slice(0, 3), `${id} fill`).toEqual(id === 'integration-initial' ? accentSoft : subtle);
+      expect(item.text.slice(0, 3), `${id} text`).toEqual(accented ? accent : muted);
       expect(contrast(item.text, item.fill), `${id} text contrast`).toBeGreaterThanOrEqual(4.5);
     }
     expect(rendered.surface.slice(0, 3)).toEqual(surface);
@@ -204,7 +202,7 @@ test('authentication story follows inherited dark color-scheme without a theme a
   await page.goto('/tests/legacy-theme.html?theme=dark');
   await page.evaluate(() => {
     const root = document.documentElement, dark = getComputedStyle(root);
-    const roles = ['subtle', 'surface-raised', 'text', 'muted', 'accent'].map(role => [role, dark.getPropertyValue(`--t98-${role}`)]);
+    const roles = ['bg', 'accent-soft', 'text', 'muted', 'accent'].map(role => [role, dark.getPropertyValue(`--t98-${role}`)]);
     for (const [role, value] of roles) root.style.setProperty(`--t98-${role}`, value);
     root.style.colorScheme = 'dark';
     root.removeAttribute('data-theme');
@@ -254,7 +252,7 @@ test('disabled values use their semantic text role despite a legacy muted overri
   await page.goto('/tests/legacy-theme.html?theme=dark');
   await page.evaluate(() => document.documentElement.style.setProperty('--color-text-muted', '#695276'));
   const rendered = await colors(page);
-  expect(rendered.disabledText.slice(0, 3)).toEqual([160, 173, 191]);
+  expect(rendered.disabledText.slice(0, 3)).toEqual([143, 147, 156]);
   expect(contrast(rendered.disabledText, rendered.disabled)).toBeGreaterThanOrEqual(4.5);
   // Negative control matches the consumer's inherited legacy foreground.
   await page.locator('#disabled').evaluate(element => (element as HTMLInputElement).style.color = 'var(--color-text-muted)');
@@ -278,6 +276,7 @@ test('padded panels keep headers aligned with their controls without changing pl
 test('light geometry and authentication brand styling match the legacy baseline', async ({ page }) => {
   const appearance = async (baseline: boolean) => {
     await page.goto(`/tests/legacy-theme.html?theme=light${baseline ? '&baseline=1' : ''}`);
+    await page.evaluate(() => document.fonts.ready);
     return page.evaluate(() => Object.fromEntries([
       '.workspace-main', '.topbar', '.breadcrumb', '#editable', '#disabled', '#readonly',
       '.auth-shell', '.auth-story', '.auth-form', '.brand', '.brand-mark', '.brand-dot',
@@ -287,7 +286,8 @@ test('light geometry and authentication brand styling match the legacy baseline'
         bounds: [rect.x, rect.y, rect.width, rect.height],
         padding: style.padding, gap: style.gap, border: style.border,
         font: style.font, color: style.color,
-        ...(selector.startsWith('.auth') || selector.startsWith('.brand') ? { background: style.backgroundColor } : {}),
+        // The story fill is now the canvas token (visual direction, #115); brand fills stay as they were.
+        ...((selector.startsWith('.auth') && selector !== '.auth-story') || selector.startsWith('.brand') ? { background: style.backgroundColor } : {}),
       }];
     })));
   };

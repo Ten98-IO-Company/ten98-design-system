@@ -181,7 +181,7 @@ td strong{font-weight:500;color:var(--color-text-muted)}
 .modal-heading .eyebrow{font-size:12px;color:var(--color-text-muted)}
 .modal form{padding:25px 28px 22px}
 .modal-actions{display:flex;justify-content:flex-end;gap:9px;align-items:center;border-top:1px solid var(--color-border);margin-top:15px;padding-top:20px}
-.form-error{font-size:13px;color:light-dark(var(--color-text-muted),var(--color-danger));background:var(--color-danger-subtle);padding:12px;border:1px solid color-mix(in srgb,var(--color-danger) 30%,transparent);border-radius:6px;margin-top:14px}
+.form-error{font-size:13px;color:var(--color-danger);background:var(--color-danger-subtle);padding:12px;border:1px solid color-mix(in srgb,var(--color-danger) 30%,var(--color-danger-subtle));border-radius:6px;margin-top:14px}
 .mobile-menu,.sidebar-shade{display:none}
 @media(min-width:1500px){
 .content{padding:40px 48px 0}
