@@ -174,3 +174,8 @@ test('U72: ProjectCreateFlow\'s origin is text with a URL keyboard, so the app v
   assert.match(origin, /inputMode="url"|inputmode="url"/);
   assert.doesNotMatch(origin, /type="url"/);
 });
+
+test('U64: legacy tables are not forced to 600px under 760px; only their own content sets the width', () => {
+  const app = readFileSync(new URL('../dist/app.css', import.meta.url), 'utf8');
+  assert.doesNotMatch(app, /table\{min-width:600px\}/);
+});

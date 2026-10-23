@@ -4,9 +4,11 @@ test('legacy tables stay inside a 320px page: scroll mode scrolls in place, card
   await page.setViewportSize({ width: 320, height: 900 });
   await page.goto('/tests/legacy-table.html');
   expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth), 'no page overflow').toBeLessThanOrEqual(1);
-  // Scroll mode keeps the 600px table and scrolls inside its wrapper.
+  // Scroll mode keeps a wide nowrap table at its content width and scrolls it inside its wrapper.
   const scroller = page.locator('#scroll-table');
   expect(await scroller.evaluate(element => element.scrollWidth > element.clientWidth)).toBe(true);
+  // A small table is not forced wider than its content (Discover #229/#231): it fits without scrolling.
+  expect(await page.locator('#small-table').evaluate(element => element.scrollWidth - element.clientWidth)).toBeLessThanOrEqual(1);
   // Card mode fits its table to the viewport and labels each value.
   const cards = page.locator('#card-table');
   expect(await cards.locator('table').evaluate(element => element.getBoundingClientRect().width)).toBeLessThanOrEqual(320);
