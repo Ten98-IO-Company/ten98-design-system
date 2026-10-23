@@ -52,7 +52,8 @@ export interface AuthFormBaseProps<Values = AuthFormValues> {
 }
 
 export interface SignInValues { email: string; password: string }
-export interface FirstUserSetupValues { name: string; token: string; email: string; password: string; workspaceName?: string; sample: boolean }
+/** `token` is present only when the flow asks for a setup token (`setupToken`, the default). */
+export interface FirstUserSetupValues { name: string; token?: string; email: string; password: string; workspaceName?: string; sample: boolean }
 export interface TwoFactorValues { code: string; mode: 'authenticator' | 'recovery' }
 export interface RecoveryRequestValues { email: string }
 export interface RecoveryResetValues { password: string; confirmation: string; token?: string }
@@ -145,6 +146,8 @@ export function SignInFlow({ defaultValues, passwordPolicy, submitLabel = 'Sign 
 export interface FirstUserSetupFlowProps extends AuthFormBaseProps<FirstUserSetupValues> {
   defaultValues?: { name?: string; email?: string; workspaceName?: string };
   passwordPolicy?: PasswordPolicy;
+  /** `false` drops the setup-token field: the first person to sign up becomes the owner. Defaults to `true`. */
+  setupToken?: boolean;
   tokenLength?: { min?: number; max?: number };
   tokenHint?: string;
   /** Show a workspace name field. */
@@ -154,17 +157,18 @@ export interface FirstUserSetupFlowProps extends AuthFormBaseProps<FirstUserSetu
   signInInstead?: AuthAction & { label?: string };
   submitLabel?: string;
 }
-/** Owner account creation for a new installation, gated by a setup token the application verifies. */
-export function FirstUserSetupFlow({ defaultValues, passwordPolicy = defaultPasswordPolicy, tokenLength, tokenHint, workspaceName = false, sampleOptIn = false, signInInstead, submitLabel = 'Create owner account', busyLabel = 'Creating account…', linkComponent, fieldErrors, onSubmit, ...frame }: FirstUserSetupFlowProps) {
+/** Owner account creation for a new installation: optionally gated by a setup token the application verifies, or, with
+ * `setupToken={false}`, the first sign-up becomes the owner. */
+export function FirstUserSetupFlow({ defaultValues, passwordPolicy = defaultPasswordPolicy, setupToken = true, tokenLength, tokenHint, workspaceName = false, sampleOptIn = false, signInInstead, submitLabel = 'Create owner account', busyLabel = 'Creating account…', linkComponent, fieldErrors, onSubmit, ...frame }: FirstUserSetupFlowProps) {
   const id = useId();
-  return <AuthFormFrame {...frame} onSubmit={typed(onSubmit, raw => ({ name: text(raw, 'name'), token: text(raw, 'token'), email: text(raw, 'email'), password: text(raw, 'password'), ...(workspaceName ? optional(raw, 'workspaceName') : {}), sample: raw.sample === 'true' }))} fieldErrors={fieldErrors} linkComponent={linkComponent} submitLabel={submitLabel} busyLabel={busyLabel}
+  return <AuthFormFrame {...frame} onSubmit={typed(onSubmit, raw => ({ name: text(raw, 'name'), ...(setupToken ? { token: text(raw, 'token') } : {}), email: text(raw, 'email'), password: text(raw, 'password'), ...(workspaceName ? optional(raw, 'workspaceName') : {}), sample: raw.sample === 'true' }))} fieldErrors={fieldErrors} linkComponent={linkComponent} submitLabel={submitLabel} busyLabel={busyLabel}
     after={signInInstead && <div className="t98-auth-aux"><FlowActionControl action={signInInstead} label={signInInstead.label ?? 'Sign in instead'} linkComponent={linkComponent} variant="ghost" /></div>}>
     <Field label="Your name" htmlFor={`${id}-name`} error={fieldErrors?.name}>
       <Input name="name" autoComplete="name" required maxLength={120} defaultValue={defaultValues?.name} />
     </Field>
-    <Field label="Setup token" htmlFor={`${id}-token`} description={tokenHint} error={fieldErrors?.token}>
+    {setupToken && <Field label="Setup token" htmlFor={`${id}-token`} description={tokenHint} error={fieldErrors?.token}>
       <Input name="token" type="password" autoComplete="off" required minLength={tokenLength?.min} maxLength={tokenLength?.max} spellCheck={false} />
-    </Field>
+    </Field>}
     <Field label="Email address" htmlFor={`${id}-email`} error={fieldErrors?.email}>
       <Input name="email" type="email" autoComplete="username" required maxLength={254} defaultValue={defaultValues?.email} />
     </Field>

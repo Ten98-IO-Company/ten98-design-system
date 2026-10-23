@@ -51,9 +51,9 @@ const invitation = { workspaceName: 'Acme Marketing', email: 'new.member@example
 const invitationFrame = { brand, title: 'Join Acme Marketing', description: 'You were invited to collaborate.', onSubmit: noop, invitation, formatDate: (value: string | Date) => new Date(value).toISOString().slice(0, 10) };
 
 /** Shows the typed values a flow hands to the application. */
-function ValuesProbe({ optIn }: { optIn: boolean }) {
+function ValuesProbe({ optIn, setupToken = true }: { optIn: boolean; setupToken?: boolean }) {
   const [values, setValues] = useState('');
-  return <FirstUserSetupFlow brand={brand} title="Create owner account" workspaceName sampleOptIn={optIn ? { label: 'Add sample content' } : false} hiddenFields={{ csrf: 'token-from-server' }} onSubmit={submitted => setValues(JSON.stringify(submitted))} notice={values ? { tone: 'info', text: values } : undefined} />;
+  return <FirstUserSetupFlow brand={brand} title="Create owner account" setupToken={setupToken} workspaceName sampleOptIn={optIn ? { label: 'Add sample content' } : false} hiddenFields={{ csrf: 'token-from-server' }} onSubmit={submitted => setValues(JSON.stringify(submitted))} notice={values ? { tone: 'info', text: values } : undefined} />;
 }
 
 const screens: Record<string, ReactNode> = {
@@ -77,6 +77,8 @@ const screens: Record<string, ReactNode> = {
   'interactive': <Interactive />,
   'values': <ValuesProbe optIn />,
   'values-hidden': <ValuesProbe optIn={false} />,
+  // The first sign-up becomes the owner: no setup token.
+  'values-no-token': <ValuesProbe optIn={false} setupToken={false} />,
   '2fa-authenticator': <TwoFactor initial="authenticator" />,
   '2fa-recovery': <TwoFactor initial="recovery" />,
   '2fa-error': <TwoFactorChallengeFlow brand={brand} title="Verify your identity" mode="authenticator" onModeChange={noop} onSubmit={noop} error="The code is incorrect or expired." fieldErrors={{ code: 'Enter the 6-digit code.' }} cancel={{ href: '#signin' }} />,

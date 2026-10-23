@@ -223,3 +223,12 @@ test('#76-#78: wrap columns keep their longest word, the status label keeps a ba
   assert.match(styles, /\.t98-sidebar-status__label\s*\{[^}]*flex:\s*1 1 8rem/);
   assert.match(styles, /\.t98-segmented-option:hover:not\(:disabled\):not\(\[aria-pressed='true'\]\)/);
 });
+
+test('FirstUserSetupFlow setupToken={false}: no token field, so the first sign-up becomes the owner', () => {
+  const brand = h('span', null, 'Ten98');
+  const withToken = render(ui.FirstUserSetupFlow, { brand, title: 'Create owner account', onSubmit() {} });
+  assert.match(withToken, /name="token"/);
+  const owner = render(ui.FirstUserSetupFlow, { brand, title: 'Create owner account', setupToken: false, workspaceName: true, onSubmit() {} });
+  assert.doesNotMatch(owner, /name="token"|Setup token/);
+  for (const field of ['name', 'email', 'password', 'workspaceName']) assert.match(owner, new RegExp(`name="${field}"`));
+});

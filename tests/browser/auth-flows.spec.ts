@@ -204,3 +204,14 @@ test('a custom onReload recovers the error boundary in place', async ({ page }) 
   await expect(page.locator('#recovered')).toHaveText('Recovered without a page reload.');
   await expect(page.locator('.auth-shell')).toHaveCount(0);
 });
+
+test('without a setup token, the first sign-up shows name, email, password and workspace, and submits no token', async ({ page }, info) => {
+  await open(page, 'values-no-token', 'light', info.project.name === 'narrow-dark' ? 320 : 1440);
+  await expect(page.getByLabel('Setup token')).toHaveCount(0);
+  await page.getByLabel('Your name').fill('Owner');
+  await page.getByLabel('Email address').fill('owner@example.test');
+  await page.getByLabel('Password').fill('synthetic-password-1');
+  await page.getByLabel('Workspace name').fill('Acme');
+  await page.getByRole('button', { name: 'Create owner account' }).click();
+  await expect(page.getByRole('status')).toHaveText('{"name":"Owner","email":"owner@example.test","password":"synthetic-password-1","workspaceName":"Acme","sample":false}');
+});
