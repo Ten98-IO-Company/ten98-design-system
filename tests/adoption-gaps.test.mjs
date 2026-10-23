@@ -232,3 +232,12 @@ test('FirstUserSetupFlow setupToken={false}: no token field, so the first sign-u
   assert.doesNotMatch(owner, /name="token"|Setup token/);
   for (const field of ['name', 'email', 'password', 'workspaceName']) assert.match(owner, new RegExp(`name="${field}"`));
 });
+
+test('WorkspaceOnboarding can be a create-first-project step with a sample-data checkbox inside its form', () => {
+  const brand = h('span', null, 'Ten98');
+  const html = render(ui.WorkspaceOnboarding, { brand, email: 'o@example.test', nameLabel: 'Project name', sampleOptIn: { label: 'Add sample data' }, onSubmit() {} });
+  assert.match(html, />Project name</);
+  const form = html.match(/<form[\s\S]*<\/form>/)[0];
+  assert.match(form, /name="sample"[^>]*value="true"|value="true"[^>]*name="sample"/);
+  assert.doesNotMatch(render(ui.WorkspaceOnboarding, { brand, email: 'o@example.test', onSubmit() {} }), /name="sample"/);
+});

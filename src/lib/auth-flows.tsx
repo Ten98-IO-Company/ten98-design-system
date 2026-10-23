@@ -58,7 +58,8 @@ export interface TwoFactorValues { code: string; mode: 'authenticator' | 'recove
 export interface RecoveryRequestValues { email: string }
 export interface RecoveryResetValues { password: string; confirmation: string; token?: string }
 export interface InvitationValues { name?: string; password?: string; token?: string }
-export interface WorkspaceCreateValues { name: string }
+/** `sample` is present only when the flow offers `sampleOptIn`. */
+export interface WorkspaceCreateValues { name: string; sample?: boolean }
 
 /** Wraps a typed handler for the frame, which reads raw form values. */
 const typed = <Values,>(onSubmit: ((values: Values) => void | Promise<void>) | undefined, convert: (raw: AuthFormValues) => Values) => onSubmit && ((raw: AuthFormValues) => onSubmit(convert(raw)));
@@ -382,6 +383,10 @@ export interface WorkspaceOnboardingProps extends Omit<AuthFormBaseProps<Workspa
   subheading?: string;
   help?: string;
   defaultValues?: { name?: string };
+  /** Label of the name field, for example "Project name" for a create-first-project step. Defaults to "Workspace name". */
+  nameLabel?: string;
+  /** A checkbox inside the form, for example "Add sample data"; its value is submitted as `sample`. `false` or omitted hides it. */
+  sampleOptIn?: { label: string; defaultChecked?: boolean } | false;
   submitLabel?: string;
   onRefresh?: () => void;
   refreshLabel?: string;
@@ -392,10 +397,10 @@ export interface WorkspaceOnboardingProps extends Omit<AuthFormBaseProps<Workspa
   children?: ReactNode;
 }
 /** Shown to a signed-in account that has no workspace access yet: create one, refresh access or sign out. */
-export function WorkspaceOnboarding({ title = 'Workspace access', email, subheading = 'Create a workspace', help, defaultValues, submitLabel = 'Create workspace', busyLabel = 'Creating workspace…', onRefresh, refreshLabel = 'Refresh access', signOut, account, children, fieldErrors, onSubmit, ...frame }: WorkspaceOnboardingProps) {
+export function WorkspaceOnboarding({ title = 'Workspace access', email, subheading = 'Create a workspace', help, defaultValues, nameLabel = 'Workspace name', sampleOptIn = false, submitLabel = 'Create workspace', busyLabel = 'Creating workspace…', onRefresh, refreshLabel = 'Refresh access', signOut, account, children, fieldErrors, onSubmit, ...frame }: WorkspaceOnboardingProps) {
   const id = useId();
   const signOutLabel = signOut?.label ?? 'Sign out';
-  return <AuthFormFrame {...frame} onSubmit={typed(onSubmit, raw => ({ name: text(raw, 'name') }))} title={title} description={`Signed in as ${email}`} fieldErrors={fieldErrors} submitLabel={submitLabel} busyLabel={busyLabel}
+  return <AuthFormFrame {...frame} onSubmit={typed(onSubmit, raw => ({ name: text(raw, 'name'), ...(sampleOptIn ? { sample: raw.sample === 'true' } : {}) }))} title={title} description={`Signed in as ${email}`} fieldErrors={fieldErrors} submitLabel={submitLabel} busyLabel={busyLabel}
     below={(onRefresh || signOut || account || children) && <Stack gap={4}>
       {(onRefresh || signOut || account) && <div className="t98-auth-aux">
         {onRefresh && <Button type="button" variant="secondary" size="sm" onClick={onRefresh}>{refreshLabel}</Button>}
@@ -411,9 +416,10 @@ export function WorkspaceOnboarding({ title = 'Workspace access', email, subhead
     </Stack>}>
     <Heading level={2} className="t98-auth-subheading">{subheading}</Heading>
     {help && <Text tone="muted" size="sm">{help}</Text>}
-    <Field label="Workspace name" htmlFor={`${id}-name`} error={fieldErrors?.name ?? fieldErrors?.workspaceName}>
+    <Field label={nameLabel} htmlFor={`${id}-name`} error={fieldErrors?.name ?? fieldErrors?.workspaceName}>
       <Input name="name" autoComplete="organization" required maxLength={120} defaultValue={defaultValues?.name} />
     </Field>
+    {sampleOptIn && <div className="t98-auth-choice"><Checkbox name="sample" value="true" label={sampleOptIn.label} defaultChecked={sampleOptIn.defaultChecked} /></div>}
   </AuthFormFrame>;
 }
 

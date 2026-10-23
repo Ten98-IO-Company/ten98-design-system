@@ -215,3 +215,11 @@ test('without a setup token, the first sign-up shows name, email, password and w
   await page.getByRole('button', { name: 'Create owner account' }).click();
   await expect(page.getByRole('status')).toHaveText('{"name":"Owner","email":"owner@example.test","password":"synthetic-password-1","workspaceName":"Acme","sample":false}');
 });
+
+test('the create-first-project step names the project and submits the sample-data choice from inside its form', async ({ page }, info) => {
+  await open(page, 'onboarding-project', 'light', info.project.name === 'narrow-dark' ? 320 : 1440);
+  await page.getByLabel('Project name').fill('Spring launch');
+  await page.getByLabel('Add sample data').check();
+  await page.getByRole('button', { name: 'Create project' }).click();
+  await expect(page.getByRole('status')).toHaveText('{"name":"Spring launch","sample":true}');
+});
