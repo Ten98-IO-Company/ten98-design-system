@@ -66,7 +66,7 @@
 .auth-story .brand strong{font-size:22px}
 .auth-story .brand small{font-size:8px;letter-spacing:2px}
 .auth-story>div:not(.auth-orbit){padding:35px 0 0}
-.auth-story :is(h1,.auth-story-title){font-size:40px;letter-spacing:-.025em;line-height:1.12}
+.auth-story :is(h1,.auth-story-title){font-size:42px;letter-spacing:-.036em;line-height:1.12}
 .auth-story :is(h1,.auth-story-title) br{display:none}
 .auth-story :is(h1,.auth-story-title) br:after{content:' '}
 .auth-story .eyebrow{font-size:12px;letter-spacing:0;margin-bottom:13px}

@@ -123,7 +123,7 @@ for (const fixture of ['auth-layout', 'legacy-theme']) {
         const formContent = form.locator('h1, h2, p, input, select, button, a');
         expect(await formContent.count()).toBeGreaterThan(0);
         for (const item of await formContent.all()) {
-          await item.scrollIntoViewIfNeeded();
+          await item.evaluate(element => element.scrollIntoView({ block: 'center', inline: 'nearest' }));
           await expect(item).toBeInViewport({ ratio: 1 });
         }
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)).toBe(true);

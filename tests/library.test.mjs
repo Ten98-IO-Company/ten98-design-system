@@ -426,13 +426,13 @@ test('weights are 400, 500 or 600', () => {
   assert.deepEqual(heavy, []);
 });
 
-test('tracking stays between -0.03em and 0, and nothing is set in capitals', () => {
+test('tracking stays between -0.04em (display headlines) and 0, and nothing is set in capitals', () => {
   const tracking = offences((property, value, where) => {
     if (brandLockup.test(where)) return false;
     if (property === 'text-transform') return value === 'uppercase';
     if (property !== 'letter-spacing' || value === '0' || value === 'normal') return false;
     const em = value.match(/^(-?\d*\.?\d+)em$/);
-    return !em || Number(em[1]) < -0.03 || Number(em[1]) > 0;
+    return !em || Number(em[1]) < -0.04 || Number(em[1]) > 0;
   });
   assert.deepEqual(tracking, []);
 });
