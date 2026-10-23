@@ -6,7 +6,7 @@
 .t98-table-search input { padding-left: 2.25rem; width: 100%; }
 .t98-table-count { margin-left: auto; color: var(--t98-muted); font-size: .75rem; white-space: nowrap; }
 .t98-table-scroll { position: relative; overflow-x: auto; }
-.t98-table { border-collapse: collapse; width: 100%; text-align: start; white-space: nowrap; }
+.t98-table { border-collapse: collapse; width: 100%; text-align: start; white-space: nowrap; font-variant-numeric: tabular-nums; }
 /* Headers set start themselves: the browser centres th when the table's own alignment is the initial value. */
 .t98-table th { text-align: start; background: var(--t98-surface); color: var(--t98-muted); font-size: .75rem; font-weight: 500; border-top: 1px solid var(--t98-border); border-bottom: 1px solid var(--t98-border); }
 .t98-table th, .t98-table td { padding: var(--t98-cell-padding, .625rem) 1rem; }

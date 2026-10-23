@@ -96,7 +96,7 @@ fieldset{border:0;margin:0;padding:0;min-width:0}
 .stat-card{border:1px solid var(--color-border);border-radius:8px;background:var(--color-surface);padding:19px 19px 17px;box-shadow:none}
 .stat-card>div{display:flex;align-items:center;justify-content:space-between;color:var(--color-text-muted);font-size:12px;margin-bottom:14px}
 .stat-card svg{color:var(--color-text-muted);width:16px;height:16px}
-.stat-card>strong{display:block;font-family:var(--font-heading);font-size:24px;letter-spacing:-.02em;font-weight:600}
+.stat-card>strong{display:block;font-family:var(--font-heading);font-variant-numeric:tabular-nums;font-size:24px;letter-spacing:-.02em;font-weight:600}
 .stat-card p{font-size:12px;color:var(--color-text-muted);margin-top:9px}
 :is(.panel,.card){border:1px solid var(--color-border);border-radius:8px;background:var(--color-surface);min-width:0;box-shadow:var(--shadow-panel);margin-bottom:22px}
 .overview-grid>:is(.panel,.card){margin-bottom:0}
@@ -107,8 +107,8 @@ fieldset{border:0;margin:0;padding:0;min-width:0}
 .count{display:inline-flex;padding:3px 6px;margin-left:4px;font-size:12px;letter-spacing:0;color:var(--color-text-muted);background:var(--color-surface-subtle);border-radius:4px;font-weight:500}
 :is(.table-scroll,.table-wrap){overflow-x:auto;width:100%}
 table{width:100%;border-collapse:collapse;text-align:left;white-space:nowrap}
-th{font-size:12px;letter-spacing:0;color:var(--color-text-muted);background:var(--color-surface);font-weight:500;padding:8px 16px;border-top:1px solid var(--color-border);border-bottom:1px solid var(--color-border)}
-td{font-size:13px;padding:10px 16px;border-bottom:1px solid var(--color-border);color:var(--color-text)}
+th{font-variant-numeric:tabular-nums;font-size:12px;letter-spacing:0;color:var(--color-text-muted);background:var(--color-surface);font-weight:500;padding:8px 16px;border-top:1px solid var(--color-border);border-bottom:1px solid var(--color-border)}
+td{font-variant-numeric:tabular-nums;font-size:13px;padding:10px 16px;border-bottom:1px solid var(--color-border);color:var(--color-text)}
 td strong{font-weight:500;color:var(--color-text-muted)}
 :where(table:not(.t98-review-table)) tbody tr:last-child>td{border-bottom:0}
 :where(table:not(.t98-review-table)) tbody tr:hover{background:var(--color-surface-subtle)}

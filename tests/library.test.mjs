@@ -443,3 +443,13 @@ test('colours come from tokens, apart from named exemptions', () => {
     && !hexAllowed.some(pattern => pattern.test(where)) && !brandLockup.test(where));
   assert.deepEqual(literal, []);
 });
+
+test('the self-hosted Inter faces resolve inside the package and lead both font tokens', () => {
+  const tokenCss = readFileSync(file('dist/tokens.css'), 'utf8');
+  const sources = [...tokenCss.matchAll(/@font-face\s*\{[^}]*url\("\.\/([^"]+)"\)/g)].map(([, path]) => path);
+  assert.deepEqual(sources.sort(), ['fonts/inter-latin-ext-wght-normal.woff2', 'fonts/inter-latin-wght-normal.woff2']);
+  for (const path of [...sources, 'fonts/OFL.txt']) accessSync(file(`dist/${path}`));
+  assert.ok([...tokenCss.matchAll(/font-display:\s*swap/g)].length === sources.length, 'Every face swaps in, so text never waits for the font');
+  for (const token of ['--t98-font', '--t98-heading']) assert.match(tokenCss, new RegExp(`${token}: "Inter Variable", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui`));
+  assert.match(readFileSync(file('THIRD_PARTY_NOTICES.md'), 'utf8'), /## Inter typeface[\s\S]*SIL OPEN FONT LICENSE Version 1\.1/);
+});
