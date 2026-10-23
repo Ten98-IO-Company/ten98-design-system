@@ -1,6 +1,6 @@
 /* Protocol v1 for IsolatedPlayerFrame: the isolated document, the handshake and the message checks.
  * Pure functions, so they can be tested without a browser. Not exported from the package entry; the
- * component and the protocol types are. See https://github.com/Ten98-IO-Company/ten98-design-system/wiki/Components and issue #17 (U25 threat model). */
+ * component and the protocol types are. See https://github.com/Ten98-IO-Company/ten98-design-system/wiki/Reference#maps-evidence-and-calendar and issue #17 (U25 threat model). */
 
 export const PLAYER_PROTOCOL = 1;
 export const PLAYER_CONNECT = 'ten98-player-connect';
