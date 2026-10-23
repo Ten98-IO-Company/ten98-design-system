@@ -22,6 +22,7 @@ export * from './shell.js';
 export * from './controls.js';
 export * from './settings-base.js';
 export * from './account-flows.js';
+export * from './operator-flows.js';
 export * from './workspace-flows.js';
 export * from './charts.js';
 export * from './spatial.js';
