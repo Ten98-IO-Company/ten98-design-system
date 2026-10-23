@@ -54,4 +54,6 @@ Please report vulnerabilities privately through [GitHub private vulnerability re
 ## Legal
 
 - Licence: [MIT](https://github.com/Ten98-IO-Company/ten98-design-system/blob/main/LICENSE). Third-party components and their licences: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+- Ten98 and the Ten98 logo are trademarks of Ten98 Technologies Ltd. The MIT licence covers the code, not the name or logo: forks must use their own name and branding.
+- The hosted apps at *.ten98.io are covered by the [Ten98 privacy policy](https://ten98.io/legal/privacy). Self-hosted installs are run by their operator and send no data to Ten98.
 - Provided "as is", without warranty, as stated in the licence.
