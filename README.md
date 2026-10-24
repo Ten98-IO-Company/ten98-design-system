@@ -6,7 +6,7 @@ One consistent, accessible interface for every Ten98 app.
 
 ## Why Design System
 
-- **One look across the suite.** Brand, colour, type, spacing, light and dark themes, and comfortable or compact density all come from the same tokens.
+- **One look across the suite.** A quiet, precise style: neutral greys, the brand violet only where you act, and the bundled Inter typeface. Colour, type, spacing, light and dark themes, and comfortable or compact density all come from the same tokens.
 - **Accessible by default.** Keyboard support, visible focus, 44px touch targets, reduced-motion support, and layouts that reflow at 320px and at 200% text. Every release is checked in real browsers.
 - **Complete building blocks.** Components, plus full feature flows and page templates, with a live catalogue that shows every state and its copyable source.
 - **Plain React and TypeScript.** Named imports with TypeScript declarations. No styling runtime, router or Tailwind required.
