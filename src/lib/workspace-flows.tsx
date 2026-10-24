@@ -10,6 +10,7 @@ import { SettingsTemplate } from './templates.js';
 import { ConfirmDialog, CopyButton, SecretField, type CopyButtonMessages } from './workspace.js';
 import { FlowActionControl, SettingsFlow, TargetConfirm, formText, formatFlowDate, staticTable, useSingleSubmit, type LabelledAction } from './flow-frame.js';
 import type { FlowState, Submit } from './settings-base.js';
+import { createDateFormatter } from './date-format.js';
 
 /* Presentation-only workspace settings flows. Applications keep requests, authorization and secrets, and supply every
  * message. Team members and invitations are managed only in TeamFlow, and flows never ask for the workspace or project:
@@ -129,14 +130,17 @@ export interface TeamPolicy { twoFactorRequired: boolean; onChange: (required: b
 export interface TeamOwnership { candidates: SelectOption[]; onTransfer: Submit<{ userId: string }> }
 export interface TeamMessages {
   members: string; member: string; email: string; role: string; twoFactor: string; twoFactorOn: string; twoFactorOff: string; twoFactorUnknown: string; actions: string; you: string; remove: string; removeTitle: string; removeDescription: string; membersEmpty: string;
-  roleFor: string; invitations: string; invitationsEmpty: string; expires: string; status: string; revokeInvitation: string; revokeInvitationTitle: string; revokeInvitationDescription: string;
+  roleFor: string; soloMemberHint: string; invitations: string; invitationsEmpty: string; invitationsEmptyDescription: string; expires: string; status: string; revokeInvitation: string; revokeInvitationTitle: string; revokeInvitationDescription: string;
+  resendInvitation: string; resendInvitationTitle: string; resendInvitationDescription: string; renewInvitationLink: string; renewInvitationLinkTitle: string; renewInvitationLinkDescription: string; retry: string;
   inviteHeading: string; inviteEmail: string; inviteRole: string; invite: string; linkLabel: string; linkWarning: string; linkDismiss: string; copy: string; copied: string; copyFailed: string; copyManual: string;
   policy: string; policyLabel: string; ownership: string; ownershipDescription: string; ownershipCandidate: string; ownershipChoose: string; transfer: string; transferTitle: string; transferDescription: string; transferConfirmation: string;
 }
 const teamMessages: TeamMessages = {
   members: 'Members', member: 'Member', email: 'Email', role: 'Role', twoFactor: 'Two-factor', twoFactorOn: 'On', twoFactorOff: 'Off', twoFactorUnknown: 'Not reported', actions: 'Actions', you: 'You', remove: 'Remove', removeTitle: 'Remove this member?',
-  removeDescription: 'They lose access to this workspace immediately.', membersEmpty: 'No members.', roleFor: 'Role for {name}', invitations: 'Invitations', invitationsEmpty: 'No pending invitations.', expires: 'Expires', status: 'Status',
+  removeDescription: 'They lose access to this workspace immediately.', membersEmpty: 'No members.', roleFor: 'Role for {name}', soloMemberHint: 'You’re the only member. Invite someone to work together.', invitations: 'Invitations', invitationsEmpty: 'No pending invitations.', invitationsEmptyDescription: 'Invitations you send appear here until they’re accepted.', expires: 'Expires', status: 'Status',
   revokeInvitation: 'Revoke', revokeInvitationTitle: 'Revoke this invitation?', revokeInvitationDescription: 'The invitation link stops working.',
+  resendInvitation: 'Resend', resendInvitationTitle: 'Resend this invitation?', resendInvitationDescription: 'Another email goes to this address. The current link keeps working.',
+  renewInvitationLink: 'New link', renewInvitationLinkTitle: 'Create a new invitation link?', renewInvitationLinkDescription: 'The current link stops working. Share the new one.', retry: 'Retry',
   inviteHeading: 'Invite someone', inviteEmail: 'Email address', inviteRole: 'Role', invite: 'Send invitation', linkLabel: 'Invitation link', linkWarning: 'Share this link now. It won’t be shown again.', linkDismiss: 'Done',
   copy: 'Copy link', copied: 'Copied', copyFailed: 'Copy failed. The link is selected: copy it manually.', copyManual: 'Select and copy',
   policy: 'Policy', policyLabel: 'Require two-factor authentication for every member', ownership: 'Ownership', ownershipDescription: 'Make another member the owner. You become an administrator.', ownershipCandidate: 'New owner', ownershipChoose: 'Choose a member',
@@ -146,6 +150,10 @@ const teamMessages: TeamMessages = {
 const canonicalRoleLabels: Partial<Record<string, string>> = { owner: 'Owner', admin: 'Admin', editor: 'Editor', viewer: 'Viewer' };
 /** Sentence-case labels for the known invitation states; an unknown status is shown as given. */
 const invitationStatusText: Record<string, string> = { pending: 'Pending', accepted: 'Accepted', expired: 'Expired', revoked: 'Revoked' };
+type InvitationActionKind = 'resend' | 'renew' | 'revoke';
+const invitationKinds: InvitationActionKind[] = ['resend', 'renew', 'revoke'];
+const flowRelative = createDateFormatter({ locale: 'en', timeZone: 'UTC' }).relative;
+const isoDate = (value: DateValue) => { const date = new Date(value); return Number.isNaN(date.getTime()) ? undefined : date.toISOString(); };
 const invitationTone = (status: string) => ({ pending: 'info', accepted: 'success', expired: 'warning', revoked: 'neutral' } as const)[status as 'pending'] ?? 'neutral';
 export interface TeamFlowProps extends FlowState {
   currentUserId: string;
@@ -164,6 +172,10 @@ export interface TeamFlowProps extends FlowState {
   /** Invitations are the only way to add people. */
   onInvite: Submit<{ email: string; role: string }>;
   onRevokeInvitation: Submit<{ id: string }>;
+  /** Sends the invitation email again. Each invitation action is confirmed once; after an unconfirmed outcome only its exact retry is offered. */
+  onResendInvitation?: Submit<{ id: string }>;
+  /** Replaces the invitation link; show the new one through `inviteLink`. */
+  onRenewInvitationLink?: Submit<{ id: string }>;
   /** Shown once for copying until the application clears it. */
   inviteLink?: { id: string; url: string };
   onDismissInviteLink?: () => void;
@@ -172,20 +184,40 @@ export interface TeamFlowProps extends FlowState {
   /** Role preselected in the invite form. Defaults to the last entry of `roles`, which should be the least privileged. */
   defaultInviteRole?: string;
   formatDate?: (value: DateValue) => string;
+  /** Expiry as relative text ("in 3 days"), with `formatDate` as its title. Pass createDateFormatter(...).relative for the viewer's locale. */
+  formatRelative?: (value: DateValue) => string;
   title?: string;
   description?: string;
   messages?: Partial<TeamMessages>;
 }
 /** The one place to manage members, roles, invitations, the two-factor policy and ownership. */
-export function TeamFlow({ currentUserId, members, roles, roleLabels, invitationStatusLabels, assignableRoles, onRoleChange, onRemove, invitations, onInvite, onRevokeInvitation, inviteLink, onDismissInviteLink, policy, ownership, defaultInviteRole = roles[roles.length - 1]?.value, formatDate = formatFlowDate, title = 'Team', description, messages, ...state }: TeamFlowProps) {
+export function TeamFlow({ currentUserId, members, roles, roleLabels, invitationStatusLabels, assignableRoles, onRoleChange, onRemove, invitations, onInvite, onRevokeInvitation, onResendInvitation, onRenewInvitationLink, inviteLink, onDismissInviteLink, policy, ownership, defaultInviteRole = roles[roles.length - 1]?.value, formatDate = formatFlowDate, formatRelative = flowRelative, title = 'Team', description, messages, ...state }: TeamFlowProps) {
   const id = useId();
   const copy = { ...teamMessages, ...messages };
   const singleFlight = useSingleSubmit();
   const [removing, setRemoving] = useState<TeamMember>();
-  const [revoking, setRevoking] = useState<TeamInvitation>();
+  const [pending, setPending] = useState<{ kind: InvitationActionKind; invitation: TeamInvitation }>();
+  // The latest submission, so an unconfirmed outcome offers only an exact retry of that invitation action.
+  const [attempted, setAttempted] = useState<{ kind: InvitationActionKind; id: string }>();
   const [newOwner, setNewOwner] = useState('');
   const [transferring, setTransferring] = useState(false);
   const locked = state.busy || state.disabled;
+  const submit = (action: () => void | Promise<void>, attempt?: { kind: InvitationActionKind; id: string }) => { setAttempted(attempt); return singleFlight(action); };
+  const invitationHandlers: Record<InvitationActionKind, Submit<{ id: string }> | undefined> = { resend: onResendInvitation, renew: onRenewInvitationLink, revoke: onRevokeInvitation };
+  const invitationCopy = {
+    resend: { label: copy.resendInvitation, title: copy.resendInvitationTitle, description: copy.resendInvitationDescription },
+    renew: { label: copy.renewInvitationLink, title: copy.renewInvitationLinkTitle, description: copy.renewInvitationLinkDescription },
+    revoke: { label: copy.revokeInvitation, title: copy.revokeInvitationTitle, description: copy.revokeInvitationDescription },
+  };
+  const runInvitation = (kind: InvitationActionKind, invitation: TeamInvitation) => submit(() => invitationHandlers[kind]?.({ id: invitation.id }), { kind, id: invitation.id });
+  const retrying = state.unconfirmed !== undefined ? attempted : undefined;
+  const invitationActions = (row: TeamInvitation) => {
+    if (retrying) return retrying.id !== row.id ? null
+      : <Button type="button" variant="secondary" size="sm" disabled={locked} aria-label={`${copy.retry}: ${invitationCopy[retrying.kind].label}: ${row.email}`} onClick={() => void runInvitation(retrying.kind, row)}>{copy.retry}</Button>;
+    if (row.status !== 'pending') return null;
+    const kinds = invitationKinds.filter(kind => invitationHandlers[kind]);
+    return <Inline gap={2}>{kinds.map(kind => <Button key={kind} type="button" variant="secondary" size="sm" disabled={locked} aria-label={`${invitationCopy[kind].label}: ${row.email}`} onClick={() => setPending({ kind, invitation: row })}>{invitationCopy[kind].label}</Button>)}</Inline>;
+  };
   // An admin may invite only editors and viewers, yet still sees owner and admin rows, so labels come from every canonical role.
   const roleLabel = (value: string) => roleLabels?.[value] ?? canonicalRoleLabels[value] ?? roles.find(role => role.value === value)?.label ?? value;
   const memberColumns: DataColumn<TeamMember>[] = [
@@ -194,14 +226,15 @@ export function TeamFlow({ currentUserId, members, roles, roleLabels, invitation
       const allowed = assignableRoles(row);
       if (!allowed.length) return roleLabel(row.role);
       const options = [row.role, ...allowed.filter(role => role !== row.role)].map(role => ({ value: role, label: roleLabel(role) }));
-      return <Select aria-label={copy.roleFor.replace('{name}', row.name)} options={options} value={row.role} disabled={locked} onChange={event => { const role = event.target.value; void singleFlight(() => onRoleChange({ id: row.id, role })); }} />;
+      return <Select aria-label={copy.roleFor.replace('{name}', row.name)} options={options} value={row.role} disabled={locked} onChange={event => { const role = event.target.value; void submit(() => onRoleChange({ id: row.id, role })); }} />;
     } },
     { key: 'twoFactor', header: copy.twoFactor, render: row => row.twoFactor === undefined ? <Text as="span" tone="muted">{copy.twoFactorUnknown}</Text> : <Badge tone={row.twoFactor ? 'success' : 'warning'}>{row.twoFactor ? copy.twoFactorOn : copy.twoFactorOff}</Badge> },
   ];
   const invitationColumns: DataColumn<TeamInvitation>[] = [
     { key: 'email', header: copy.email, rowHeader: true, wrap: true },
     { key: 'role', header: copy.role, render: row => roleLabel(row.role) },
-    { key: 'expiresAt', header: copy.expires, render: row => formatDate(row.expiresAt) },
+    // Relative to the viewer's clock, so the server-rendered text may differ from the browser's by design.
+    { key: 'expiresAt', header: copy.expires, render: row => <time dateTime={isoDate(row.expiresAt)} title={formatDate(row.expiresAt)} suppressHydrationWarning>{formatRelative(row.expiresAt)}</time> },
     { key: 'status', header: copy.status, render: row => <Badge tone={invitationTone(row.status)}>{invitationStatusLabels?.[row.status] ?? invitationStatusText[row.status] ?? row.status}</Badge> },
   ];
   const candidate = ownership?.candidates.find(option => option.value === newOwner);
@@ -209,25 +242,25 @@ export function TeamFlow({ currentUserId, members, roles, roleLabels, invitation
     <Stack gap={6}>
       {policy && <Stack gap={2}>
         <Heading level={3} size="sm">{copy.policy}</Heading>
-        <Checkbox label={copy.policyLabel} checked={policy.twoFactorRequired} onChange={event => { const next = event.target.checked; void singleFlight(() => policy.onChange(next)); }} />
+        <Checkbox label={copy.policyLabel} checked={policy.twoFactorRequired} onChange={event => { const next = event.target.checked; void submit(() => policy.onChange(next)); }} />
       </Stack>}
       <Stack gap={2}>
         <Heading level={3} size="sm">{copy.members}</Heading>
         <DataTable<TeamMember> ariaLabel={copy.members} columns={members.some(member => member.twoFactor !== undefined) ? memberColumns : memberColumns.filter(column => column.key !== 'twoFactor')} rows={members} rowKey={row => row.id} {...staticTable} emptyTitle={copy.membersEmpty}
           rowActionsLabel={copy.actions} rowActions={row => row.id === currentUserId || !assignableRoles(row).length ? null
             : <Button type="button" variant="secondary" size="sm" disabled={locked} aria-label={`${copy.remove}: ${row.name}`} onClick={() => setRemoving(row)}>{copy.remove}</Button>} />
+        {members.length === 1 && <Text tone="muted" size="sm">{copy.soloMemberHint}</Text>}
       </Stack>
       <Stack gap={2}>
         <Heading level={3} size="sm">{copy.invitations}</Heading>
         {inviteLink && <OneTimeValue label={copy.linkLabel} value={inviteLink.url} masked={false} focusOnShow warning={copy.linkWarning} dismiss={onDismissInviteLink && { label: copy.linkDismiss, onClick: onDismissInviteLink }}
           messages={{ copy: copy.copy, copied: copy.copied, copyFailed: copy.copyFailed, select: copy.copyManual }} />}
-        <DataTable<TeamInvitation> ariaLabel={copy.invitations} columns={invitationColumns} rows={invitations} rowKey={row => row.id} {...staticTable} emptyTitle={copy.invitationsEmpty} emptyDescription={null}
-          rowActionsLabel={copy.actions} rowActions={row => row.status !== 'pending' ? null
-            : <Button type="button" variant="secondary" size="sm" disabled={locked} aria-label={`${copy.revokeInvitation}: ${row.email}`} onClick={() => setRevoking(row)}>{copy.revokeInvitation}</Button>} />
+        <DataTable<TeamInvitation> ariaLabel={copy.invitations} columns={invitationColumns} rows={invitations} rowKey={row => row.id} {...staticTable} emptyTitle={copy.invitationsEmpty} emptyDescription={copy.invitationsEmptyDescription}
+          rowActionsLabel={copy.actions} rowActions={invitationActions} />
         <form key={inviteLink?.id ?? 'invite'} onSubmit={event => {
           event.preventDefault();
           const form = new FormData(event.currentTarget);
-          void singleFlight(() => onInvite({ email: formText(form, 'email'), role: formText(form, 'role') }));
+          void submit(() => onInvite({ email: formText(form, 'email'), role: formText(form, 'role') }));
         }}>
           <Stack gap={3}>
             <Heading level={4} size="sm">{copy.inviteHeading}</Heading>
@@ -244,10 +277,12 @@ export function TeamFlow({ currentUserId, members, roles, roleLabels, invitation
         <FormActions><Button type="button" variant="danger" disabled={locked || !candidate} onClick={() => setTransferring(true)}>{copy.transfer}</Button></FormActions>
       </Stack>}
     </Stack>
-    <TargetConfirm target={removing} onClose={() => setRemoving(undefined)} title={copy.removeTitle} description={copy.removeDescription} subject={member => member.name} confirmLabel={copy.remove} onConfirm={member => onRemove({ id: member.id })} />
-    <TargetConfirm target={revoking} onClose={() => setRevoking(undefined)} title={copy.revokeInvitationTitle} description={copy.revokeInvitationDescription} subject={invitation => invitation.email} confirmLabel={copy.revokeInvitation} onConfirm={invitation => onRevokeInvitation({ id: invitation.id })} />
+    <TargetConfirm target={removing} onClose={() => setRemoving(undefined)} title={copy.removeTitle} description={copy.removeDescription} subject={member => member.name} confirmLabel={copy.remove} onConfirm={member => submit(() => onRemove({ id: member.id }))} />
+    <ConfirmDialog open={pending !== undefined} onOpenChange={open => { if (!open) setPending(undefined); }} title={pending ? invitationCopy[pending.kind].title : copy.revokeInvitationTitle}
+      description={pending ? `${pending.invitation.email}. ${invitationCopy[pending.kind].description}` : ''} confirmLabel={pending ? invitationCopy[pending.kind].label : copy.revokeInvitation} danger={pending?.kind !== 'resend'}
+      onConfirm={() => pending ? runInvitation(pending.kind, pending.invitation) : undefined} />
     {ownership && <ConfirmDialog open={transferring} onOpenChange={setTransferring} title={copy.transferTitle} description={candidate ? `${candidate.label}. ${copy.transferDescription}` : copy.transferDescription} confirmLabel={copy.transfer} danger confirmationText={copy.transferConfirmation}
-      onConfirm={() => candidate ? ownership.onTransfer({ userId: candidate.value }) : undefined} />}
+      onConfirm={() => candidate ? submit(() => ownership.onTransfer({ userId: candidate.value })) : undefined} />}
   </SettingsFlow>;
 }
 
