@@ -213,6 +213,7 @@ test('invitation resend and new link confirm once, and an unconfirmed resend off
   expect(await only(page, 'resend:')).toEqual(['resend:{"id":"i1"}']);
   await expect(page.getByRole('alert').filter({ hasText: 'Result not confirmed' })).toBeVisible();
   await expect(page.getByRole('button', { name: /^(Resend|New link|Revoke): new.person/ })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /: second@example\.com$/ })).toHaveCount(0);
   // Focus follows the row's buttons as they swap, instead of falling to the page.
   const retry = page.getByRole('button', { name: 'Retry: Resend: new.person@example.com' });
   await expect(retry).toBeFocused();
@@ -221,4 +222,46 @@ test('invitation resend and new link confirm once, and an unconfirmed resend off
   await expect(dialog).toBeHidden();
   expect(await only(page, 'resend:')).toEqual(['resend:{"id":"i1"}', 'resend:{"id":"i1"}']);
   await expect(page.getByRole('button', { name: /^Resend: new.person/ })).toBeFocused();
+});
+
+test('Cancel or Escape from an invitation confirm returns focus to the button that opened it (#153 review)', async ({ page }) => {
+  await page.goto('/tests/workspace-flows.html?theme=light');
+  const revoke = page.getByRole('button', { name: /^Revoke: new.person/ });
+  await revoke.click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Cancel' }).click();
+  await expect(revoke).toBeFocused();
+  const renew = page.getByRole('button', { name: /^New link: new.person/ });
+  await renew.click();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toBeHidden();
+  await expect(renew).toBeFocused();
+});
+
+test('a confirm dropped by the single-submit guard stays open with its error instead of closing as if it ran (#153 review)', async ({ page }) => {
+  await page.goto('/tests/workspace-flows.html?theme=light&slowRole=1');
+  await page.getByLabel('Role for Sam Lee').selectOption('admin');
+  await page.getByRole('button', { name: /^Revoke: new.person/ }).click();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByRole('button', { name: 'Revoke', exact: true }).click();
+  await expect(dialog.getByRole('alert')).toContainText('could not be completed');
+  await expect(dialog).toBeVisible();
+  expect(await only(page, 'revokeInvitation:')).toEqual([]);
+});
+
+test('an empty unconfirmed value is not retry mode: every invitation keeps its actions (#153 review)', async ({ page }) => {
+  await page.goto('/tests/workspace-flows.html?theme=light&unconfirmed=blank');
+  await page.getByRole('button', { name: /^Resend: new.person/ }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Resend', exact: true }).click();
+  await expect(page.getByRole('dialog')).toBeHidden();
+  await expect(page.getByRole('button', { name: /^Retry/ })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /^Resend: / })).toHaveCount(2);
+});
+
+test('an unconfirmed revoke of an invitation that is no longer pending offers no Retry and leaves other rows usable (#153 review)', async ({ page }) => {
+  await page.goto('/tests/workspace-flows.html?theme=light&revokeUnconfirmed=1');
+  await page.getByRole('button', { name: /^Revoke: new.person/ }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Revoke', exact: true }).click();
+  await expect(page.getByRole('alert').filter({ hasText: 'Result not confirmed.' })).toBeVisible();
+  await expect(page.getByRole('button', { name: /^Retry/ })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /^Revoke: second@example\.com$/ })).toBeVisible();
 });

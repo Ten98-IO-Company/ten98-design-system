@@ -50,6 +50,12 @@ const backToSignIn = { href: '#signin' };
 const invitation = { workspaceName: 'Acme Marketing', email: 'new.member@example.test', role: 'Editor', expiresAt: '2030-01-15T12:00:00Z' };
 const invitationFrame = { brand, title: 'Join Acme Marketing', description: 'You were invited to collaborate.', onSubmit: noop, invitation, formatDate: (value: string | Date) => new Date(value).toISOString().slice(0, 10) };
 
+/** A route that loads, then finds no record: not-found must reuse the loading screen's status region. Switches on a click. */
+function LoadingThenNotFound() {
+  const [found, setFound] = useState(true);
+  return <><AppStateScreen state={found ? 'loading' : 'not-found'} brand={brand} homeHref="/" /><button type="button" onClick={() => setFound(false)}>Finish loading</button></>;
+}
+
 /** The create-first-project step: a project name and an optional sample-data opt-in inside the form. */
 function FirstProjectProbe() {
   const [values, setValues] = useState('');
@@ -78,6 +84,7 @@ const screens: Record<string, ReactNode> = {
   'setup-error': <FirstUserSetupFlow brand={brand} title="Create owner account" tokenHint="Printed in the server log on first start." onSubmit={noop} error="The account could not be created." fieldErrors={{ token: 'The setup token does not match.', password: 'Use at least 12 characters.' }} />,
   'setup-busy': <FirstUserSetupFlow brand={brand} title="Create owner account" onSubmit={noop} busy />,
   'loading': <AppStateScreen state="loading" brand={brand} />,
+  'loading-then-not-found': <LoadingThenNotFound />,
   'error': <AppStateScreen state="error" brand={brand} title="Could not load your session" message="The server did not respond." onRetry={noop} />,
   'boundary': <AuthErrorBoundary fallback={{ brand }} onReload={noop} onError={noop}><Thrower /></AuthErrorBoundary>,
   'boundary-recover': <AuthErrorBoundary fallback={{ brand }} onReload={() => { recovered = true; }} onError={noop}><FailsOnce /></AuthErrorBoundary>,

@@ -31,17 +31,18 @@ const stateCopy: Record<AppStateKind, { title: string; message: string; retryLab
 export function AppStateScreen({ state, brand, surface, title, message, onRetry, retryLabel, homeHref }: AppStateScreenProps) {
   const copy = stateCopy[state];
   return <AuthLayout label={title ?? copy.title} brand={brand} surface={surface} title={title ?? copy.title}>
-    {state === 'loading'
-      ? <div className="t98-auth-state" role="status"><span className="t98-spinner" aria-hidden="true" /><Text as="span">{message ?? copy.message}</Text></div>
-      : <Stack gap={4}>
-        {state === 'not-found'
-          // Polite status rather than an alert: a missing page is not a failure, but replacing the loading state must still be heard.
-          ? <div role="status"><Text>{message ?? copy.message}</Text></div>
-          : <Alert tone={state === 'unconfirmed' ? 'warning' : 'danger'} role="alert" title={message ?? copy.message} />}
-        {state === 'not-found' && homeHref
+    <Stack gap={4}>
+      {/* Loading and not-found share one status node, so replacing loading with not-found changes the text inside a live
+          region that already exists and is announced. A missing page is not a failure, so it is not an alert. */}
+      {state === 'loading' || state === 'not-found'
+        ? <div className={state === 'loading' ? 't98-auth-state' : undefined} role="status">
+          {state === 'loading' && <span className="t98-spinner" aria-hidden="true" />}<Text as="span">{message ?? copy.message}</Text>
+        </div>
+        : <Alert tone={state === 'unconfirmed' ? 'warning' : 'danger'} role="alert" title={message ?? copy.message} />}
+      {state === 'loading' ? null : state === 'not-found' && homeHref
           ? <Button href={homeHref}>{retryLabel ?? copy.retryLabel}</Button>
           : onRetry && <Button type="button" onClick={onRetry}>{retryLabel ?? copy.retryLabel}</Button>}
-      </Stack>}
+    </Stack>
   </AuthLayout>;
 }
 

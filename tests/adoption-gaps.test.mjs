@@ -257,7 +257,7 @@ test('#151: AppStateScreen not-found says the page is missing and links home, wi
   assert.match(html, /<a[^>]*href="\/"[^>]*>Go to home<\/a>/);
   assert.doesNotMatch(html, /role="alert"/);
   // Replacing the loading state must still be announced, politely (#153 review).
-  assert.match(html, /<div role="status"><p[^>]*>This page does not exist or has moved\.<\/p><\/div>/);
+  assert.match(html, /<div role="status"><span[^>]*>This page does not exist or has moved\.<\/span><\/div>/);
 });
 
 test('#151: workspace and project forms default their busy labels', () => {

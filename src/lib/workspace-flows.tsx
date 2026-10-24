@@ -202,7 +202,7 @@ export function TeamFlow({ currentUserId, members, roles, roleLabels, invitation
   const locked = state.busy || state.disabled;
   const actions = useRef<HTMLDivElement>(null);
   const linkFocus = useRef(false);
-  const returnTo = useRef<string | undefined>(undefined);
+  const returnTo = useRef<{ id: string; opener: HTMLElement } | undefined>(undefined);
   // The attempt is recorded only when the guarded action really starts; a dropped call never changes it.
   const submit = (action: () => void | Promise<void>, attempt?: { kind: InvitationActionKind; id: string }) => singleFlight(() => { setAttempted(attempt); return action(); });
   const confirmed = (action: () => void | Promise<void>, attempt?: { kind: InvitationActionKind; id: string }) => ranOrThrow(submit(action, attempt));
@@ -229,7 +229,7 @@ export function TeamFlow({ currentUserId, members, roles, roleLabels, invitation
       : <span data-invitation={row.id}><Button type="button" variant="secondary" size="sm" disabled={locked} aria-label={`${copy.retry}: ${invitationCopy[retrying.kind].label}: ${row.email}`} onClick={() => void submit(invitationAction(retrying.kind, row), retrying)}>{copy.retry}</Button></span>;
     if (row.status !== 'pending') return null;
     const kinds = invitationKinds.filter(kind => invitationHandlers[kind]);
-    return <span data-invitation={row.id}><Inline gap={2}>{kinds.map(kind => <Button key={kind} type="button" variant="secondary" size="sm" disabled={locked} aria-label={`${invitationCopy[kind].label}: ${row.email}`} onClick={() => { returnTo.current = row.id; setPending({ kind, invitation: row }); }}>{invitationCopy[kind].label}</Button>)}</Inline></span>;
+    return <span data-invitation={row.id}><Inline gap={2}>{kinds.map(kind => <Button key={kind} type="button" variant="secondary" size="sm" disabled={locked} aria-label={`${invitationCopy[kind].label}: ${row.email}`} onClick={event => { returnTo.current = { id: row.id, opener: event.currentTarget }; setPending({ kind, invitation: row }); }}>{invitationCopy[kind].label}</Button>)}</Inline></span>;
   };
   // An admin may invite only editors and viewers, yet still sees owner and admin rows, so labels come from every canonical role.
   const roleLabel = (value: string) => roleLabels?.[value] ?? canonicalRoleLabels[value] ?? roles.find(role => role.value === value)?.label ?? value;
@@ -294,11 +294,13 @@ export function TeamFlow({ currentUserId, members, roles, roleLabels, invitation
     <TargetConfirm target={removing} onClose={() => setRemoving(undefined)} title={copy.removeTitle} description={copy.removeDescription} subject={member => member.name} confirmLabel={copy.remove} onConfirm={member => confirmed(() => onRemove({ id: member.id }))} />
     <ConfirmDialog open={pending !== undefined} onOpenChange={open => { if (!open) setPending(undefined); }} title={pending ? invitationCopy[pending.kind].title : copy.revokeInvitationTitle}
       description={pending ? `${pending.invitation.email}. ${invitationCopy[pending.kind].description}` : ''} confirmLabel={pending ? invitationCopy[pending.kind].label : copy.revokeInvitation} danger={pending?.kind !== 'resend'}
-      // A new link takes focus as a sent invitation's does (#83); otherwise focus returns to the row, which may now show Retry.
+      // A new link takes focus as a sent invitation's does (#83). Otherwise focus returns to the button that opened the dialog,
+      // or, when the row swapped it for Retry, to the row's replacement control.
       restoreFocus={() => {
         const link = linkFocus.current ? actions.current?.querySelector<HTMLElement>('[data-invitation-link] input') : undefined;
         linkFocus.current = false;
-        return link ?? (returnTo.current ? firstAction(returnTo.current) : undefined);
+        const back = returnTo.current;
+        return link ?? (back?.opener.isConnected ? back.opener : back ? firstAction(back.id) : undefined);
       }}
       onConfirm={() => pending ? confirmed(invitationAction(pending.kind, pending.invitation), { kind: pending.kind, id: pending.invitation.id }).then(() => { linkFocus.current = pending.kind === 'renew'; }) : undefined} />
     {ownership && <ConfirmDialog open={transferring} onOpenChange={setTransferring} title={copy.transferTitle} description={candidate ? `${candidate.label}. ${copy.transferDescription}` : copy.transferDescription} confirmLabel={copy.transfer} danger confirmationText={copy.transferConfirmation}
