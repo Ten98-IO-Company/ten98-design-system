@@ -52,12 +52,14 @@ export interface AuthFormBaseProps<Values = AuthFormValues> {
 }
 
 export interface SignInValues { email: string; password: string }
-export interface FirstUserSetupValues { name: string; token: string; email: string; password: string; workspaceName?: string; sample: boolean }
+/** `token` is present only when the flow asks for a setup token (`setupToken`, the default). */
+export interface FirstUserSetupValues { name: string; token?: string; email: string; password: string; workspaceName?: string; sample: boolean }
 export interface TwoFactorValues { code: string; mode: 'authenticator' | 'recovery' }
 export interface RecoveryRequestValues { email: string }
 export interface RecoveryResetValues { password: string; confirmation: string; token?: string }
 export interface InvitationValues { name?: string; password?: string; token?: string }
-export interface WorkspaceCreateValues { name: string }
+/** `sample` is present only when the flow offers `sampleOptIn`. */
+export interface WorkspaceCreateValues { name: string; sample?: boolean }
 
 /** Wraps a typed handler for the frame, which reads raw form values. */
 const typed = <Values,>(onSubmit: ((values: Values) => void | Promise<void>) | undefined, convert: (raw: AuthFormValues) => Values) => onSubmit && ((raw: AuthFormValues) => onSubmit(convert(raw)));
@@ -145,6 +147,8 @@ export function SignInFlow({ defaultValues, passwordPolicy, submitLabel = 'Sign 
 export interface FirstUserSetupFlowProps extends AuthFormBaseProps<FirstUserSetupValues> {
   defaultValues?: { name?: string; email?: string; workspaceName?: string };
   passwordPolicy?: PasswordPolicy;
+  /** `false` drops the setup-token field: the first person to sign up becomes the owner. Defaults to `true`. */
+  setupToken?: boolean;
   tokenLength?: { min?: number; max?: number };
   tokenHint?: string;
   /** Show a workspace name field. */
@@ -154,17 +158,18 @@ export interface FirstUserSetupFlowProps extends AuthFormBaseProps<FirstUserSetu
   signInInstead?: AuthAction & { label?: string };
   submitLabel?: string;
 }
-/** Owner account creation for a new installation, gated by a setup token the application verifies. */
-export function FirstUserSetupFlow({ defaultValues, passwordPolicy = defaultPasswordPolicy, tokenLength, tokenHint, workspaceName = false, sampleOptIn = false, signInInstead, submitLabel = 'Create owner account', busyLabel = 'Creating account…', linkComponent, fieldErrors, onSubmit, ...frame }: FirstUserSetupFlowProps) {
+/** Owner account creation for a new installation: optionally gated by a setup token the application verifies, or, with
+ * `setupToken={false}`, the first sign-up becomes the owner. */
+export function FirstUserSetupFlow({ defaultValues, passwordPolicy = defaultPasswordPolicy, setupToken = true, tokenLength, tokenHint, workspaceName = false, sampleOptIn = false, signInInstead, submitLabel = 'Create owner account', busyLabel = 'Creating account…', linkComponent, fieldErrors, onSubmit, ...frame }: FirstUserSetupFlowProps) {
   const id = useId();
-  return <AuthFormFrame {...frame} onSubmit={typed(onSubmit, raw => ({ name: text(raw, 'name'), token: text(raw, 'token'), email: text(raw, 'email'), password: text(raw, 'password'), ...(workspaceName ? optional(raw, 'workspaceName') : {}), sample: raw.sample === 'true' }))} fieldErrors={fieldErrors} linkComponent={linkComponent} submitLabel={submitLabel} busyLabel={busyLabel}
+  return <AuthFormFrame {...frame} onSubmit={typed(onSubmit, raw => ({ name: text(raw, 'name'), ...(setupToken ? { token: text(raw, 'token') } : {}), email: text(raw, 'email'), password: text(raw, 'password'), ...(workspaceName ? optional(raw, 'workspaceName') : {}), sample: raw.sample === 'true' }))} fieldErrors={fieldErrors} linkComponent={linkComponent} submitLabel={submitLabel} busyLabel={busyLabel}
     after={signInInstead && <div className="t98-auth-aux"><FlowActionControl action={signInInstead} label={signInInstead.label ?? 'Sign in instead'} linkComponent={linkComponent} variant="ghost" /></div>}>
     <Field label="Your name" htmlFor={`${id}-name`} error={fieldErrors?.name}>
       <Input name="name" autoComplete="name" required maxLength={120} defaultValue={defaultValues?.name} />
     </Field>
-    <Field label="Setup token" htmlFor={`${id}-token`} description={tokenHint} error={fieldErrors?.token}>
+    {setupToken && <Field label="Setup token" htmlFor={`${id}-token`} description={tokenHint} error={fieldErrors?.token}>
       <Input name="token" type="password" autoComplete="off" required minLength={tokenLength?.min} maxLength={tokenLength?.max} spellCheck={false} />
-    </Field>
+    </Field>}
     <Field label="Email address" htmlFor={`${id}-email`} error={fieldErrors?.email}>
       <Input name="email" type="email" autoComplete="username" required maxLength={254} defaultValue={defaultValues?.email} />
     </Field>
@@ -288,17 +293,21 @@ export function PasswordRecoveryFlow({ stage, token, availability = 'enabled', s
 
 export type InvitationState = 'loading' | 'details' | 'signin-required' | 'mismatch' | 'unavailable' | 'accepted';
 export interface InvitationDetails { workspaceName: string; email: string; role: string; expiresAt: string | Date }
-export interface InvitationMessages { loading: string; mismatch: string; accepted: string; signInRequired: string }
+export interface InvitationMessages { loading: string; mismatch: string; accepted: string; signInRequired: string; workspaceTerm: string; emailTerm: string; roleTerm: string; expiresTerm: string }
 const invitationMessages: InvitationMessages = {
   loading: 'Loading the invitation…', mismatch: 'Signed in as {signedIn}; this invitation is for {invited}.', accepted: 'You joined {workspace}.',
   signInRequired: 'Sign in as {invited} to join {workspace}.',
+  workspaceTerm: 'Workspace', emailTerm: 'Invited email', roleTerm: 'Role', expiresTerm: 'Expires',
 };
 export interface InvitationAcceptFlowProps extends AuthFormBaseProps<InvitationValues> {
   state: InvitationState;
   /** Invitation token, held in memory by the application. It is posted as the hidden field `token` and included in the onSubmit values; the flow never reads or changes the address. */
   token?: string;
   invitation?: InvitationDetails;
+  /** Formats the expiry; pass a locale-aware formatter (the default is a medium English date in UTC). */
   formatDate?: (value: string | Date) => string;
+  /** The role's display name, for example "Editor" for `editor`. Defaults to the raw role. */
+  roleLabel?: (role: string) => string;
   /** Email of the current session, if any. */
   signedInEmail?: string;
   /** An account already exists for the invited email. */
@@ -317,17 +326,17 @@ export interface InvitationAcceptFlowProps extends AuthFormBaseProps<InvitationV
   cancel?: LabelledAction;
 }
 /** Workspace invitation screens for every step of acceptance. The application validates the invitation and the session. */
-export function InvitationAcceptFlow({ state, token, invitation, formatDate = formatFlowDate, signedInEmail, accountExists = false, providers, onSignIn, signInLabel, onSwitchAccount, onRetry, continueAction, passwordPolicy = defaultPasswordPolicy, messages, cancel, busyLabel, linkComponent, fieldErrors, onSubmit, ...frame }: InvitationAcceptFlowProps) {
+export function InvitationAcceptFlow({ state, token, invitation, formatDate = formatFlowDate, roleLabel = role => role, signedInEmail, accountExists = false, providers, onSignIn, signInLabel, onSwitchAccount, onRetry, continueAction, passwordPolicy = defaultPasswordPolicy, messages, cancel, busyLabel, linkComponent, fieldErrors, onSubmit, ...frame }: InvitationAcceptFlowProps) {
   const id = useId();
   const copy = { ...invitationMessages, ...messages };
   const fill = (text: string) => text.replace('{signedIn}', signedInEmail ?? '').replace('{invited}', invitation?.email ?? '').replace('{workspace}', invitation?.workspaceName ?? '');
   const effective = state === 'details' && !signedInEmail && accountExists ? 'signin-required' : state;
   const busy = frame.busy ?? false;
   const summary = invitation && <DescriptionList items={[
-    { key: 'workspace', term: 'Workspace', description: invitation.workspaceName },
-    { key: 'email', term: 'Invited email', description: invitation.email },
-    { key: 'role', term: 'Role', description: invitation.role },
-    { key: 'expires', term: 'Expires', description: formatDate(invitation.expiresAt) },
+    { key: 'workspace', term: copy.workspaceTerm, description: invitation.workspaceName },
+    { key: 'email', term: copy.emailTerm, description: invitation.email },
+    { key: 'role', term: copy.roleTerm, description: roleLabel(invitation.role) },
+    { key: 'expires', term: copy.expiresTerm, description: formatDate(invitation.expiresAt) },
   ]} />;
   const exit = cancel && <FlowActionControl key="exit" action={cancel} label={cancel.label ?? 'Cancel'} linkComponent={linkComponent} variant="ghost" />;
   const base = { ...frame, linkComponent, onSubmit: typed(onSubmit, raw => ({ ...optional(raw, 'name'), ...optional(raw, 'password'), ...optional(raw, 'token') })), valueFields: token ? { token } : undefined };
@@ -374,6 +383,10 @@ export interface WorkspaceOnboardingProps extends Omit<AuthFormBaseProps<Workspa
   subheading?: string;
   help?: string;
   defaultValues?: { name?: string };
+  /** Label of the name field, for example "Project name" for a create-first-project step. Defaults to "Workspace name". */
+  nameLabel?: string;
+  /** A checkbox inside the form, for example "Add sample data"; its value is submitted as `sample`. `false` or omitted hides it. */
+  sampleOptIn?: { label: string; defaultChecked?: boolean } | false;
   submitLabel?: string;
   onRefresh?: () => void;
   refreshLabel?: string;
@@ -384,10 +397,10 @@ export interface WorkspaceOnboardingProps extends Omit<AuthFormBaseProps<Workspa
   children?: ReactNode;
 }
 /** Shown to a signed-in account that has no workspace access yet: create one, refresh access or sign out. */
-export function WorkspaceOnboarding({ title = 'Workspace access', email, subheading = 'Create a workspace', help, defaultValues, submitLabel = 'Create workspace', busyLabel = 'Creating workspace…', onRefresh, refreshLabel = 'Refresh access', signOut, account, children, fieldErrors, onSubmit, ...frame }: WorkspaceOnboardingProps) {
+export function WorkspaceOnboarding({ title = 'Workspace access', email, subheading = 'Create a workspace', help, defaultValues, nameLabel = 'Workspace name', sampleOptIn = false, submitLabel = 'Create workspace', busyLabel = 'Creating workspace…', onRefresh, refreshLabel = 'Refresh access', signOut, account, children, fieldErrors, onSubmit, ...frame }: WorkspaceOnboardingProps) {
   const id = useId();
   const signOutLabel = signOut?.label ?? 'Sign out';
-  return <AuthFormFrame {...frame} onSubmit={typed(onSubmit, raw => ({ name: text(raw, 'name') }))} title={title} description={`Signed in as ${email}`} fieldErrors={fieldErrors} submitLabel={submitLabel} busyLabel={busyLabel}
+  return <AuthFormFrame {...frame} onSubmit={typed(onSubmit, raw => ({ name: text(raw, 'name'), ...(sampleOptIn ? { sample: raw.sample === 'true' } : {}) }))} title={title} description={`Signed in as ${email}`} fieldErrors={fieldErrors} submitLabel={submitLabel} busyLabel={busyLabel}
     below={(onRefresh || signOut || account || children) && <Stack gap={4}>
       {(onRefresh || signOut || account) && <div className="t98-auth-aux">
         {onRefresh && <Button type="button" variant="secondary" size="sm" onClick={onRefresh}>{refreshLabel}</Button>}
@@ -403,9 +416,10 @@ export function WorkspaceOnboarding({ title = 'Workspace access', email, subhead
     </Stack>}>
     <Heading level={2} className="t98-auth-subheading">{subheading}</Heading>
     {help && <Text tone="muted" size="sm">{help}</Text>}
-    <Field label="Workspace name" htmlFor={`${id}-name`} error={fieldErrors?.name ?? fieldErrors?.workspaceName}>
+    <Field label={nameLabel} htmlFor={`${id}-name`} error={fieldErrors?.name ?? fieldErrors?.workspaceName}>
       <Input name="name" autoComplete="organization" required maxLength={120} defaultValue={defaultValues?.name} />
     </Field>
+    {sampleOptIn && <div className="t98-auth-choice"><Checkbox name="sample" value="true" label={sampleOptIn.label} defaultChecked={sampleOptIn.defaultChecked} /></div>}
   </AuthFormFrame>;
 }
 

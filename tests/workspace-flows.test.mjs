@@ -87,7 +87,7 @@ test('WorkspaceCreateFlow and ProjectCreateFlow submit typed names; originRequir
   const required = render(h(ProjectCreateFlow, { mode: 'create', defaultValues: { name: '', origin: '' }, onSubmit: noop }));
   assert.deepEqual(names(required), ['name', 'origin']);
   assert.match(required, /<input[^>]*name="origin"[^>]*>/);
-  assert.match(required.match(/<input[^>]*name="origin"[^>]*>/)[0], /type="url"[^>]*required|required=""[^>]*type="url"|type="url"/);
+  assert.match(required.match(/<input[^>]*name="origin"[^>]*>/)[0], /inputMode="url"/);
   assert.match(required.match(/<input[^>]*name="origin"[^>]*>/)[0], /required=""/);
   const optional = render(h(ProjectCreateFlow, { mode: 'edit', defaultValues: { name: 'Site', origin: '' }, originRequired: false, onSubmit: noop }));
   assert.doesNotMatch(optional.match(/<input[^>]*name="origin"[^>]*>/)[0], /required/);

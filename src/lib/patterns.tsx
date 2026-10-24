@@ -30,6 +30,9 @@ export interface DataColumn<T> {
   hidden?: boolean;
   /** Set to `false` to keep one column from sorting. */
   sortable?: boolean;
+  /** Makes each cell a button that applies a filter for its value, for example a path chip. Its name is
+   * "<actionLabel> <cell text>" (default "Filter by"), so it includes the visible text. */
+  filter?: { onApply: (row: T) => void; actionLabel?: string };
 }
 
 export interface TableSort {
@@ -89,6 +92,10 @@ interface DataTableBaseProps<T> {
   searchPlaceholder?: string;
   pageSize?: number;
   selectable?: boolean;
+  /** Names each row's checkbox, for example "Select City after hours". Defaults to "Select row N". */
+  selectionLabel?: (row: T) => string;
+  /** Locks every selection checkbox, for example while a bulk action is running. */
+  selectionDisabled?: boolean;
   /** Controlled selection: the table keeps no selection state and the app owns pruning. Report changes through `onSelectionChange`. */
   selectedKeys?: readonly string[];
   onSelectionChange?: (keys: string[]) => void;
@@ -137,7 +144,7 @@ const interactiveTarget = 'a[href],button,input,select,textarea,label,summary,[r
 
 export function DataTable<T>({
   columns, rows, rowKey, caption, captionHidden = true, ariaLabel, searchable = true, sortable = true, pagination = true,
-  searchPlaceholder = 'Search records…', pageSize = 5, selectable = false, selectedKeys: selectedKeysProp, onSelectionChange, activeKey, onRowActivate, rowDetail, expandedKeys: expandedKeysProp, onExpandedChange, emptyTitle = 'No records found', emptyDescription, emptyState,
+  searchPlaceholder = 'Search records…', pageSize = 5, selectable = false, selectionLabel, selectionDisabled = false, selectedKeys: selectedKeysProp, onSelectionChange, activeKey, onRowActivate, rowDetail, expandedKeys: expandedKeysProp, onExpandedChange, emptyTitle = 'No records found', emptyDescription, emptyState,
   sort: sortProp, onSortChange, page: pageProp, onPageChange, search: searchProp, onSearchChange, rowActions, rowActionsLabel = 'Actions',
   loading = false, unavailable, stickyHeader = false, footerCells, density = 'comfortable', responsive = 'scroll',
 }: DataTableProps<T>) {
@@ -295,7 +302,7 @@ export function DataTable<T>({
         {caption !== undefined && <caption className={captionHidden ? 't98-visually-hidden' : 't98-table-caption'}>{caption}</caption>}
         <thead role={role('rowgroup')}><tr role={role('row')}>
           {selectable && <th className="t98-table-check" scope="col" role={role('columnheader')}>
-            <label className="t98-table-checkbox-target"><input ref={selectAll} type="checkbox" checked={allChecked} disabled={visible.length === 0}
+            <label className="t98-table-checkbox-target"><input ref={selectAll} type="checkbox" checked={allChecked} disabled={selectionDisabled || visible.length === 0}
               aria-label="Select all rows on this page" onChange={togglePage} /></label>
           </th>}
           {rowDetail && <th scope="col" className="t98-table-expand" role={role('columnheader')}><span className="t98-visually-hidden">Details</span></th>}
@@ -325,8 +332,8 @@ export function DataTable<T>({
               onClick={activatable ? event => onRowClick(event, row) : undefined}
               onKeyDown={activatable ? event => onRowKeyDown(event, row, index) : undefined}>
             {selectable && <td className="t98-table-check" role={role('cell')}>
-              <label className="t98-table-checkbox-target"><input type="checkbox" aria-label={`Select row ${offset + index + 1}`} checked={selectedSet.has(key)}
-                onChange={() => toggleRow(key)} /></label>
+              <label className="t98-table-checkbox-target"><input type="checkbox" aria-label={selectionLabel ? selectionLabel(row) : `Select row ${offset + index + 1}`} checked={selectedSet.has(key)}
+                disabled={selectionDisabled} onChange={() => toggleRow(key)} /></label>
             </td>}
             {rowDetail && <td className="t98-table-expand" role={role('cell')}>
               <Button variant="ghost" size="sm" aria-label={`Details for row ${offset + index + 1}`} aria-expanded={expanded} aria-controls={detailId} onClick={() => toggleExpanded(key)}>
@@ -338,10 +345,15 @@ export function DataTable<T>({
               const children = isMissing(content)
                 ? <><span aria-hidden="true">—</span><span className="t98-visually-hidden">Not available</span></>
                 : column.render ? content as ReactNode : cellText(content);
+              const cell = column.filter && !isMissing(content)
+                ? <button type="button" className="t98-table-filter" onClick={() => column.filter!.onApply(row)}>
+                  <Icon name="filter" size={14} aria-hidden="true" /><span className="t98-visually-hidden">{column.filter.actionLabel ?? 'Filter by'} </span><span className="t98-table-filter__value">{children}</span>
+                </button>
+                : children;
               const label = stack ? column.header : undefined;
               return column.rowHeader
-                ? <th key={column.key} scope="row" className={cellClass(column)} data-label={label} role={role('rowheader')}>{children}</th>
-                : <td key={column.key} className={cellClass(column)} data-label={label} role={role('cell')}>{children}</td>;
+                ? <th key={column.key} scope="row" className={cellClass(column)} data-label={label} role={role('rowheader')}>{cell}</th>
+                : <td key={column.key} className={cellClass(column)} data-label={label} role={role('cell')}>{cell}</td>;
             })}
             {rowActions && <td className="t98-table-actions" data-label={stack ? rowActionsLabel : undefined} role={role('cell')}>{rowActions(row)}</td>}
           </tr>

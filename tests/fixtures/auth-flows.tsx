@@ -50,10 +50,17 @@ const backToSignIn = { href: '#signin' };
 const invitation = { workspaceName: 'Acme Marketing', email: 'new.member@example.test', role: 'Editor', expiresAt: '2030-01-15T12:00:00Z' };
 const invitationFrame = { brand, title: 'Join Acme Marketing', description: 'You were invited to collaborate.', onSubmit: noop, invitation, formatDate: (value: string | Date) => new Date(value).toISOString().slice(0, 10) };
 
-/** Shows the typed values a flow hands to the application. */
-function ValuesProbe({ optIn }: { optIn: boolean }) {
+/** The create-first-project step: a project name and an optional sample-data opt-in inside the form. */
+function FirstProjectProbe() {
   const [values, setValues] = useState('');
-  return <FirstUserSetupFlow brand={brand} title="Create owner account" workspaceName sampleOptIn={optIn ? { label: 'Add sample content' } : false} hiddenFields={{ csrf: 'token-from-server' }} onSubmit={submitted => setValues(JSON.stringify(submitted))} notice={values ? { tone: 'info', text: values } : undefined} />;
+  return <WorkspaceOnboarding brand={brand} email="owner@example.test" subheading="Create your first project" nameLabel="Project name" submitLabel="Create project"
+    sampleOptIn={{ label: 'Add sample data' }} onSubmit={submitted => setValues(JSON.stringify(submitted))} notice={values ? { tone: 'info', text: values } : undefined} />;
+}
+
+/** Shows the typed values a flow hands to the application. */
+function ValuesProbe({ optIn, setupToken = true }: { optIn: boolean; setupToken?: boolean }) {
+  const [values, setValues] = useState('');
+  return <FirstUserSetupFlow brand={brand} title="Create owner account" setupToken={setupToken} workspaceName sampleOptIn={optIn ? { label: 'Add sample content' } : false} hiddenFields={{ csrf: 'token-from-server' }} onSubmit={submitted => setValues(JSON.stringify(submitted))} notice={values ? { tone: 'info', text: values } : undefined} />;
 }
 
 const screens: Record<string, ReactNode> = {
@@ -77,6 +84,8 @@ const screens: Record<string, ReactNode> = {
   'interactive': <Interactive />,
   'values': <ValuesProbe optIn />,
   'values-hidden': <ValuesProbe optIn={false} />,
+  // The first sign-up becomes the owner: no setup token.
+  'values-no-token': <ValuesProbe optIn={false} setupToken={false} />,
   '2fa-authenticator': <TwoFactor initial="authenticator" />,
   '2fa-recovery': <TwoFactor initial="recovery" />,
   '2fa-error': <TwoFactorChallengeFlow brand={brand} title="Verify your identity" mode="authenticator" onModeChange={noop} onSubmit={noop} error="The code is incorrect or expired." fieldErrors={{ code: 'Enter the 6-digit code.' }} cancel={{ href: '#signin' }} />,
@@ -101,6 +110,7 @@ const screens: Record<string, ReactNode> = {
   'invitation-unavailable': <InvitationAcceptFlow {...invitationFrame} state="unavailable" invitation={undefined} error="This invitation was cancelled by the workspace owner." onRetry={noop} cancel={{ href: '#home' }} />,
   'invitation-accepted': <InvitationAcceptFlow {...invitationFrame} state="accepted" continueAction={{ href: '#workspace' }} />,
   'onboarding': <WorkspaceOnboarding brand={brand} aside={story} email="member@example.test" help="Ask an owner to invite you, or create a workspace of your own." onSubmit={noop} onRefresh={noop} account={{ label: 'Account settings', href: '#account' }} signOut={{ onClick: noop }}><Text tone="muted" size="sm">Invitations you receive appear here.</Text></WorkspaceOnboarding>,
+  'onboarding-project': <FirstProjectProbe />,
   'onboarding-native': <WorkspaceOnboarding brand={brand} email="member@example.test" action="/workspaces" hiddenFields={{ csrf: 'token-from-server' }} signOut={{ action: '/logout', hiddenFields: { csrf: 'token-from-server' } }} onRefresh={noop} />,
   'onboarding-error': <WorkspaceOnboarding brand={brand} email="a.very.long.address.for.a.narrow.screen@example.test" onSubmit={noop} error="The workspace could not be created." fieldErrors={{ name: 'Enter a workspace name.' }} />,
   'unconfirmed': <AppStateScreen state="unconfirmed" brand={brand} onRetry={noop} />,

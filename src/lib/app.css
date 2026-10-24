@@ -255,7 +255,7 @@ h1{font-size:25px}
 .panel-heading h2{font-size:14px}
 .panel-heading .text-link{font-size:11px}
 .panel-heading p{font-size:11px}
-:is(.table-scroll,.table-wrap) table{min-width:600px}
+/* No forced table min-width: nowrap cells already set a wide table's width and the wrapper scrolls it; small tables fit. */
 th{font-size:10px}
 td{font-size:11px}
 .badge{font-size:9px}

@@ -166,3 +166,78 @@ test('U62: Select width="auto" sizes to its options; the default still fills a F
   assert.match(render(ui.Select, { options: [] }), /class="t98-input t98-select"/);
   assert.match(styles, /\.t98-select--auto\s*\{\s*width:\s*auto;\s*max-width:\s*100%;\s*\}/);
 });
+
+test('U72: ProjectCreateFlow\'s origin is text with a URL keyboard, so the app validates bare domains itself', () => {
+  const html = render(ui.ProjectCreateFlow, { onSubmit() {}, showOrigin: true, defaultValues: { name: '', origin: '' } });
+  const origin = html.match(/<input[^>]*name="origin"[^>]*>/)[0];
+  assert.match(origin, /type="text"/);
+  assert.match(origin, /inputMode="url"|inputmode="url"/);
+  assert.doesNotMatch(origin, /type="url"/);
+});
+
+test('U64: legacy tables are not forced to 600px under 760px; only their own content sets the width', () => {
+  const app = readFileSync(new URL('../dist/app.css', import.meta.url), 'utf8');
+  assert.doesNotMatch(app, /table\{min-width:600px\}/);
+});
+
+test('U66: SectionNav drops hidden items and renders disabled ones as non-links with their reason; wrap is opt-in', () => {
+  const items = [
+    { id: 'account', label: 'Your account', href: 'account', current: true },
+    { id: 'billing', label: 'Billing', href: 'billing', hidden: true },
+    { id: 'api', label: 'API access', href: 'api', disabled: true, disabledReason: 'Owners only' },
+  ];
+  const html = render(ui.SectionNav, { label: 'Settings', items });
+  assert.doesNotMatch(html, /Billing/);
+  assert.match(html, /<span class="t98-section-nav__link" aria-disabled="true">API access<span[^>]*>, Owners only<\/span><\/span>/);
+  assert.doesNotMatch(html, /href="api"/);
+  assert.doesNotMatch(html, /t98-section-nav__list--wrap/);
+  assert.match(render(ui.SectionNav, { label: 'Settings', items, wrap: true }), /class="t98-section-nav__list t98-section-nav__list--wrap"/);
+});
+
+// Campaign Lead's second browser pass on 0.23.0 (#76-#81).
+test('#79: InvitationAcceptFlow labels the role and takes its terms from messages', () => {
+  const html = render(ui.InvitationAcceptFlow, { brand: h('span', null, 'Ten98'), state: 'details', token: 't', onAccept() {},
+    invitation: { workspaceName: 'Acme', email: 'a@example.test', role: 'editor', expiresAt: '2026-10-30T00:00:00Z' },
+    roleLabel: role => role === 'editor' ? 'Editor' : role, messages: { roleTerm: 'Access' }, formatDate: () => '30 Oct 2026' });
+  assert.match(html, />Access<\/dt><dd[^>]*>Editor</);
+  assert.match(html, />30 Oct 2026</);
+  assert.doesNotMatch(html, />editor</);
+});
+
+test('#80: TeamFlow marks the required invite email', () => {
+  const html = render(ui.TeamFlow, { currentUserId: 'me', onRoleChange() {}, onRemove() {}, onInvite() {}, onRevokeInvitation() {}, invitations: [], roles: [{ value: 'editor', label: 'Editor' }], assignableRoles: () => [], members: [{ id: 'me', name: 'Me', email: 'me@example.test', role: 'owner' }] });
+  assert.match(html, /Email address<span class="t98-label-required" aria-hidden="true"> \*<\/span>|<label[^>]*>[^<]*<span class="t98-label-required"/);
+});
+
+test('#81: DataTable names each row checkbox and can lock selection while busy', () => {
+  const props = { ariaLabel: 'Campaigns', columns: [{ key: 'name', header: 'Name' }], rows: [{ id: 'a', name: 'City after hours' }], rowKey: row => row.id, selectable: true };
+  const named = render(ui.DataTable, { ...props, selectionLabel: row => `Select ${row.name}` });
+  assert.match(named, /aria-label="Select City after hours"/);
+  const locked = render(ui.DataTable, { ...props, selectionDisabled: true });
+  assert.equal([...locked.matchAll(/<input type="checkbox"[^>]*disabled=""/g)].length, 2);
+  assert.match(render(ui.DataTable, props), /aria-label="Select row 1"/);
+});
+
+test('#76-#78: wrap columns keep their longest word, the status label keeps a basis, selected segments keep contrast on hover', () => {
+  assert.match(styles, /\.t98-table \.t98-table-cell--wrap\s*\{[^}]*overflow-wrap:\s*break-word/);
+  assert.match(styles, /\.t98-sidebar-status__label\s*\{[^}]*flex:\s*1 1 8rem/);
+  assert.match(styles, /\.t98-segmented-option:hover:not\(:disabled\):not\(\[aria-pressed='true'\]\)/);
+});
+
+test('FirstUserSetupFlow setupToken={false}: no token field, so the first sign-up becomes the owner', () => {
+  const brand = h('span', null, 'Ten98');
+  const withToken = render(ui.FirstUserSetupFlow, { brand, title: 'Create owner account', onSubmit() {} });
+  assert.match(withToken, /name="token"/);
+  const owner = render(ui.FirstUserSetupFlow, { brand, title: 'Create owner account', setupToken: false, workspaceName: true, onSubmit() {} });
+  assert.doesNotMatch(owner, /name="token"|Setup token/);
+  for (const field of ['name', 'email', 'password', 'workspaceName']) assert.match(owner, new RegExp(`name="${field}"`));
+});
+
+test('WorkspaceOnboarding can be a create-first-project step with a sample-data checkbox inside its form', () => {
+  const brand = h('span', null, 'Ten98');
+  const html = render(ui.WorkspaceOnboarding, { brand, email: 'o@example.test', nameLabel: 'Project name', sampleOptIn: { label: 'Add sample data' }, onSubmit() {} });
+  assert.match(html, />Project name</);
+  const form = html.match(/<form[\s\S]*<\/form>/)[0];
+  assert.match(form, /name="sample"[^>]*value="true"|value="true"[^>]*name="sample"/);
+  assert.doesNotMatch(render(ui.WorkspaceOnboarding, { brand, email: 'o@example.test', onSubmit() {} }), /name="sample"/);
+});

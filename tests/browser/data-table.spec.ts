@@ -218,3 +218,37 @@ test('a large DataTable sorts once per sort change, not again when a row is sele
   // thousands of times (about 68,000 for two selections before the memo).
   expect(await page.evaluate(() => window.sortCalls) - afterSort, 'selecting rows reuses the memoized sort').toBeLessThan(100);
 });
+
+test('a filter cell is a named button that applies its filter and stays inside a stacked card at 320px and 200% text', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 900 });
+  await page.goto('/tests/data-table.html');
+  const stacked = page.getByRole('table', { name: 'Stacked table' });
+  const chip = stacked.getByRole('button', { name: 'Filter by /campaigns/c1/landingpagewithalongunbrokenpathsegment' });
+  await chip.click();
+  expect(await page.evaluate(() => window.filterApplied)).toBe('c1');
+  await page.addStyleTag({ content: 'html { font-size: 200% !important; } * { font-size: inherit; }' });
+  const fit = await chip.evaluate(element => {
+    const card = element.closest('tr')!.getBoundingClientRect(), box = element.getBoundingClientRect();
+    return { left: box.left - card.left, right: card.right - box.right, page: document.documentElement.scrollWidth - document.documentElement.clientWidth };
+  });
+  expect(fit.left).toBeGreaterThanOrEqual(-1);
+  expect(fit.right).toBeGreaterThanOrEqual(-1);
+  expect(fit.page).toBeLessThanOrEqual(1);
+});
+
+test('wrapping columns keep their longest word at 320px instead of one letter per line (#76)', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 900 });
+  await page.goto('/tests/data-table.html');
+  const table = page.getByRole('table', { name: 'Wrapped table' });
+  // Squeeze the table to its minimum, as wide neighbouring columns do in Campaign: a wrap column must not
+  // shrink below its longest word ("deliberately"), or it breaks inside words.
+  const fit = await table.evaluate(element => {
+    (element as HTMLElement).style.width = '1px';
+    const cell = element.querySelector('.t98-table-cell--wrap')!;
+    const probe = document.createElement('span'); probe.textContent = 'deliberately'; probe.style.whiteSpace = 'nowrap';
+    cell.append(probe); const word = probe.getBoundingClientRect().width; probe.remove();
+    const padding = parseFloat(getComputedStyle(cell).paddingInlineStart) + parseFloat(getComputedStyle(cell).paddingInlineEnd);
+    return { content: cell.getBoundingClientRect().width - padding, word };
+  });
+  expect(fit.content).toBeGreaterThanOrEqual(fit.word - 1);
+});

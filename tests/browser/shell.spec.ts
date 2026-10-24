@@ -396,3 +396,32 @@ test('the topbar search text starts after the magnifier, even when the spacing t
   await page.addStyleTag({ content: '.t98-search-field { --t98-space-10: initial; --t98-space-3: initial; --t98-space-2: initial; }' });
   expect(await gap()).toBeGreaterThanOrEqual(4);
 });
+
+test('SectionNav at 320px fades the edge that hides sections and starts with the current one in view', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 800 });
+  await page.goto('/tests/shell.html?theme=light');
+  const list = page.getByRole('navigation', { name: 'Page sections' }).getByRole('list');
+  await expect(list).toHaveAttribute('data-overflow', 'end');
+  expect(await list.evaluate(element => getComputedStyle(element).maskImage)).toContain('linear-gradient');
+  await list.evaluate(element => { element.scrollLeft = element.scrollWidth; });
+  await expect(list).toHaveAttribute('data-overflow', 'start');
+
+  // A current section near the end is scrolled into the row's view on load, without moving the page.
+  await page.goto('/tests/shell.html?theme=light&section=settings');
+  const current = page.getByRole('navigation', { name: 'Page sections' }).getByRole('link', { name: 'Settings' });
+  await expect(current).toHaveAttribute('aria-current', 'page');
+  const inView = await current.evaluate(element => {
+    const row = element.closest('ul')!.getBoundingClientRect(), box = element.getBoundingClientRect();
+    return box.left >= row.left - 1 && box.right <= row.right + 1;
+  });
+  expect(inView).toBe(true);
+  expect(await page.evaluate(() => window.scrollX)).toBe(0);
+});
+
+test('the sidebar status label keeps a readable width at 1280px, wrapping its action instead (#77)', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto(appUrl('light'));
+  await page.locator('.t98-sidebar-status__label').first().evaluate(element => { element.textContent = 'Connect your channels'; });
+  const width = await page.locator('.t98-sidebar-status__label').first().evaluate(element => element.getBoundingClientRect().width);
+  expect(width).toBeGreaterThanOrEqual(100);
+});

@@ -154,11 +154,13 @@ export function PasswordChangeFlow({ policy = defaultPasswordPolicy, hasPassword
 /* ------------------------------------------------------------ Two-factor */
 
 export type TwoFactorSetupStage = 'off' | 'enrolling' | 'codes' | 'on';
-export interface TwoFactorEnrolment { qrDataUrl: string; manualKey: string; uri?: string }
+/** `qrDataUrl` is optional: without it the flow shows the setup key and the `uri` (otpauth link), each with a copy action. */
+export interface TwoFactorEnrolment { qrDataUrl?: string; manualKey: string; uri?: string }
 export interface TwoFactorSetupMessages {
   statusOff: string; statusOn: string; password: string; start: string; starting: string; qrAlt: string; scan: string; manualKey: string; openApp: string;
   code: string; codeHint: string; verify: string; verifying: string; codesIntro: string; copyAll: string; download: string; downloadFailed: string; acknowledge: string;
   manage: string; regenerate: string; regenerateTitle: string; regenerateDescription: string; disable: string; disableTitle: string; disableDescription: string; passwordRequired: string;
+  scanWithoutQr: string; setupLink: string; copyKey: string; copyLink: string; disableCode: string; disableCodeRequired: string;
 }
 const twoFactorMessages: TwoFactorSetupMessages = {
   statusOff: 'Two-factor authentication is off.', statusOn: 'Two-factor authentication is on.', password: 'Current password', start: 'Set up two-factor authentication', starting: 'Starting…',
@@ -168,6 +170,8 @@ const twoFactorMessages: TwoFactorSetupMessages = {
   acknowledge: 'I saved these codes', manage: 'Confirm with your password to change two-factor settings.', regenerate: 'Regenerate recovery codes', regenerateTitle: 'Regenerate recovery codes?',
   regenerateDescription: 'Your current recovery codes stop working as soon as new ones are created.', disable: 'Turn off two-factor authentication', disableTitle: 'Turn off two-factor authentication?',
   disableDescription: 'Your account will be protected by your password alone.', passwordRequired: 'Enter your current password.',
+  scanWithoutQr: 'Enter the setup key in your authenticator app, or open the setup link on this device.', setupLink: 'Setup link', copyKey: 'Copy key', copyLink: 'Copy link',
+  disableCode: 'Authenticator or recovery code', disableCodeRequired: 'Enter a code from your authenticator app or a recovery code.',
 };
 
 /**
@@ -199,7 +203,10 @@ export interface TwoFactorSetupFlowProps extends FlowState {
   onVerify: Submit<{ code: string }>;
   onAcknowledgeCodes: () => void | Promise<void>;
   onRegenerate: Submit<{ password: string }>;
-  onDisable: Submit<{ password: string }>;
+  /** Receives `code` too when `disableRequiresCode` is set. */
+  onDisable: Submit<{ password: string; code?: string }>;
+  /** Asks for an authenticator or recovery code as well as the password before turning two-factor off. */
+  disableRequiresCode?: boolean;
   title?: string;
   description?: string;
   messages?: Partial<TwoFactorSetupMessages>;
@@ -207,12 +214,14 @@ export interface TwoFactorSetupFlowProps extends FlowState {
 }
 type TwoFactorAction = 'regenerate' | 'disable';
 /** Two-factor enrolment and management. The application verifies passwords and codes and generates the secrets. */
-export function TwoFactorSetupFlow({ stage, enrolment, recoveryCodes = [], codeLength = 6, downloadName = 'recovery-codes.txt', onStart, onVerify, onAcknowledgeCodes, onRegenerate, onDisable, title = 'Two-factor authentication', description, messages, linkComponent, fieldErrors, ...state }: TwoFactorSetupFlowProps) {
+export function TwoFactorSetupFlow({ stage, enrolment, recoveryCodes = [], codeLength = 6, downloadName = 'recovery-codes.txt', onStart, onVerify, onAcknowledgeCodes, onRegenerate, onDisable, disableRequiresCode = false, title = 'Two-factor authentication', description, messages, linkComponent, fieldErrors, ...state }: TwoFactorSetupFlowProps) {
   const id = useId();
   const copy = { ...twoFactorMessages, ...messages };
   const [password, setPassword] = useState('');
   const [passwordError, setPasswordError] = useState<string>();
   const [confirming, setConfirming] = useState<TwoFactorAction>();
+  const [disableCode, setDisableCode] = useState('');
+  const [codeError, setCodeError] = useState<string>();
   const [saveError, setSaveError] = useState(false);
   const single = useSingleSubmit();
   const read = (event: FormEvent<HTMLFormElement>, name: string) => formText(new FormData(event.currentTarget), name);
@@ -228,16 +237,23 @@ export function TwoFactorSetupFlow({ stage, enrolment, recoveryCodes = [], codeL
 
   if (stage === 'enrolling') return <SettingsFlow {...state} title={title} description={description} submitLabel={copy.verify} busyLabel={state.busyLabel ?? copy.verifying}
     onSubmit={event => { event.preventDefault(); void single(() => onVerify({ code: read(event, 'code').trim() })); }}>
-    <Text tone="muted" size="sm">{copy.scan}</Text>
+    <Text tone="muted" size="sm">{enrolment && !enrolment.qrDataUrl ? copy.scanWithoutQr : copy.scan}</Text>
     {enrolment && <Stack gap={3}>
-      <div className="t98-account-qr"><Image src={enrolment.qrDataUrl} alt={copy.qrAlt} fit="contain" aspect="square" loading="eager" /></div>
+      {enrolment.qrDataUrl && <div className="t98-account-qr"><Image src={enrolment.qrDataUrl} alt={copy.qrAlt} fit="contain" aspect="square" loading="eager" /></div>}
       <Field label={copy.manualKey} htmlFor={`${id}-key`}>
         <Text as="code" id={`${id}-key`} mono className="t98-account-key">{enrolment.manualKey}</Text>
       </Field>
       <Inline>
-        <CopyButton value={enrolment.manualKey} label="Copy key" />
+        <CopyButton value={enrolment.manualKey} label={copy.copyKey} />
         {enrolment.uri && <Link href={enrolment.uri} variant="standalone" component={linkComponent}>{copy.openApp}</Link>}
       </Inline>
+      {/* Without a QR image the link is the only way to hand the secret to another device, so it is shown and copyable. */}
+      {!enrolment.qrDataUrl && enrolment.uri && <>
+        <Field label={copy.setupLink} htmlFor={`${id}-uri`}>
+          <Text as="code" id={`${id}-uri`} mono className="t98-account-key">{enrolment.uri}</Text>
+        </Field>
+        <Inline><CopyButton value={enrolment.uri} label={copy.copyLink} /></Inline>
+      </>}
     </Stack>}
     <Field label={copy.code} htmlFor={`${id}-code`} description={copy.codeHint.replace('{length}', String(codeLength))} error={fieldErrors?.code}>
       <Input id={`${id}-code`} name="code" autoComplete="one-time-code" inputMode="numeric" pattern={`[0-9]{${codeLength}}`} maxLength={codeLength} required spellCheck={false} autoCapitalize="off" />
@@ -261,17 +277,27 @@ export function TwoFactorSetupFlow({ stage, enrolment, recoveryCodes = [], codeL
   }
 
   const target = confirming === 'disable' ? { title: copy.disableTitle, description: copy.disableDescription, label: copy.disable, run: onDisable } : { title: copy.regenerateTitle, description: copy.regenerateDescription, label: copy.regenerate, run: onRegenerate };
-  const ask = (action: TwoFactorAction) => { if (!password) { setPasswordError(copy.passwordRequired); return; } setConfirming(action); };
+  const ask = (action: TwoFactorAction) => {
+    const missingCode = action === 'disable' && disableRequiresCode && !disableCode.trim();
+    if (!password) setPasswordError(copy.passwordRequired);
+    if (missingCode) setCodeError(copy.disableCodeRequired);
+    if (!password || missingCode) return;
+    setConfirming(action);
+  };
   return <SettingsFlow {...state} title={title} description={description} onSubmit={event => event.preventDefault()}>
     <Badge tone="success">{copy.statusOn}</Badge>
     <Text tone="muted" size="sm">{copy.manage}</Text>
     {passwordField}
+    {disableRequiresCode && <Field label={copy.disableCode} htmlFor={`${id}-disable-code`} error={codeError ?? fieldErrors?.code}>
+      <Input id={`${id}-disable-code`} name="code" autoComplete="one-time-code" spellCheck={false} autoCapitalize="off" value={disableCode}
+        onChange={event => { setDisableCode(event.target.value); setCodeError(undefined); }} />
+    </Field>}
     <FormActions>
       <Button type="button" variant="secondary" onClick={() => ask('regenerate')}>{copy.regenerate}</Button>
       <Button type="button" variant="danger" onClick={() => ask('disable')}>{copy.disable}</Button>
     </FormActions>
     <ConfirmDialog open={confirming !== undefined} onOpenChange={open => { if (!open) setConfirming(undefined); }} title={target.title} description={target.description} confirmLabel={target.label} danger={confirming === 'disable'}
-      onConfirm={() => target.run({ password })} />
+      onConfirm={() => confirming === 'disable' && disableRequiresCode ? onDisable({ password, code: disableCode.trim() }) : target.run({ password })} />
   </SettingsFlow>;
 }
 
