@@ -43,7 +43,7 @@ test('standalone auth shares Campaign composition and retains native forms in bo
     });
     expect(spacing.betweenFields).toBeCloseTo(20, 0);
     expect(spacing.beforeAction).toBeCloseTo(25, 0);
-    expect(spacing.hints).toEqual([7, 7]);
+    expect(spacing.hints).toEqual([6, 6]);
     await expect(shell.getByLabel('Email address')).toHaveAccessibleDescription('Use the email address registered to your account.');
     await expect(shell.getByLabel('Password')).toHaveAccessibleDescription('Use your account password.');
     await shell.getByRole('button', { name: 'Sign in', exact: true }).click();
@@ -99,8 +99,8 @@ test('brand guide and catalogue reuse the same auth layout and app-owned states'
       return { betweenFields: fields[1]!.top - fields[0]!.bottom, beforeHint: hint.top - fields[2]!.bottom, afterHint: action.top - hint.bottom };
     });
     expect(legacySpacing.betweenFields).toBeCloseTo(20, 0);
-    expect(legacySpacing.beforeHint).toBeCloseTo(13, 0);
-    expect(legacySpacing.afterHint).toBeCloseTo(22, 0);
+    expect(legacySpacing.beforeHint).toBeCloseTo(10, 0);
+    expect(legacySpacing.afterHint).toBeCloseTo(21, 0);
     await page.screenshot({ path: info.outputPath(`auth-legacy-${theme}-hint.png`), fullPage: true });
     await page.getByLabel('Reference state').selectOption('Signing in');
     await expect(frame.getByRole('button', { name: 'Signing in…' })).toBeDisabled();

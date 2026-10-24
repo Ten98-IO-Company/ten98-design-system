@@ -37,8 +37,8 @@
 .t98-scroll-region--sm { max-block-size: 12rem; } .t98-scroll-region--md { max-block-size: 20rem; } .t98-scroll-region--lg { max-block-size: 32rem; }
 .t98-scroll-region:focus-visible, .t98-scroller:focus-visible, .t98-code-pre:focus-visible, .t98-segmented-option:focus-visible, .t98-pager-button:focus-visible { outline: 3px solid var(--t98-accent); outline-offset: 2px; }
 
-.t98-segmented { display: inline-flex; flex-wrap: wrap; max-inline-size: 100%; border: 1px solid var(--t98-control-border); border-radius: var(--t98-radius); background: var(--t98-surface); overflow: hidden; }
-.t98-segmented-option { flex: 1 1 auto; min-block-size: 44px; min-inline-size: 44px; padding: 8px 14px; border: 0; border-inline-end: 1px solid var(--t98-control-border); background: transparent; color: var(--t98-text); font: 600 var(--t98-text-sm)/1.4 var(--t98-font); cursor: pointer; overflow-wrap: anywhere; }
+.t98-segmented { display: inline-flex; flex-wrap: wrap; max-inline-size: 100%; border: 1px solid var(--t98-border-strong); border-radius: var(--t98-radius); background: var(--t98-surface); overflow: hidden; }
+.t98-segmented-option { flex: 1 1 auto; min-block-size: 44px; min-inline-size: 44px; padding: 8px 14px; border: 0; border-inline-end: 1px solid var(--t98-border-strong); background: transparent; color: var(--t98-text); font: 600 var(--t98-text-sm)/1.4 var(--t98-font); cursor: pointer; overflow-wrap: anywhere; }
 .t98-segmented-option:last-child { border-inline-end: 0; }
 /* Hover tints unselected options only; the selected option keeps its accent fill so its text keeps contrast. */
 .t98-segmented-option:hover:not(:disabled):not([aria-pressed='true']) { background: var(--t98-subtle); }
@@ -57,7 +57,7 @@
 .t98-media-player--video .t98-media-player-element { block-size: auto; border-radius: var(--t98-radius-sm); background: var(--t98-subtle); }
 .t98-media-player-reason { margin: 0; color: var(--t98-muted); font-size: var(--t98-text-sm); overflow-wrap: anywhere; }
 .t98-code-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--t98-space-2); }
-.t98-code-language { color: var(--t98-muted); font-size: var(--t98-text-xs); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+.t98-code-language { color: var(--t98-muted); font-size: var(--t98-text-xs); font-weight: 500; }
 .t98-code-pre { margin: 0; padding: var(--t98-space-3); overflow: auto; border: 1px solid var(--t98-border); border-radius: var(--t98-radius); background: var(--t98-subtle); color: var(--t98-text); font: var(--t98-text-sm)/1.6 var(--t98-mono); tab-size: 2; min-inline-size: 0; }
 .t98-code-pre--wrap { white-space: pre-wrap; overflow-wrap: anywhere; }
 .t98-code-pre code { font: inherit; }
@@ -99,7 +99,7 @@
 @media (forced-colors: active) { .t98-file-zone, .t98-file-item { border-color: CanvasText; } }
 
 .t98-combobox { position: relative; min-inline-size: 0; font-family: var(--t98-font); }
-.t98-combobox-popup { position: absolute; inset-inline: 0; inset-block-start: calc(100% + 4px); z-index: var(--t98-z-popover); display: grid; min-inline-size: 0; border: 1px solid var(--t98-control-border); border-radius: var(--t98-radius); background: var(--t98-surface); color: var(--t98-text); box-shadow: var(--t98-shadow-raised); overflow: hidden; }
+.t98-combobox-popup { position: absolute; inset-inline: 0; inset-block-start: calc(100% + 4px); z-index: var(--t98-z-popover); display: grid; min-inline-size: 0; border: 1px solid var(--t98-border); border-radius: var(--t98-radius); background: var(--t98-surface); color: var(--t98-text); box-shadow: var(--t98-shadow-raised); overflow: hidden; }
 .t98-combobox-popup[hidden], .t98-combobox-list[hidden] { display: none; }
 .t98-combobox-list { margin: 0; padding: var(--t98-space-1) 0; list-style: none; max-block-size: 16rem; overflow-y: auto; overscroll-behavior: contain; }
 .t98-combobox-option { display: flex; align-items: center; min-block-size: 44px; padding: 8px var(--t98-space-3); font-size: var(--t98-text-md); line-height: var(--t98-leading-normal); overflow-wrap: anywhere; cursor: pointer; }

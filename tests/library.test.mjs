@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, accessSync } from 'node:fs';
+import { execSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import { createElement as h } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import * as ui from '../dist/index.js';
@@ -383,4 +385,87 @@ test('each component stylesheet is published under @ten98/ui/css/<sheet>.css', (
   for (const sheet of ['tokens', 'primitives', 'structure', 'patterns', 'workspace', 'products', 'navigation', 'shell', 'controls', 'account-flows', 'workspace-flows', 'charts', 'spatial']) {
     assert.doesNotThrow(() => accessSync(new URL(`../dist/${sheet}.css`, import.meta.url)), sheet);
   }
+});
+
+// Keeps the shared look from drifting (#120): one type scale, three weights, sentence case and themed colours.
+const libDir = new URL('../src/lib/', import.meta.url);
+const sheets = readdirSync(libDir).filter(name => name.endsWith('.css') && name !== 'tokens.css');
+const libRules = sheets.flatMap(sheet => [...readFileSync(new URL(sheet, libDir), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
+  .matchAll(/([^{}]+)\{([^{}]*)\}/g)].map(([, selector, body]) => ({
+  where: `${sheet} ${selector.trim()}`,
+  declarations: [...body.matchAll(/([\w-]+)\s*:\s*([^;]+);?/g)].map(([, property, value]) => [property, value.trim()]),
+})));
+
+// Each exemption names why it differs from the product scale.
+const brandLockup = /\.brand(-mark)?\b/; // The logo mark and wordmark keep their own drawn type.
+const hexAllowed = [
+  /\.t98-palette--/, // Decorative user-tag swatches, each pair checked at 4.5:1 in light and dark.
+  /\.integration-settings-icon\.\w+/, // Third-party provider tiles keep a tint of the provider's identity.
+  /\.t98-sandboxed-preview-frame|\.t98-content-preview-text/, // Previews of external content on fixed white or a scrim.
+];
+const offences = check => libRules.flatMap(rule => rule.declarations.filter(([property, value]) => check(property, value, rule.where)).map(([property, value]) => `${rule.where} { ${property}: ${value} }`));
+const sizePx = value => {
+  const match = value.match(/(?:^|\s)(\d*\.?\d+)(px|rem|em)\b/);
+  return match ? Number(match[1]) * (match[2] === 'px' ? 1 : 16) : undefined;
+};
+
+test('no text is set below 12px', () => {
+  const small = offences((property, value, where) => {
+    if (brandLockup.test(where)) return false;
+    if (property === 'font-size') return (sizePx(value) ?? 12) < 12;
+    if (property === 'font') return (sizePx(value.replace(/\/[^\s]+/, '')) ?? 12) < 12;
+    return false;
+  });
+  assert.deepEqual(small, []);
+});
+
+test('weights are 400, 500 or 600', () => {
+  const weight = (property, value) => property === 'font-weight' ? value : property === 'font' ? value.split(/\s+/)[0] : undefined;
+  const heavy = offences((property, value, where) => {
+    const given = weight(property, value);
+    return /^\d+$/.test(given ?? '') && !['400', '500', '600'].includes(given) && !brandLockup.test(where);
+  });
+  assert.deepEqual(heavy, []);
+});
+
+test('tracking stays between -0.04em (display headlines) and 0, and nothing is set in capitals', () => {
+  const tracking = offences((property, value, where) => {
+    if (brandLockup.test(where)) return false;
+    if (property === 'text-transform') return value === 'uppercase';
+    if (property !== 'letter-spacing' || value === '0' || value === 'normal') return false;
+    const em = value.match(/^(-?\d*\.?\d+)em$/);
+    return !em || Number(em[1]) < -0.04 || Number(em[1]) > 0;
+  });
+  assert.deepEqual(tracking, []);
+});
+
+test('colours come from tokens, apart from named exemptions', () => {
+  // Masks use #000 only as an alpha stop, never as a visible colour.
+  const literal = offences((property, value, where) => !property.startsWith('--') && !/(^|-)mask(-image)?$/.test(property)
+    && /#[0-9a-f]{3,8}\b/i.test(value.replace(/var\(--[\w-]+,\s*#[0-9a-f]{3,8}\)/gi, ''))
+    && !hexAllowed.some(pattern => pattern.test(where)) && !brandLockup.test(where));
+  assert.deepEqual(literal, []);
+});
+
+test('the self-hosted Inter faces resolve inside the package and lead both font tokens', () => {
+  const tokenCss = readFileSync(file('dist/tokens.css'), 'utf8');
+  const sources = [...tokenCss.matchAll(/@font-face\s*\{[^}]*url\("\.\/([^"]+)"\)/g)].map(([, path]) => path);
+  assert.deepEqual(sources.sort(), ['fonts/inter-latin-ext-wght-normal.woff2', 'fonts/inter-latin-wght-normal.woff2']);
+  for (const path of [...sources, 'fonts/OFL.txt']) accessSync(file(`dist/${path}`));
+  assert.ok([...tokenCss.matchAll(/font-display:\s*swap/g)].length === sources.length, 'Every face swaps in, so text never waits for the font');
+  for (const token of ['--t98-font', '--t98-heading']) assert.match(tokenCss, new RegExp(`${token}: "Inter Variable", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui`));
+  assert.match(readFileSync(file('THIRD_PARTY_NOTICES.md'), 'utf8'), /## Inter typeface[\s\S]*SIL OPEN FONT LICENSE Version 1\.1/);
+});
+
+test('the packed archive ships the Inter files, their licence and the notice', () => {
+  // --ignore-scripts packs the dist that npm test runs against; prepack would rebuild it.
+  const output = execSync('npm pack --dry-run --json --ignore-scripts', { cwd: fileURLToPath(file('')), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+  const [archive] = JSON.parse(output.slice(output.indexOf('[')));
+  const shipped = new Set(archive.files.map(entry => entry.path.replaceAll('\\', '/')));
+  for (const path of ['dist/fonts/inter-latin-wght-normal.woff2', 'dist/fonts/inter-latin-ext-wght-normal.woff2', 'dist/fonts/OFL.txt', 'dist/tokens.css', 'dist/styles.css', 'THIRD_PARTY_NOTICES.md']) {
+    assert.ok(shipped.has(path), `${path} is in the packed archive`);
+  }
+  const notice = readFileSync(file('THIRD_PARTY_NOTICES.md'), 'utf8');
+  assert.match(notice, /Inter 4\.001, https:\/\/github\.com\/rsms\/inter at commit 66647c0bb/);
+  assert.match(notice, /Copyright 2016 The Inter Project Authors/);
 });

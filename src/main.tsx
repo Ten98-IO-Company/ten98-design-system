@@ -31,8 +31,8 @@ import './lib/spatial.css';
 import './showcase.css';
 
 const groups: { label: string; items: { name: Page; icon: string }[] }[] = [
-  { label: 'REFERENCE', items: [{ name: 'Components', icon: 'layers' }, { name: 'Flows', icon: 'grid' }, { name: 'Templates', icon: 'layers' }, { name: 'Design tokens', icon: 'sun' }, { name: 'Brand & login', icon: 'lock' }] },
-  { label: 'BUILD WITH TEN98', items: [{ name: 'Getting started', icon: 'folder' }, { name: 'Patterns', icon: 'grid' }, { name: 'Guidelines', icon: 'shield' }, { name: 'Changelog', icon: 'calendar' }] },
+  { label: 'Reference', items: [{ name: 'Components', icon: 'layers' }, { name: 'Flows', icon: 'grid' }, { name: 'Templates', icon: 'layers' }, { name: 'Design tokens', icon: 'sun' }, { name: 'Brand & login', icon: 'lock' }] },
+  { label: 'Build with ten98', items: [{ name: 'Getting started', icon: 'folder' }, { name: 'Patterns', icon: 'grid' }, { name: 'Guidelines', icon: 'shield' }, { name: 'Changelog', icon: 'calendar' }] },
 ];
 function preference<T extends string>(name: string, fallback: T, values: readonly T[]): T {
   const override = new URLSearchParams(location.search).get(name.replace('t98-', '')) as T;

@@ -100,6 +100,10 @@ test('empty, unavailable and loading are distinct states', () => {
   assert.match(loading, /Loading records…/);
   assert.match(loading, /t98-spinner/);
   assert.doesNotMatch(loading, /No records found/);
+  // A first load keeps the table's shape: hidden placeholder rows at the real row height, never shown once rows exist.
+  assert.equal(loading.match(/<tr aria-hidden="true" class="t98-table-skeleton-row">/g)?.length, 3);
+  assert.doesNotMatch(table({ loading: true }), /t98-table-skeleton-row/);
+  assert.doesNotMatch(empty, /t98-table-skeleton-row/);
   assert.doesNotMatch(empty, /aria-busy/);
   assert.match(table({ rows: [], emptyState: h('p', null, 'Nothing yet') }), /Nothing yet/);
   assert.doesNotMatch(table({ rows, unavailable: 'Failed' }), /Beta/, 'unavailable replaces stale rows');

@@ -63,6 +63,7 @@
   --color-text-muted: var(--t98-muted);
   --color-text-placeholder: var(--t98-placeholder);
   --color-border: var(--t98-border);
+  --color-border-strong: var(--t98-border-strong);
   --color-border-control: var(--t98-control-border);
   --color-accent: var(--t98-accent);
   --color-accent-hover: var(--t98-accent-hover);
