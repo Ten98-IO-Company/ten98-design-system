@@ -12,7 +12,8 @@ export interface DateFormatter {
   date: (value: string | number | Date) => string;
   /** "30 Oct 2026, 14:05" style. */
   dateTime: (value: string | number | Date) => string;
-  /** "in 3 days" / "2 hours ago", relative to `now`; pair it with `date` as the element's title. */
+  /** Elapsed time such as "in 3 days" or "2 hours ago", relative to `now`. Never calendar words ("tomorrow"), which elapsed
+   * time cannot honestly give; show `date` beside it when the exact day matters. */
   relative: (value: string | number | Date, now?: Date) => string;
 }
 
@@ -22,7 +23,7 @@ const units: [Intl.RelativeTimeFormatUnit, number][] = [['year', 31_536_000], ['
 export function createDateFormatter({ locale, timeZone }: DateFormatterOptions = {}): DateFormatter {
   const date = new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeZone });
   const dateTime = new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short', timeZone });
-  const relative = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });
+  const relative = new Intl.RelativeTimeFormat(locale, { numeric: 'always' });
   const parse = (value: string | number | Date) => value instanceof Date ? value : new Date(value);
   const safe = (format: (when: Date) => string) => (value: string | number | Date) => {
     const when = parse(value);
@@ -33,7 +34,11 @@ export function createDateFormatter({ locale, timeZone }: DateFormatterOptions =
     dateTime: safe(when => dateTime.format(when)),
     relative: (value, now = new Date()) => safe(when => {
       const seconds = (when.getTime() - now.getTime()) / 1000;
-      const [unit, size] = units.find(([, length]) => Math.abs(seconds) >= length) ?? units[units.length - 1];
+      let index = units.findIndex(([, length]) => Math.abs(seconds) >= length);
+      if (index < 0) index = units.length - 1;
+      // Choose the unit after rounding, so 59.6 minutes reads "in 1 hour" and 359 days "in 1 year", not 60 minutes or 12 months.
+      if (index > 0 && Math.abs(Math.round(seconds / units[index][1])) >= Math.round(units[index - 1][1] / units[index][1])) index -= 1;
+      const [unit, size] = units[index];
       return relative.format(Math.round(seconds / size), unit);
     })(value),
   };

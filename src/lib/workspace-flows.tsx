@@ -8,9 +8,8 @@ import { SidebarNav, type NavLinkComponent, type SidebarNavGroup } from './shell
 import { FormActions, Heading, Inline, Stack, Text } from './structure.js';
 import { SettingsTemplate } from './templates.js';
 import { ConfirmDialog, CopyButton, SecretField, type CopyButtonMessages } from './workspace.js';
-import { FlowActionControl, SettingsFlow, TargetConfirm, formText, formatFlowDate, staticTable, useSingleSubmit, type LabelledAction } from './flow-frame.js';
+import { FlowActionControl, SettingsFlow, TargetConfirm, formText, formatFlowDate, ranOrThrow, staticTable, useSingleSubmit, type LabelledAction } from './flow-frame.js';
 import type { FlowState, Submit } from './settings-base.js';
-import { createDateFormatter } from './date-format.js';
 
 /* Presentation-only workspace settings flows. Applications keep requests, authorization and secrets, and supply every
  * message. Team members and invitations are managed only in TeamFlow, and flows never ask for the workspace or project:
@@ -152,7 +151,6 @@ const canonicalRoleLabels: Partial<Record<string, string>> = { owner: 'Owner', a
 const invitationStatusText: Record<string, string> = { pending: 'Pending', accepted: 'Accepted', expired: 'Expired', revoked: 'Revoked' };
 type InvitationActionKind = 'resend' | 'renew' | 'revoke';
 const invitationKinds: InvitationActionKind[] = ['resend', 'renew', 'revoke'];
-const flowRelative = createDateFormatter({ locale: 'en', timeZone: 'UTC' }).relative;
 const isoDate = (value: DateValue) => { const date = new Date(value); return Number.isNaN(date.getTime()) ? undefined : date.toISOString(); };
 const invitationTone = (status: string) => ({ pending: 'info', accepted: 'success', expired: 'warning', revoked: 'neutral' } as const)[status as 'pending'] ?? 'neutral';
 export interface TeamFlowProps extends FlowState {
@@ -184,14 +182,14 @@ export interface TeamFlowProps extends FlowState {
   /** Role preselected in the invite form. Defaults to the last entry of `roles`, which should be the least privileged. */
   defaultInviteRole?: string;
   formatDate?: (value: DateValue) => string;
-  /** Expiry as relative text ("in 3 days"), with `formatDate` as its title. Pass createDateFormatter(...).relative for the viewer's locale. */
+  /** Opt-in: expiry as relative text ("in 3 days") above the `formatDate` date, for example createDateFormatter(...).relative. Without it the cell shows `formatDate` alone. */
   formatRelative?: (value: DateValue) => string;
   title?: string;
   description?: string;
   messages?: Partial<TeamMessages>;
 }
 /** The one place to manage members, roles, invitations, the two-factor policy and ownership. */
-export function TeamFlow({ currentUserId, members, roles, roleLabels, invitationStatusLabels, assignableRoles, onRoleChange, onRemove, invitations, onInvite, onRevokeInvitation, onResendInvitation, onRenewInvitationLink, inviteLink, onDismissInviteLink, policy, ownership, defaultInviteRole = roles[roles.length - 1]?.value, formatDate = formatFlowDate, formatRelative = flowRelative, title = 'Team', description, messages, ...state }: TeamFlowProps) {
+export function TeamFlow({ currentUserId, members, roles, roleLabels, invitationStatusLabels, assignableRoles, onRoleChange, onRemove, invitations, onInvite, onRevokeInvitation, onResendInvitation, onRenewInvitationLink, inviteLink, onDismissInviteLink, policy, ownership, defaultInviteRole = roles[roles.length - 1]?.value, formatDate = formatFlowDate, formatRelative, title = 'Team', description, messages, ...state }: TeamFlowProps) {
   const id = useId();
   const copy = { ...teamMessages, ...messages };
   const singleFlight = useSingleSubmit();
@@ -202,21 +200,36 @@ export function TeamFlow({ currentUserId, members, roles, roleLabels, invitation
   const [newOwner, setNewOwner] = useState('');
   const [transferring, setTransferring] = useState(false);
   const locked = state.busy || state.disabled;
-  const submit = (action: () => void | Promise<void>, attempt?: { kind: InvitationActionKind; id: string }) => { setAttempted(attempt); return singleFlight(action); };
+  const actions = useRef<HTMLDivElement>(null);
+  const linkFocus = useRef(false);
+  const returnTo = useRef<string | undefined>(undefined);
+  // The attempt is recorded only when the guarded action really starts; a dropped call never changes it.
+  const submit = (action: () => void | Promise<void>, attempt?: { kind: InvitationActionKind; id: string }) => singleFlight(() => { setAttempted(attempt); return action(); });
+  const confirmed = (action: () => void | Promise<void>, attempt?: { kind: InvitationActionKind; id: string }) => ranOrThrow(submit(action, attempt));
   const invitationHandlers: Record<InvitationActionKind, Submit<{ id: string }> | undefined> = { resend: onResendInvitation, renew: onRenewInvitationLink, revoke: onRevokeInvitation };
   const invitationCopy = {
     resend: { label: copy.resendInvitation, title: copy.resendInvitationTitle, description: copy.resendInvitationDescription },
     renew: { label: copy.renewInvitationLink, title: copy.renewInvitationLinkTitle, description: copy.renewInvitationLinkDescription },
     revoke: { label: copy.revokeInvitation, title: copy.revokeInvitationTitle, description: copy.revokeInvitationDescription },
   };
-  const runInvitation = (kind: InvitationActionKind, invitation: TeamInvitation) => submit(() => invitationHandlers[kind]?.({ id: invitation.id }), { kind, id: invitation.id });
-  const retrying = state.unconfirmed !== undefined ? attempted : undefined;
+  const invitationAction = (kind: InvitationActionKind, invitation: TeamInvitation) => () => invitationHandlers[kind]?.({ id: invitation.id });
+  // Retry mode only while the warning is on screen and the attempted invitation is still pending; otherwise rows act normally.
+  const retrying = state.unconfirmed && attempted && invitations.some(row => row.id === attempted.id && row.status === 'pending') ? attempted : undefined;
+  const firstAction = (invitationId: string) => actions.current?.querySelector<HTMLElement>(`[data-invitation="${CSS.escape(invitationId)}"] button`);
+  // Swapping a row between its actions and Retry removes the focused button, so focus follows to the replacement.
+  const retryingId = retrying?.id;
+  const previousRetry = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    const left = previousRetry.current;
+    previousRetry.current = retryingId;
+    if (left && !retryingId && document.activeElement === document.body) firstAction(left)?.focus();
+  }, [retryingId]);
   const invitationActions = (row: TeamInvitation) => {
     if (retrying) return retrying.id !== row.id ? null
-      : <Button type="button" variant="secondary" size="sm" disabled={locked} aria-label={`${copy.retry}: ${invitationCopy[retrying.kind].label}: ${row.email}`} onClick={() => void runInvitation(retrying.kind, row)}>{copy.retry}</Button>;
+      : <span data-invitation={row.id}><Button type="button" variant="secondary" size="sm" disabled={locked} aria-label={`${copy.retry}: ${invitationCopy[retrying.kind].label}: ${row.email}`} onClick={() => void submit(invitationAction(retrying.kind, row), retrying)}>{copy.retry}</Button></span>;
     if (row.status !== 'pending') return null;
     const kinds = invitationKinds.filter(kind => invitationHandlers[kind]);
-    return <Inline gap={2}>{kinds.map(kind => <Button key={kind} type="button" variant="secondary" size="sm" disabled={locked} aria-label={`${invitationCopy[kind].label}: ${row.email}`} onClick={() => setPending({ kind, invitation: row })}>{invitationCopy[kind].label}</Button>)}</Inline>;
+    return <span data-invitation={row.id}><Inline gap={2}>{kinds.map(kind => <Button key={kind} type="button" variant="secondary" size="sm" disabled={locked} aria-label={`${invitationCopy[kind].label}: ${row.email}`} onClick={() => { returnTo.current = row.id; setPending({ kind, invitation: row }); }}>{invitationCopy[kind].label}</Button>)}</Inline></span>;
   };
   // An admin may invite only editors and viewers, yet still sees owner and admin rows, so labels come from every canonical role.
   const roleLabel = (value: string) => roleLabels?.[value] ?? canonicalRoleLabels[value] ?? roles.find(role => role.value === value)?.label ?? value;
@@ -234,7 +247,8 @@ export function TeamFlow({ currentUserId, members, roles, roleLabels, invitation
     { key: 'email', header: copy.email, rowHeader: true, wrap: true },
     { key: 'role', header: copy.role, render: row => roleLabel(row.role) },
     // Relative to the viewer's clock, so the server-rendered text may differ from the browser's by design.
-    { key: 'expiresAt', header: copy.expires, render: row => <time dateTime={isoDate(row.expiresAt)} title={formatDate(row.expiresAt)} suppressHydrationWarning>{formatRelative(row.expiresAt)}</time> },
+    { key: 'expiresAt', header: copy.expires, render: row => !formatRelative ? formatDate(row.expiresAt)
+      : <Stack gap={0}><time dateTime={isoDate(row.expiresAt)} suppressHydrationWarning>{formatRelative(row.expiresAt)}</time><Text as="span" size="sm" tone="muted">{formatDate(row.expiresAt)}</Text></Stack> },
     { key: 'status', header: copy.status, render: row => <Badge tone={invitationTone(row.status)}>{invitationStatusLabels?.[row.status] ?? invitationStatusText[row.status] ?? row.status}</Badge> },
   ];
   const candidate = ownership?.candidates.find(option => option.value === newOwner);
@@ -251,10 +265,10 @@ export function TeamFlow({ currentUserId, members, roles, roleLabels, invitation
             : <Button type="button" variant="secondary" size="sm" disabled={locked} aria-label={`${copy.remove}: ${row.name}`} onClick={() => setRemoving(row)}>{copy.remove}</Button>} />
         {members.length === 1 && <Text tone="muted" size="sm">{copy.soloMemberHint}</Text>}
       </Stack>
-      <Stack gap={2}>
+      <div ref={actions}><Stack gap={2}>
         <Heading level={3} size="sm">{copy.invitations}</Heading>
-        {inviteLink && <OneTimeValue label={copy.linkLabel} value={inviteLink.url} masked={false} focusOnShow warning={copy.linkWarning} dismiss={onDismissInviteLink && { label: copy.linkDismiss, onClick: onDismissInviteLink }}
-          messages={{ copy: copy.copy, copied: copy.copied, copyFailed: copy.copyFailed, select: copy.copyManual }} />}
+        {inviteLink && <div data-invitation-link=""><OneTimeValue label={copy.linkLabel} value={inviteLink.url} masked={false} focusOnShow warning={copy.linkWarning} dismiss={onDismissInviteLink && { label: copy.linkDismiss, onClick: onDismissInviteLink }}
+          messages={{ copy: copy.copy, copied: copy.copied, copyFailed: copy.copyFailed, select: copy.copyManual }} /></div>}
         <DataTable<TeamInvitation> ariaLabel={copy.invitations} columns={invitationColumns} rows={invitations} rowKey={row => row.id} {...staticTable} emptyTitle={copy.invitationsEmpty} emptyDescription={copy.invitationsEmptyDescription}
           rowActionsLabel={copy.actions} rowActions={invitationActions} />
         <form key={inviteLink?.id ?? 'invite'} onSubmit={event => {
@@ -269,7 +283,7 @@ export function TeamFlow({ currentUserId, members, roles, roleLabels, invitation
             <FormActions><Button type="submit">{copy.invite}</Button></FormActions>
           </Stack>
         </form>
-      </Stack>
+      </Stack></div>
       {ownership && <Stack gap={3}>
         <Heading level={3} size="sm">{copy.ownership}</Heading>
         <Text tone="muted" size="sm">{copy.ownershipDescription}</Text>
@@ -277,12 +291,18 @@ export function TeamFlow({ currentUserId, members, roles, roleLabels, invitation
         <FormActions><Button type="button" variant="danger" disabled={locked || !candidate} onClick={() => setTransferring(true)}>{copy.transfer}</Button></FormActions>
       </Stack>}
     </Stack>
-    <TargetConfirm target={removing} onClose={() => setRemoving(undefined)} title={copy.removeTitle} description={copy.removeDescription} subject={member => member.name} confirmLabel={copy.remove} onConfirm={member => submit(() => onRemove({ id: member.id }))} />
+    <TargetConfirm target={removing} onClose={() => setRemoving(undefined)} title={copy.removeTitle} description={copy.removeDescription} subject={member => member.name} confirmLabel={copy.remove} onConfirm={member => confirmed(() => onRemove({ id: member.id }))} />
     <ConfirmDialog open={pending !== undefined} onOpenChange={open => { if (!open) setPending(undefined); }} title={pending ? invitationCopy[pending.kind].title : copy.revokeInvitationTitle}
       description={pending ? `${pending.invitation.email}. ${invitationCopy[pending.kind].description}` : ''} confirmLabel={pending ? invitationCopy[pending.kind].label : copy.revokeInvitation} danger={pending?.kind !== 'resend'}
-      onConfirm={() => pending ? runInvitation(pending.kind, pending.invitation) : undefined} />
+      // A new link takes focus as a sent invitation's does (#83); otherwise focus returns to the row, which may now show Retry.
+      restoreFocus={() => {
+        const link = linkFocus.current ? actions.current?.querySelector<HTMLElement>('[data-invitation-link] input') : undefined;
+        linkFocus.current = false;
+        return link ?? (returnTo.current ? firstAction(returnTo.current) : undefined);
+      }}
+      onConfirm={() => pending ? confirmed(invitationAction(pending.kind, pending.invitation), { kind: pending.kind, id: pending.invitation.id }).then(() => { linkFocus.current = pending.kind === 'renew'; }) : undefined} />
     {ownership && <ConfirmDialog open={transferring} onOpenChange={setTransferring} title={copy.transferTitle} description={candidate ? `${candidate.label}. ${copy.transferDescription}` : copy.transferDescription} confirmLabel={copy.transfer} danger confirmationText={copy.transferConfirmation}
-      onConfirm={() => candidate ? submit(() => ownership.onTransfer({ userId: candidate.value })) : undefined} />}
+      onConfirm={() => candidate ? confirmed(() => ownership.onTransfer({ userId: candidate.value })) : undefined} />}
   </SettingsFlow>;
 }
 
@@ -392,7 +412,7 @@ export function DangerZoneFlow({ actions, onConfirm, title, description, message
   // After a remount the attempt is unknown, so actions marked retryOnly stand in for it, but they confirm again:
   // only an attempt confirmed in this mount may be retried directly.
   const retry = state.unconfirmed ? actions.filter(action => attempted !== undefined ? action.id === attempted : action.retryOnly) : [];
-  const directRetry = state.unconfirmed !== undefined && attempted !== undefined;
+  const directRetry = !!state.unconfirmed && attempted !== undefined;
   const shown = state.unconfirmed ? retry : actions;
   const run = (action: DangerAction) => { setAttempted(action.id); return onConfirm({ id: action.id }); };
   return <SettingsFlow {...state} title={title ?? copy.title} description={description}>
@@ -405,7 +425,7 @@ export function DangerZoneFlow({ actions, onConfirm, title, description, message
       </div>)}
     </Stack>
     <ConfirmDialog open={target !== undefined} onOpenChange={open => { if (!open) setTarget(undefined); }} title={target ? copy.confirmTitle.replace('{action}', target.title) : copy.title} description={target?.description ?? ''} confirmLabel={target?.confirmLabel} danger
-      confirmationText={target?.confirmationText} onConfirm={() => target ? singleFlight(() => run(target)) : undefined} />
+      confirmationText={target?.confirmationText} onConfirm={() => target ? ranOrThrow(singleFlight(() => run(target))) : undefined} />
   </SettingsFlow>;
 }
 

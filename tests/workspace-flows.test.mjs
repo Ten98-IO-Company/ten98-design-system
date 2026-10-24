@@ -183,8 +183,12 @@ test('TeamFlow explains an empty invitation list, hints a solo member to invite,
   assert.match(solo, /You’re the only member\. Invite someone to work together\./);
   assert.match(solo, /No pending invitations\.<\/h3><p>Invitations you send appear here until they’re accepted\.<\/p>/);
   assert.doesNotMatch(render(h(TeamFlow, teamProps)), /only member/);
+  // Relative text is opt-in and keeps the date visible beneath it; without it a caller's formatDate stays the cell text.
   const html = render(h(TeamFlow, { ...teamProps, formatRelative: () => 'in 3 days' }));
-  assert.match(html, /<time datetime="2026-11-01T00:00:00.000Z" title="Nov 1, 2026">in 3 days<\/time>/i);
+  assert.match(html, /<time datetime="2026-11-01T00:00:00.000Z">in 3 days<\/time><span class="[^"]*t98-text-tone-muted">Nov 1, 2026<\/span>/i);
+  const custom = render(h(TeamFlow, { ...teamProps, formatDate: () => '1. Nov. 2026' }));
+  assert.match(custom, /data-label="Expires" role="cell">1\. Nov\. 2026<\/td>/);
+  assert.doesNotMatch(custom, /<time/);
   assert.doesNotMatch(html, /Resend: |New link: /);
   const withActions = render(h(TeamFlow, { ...teamProps, onResendInvitation: noop, onRenewInvitationLink: noop }));
   assert.match(withActions, /aria-label="Resend: new@example\.com"[^>]*>Resend</);

@@ -193,9 +193,10 @@ test('a new invitation link takes focus when it appears (#83)', async ({ page })
 
 test('invitation resend and new link confirm once, and an unconfirmed resend offers only its exact retry (#151)', async ({ page }) => {
   await page.goto('/tests/workspace-flows.html?theme=light');
-  const expires = page.getByRole('table', { name: 'Invitations' }).locator('time').first();
-  await expect(expires).toHaveAttribute('title', 'Nov 1, 2026');
-  await expect(expires).toHaveAttribute('datetime', '2026-11-01T00:00:00.000Z');
+  // Opt-in relative expiry keeps the exact date visible, not only in a title touch users cannot reach.
+  const expiresCell = page.getByRole('table', { name: 'Invitations' }).getByRole('cell').filter({ has: page.locator('time') }).first();
+  await expect(expiresCell.locator('time')).toHaveAttribute('datetime', '2026-11-01T00:00:00.000Z');
+  await expect(expiresCell).toContainText('Nov 1, 2026');
   const dialog = page.getByRole('dialog');
 
   await page.getByRole('button', { name: /^New link: new.person/ }).click();
@@ -204,6 +205,7 @@ test('invitation resend and new link confirm once, and an unconfirmed resend off
   await expect(dialog).toBeHidden();
   expect(await only(page, 'renew:')).toEqual(['renew:{"id":"i1"}']);
   await expect(page.getByLabel('Invitation link')).toHaveValue(/fedcba/);
+  await expect(page.getByLabel('Invitation link')).toBeFocused();
 
   await page.getByRole('button', { name: /^Resend: new.person/ }).click();
   await dialog.getByRole('button', { name: 'Resend', exact: true }).click();
@@ -211,9 +213,12 @@ test('invitation resend and new link confirm once, and an unconfirmed resend off
   expect(await only(page, 'resend:')).toEqual(['resend:{"id":"i1"}']);
   await expect(page.getByRole('alert').filter({ hasText: 'Result not confirmed' })).toBeVisible();
   await expect(page.getByRole('button', { name: /^(Resend|New link|Revoke): new.person/ })).toHaveCount(0);
+  // Focus follows the row's buttons as they swap, instead of falling to the page.
+  const retry = page.getByRole('button', { name: 'Retry: Resend: new.person@example.com' });
+  await expect(retry).toBeFocused();
   // The retry repeats the confirmed attempt directly, without a second confirmation.
-  await page.getByRole('button', { name: 'Retry: Resend: new.person@example.com' }).click();
+  await retry.click();
   await expect(dialog).toBeHidden();
   expect(await only(page, 'resend:')).toEqual(['resend:{"id":"i1"}', 'resend:{"id":"i1"}']);
-  await expect(page.getByRole('button', { name: /^Resend: new.person/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: /^Resend: new.person/ })).toBeFocused();
 });

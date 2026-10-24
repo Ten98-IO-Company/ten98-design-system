@@ -8,7 +8,7 @@ import { Disclosure, RadioGroup, StatusLine } from './controls.js';
 import { DataTable, type DataColumn } from './patterns.js';
 import { DescriptionList, FormActions, Heading, Inline, Stack, Text } from './structure.js';
 import { ConfirmDialog, CopyButton } from './workspace.js';
-import { SettingsFlow, formatFlowDate, staticTable, useSingleSubmit } from './flow-frame.js';
+import { SettingsFlow, formatFlowDate, ranOrThrow, staticTable, useSingleSubmit } from './flow-frame.js';
 import type { FlowState, Submit } from './settings-base.js';
 
 const lines = (value: string) => value.split('\n').map(line => line.trim()).filter(Boolean);
@@ -175,7 +175,7 @@ export function OidcProvidersFlow({ state = 'ready', onRetry, providers, callbac
     </form>
     <ConfirmDialog open={disabling !== undefined} onOpenChange={open => { if (!open) setDisabling(undefined); }} title={`Disable ${disabling?.settings.name ?? ''}?`}
       description="People can no longer sign in with this provider until it is enabled again." confirmLabel="Disable provider" danger
-      onConfirm={() => disabling && single(() => onDisable({ id: disabling.id }))} />
+      onConfirm={() => disabling ? ranOrThrow(single(() => onDisable({ id: disabling.id }))) : undefined} />
   </SettingsFlow>;
 }
 
@@ -385,7 +385,7 @@ export function ProviderCredentialsFlow({ state = 'ready', onReload, connections
 
     <ConfirmDialog open={disconnecting !== undefined} onOpenChange={open => { if (!open) setDisconnecting(undefined); }}
       title={`Permanently disconnect "${disconnecting?.name ?? ''}"?`} description="This cannot be undone." confirmLabel="Disconnect" danger
-      onConfirm={() => disconnecting && single(() => onDisconnect({ id: disconnecting.id }))} />
+      onConfirm={() => disconnecting ? ranOrThrow(single(() => onDisconnect({ id: disconnecting.id }))) : undefined} />
   </SettingsFlow>;
 }
 

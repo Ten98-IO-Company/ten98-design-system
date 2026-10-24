@@ -256,6 +256,8 @@ test('#151: AppStateScreen not-found says the page is missing and links home, wi
   assert.match(html, /This page does not exist or has moved\./);
   assert.match(html, /<a[^>]*href="\/"[^>]*>Go to home<\/a>/);
   assert.doesNotMatch(html, /role="alert"/);
+  // Replacing the loading state must still be announced, politely (#153 review).
+  assert.match(html, /<div role="status"><p[^>]*>This page does not exist or has moved\.<\/p><\/div>/);
 });
 
 test('#151: workspace and project forms default their busy labels', () => {
@@ -275,5 +277,15 @@ test('#151: createDateFormatter formats one timestamp the same way for a locale 
   assert.equal(format.dateTime('2026-10-30T22:30:00Z'), '31 Oct 2026, 02:30');
   assert.equal(format.relative('2026-11-02T12:00:00Z', new Date('2026-10-30T12:00:00Z')), 'in 3 days');
   assert.equal(format.relative('2026-10-30T10:00:00Z', new Date('2026-10-30T12:00:00Z')), '2 hours ago');
+  // Elapsed time, never calendar words, with the unit chosen after rounding (#153 review).
+  const at = (hours, from = '2026-10-30T23:00:00Z') => format.relative(new Date(Date.parse(from) + hours * 3_600_000), new Date(from));
+  assert.equal(at(26), 'in 1 day');
+  assert.equal(at(46), 'in 2 days');
+  assert.equal(at(24 * 10), 'in 1 week');
+  assert.equal(at(24 * 40), 'in 1 month');
+  assert.equal(at(24 * 359), 'in 1 year');
+  assert.equal(at(59.6 / 60), 'in 1 hour');
+  assert.equal(at(23.6), 'in 1 day');
+  assert.equal(at(-24), '1 day ago');
   assert.equal(format.date('not a date'), 'not a date');
 });

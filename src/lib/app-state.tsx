@@ -35,7 +35,8 @@ export function AppStateScreen({ state, brand, surface, title, message, onRetry,
       ? <div className="t98-auth-state" role="status"><span className="t98-spinner" aria-hidden="true" /><Text as="span">{message ?? copy.message}</Text></div>
       : <Stack gap={4}>
         {state === 'not-found'
-          ? <Text>{message ?? copy.message}</Text>
+          // Polite status rather than an alert: a missing page is not a failure, but replacing the loading state must still be heard.
+          ? <div role="status"><Text>{message ?? copy.message}</Text></div>
           : <Alert tone={state === 'unconfirmed' ? 'warning' : 'danger'} role="alert" title={message ?? copy.message} />}
         {state === 'not-found' && homeHref
           ? <Button href={homeHref}>{retryLabel ?? copy.retryLabel}</Button>

@@ -53,7 +53,7 @@ const invitationFrame = { brand, title: 'Join Acme Marketing', description: 'You
 /** The create-first-project step: a project name and an optional sample-data opt-in inside the form. */
 function FirstProjectProbe() {
   const [values, setValues] = useState('');
-  return <WorkspaceOnboarding brand={brand} email="owner@example.test" subheading="Create your first project" nameLabel="Project name" submitLabel="Create project"
+  return <WorkspaceOnboarding brand={brand} email="owner@example.test" subheading="Create your first project" nameLabel="Project name" nameBlankMessage="Name your first project." submitLabel="Create project"
     sampleOptIn={{ label: 'Add sample data' }} onSkip={() => setValues('skipped')} onSubmit={submitted => setValues(JSON.stringify(submitted))} notice={values ? { tone: 'info', text: values } : undefined} />;
 }
 
