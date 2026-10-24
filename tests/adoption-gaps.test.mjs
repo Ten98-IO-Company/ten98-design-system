@@ -248,3 +248,18 @@ test('DataTable server sort: buttons can be disabled while busy and named "Sort 
   assert.match(html, /<button type="button" class="t98-sort-button" disabled="" aria-label="Sort by Words"/);
   assert.doesNotMatch(render(ui.DataTable, props), /t98-sort-button" disabled/);
 });
+
+// Cross-app consistency audit (#151).
+test('#151: AppStateScreen not-found says the page is missing and links home, without an error alert', () => {
+  const html = render(ui.AppStateScreen, { state: 'not-found', brand: h('span', null, 'Ten98'), homeHref: '/' });
+  assert.match(html, />Page not found</);
+  assert.match(html, /This page does not exist or has moved\./);
+  assert.match(html, /<a[^>]*href="\/"[^>]*>Go to home<\/a>/);
+  assert.doesNotMatch(html, /role="alert"/);
+});
+
+test('#151: workspace and project forms default their busy labels', () => {
+  assert.match(render(ui.WorkspaceCreateFlow, { mode: 'create', defaultValues: { name: '' }, onSubmit() {}, busy: true }), /Creating workspace…/);
+  assert.match(render(ui.ProjectCreateFlow, { mode: 'create', defaultValues: { name: '' }, showOrigin: false, onSubmit() {}, busy: true }), /Creating project…/);
+  assert.match(render(ui.ProjectCreateFlow, { mode: 'edit', defaultValues: { name: 'A' }, showOrigin: false, onSubmit() {}, busy: true }), /Saving…/);
+});

@@ -260,19 +260,27 @@ interface NameFormProps extends FlowState {
   cancel?: LabelledAction;
   cancelLabel: string;
   onSubmit: (form: FormData) => void | Promise<void>;
+  /** Called instead of onSubmit when the name is empty or only spaces, so the flow can show its field error. */
+  onBlankName: () => void;
   children: ReactNode;
 }
-function NameForm({ title, description, submitLabel, cancel, cancelLabel, onSubmit, children, ...state }: NameFormProps) {
+function NameForm({ title, description, submitLabel, cancel, cancelLabel, onSubmit, onBlankName, children, ...state }: NameFormProps) {
   const singleSubmit = useSingleSubmit();
   return <SettingsFlow {...state} title={title} description={description} submitLabel={submitLabel}
     extraActions={cancel && <FlowActionControl action={cancel} label={cancel.label ?? cancelLabel} variant="secondary" size="md" />}
-    onSubmit={event => { event.preventDefault(); const form = new FormData(event.currentTarget); void singleSubmit(() => onSubmit(form)); }}>
+    onSubmit={event => {
+      event.preventDefault();
+      const form = new FormData(event.currentTarget);
+      // A name of only spaces is rejected here, the same way in every app, instead of reaching the server.
+      if (!formText(form, 'name').trim()) { onBlankName(); event.currentTarget.querySelector<HTMLInputElement>('[name="name"]')?.focus(); return; }
+      void singleSubmit(() => onSubmit(form));
+    }}>
     {children}
   </SettingsFlow>;
 }
 
-export interface WorkspaceCreateFlowMessages { nameLabel: string; create: string; rename: string; createTitle: string; renameTitle: string; cancel: string }
-const workspaceMessages: WorkspaceCreateFlowMessages = { nameLabel: 'Workspace name', create: 'Create workspace', rename: 'Save name', createTitle: 'Create a workspace', renameTitle: 'Workspace name', cancel: 'Cancel' };
+export interface WorkspaceCreateFlowMessages { nameLabel: string; create: string; rename: string; createTitle: string; renameTitle: string; cancel: string; creating: string; saving: string; nameBlank: string }
+const workspaceMessages: WorkspaceCreateFlowMessages = { nameLabel: 'Workspace name', create: 'Create workspace', rename: 'Save name', createTitle: 'Create a workspace', renameTitle: 'Workspace name', cancel: 'Cancel', creating: 'Creating workspace…', saving: 'Saving…', nameBlank: 'Enter a workspace name.' };
 export interface WorkspaceCreateFlowProps extends FlowState {
   mode: 'create' | 'rename';
   defaultValues: { name: string };
@@ -286,16 +294,16 @@ export interface WorkspaceCreateFlowProps extends FlowState {
 export function WorkspaceCreateFlow({ mode, defaultValues, onSubmit, cancel, title, description, messages, ...state }: WorkspaceCreateFlowProps) {
   const id = useId();
   const copy = { ...workspaceMessages, ...messages };
-  return <NameForm {...state} title={title ?? (mode === 'create' ? copy.createTitle : copy.renameTitle)} description={description} submitLabel={mode === 'create' ? copy.create : copy.rename} cancel={cancel} cancelLabel={copy.cancel}
-    onSubmit={form => onSubmit({ name: formText(form, 'name') })}>
-    <Field label={copy.nameLabel} htmlFor={`${id}-name`} error={state.fieldErrors?.name}><Input name="name" autoComplete="organization" required maxLength={120} defaultValue={defaultValues.name} /></Field>
+  const [blank, setBlank] = useState(false);
+  return <NameForm {...state} busyLabel={state.busyLabel ?? (mode === 'create' ? copy.creating : copy.saving)} title={title ?? (mode === 'create' ? copy.createTitle : copy.renameTitle)} description={description} submitLabel={mode === 'create' ? copy.create : copy.rename} cancel={cancel} cancelLabel={copy.cancel}
+    onBlankName={() => setBlank(true)} onSubmit={form => { setBlank(false); return onSubmit({ name: formText(form, 'name').trim() }); }}>
+    <Field label={copy.nameLabel} htmlFor={`${id}-name`} error={state.fieldErrors?.name ?? (blank ? copy.nameBlank : undefined)}><Input name="name" autoComplete="organization" required maxLength={120} defaultValue={defaultValues.name} /></Field>
   </NameForm>;
 }
 
-export interface ProjectCreateFlowMessages { nameLabel: string; originLabel: string; originHint: string; create: string; save: string; createTitle: string; editTitle: string; cancel: string }
+export interface ProjectCreateFlowMessages { nameLabel: string; originLabel: string; originHint: string; create: string; save: string; createTitle: string; editTitle: string; cancel: string; creating: string; saving: string; nameBlank: string }
 const projectMessages: ProjectCreateFlowMessages = {
-  nameLabel: 'Project name', originLabel: 'Site origin', originHint: 'The address of the site, for example https://www.example.com.', create: 'Create project', save: 'Save project', createTitle: 'Create a project', editTitle: 'Project details', cancel: 'Cancel',
-};
+  nameLabel: 'Project name', originLabel: 'Site origin', originHint: 'The address of the site, for example https://www.example.com.', create: 'Create project', save: 'Save project', createTitle: 'Create a project', editTitle: 'Project details', cancel: 'Cancel', creating: 'Creating project…', saving: 'Saving…', nameBlank: 'Enter a project name.' };
 export interface ProjectCreateFlowProps extends FlowState {
   mode: 'create' | 'edit';
   defaultValues: { name: string; origin?: string };
@@ -316,9 +324,10 @@ export interface ProjectCreateFlowProps extends FlowState {
 export function ProjectCreateFlow({ mode, defaultValues, originRequired = true, showOrigin = true, sampleOptIn = false, onSubmit, cancel, title, description, messages, ...state }: ProjectCreateFlowProps) {
   const id = useId();
   const copy = { ...projectMessages, ...messages };
-  return <NameForm {...state} title={title ?? (mode === 'create' ? copy.createTitle : copy.editTitle)} description={description} submitLabel={mode === 'create' ? copy.create : copy.save} cancel={cancel} cancelLabel={copy.cancel}
-    onSubmit={form => onSubmit({ name: formText(form, 'name'), ...(showOrigin ? { origin: formText(form, 'origin') } : {}), ...(sampleOptIn ? { sample: form.get('sample') === 'true' } : {}) })}>
-    <Field label={copy.nameLabel} htmlFor={`${id}-name`} error={state.fieldErrors?.name}><Input name="name" autoComplete="off" required maxLength={120} defaultValue={defaultValues.name} /></Field>
+  const [blank, setBlank] = useState(false);
+  return <NameForm {...state} busyLabel={state.busyLabel ?? (mode === 'create' ? copy.creating : copy.saving)} onBlankName={() => setBlank(true)} title={title ?? (mode === 'create' ? copy.createTitle : copy.editTitle)} description={description} submitLabel={mode === 'create' ? copy.create : copy.save} cancel={cancel} cancelLabel={copy.cancel}
+    onSubmit={form => { setBlank(false); return onSubmit({ name: formText(form, 'name').trim(), ...(showOrigin ? { origin: formText(form, 'origin') } : {}), ...(sampleOptIn ? { sample: form.get('sample') === 'true' } : {}) }); }}>
+    <Field label={copy.nameLabel} htmlFor={`${id}-name`} error={state.fieldErrors?.name ?? (blank ? copy.nameBlank : undefined)}><Input name="name" autoComplete="off" required maxLength={120} defaultValue={defaultValues.name} /></Field>
     {/* Text with a URL keyboard, not type="url": a bare domain such as example.com must reach the app's own validation
         and field error rather than the browser's untranslatable bubble. */}
     {showOrigin && <Field label={copy.originLabel} htmlFor={`${id}-origin`} description={copy.originHint} error={state.fieldErrors?.origin}><Input name="origin" type="text" inputMode="url" autoComplete="off" spellCheck={false} required={originRequired} maxLength={2048} defaultValue={defaultValues.origin} /></Field>}

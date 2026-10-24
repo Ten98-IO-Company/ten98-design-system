@@ -14,3 +14,15 @@ test('the in-shell first-project step submits the sample-data choice and offers 
   await skip.click();
   await expect(page.locator('#log')).toHaveText('skipped');
 });
+
+test('a project name of only spaces shows a field error instead of submitting (#151)', async ({ page }) => {
+  await page.goto('/tests/first-project.html');
+  await page.getByLabel('Project name').fill('   ');
+  await page.getByRole('button', { name: 'Create project' }).click();
+  await expect(page.getByText('Enter a project name.')).toBeVisible();
+  await expect(page.getByLabel('Project name')).toBeFocused();
+  await expect(page.locator('#log')).toHaveText('');
+  await page.getByLabel('Project name').fill('  Spring launch  ');
+  await page.getByRole('button', { name: 'Create project' }).click();
+  await expect(page.locator('#log')).toHaveText('{"name":"Spring launch","sample":false}');
+});
