@@ -385,15 +385,20 @@ export function Tooltip({ content, children, className }: { content: ReactNode; 
   const id = useId();
   const [dismissed, setDismissed] = useState(false);
   const bubble = useRef<HTMLSpanElement>(null);
-  // Once shown, shift the bubble back inside the window when it would cross an edge; the arrow keeps pointing at the trigger.
-  const place = () => requestAnimationFrame(() => {
+  // Shift the bubble back inside the window when it would cross an edge; the arrow keeps pointing at the trigger. This runs
+  // synchronously on show (hover and focus styles already apply), so no frame overflows; a bubble that is not laid out yet,
+  // for example just after an Escape dismissal, is placed on the next frame instead.
+  const measure = () => {
     const element = bubble.current;
-    if (!element) return;
+    if (!element) return true;
     element.style.setProperty('--t98-tooltip-shift', '0px');
     const box = element.getBoundingClientRect(), gap = 8, width = document.documentElement.clientWidth;
+    if (box.width === 0) return false;
     const shift = box.right > width - gap ? width - gap - box.right : box.left < gap ? gap - box.left : 0;
     element.style.setProperty('--t98-tooltip-shift', `${shift}px`);
-  });
+    return true;
+  };
+  const place = () => { if (!measure()) requestAnimationFrame(() => { measure(); }); };
   const show = () => { setDismissed(false); place(); };
   return <span className={cx('t98-tooltip', className)} data-dismissed={dismissed || undefined} onMouseEnter={show} onFocus={show} onKeyDown={event => { if (event.key === 'Escape') { setDismissed(true); event.preventDefault(); } }}>{cloneElement(children, { 'aria-describedby': cx(children.props['aria-describedby'], id) })}<span ref={bubble} role="tooltip" id={id} className="t98-tooltip-content">{content}</span></span>;
 }
