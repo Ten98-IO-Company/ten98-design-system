@@ -397,7 +397,8 @@ const libRules = sheets.flatMap(sheet => [...readFileSync(new URL(sheet, libDir)
 })));
 
 // Each exemption names why it differs from the product scale.
-const brandLockup = /\.brand(-mark)?\b/; // The logo mark and wordmark keep their own drawn type.
+const brandLockup = /\.brand(-mark)?\b/; // The logo mark and wordmark keep their own drawn weight and tracking.
+const brandMark = /\.brand-mark\b/; // Only the drawn mark is exempt from the size floor: the product label is read as text.
 const hexAllowed = [
   /\.t98-palette--/, // Decorative user-tag swatches, each pair checked at 4.5:1 in light and dark.
   /\.integration-settings-icon\.\w+/, // Third-party provider tiles keep a tint of the provider's identity.
@@ -411,7 +412,7 @@ const sizePx = value => {
 
 test('no text is set below 12px', () => {
   const small = offences((property, value, where) => {
-    if (brandLockup.test(where)) return false;
+    if (brandMark.test(where)) return false;
     if (property === 'font-size') return (sizePx(value) ?? 12) < 12;
     if (property === 'font') return (sizePx(value.replace(/\/[^\s]+/, '')) ?? 12) < 12;
     return false;
