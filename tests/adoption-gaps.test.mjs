@@ -263,3 +263,8 @@ test('#151: workspace and project forms default their busy labels', () => {
   assert.match(render(ui.ProjectCreateFlow, { mode: 'create', defaultValues: { name: '' }, showOrigin: false, onSubmit() {}, busy: true }), /Creating project…/);
   assert.match(render(ui.ProjectCreateFlow, { mode: 'edit', defaultValues: { name: 'A' }, showOrigin: false, onSubmit() {}, busy: true }), /Saving…/);
 });
+
+test('#151: touch screens raise every control height to the 44px touch token', () => {
+  const tokens = readFileSync(new URL('../dist/tokens.css', import.meta.url), 'utf8');
+  assert.match(tokens, /@media \(pointer: coarse\) \{\s*:root, \[data-theme\], \.t98-theme, \[data-density\] \{ --t98-control-height: var\(--t98-control-touch\); --t98-control-md: var\(--t98-control-touch\); \}/);
+});

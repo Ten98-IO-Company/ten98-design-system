@@ -310,7 +310,9 @@ test('packaged light and dark semantic colors retain required text and control c
 });
 
 test('scoped system themes and comfortable density explicitly reset inherited settings', () => {
-  const rules = cssRules(readFileSync(file('src/lib/tokens.css'), 'utf8'));
+  // Base values only: media-scoped overrides (dark scheme, coarse pointer) are not the defaults this test compares.
+  const unscoped = readFileSync(file('src/lib/tokens.css'), 'utf8').replace(/@media[^{]*\{(?:[^{}]*\{[^{}]*\})*[^{}]*\}/g, '');
+  const rules = cssRules(unscoped);
   const light = rules.find(rule => selectors(rule).includes('[data-theme=light]'));
   assert.ok(light);
   assert.ok(selectors(light).includes('[data-theme=system]'), 'System theme has an explicit light default inside a dark ancestor');
