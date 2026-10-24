@@ -268,3 +268,12 @@ test('#151: touch screens raise every control height to the 44px touch token', (
   const tokens = readFileSync(new URL('../dist/tokens.css', import.meta.url), 'utf8');
   assert.match(tokens, /@media \(pointer: coarse\) \{\s*:root, \[data-theme\], \.t98-theme, \[data-density\] \{ --t98-control-height: var\(--t98-control-touch\); --t98-control-md: var\(--t98-control-touch\); \}/);
 });
+
+test('#151: createDateFormatter formats one timestamp the same way for a locale and time zone', () => {
+  const format = ui.createDateFormatter({ locale: 'en-GB', timeZone: 'Asia/Dubai' });
+  assert.equal(format.date('2026-10-30T22:30:00Z'), '31 Oct 2026');
+  assert.equal(format.dateTime('2026-10-30T22:30:00Z'), '31 Oct 2026, 02:30');
+  assert.equal(format.relative('2026-11-02T12:00:00Z', new Date('2026-10-30T12:00:00Z')), 'in 3 days');
+  assert.equal(format.relative('2026-10-30T10:00:00Z', new Date('2026-10-30T12:00:00Z')), '2 hours ago');
+  assert.equal(format.date('not a date'), 'not a date');
+});
