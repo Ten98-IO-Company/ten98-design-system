@@ -303,22 +303,26 @@ export interface ProjectCreateFlowProps extends FlowState {
   originRequired?: boolean;
   /** Defaults to true. False is for projects without a website: no origin field, validation or submitted value. */
   showOrigin?: boolean;
-  onSubmit: Submit<{ name: string; origin?: string }>;
+  /** A checkbox such as "Add sample data" for a first-project step; its value is submitted as `sample`. `false` or omitted hides it. */
+  sampleOptIn?: { label: string; defaultChecked?: boolean } | false;
+  onSubmit: Submit<{ name: string; origin?: string; sample?: boolean }>;
+  /** A secondary action beside the submit, for example `{ label: 'Skip for now', onClick }` on a first-project step. */
   cancel?: LabelledAction;
   title?: string;
   description?: string;
   messages?: Partial<ProjectCreateFlowMessages>;
 }
 /** Names a project and sets the origin of its site. */
-export function ProjectCreateFlow({ mode, defaultValues, originRequired = true, showOrigin = true, onSubmit, cancel, title, description, messages, ...state }: ProjectCreateFlowProps) {
+export function ProjectCreateFlow({ mode, defaultValues, originRequired = true, showOrigin = true, sampleOptIn = false, onSubmit, cancel, title, description, messages, ...state }: ProjectCreateFlowProps) {
   const id = useId();
   const copy = { ...projectMessages, ...messages };
   return <NameForm {...state} title={title ?? (mode === 'create' ? copy.createTitle : copy.editTitle)} description={description} submitLabel={mode === 'create' ? copy.create : copy.save} cancel={cancel} cancelLabel={copy.cancel}
-    onSubmit={form => onSubmit(showOrigin ? { name: formText(form, 'name'), origin: formText(form, 'origin') } : { name: formText(form, 'name') })}>
+    onSubmit={form => onSubmit({ name: formText(form, 'name'), ...(showOrigin ? { origin: formText(form, 'origin') } : {}), ...(sampleOptIn ? { sample: form.get('sample') === 'true' } : {}) })}>
     <Field label={copy.nameLabel} htmlFor={`${id}-name`} error={state.fieldErrors?.name}><Input name="name" autoComplete="off" required maxLength={120} defaultValue={defaultValues.name} /></Field>
     {/* Text with a URL keyboard, not type="url": a bare domain such as example.com must reach the app's own validation
         and field error rather than the browser's untranslatable bubble. */}
     {showOrigin && <Field label={copy.originLabel} htmlFor={`${id}-origin`} description={copy.originHint} error={state.fieldErrors?.origin}><Input name="origin" type="text" inputMode="url" autoComplete="off" spellCheck={false} required={originRequired} maxLength={2048} defaultValue={defaultValues.origin} /></Field>}
+    {sampleOptIn && <Checkbox name="sample" value="true" label={sampleOptIn.label} defaultChecked={sampleOptIn.defaultChecked} />}
   </NameForm>;
 }
 
