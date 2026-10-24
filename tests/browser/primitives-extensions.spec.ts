@@ -201,3 +201,13 @@ test('a guarded Dialog that the browser closes on its own reopens and asks the g
   await expect(dialog).toBeVisible();
   await expect(page.locator('#close-reasons')).toHaveText('escape');
 });
+
+test('tabs are 44px touch targets at every width (Discover, 0.26.0 regression)', async ({ page }) => {
+  for (const width of [320, 1440]) {
+    await page.setViewportSize({ width, height: 800 });
+    await page.goto('/tests/primitives-extensions.html');
+    const heights = await page.locator('#lazy-tabs').getByRole('tab').evaluateAll(tabs => tabs.map(tab => tab.getBoundingClientRect().height));
+    expect(heights.length).toBeGreaterThan(0);
+    for (const height of heights) expect(height).toBeGreaterThanOrEqual(43.5);
+  }
+});
