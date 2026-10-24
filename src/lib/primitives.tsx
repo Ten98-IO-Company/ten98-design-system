@@ -384,7 +384,18 @@ export function Separator({ className, ...props }: HTMLAttributes<HTMLHRElement>
 export function Tooltip({ content, children, className }: { content: ReactNode; children: ReactElement<{ 'aria-describedby'?: string }>; className?: string }) {
   const id = useId();
   const [dismissed, setDismissed] = useState(false);
-  return <span className={cx('t98-tooltip', className)} data-dismissed={dismissed || undefined} onMouseEnter={() => setDismissed(false)} onFocus={() => setDismissed(false)} onKeyDown={event => { if (event.key === 'Escape') { setDismissed(true); event.preventDefault(); } }}>{cloneElement(children, { 'aria-describedby': cx(children.props['aria-describedby'], id) })}<span role="tooltip" id={id} className="t98-tooltip-content">{content}</span></span>;
+  const bubble = useRef<HTMLSpanElement>(null);
+  // Once shown, shift the bubble back inside the window when it would cross an edge; the arrow keeps pointing at the trigger.
+  const place = () => requestAnimationFrame(() => {
+    const element = bubble.current;
+    if (!element) return;
+    element.style.setProperty('--t98-tooltip-shift', '0px');
+    const box = element.getBoundingClientRect(), gap = 8, width = document.documentElement.clientWidth;
+    const shift = box.right > width - gap ? width - gap - box.right : box.left < gap ? gap - box.left : 0;
+    element.style.setProperty('--t98-tooltip-shift', `${shift}px`);
+  });
+  const show = () => { setDismissed(false); place(); };
+  return <span className={cx('t98-tooltip', className)} data-dismissed={dismissed || undefined} onMouseEnter={show} onFocus={show} onKeyDown={event => { if (event.key === 'Escape') { setDismissed(true); event.preventDefault(); } }}>{cloneElement(children, { 'aria-describedby': cx(children.props['aria-describedby'], id) })}<span ref={bubble} role="tooltip" id={id} className="t98-tooltip-content">{content}</span></span>;
 }
 
 export function Breadcrumb({ items, className }: { items: { label: ReactNode; href?: string }[]; className?: string }) {

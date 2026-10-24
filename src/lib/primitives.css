@@ -105,10 +105,14 @@
 @keyframes t98-pulse { 50% { opacity: .45; } }
 .t98-separator { width: 100%; height: 0; border: 0; border-top: 1px solid var(--t98-border); margin: 20px 0; }
 .t98-tooltip { position: relative; display: inline-flex; }
-.t98-tooltip-content { position: absolute; z-index: 80; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); width: max-content; max-width: min(250px, calc(100vw - 32px)); box-sizing: border-box; padding: 6px 9px; border-radius: 5px; background: var(--t98-text); color: var(--t98-surface); font-size: 11px; line-height: 17px; box-shadow: 0 3px 10px #0002; opacity: 0; visibility: hidden; transition: opacity 120ms; }
+.t98-tooltip-content { position: absolute; z-index: 80; bottom: calc(100% + 8px); left: 50%; transform: translateX(calc(-50% + var(--t98-tooltip-shift, 0px))); width: max-content; max-width: min(250px, calc(100vw - 32px)); box-sizing: border-box; padding: 6px 9px; border-radius: 5px; background: var(--t98-text); color: var(--t98-surface); font-size: 11px; line-height: 17px; box-shadow: 0 3px 10px #0002; opacity: 0; visibility: hidden; transition: opacity 120ms; }
+/* Hidden bubbles take no layout space: an absolutely positioned box still widens the page's scrollable area. */
+.t98-tooltip-content { display: none; }
+.t98-tooltip:not([data-dismissed]):hover .t98-tooltip-content, .t98-tooltip:not([data-dismissed]):focus-within .t98-tooltip-content { display: block; }
+@starting-style { .t98-tooltip:hover .t98-tooltip-content, .t98-tooltip:focus-within .t98-tooltip-content { opacity: 0; } }
 .t98-tooltip:not([data-dismissed]):hover .t98-tooltip-content, .t98-tooltip:not([data-dismissed]):focus-within .t98-tooltip-content { opacity: 1; visibility: visible; }
 .t98-tooltip-content::before { content: ''; position: absolute; top: 100%; left: 0; right: 0; height: 9px; }
-.t98-tooltip-content::after { content: ''; position: absolute; top: 100%; left: calc(50% - 4px); border: 4px solid transparent; border-top-color: var(--t98-text); }
+.t98-tooltip-content::after { content: ''; position: absolute; top: 100%; left: calc(50% - 4px - var(--t98-tooltip-shift, 0px)); border: 4px solid transparent; border-top-color: var(--t98-text); }
 .t98-breadcrumb ol { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; list-style: none; padding: 0; margin: 0; }
 .t98-breadcrumb li { display: flex; align-items: center; gap: 9px; color: var(--t98-muted); font-size: 11px; line-height: 18px; }
 .t98-breadcrumb a { color: inherit; text-decoration: none; }
