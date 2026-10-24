@@ -1,7 +1,7 @@
 'use client';
 
-import { useId, useState, type FormEvent, type ReactNode } from 'react';
-import { Alert, Badge, Button, Checkbox, Field, Input, Select, type IconName, type SelectOption } from './primitives.js';
+import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { Alert, Badge, Button, Checkbox, Field, Icon, Input, Select, type IconName, type SelectOption } from './primitives.js';
 import { CheckboxGroup, RadioGroup, type ChoiceOption } from './controls.js';
 import { DataTable, type DataColumn, type TableIndexPage, type TablePageChange } from './patterns.js';
 import { SidebarNav, type NavLinkComponent, type SidebarNavGroup } from './shell.js';
@@ -17,16 +17,20 @@ import type { FlowState, Submit } from './settings-base.js';
 
 type DateValue = string | Date;
 
-interface OneTimeValueProps { label: string; value: string; masked: boolean; messages: Partial<CopyButtonMessages> & { copy: string }; warning: string; dismiss?: { label: string; onClick: () => void } }
+interface OneTimeValueProps { label: string; value: string; masked: boolean; messages: Partial<CopyButtonMessages> & { copy: string }; warning: string; dismiss?: { label: string; onClick: () => void };
+  /** Moves focus to the value when it appears, so keyboard and screen-reader users land on it. */
+  focusOnShow?: boolean }
 /** A value the application will never show again, with copy (and its manual fallback) and an optional dismiss. */
-function OneTimeValue({ label, value, masked, messages, warning, dismiss }: OneTimeValueProps) {
+function OneTimeValue({ label, value, masked, messages, warning, dismiss, focusOnShow = false }: OneTimeValueProps) {
   const id = useId();
+  const field = useRef<HTMLInputElement>(null);
+  useEffect(() => { if (focusOnShow && !masked) field.current?.focus(); }, [focusOnShow, masked, value]);
   const { copy, ...copyMessages } = messages;
   return <Alert tone="warning" title={warning}>
     <Stack gap={3}>
       {masked
         ? <SecretField label={label} value={value} />
-        : <Field label={label} htmlFor={id}><Input id={id} value={value} readOnly autoComplete="off" /></Field>}
+        : <Field label={label} htmlFor={id}><Input ref={field} id={id} value={value} readOnly autoComplete="off" /></Field>}
       <Inline gap={2}>
         <CopyButton value={value} label={copy} messages={copyMessages} />
         {dismiss && <Button type="button" variant="secondary" size="sm" onClick={dismiss.onClick}>{dismiss.label}</Button>}
@@ -215,7 +219,7 @@ export function TeamFlow({ currentUserId, members, roles, roleLabels, invitation
       </Stack>
       <Stack gap={2}>
         <Heading level={3} size="sm">{copy.invitations}</Heading>
-        {inviteLink && <OneTimeValue label={copy.linkLabel} value={inviteLink.url} masked={false} warning={copy.linkWarning} dismiss={onDismissInviteLink && { label: copy.linkDismiss, onClick: onDismissInviteLink }}
+        {inviteLink && <OneTimeValue label={copy.linkLabel} value={inviteLink.url} masked={false} focusOnShow warning={copy.linkWarning} dismiss={onDismissInviteLink && { label: copy.linkDismiss, onClick: onDismissInviteLink }}
           messages={{ copy: copy.copy, copied: copy.copied, copyFailed: copy.copyFailed, select: copy.copyManual }} />}
         <DataTable<TeamInvitation> ariaLabel={copy.invitations} columns={invitationColumns} rows={invitations} rowKey={row => row.id} {...staticTable} emptyTitle={copy.invitationsEmpty} emptyDescription={null}
           rowActionsLabel={copy.actions} rowActions={row => row.status !== 'pending' ? null
@@ -388,6 +392,7 @@ export interface SettingsLayoutProps {
 }
 /** Settings page with grouped navigation. It stacks above the content at narrow widths. */
 export function SettingsLayout({ title, scope, items, current, linkComponent, onNavigate, feedback, navigationLabel = 'Settings', groupLabels, children }: SettingsLayoutProps) {
+  const compact = useRef<HTMLDetailsElement>(null);
   const labels = { ...defaultGroupLabels, ...groupLabels };
   if (!onNavigate && items.some(item => item.href === undefined) && (globalThis as { process?: { env?: { NODE_ENV?: string } } }).process?.env?.NODE_ENV !== 'production') {
     console.warn('@ten98/ui SettingsLayout: items without href need onNavigate, otherwise they do nothing.');
@@ -402,8 +407,23 @@ export function SettingsLayout({ title, scope, items, current, linkComponent, on
     })),
   })).filter(group => group.items.length > 0);
   const navigate = onNavigate && ((nav: { id: string }) => { const item = items.find(candidate => candidate.id === nav.id); if (item) onNavigate(item); });
+  const nav = <SidebarNav label={navigationLabel} groups={groups} linkComponent={linkComponent} onNavigate={navigate} />;
+  const currentLabel = items.find(item => item.id === current)?.label;
   return <SettingsTemplate title={title} scope={scope ? <Text tone="muted" size="sm">{scope}</Text> : undefined} feedback={feedback}
-    navigation={<SidebarNav label={navigationLabel} groups={groups} linkComponent={linkComponent} onNavigate={navigate} />}>
+    navigation={<>
+      {/* Narrow layouts show a one-line disclosure ("Settings: Security") instead of the full grouped list, so the
+          settings themselves start near the top; choosing an item closes it. CSS shows one of the two. */}
+      <details ref={compact} className="t98-settings-compact-nav" onClick={event => {
+        if ((event.target as HTMLElement).closest('a, button') && compact.current) compact.current.open = false;
+      }}>
+        <summary className="t98-settings-compact-nav__summary">
+          <span>{navigationLabel}{currentLabel ? <>: <strong>{currentLabel}</strong></> : null}</span>
+          <Icon name="chevron-down" size={16} aria-hidden="true" />
+        </summary>
+        <div className="t98-settings-compact-nav__panel">{nav}</div>
+      </details>
+      <div className="t98-settings-full-nav">{nav}</div>
+    </>}>
     {children}
   </SettingsTemplate>;
 }

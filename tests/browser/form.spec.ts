@@ -83,3 +83,23 @@ test('Form forwards its ref, so an app action can submit it from outside', async
   await expect(page.locator('#calls')).toHaveText('Spring launch via null');
   await page.evaluate(() => window.finish());
 });
+
+test('a busy action keeps or returns focus: loading Buttons stay focused, app-disabled ones get it back (#82)', async ({ page }) => {
+  await page.goto('/tests/form.html');
+  const sync = page.getByRole('button', { name: 'Sync now' });
+  await sync.focus();
+  await page.keyboard.press('Enter');
+  await expect(sync).toHaveAttribute('aria-busy', 'true');
+  await expect(sync).toBeFocused();
+  // A second press while loading does nothing.
+  await page.keyboard.press('Enter');
+  await expect(sync).not.toHaveAttribute('aria-busy', 'true');
+  await expect(sync).toBeFocused();
+
+  const exportButton = page.getByRole('button', { name: 'Export report' });
+  await exportButton.focus();
+  await page.keyboard.press('Enter');
+  await expect(exportButton).toBeDisabled();
+  await expect(exportButton).toBeEnabled();
+  await expect(exportButton).toBeFocused();
+});

@@ -223,3 +223,26 @@ test('the create-first-project step names the project and submits the sample-dat
   await page.getByRole('button', { name: 'Create project' }).click();
   await expect(page.getByRole('status')).toHaveText('{"name":"Spring launch","sample":true}');
 });
+
+test('the easy owner setup prefills an optional workspace name, and the first-project step can be skipped beside its submit', async ({ page }, info) => {
+  const width = info.project.name === 'narrow-dark' ? 320 : 1440;
+  await open(page, 'values-easy', 'light', width);
+  const workspace = page.getByLabel('Workspace name');
+  await expect(workspace).toHaveValue('My workspace');
+  await expect(workspace).not.toHaveAttribute('required', '');
+  await workspace.fill('');
+  await page.getByLabel('Your name').fill('Owner');
+  await page.getByLabel('Email address').fill('owner@example.test');
+  await page.getByLabel('Password').fill('synthetic-password-1');
+  await page.getByRole('button', { name: 'Create owner account' }).click();
+  await expect(page.getByRole('status')).toContainText('"workspaceName":""');
+
+  await open(page, 'onboarding-project', 'light', width);
+  const create = await page.getByRole('button', { name: 'Create project' }).boundingBox();
+  const skip = page.getByRole('button', { name: 'Skip for now' });
+  const skipBox = await skip.boundingBox();
+  // Beside the submit: in the action row right after it, not below the whole form's extra content.
+  expect(Math.abs(skipBox!.y - create!.y)).toBeLessThan(create!.height * 2.5);
+  await skip.click();
+  await expect(page.getByRole('status')).toHaveText('skipped');
+});

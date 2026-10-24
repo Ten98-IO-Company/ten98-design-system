@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { AccountProfileFlow, Button, Field, Input, LinkedIdentitiesFlow, PasswordChangeFlow, SessionListFlow, SettingsPanel, Stack, Text, TwoFactorSetupFlow, type TwoFactorSetupStage } from '@ten98/ui';
+import { AccountProfileFlow, type AccountProfileValues, Button, Field, Input, LinkedIdentitiesFlow, PasswordChangeFlow, SessionListFlow, SettingsPanel, Stack, Text, TwoFactorSetupFlow, type TwoFactorSetupStage } from '@ten98/ui';
 import '@ten98/ui/app-tokens.css';
 import '@ten98/ui/app.css';
 import '@ten98/ui/product.css';
@@ -23,6 +23,23 @@ const identities = [
 const proof = { providerName: 'Google', issuer: 'https://accounts.example.test/a/very/long/issuer/path', subject: 'subject-1234567890-abcdefghijklmnopqrstuvwxyz', email: 'member@example.test', expiresAt: '2030-01-15T12:00:00Z' };
 const zones = ['Asia/Dubai', 'Asia/Qatar', 'Europe/London', 'UTC'];
 const locales = [{ value: 'en', label: 'English' }, { value: 'ar', label: 'Arabic' }];
+
+// Discover's Profile and appearance panel (#86): a live preview of the draft locale, a staged "Restore default
+// preferences", a "Reload saved preferences", and a locale option in its own language and direction.
+const saved: AccountProfileValues = { name: 'Sam Rivera', theme: 'dark', locale: 'en', timeZone: 'Asia/Dubai' };
+const defaults: AccountProfileValues = { name: 'Sam Rivera', theme: 'system', locale: 'en', timeZone: 'UTC' };
+function ProfileWithPreview() {
+  const [draft, setDraft] = useState(saved);
+  const [mount, setMount] = useState<{ key: number; initial?: AccountProfileValues }>({ key: 0 });
+  const preview = new Intl.DateTimeFormat(draft.locale, { dateStyle: 'long', timeZone: draft.timeZone }).format(new Date(Date.UTC(2026, 9, 30, 12)));
+  return <AccountProfileFlow key={mount.key} email="member@example.test" defaultValues={saved} initialValues={mount.initial} onValuesChange={setDraft}
+    localeOptions={[{ value: 'en', label: 'English' }, { value: 'ar', label: 'العربية', lang: 'ar', dir: 'rtl' }]} timeZones={zones} onSubmit={noop}
+    preview={<Text id="format-preview">Draft format preview: {preview}</Text>}
+    extraActions={<>
+      <Button type="button" variant="secondary" onClick={() => setMount(current => ({ key: current.key + 1, initial: defaults }))}>Restore default preferences</Button>
+      <Button type="button" variant="ghost" onClick={() => setMount(current => ({ key: current.key + 1 }))}>Reload saved preferences</Button>
+    </>} />;
+}
 
 /** Shows what each handler received so the browser spec can assert it only ran after confirmation. */
 function Probe({ render }: { render: (log: (entry: string) => void) => ReactNode }) {
@@ -64,6 +81,7 @@ const screens: Record<string, ReactNode> = {
   'panel-native': <SettingsPanel title="Webhook" action="/tests/account-flows.html" method="get" submitLabel="Save">
     <Field label="Endpoint URL" htmlFor="panel-url"><Input id="panel-url" name="url" defaultValue="https://example.test/hook" /></Field>
   </SettingsPanel>,
+  'profile-preview': <ProfileWithPreview />,
   'profile': <Probe render={log => <AccountProfileFlow email="member@example.test" emailHref="#email" defaultValues={{ name: 'Sam Rivera', theme: 'system', locale: 'en', timeZone: 'Asia/Dubai' }} localeOptions={locales} timeZones={zones} onDetectTimeZone={() => 'Europe/London'} onSubmit={values => log(JSON.stringify(values))} onDirtyChange={dirty => log(`dirty:${dirty}`)} />} />,
   'profile-disabled': <AccountProfileFlow email="member@example.test" defaultValues={{ name: 'Sam Rivera', theme: 'dark', locale: 'ar', timeZone: 'Asia/Qatar' }} localeOptions={locales} timeZones={zones} onSubmit={noop} disabled notice={{ tone: 'info', text: 'Only owners can edit profiles.' }} />,
   'late-error': <LateError />,

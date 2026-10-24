@@ -1,2 +1,5 @@
 .t98-account-qr { inline-size: min(100%, 12rem); padding: var(--t98-space-2); border-radius: var(--t98-radius-md); background: Canvas; color-scheme: light; }
 .t98-account-key { display: block; padding: var(--t98-space-2) var(--t98-space-3); border: 1px solid var(--t98-border); border-radius: var(--t98-radius-md); background: var(--t98-subtle); overflow-wrap: anywhere; user-select: all; }
+/* Operator and owner flows: one quiet card per provider or connection. */
+.t98-operator-card { padding: var(--t98-space-4); border: var(--t98-border-width) solid var(--t98-border); border-radius: var(--t98-radius-md); background: var(--t98-surface); min-inline-size: 0; overflow-wrap: break-word; }
+.t98-operator-pause { padding-block-end: var(--t98-space-4); border-block-end: var(--t98-border-width) solid var(--t98-border); }

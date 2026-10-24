@@ -241,3 +241,10 @@ test('WorkspaceOnboarding can be a create-first-project step with a sample-data 
   assert.match(form, /name="sample"[^>]*value="true"|value="true"[^>]*name="sample"/);
   assert.doesNotMatch(render(ui.WorkspaceOnboarding, { brand, email: 'o@example.test', onSubmit() {} }), /name="sample"/);
 });
+
+test('DataTable server sort: buttons can be disabled while busy and named "Sort by <header>"', () => {
+  const props = { ariaLabel: 'Audit pages', columns: [{ key: 'words', header: 'Words' }], rows: [{ id: 'a', words: 10 }], rowKey: row => row.id, sort: { key: 'words', direction: 'asc' }, onSortChange() {} };
+  const html = render(ui.DataTable, { ...props, sortDisabled: true, sortLabel: header => `Sort by ${header}` });
+  assert.match(html, /<button type="button" class="t98-sort-button" disabled="" aria-label="Sort by Words"/);
+  assert.doesNotMatch(render(ui.DataTable, props), /t98-sort-button" disabled/);
+});

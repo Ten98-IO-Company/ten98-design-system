@@ -634,6 +634,27 @@ export function FileField({ label, accept, multiple, name, onFiles, description,
   </Field>;
 }
 
+/**
+ * Returns focus after a busy action. Call the returned function when the action starts; once `busy` is falsy again,
+ * focus goes back to the control that was focused, unless it is gone or focus has moved elsewhere meanwhile. A Button
+ * with `loading` keeps its own focus; use this when the app disables controls itself (for example `disabled={busy}`),
+ * which drops focus to <body>. Promoted from Campaign (#82).
+ */
+export function useFocusReturn(busy: unknown): () => void {
+  const target = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    const element = target.current;
+    if (busy || !element) return;
+    target.current = null;
+    const active = document.activeElement;
+    if (element.isConnected && (!active || active === document.body)) element.focus();
+  }, [busy]);
+  return useCallback(() => {
+    const active = document.activeElement;
+    target.current = active instanceof HTMLElement && active !== document.body ? active : null;
+  }, []);
+}
+
 export interface FormProps extends Omit<FormHTMLAttributes<HTMLFormElement>, 'style' | 'onSubmit'> {
   /** The native form element, alongside the form's own reference (for example to call `requestSubmit()`). */
   ref?: Ref<HTMLFormElement>;

@@ -288,7 +288,8 @@ test('LoadMore states the count, keeps a busy button focusable and explains when
   assert.match(more, />Load more</);
   const busy = renderToStaticMarkup(h(LoadMore, { hasMore: true, busy: true, shown: 50, onLoadMore() {} }));
   assert.match(busy, /role="status">Loading more items…</);
-  assert.match(busy, /aria-busy="true" aria-disabled="true">Loading…</);
+  assert.match(busy, /aria-busy="true"/);
+  assert.match(busy, /aria-disabled="true"[^>]*>Loading…</);
   assert.doesNotMatch(busy, /<button[^>]* disabled=""/);
   const blocked = renderToStaticMarkup(h(LoadMore, { hasMore: true, shown: 50, unavailableReason: 'No cursor.', onLoadMore() {} }));
   assert.match(blocked, /No cursor\./);

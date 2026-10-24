@@ -231,3 +231,23 @@ test('turning off two-factor can require an authenticator or recovery code as we
   await page.getByRole('dialog').getByRole('button', { name: 'Turn off two-factor authentication' }).click();
   await expect(log).toHaveText('disable:synthetic-password:123456');
 });
+
+test('the profile flow reports its draft for a preview, stages restored defaults as unsaved, and reloads saved values (#86)', async ({ page }, info) => {
+  await open(page, 'profile-preview', 'light', widthOf(info.project.name));
+  const preview = page.locator('#format-preview');
+  await expect(preview).toHaveText('Draft format preview: October 30, 2026');
+  await page.getByLabel('Language and region').selectOption('ar');
+  await expect(preview).not.toHaveText('Draft format preview: October 30, 2026');
+  const arabic = page.getByLabel('Language and region').locator('option[value="ar"]');
+  await expect(arabic).toHaveAttribute('lang', 'ar');
+  await expect(arabic).toHaveAttribute('dir', 'rtl');
+
+  const save = page.getByRole('button', { name: 'Save changes' });
+  await page.getByRole('button', { name: 'Reload saved preferences' }).click();
+  await expect(save).toBeDisabled();
+  await expect(preview).toHaveText('Draft format preview: October 30, 2026');
+  // Restoring defaults stages them as unsaved edits: Save turns on.
+  await page.getByRole('button', { name: 'Restore default preferences' }).click();
+  await expect(page.getByRole('radio', { name: 'Match system' })).toBeChecked();
+  await expect(save).toBeEnabled();
+});

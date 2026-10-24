@@ -2,7 +2,7 @@
 
 import {
   Children, cloneElement, forwardRef, isValidElement, useEffect, useId, useRef, useState,
-  type ButtonHTMLAttributes, type ComponentType, type FormEvent, type HTMLAttributes, type InputHTMLAttributes,
+  type ButtonHTMLAttributes, type ComponentType, type FormEvent, type MouseEvent, type HTMLAttributes, type InputHTMLAttributes,
   type OptgroupHTMLAttributes, type OptionHTMLAttributes, type ReactElement, type ReactNode, type SelectHTMLAttributes,
   type SVGProps, type TextareaHTMLAttributes,
 } from 'react';
@@ -116,7 +116,10 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
     if (!inactive && Component) return <Component {...anchor} {...{ ref }} href={href} className={classes}>{content}</Component>;
     return <a {...anchor} ref={ref as never} href={inactive ? undefined : href} className={classes}>{content}</a>;
   }
-  return <button ref={ref} type={type} className={classes} disabled={disabled || loading} aria-pressed={pressed} aria-busy={loading || undefined} {...props}>{content}</button>;
+  // A loading button stays focusable (aria-disabled, clicks ignored) so focus is not dropped to <body> while it works;
+  // `disabled` still removes it from the tab order.
+  const guarded = loading ? (event: MouseEvent<HTMLButtonElement>) => event.preventDefault() : props.onClick;
+  return <button ref={ref} type={type} className={classes} disabled={disabled} aria-disabled={loading && !disabled ? true : props['aria-disabled']} aria-pressed={pressed} aria-busy={loading || undefined} {...props} onClick={guarded}>{content}</button>;
 });
 
 export type Tone = 'neutral' | 'accent' | 'success' | 'warning' | 'danger' | 'info';
@@ -163,7 +166,8 @@ export function OptionGroup(props: Omit<OptgroupHTMLAttributes<HTMLOptGroupEleme
   return <optgroup {...props} />;
 }
 
-export interface SelectOption { value: string; label: string; disabled?: boolean; group?: string }
+/** `lang` and `dir` mark an option in another language or script, for example an Arabic locale name. */
+export interface SelectOption { value: string; label: string; disabled?: boolean; group?: string; lang?: string; dir?: 'ltr' | 'rtl' | 'auto' }
 export interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
   /** Rendered before `children`; options sharing a `group` form one optgroup, placed where the group first appears. */
   options?: SelectOption[];
@@ -181,7 +185,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
     if (!members) { members = []; groups.set(option.group, members); items.push({ group: option.group, members }); }
     members.push(option);
   }
-  const renderOption = (option: SelectOption) => <Option key={option.value} value={option.value} disabled={option.disabled}>{option.label}</Option>;
+  const renderOption = (option: SelectOption) => <Option key={option.value} value={option.value} disabled={option.disabled} lang={option.lang} dir={option.dir}>{option.label}</Option>;
   const selection = placeholder && props.value === undefined && props.defaultValue === undefined ? { defaultValue: '' } : undefined;
   return <select ref={ref} className={cx('t98-input', 't98-select', width === 'auto' && 't98-select--auto', className)} {...selection} {...props}>
     {placeholder && <Option value="" disabled>{placeholder}</Option>}
@@ -380,7 +384,18 @@ export function Separator({ className, ...props }: HTMLAttributes<HTMLHRElement>
 export function Tooltip({ content, children, className }: { content: ReactNode; children: ReactElement<{ 'aria-describedby'?: string }>; className?: string }) {
   const id = useId();
   const [dismissed, setDismissed] = useState(false);
-  return <span className={cx('t98-tooltip', className)} data-dismissed={dismissed || undefined} onMouseEnter={() => setDismissed(false)} onFocus={() => setDismissed(false)} onKeyDown={event => { if (event.key === 'Escape') { setDismissed(true); event.preventDefault(); } }}>{cloneElement(children, { 'aria-describedby': cx(children.props['aria-describedby'], id) })}<span role="tooltip" id={id} className="t98-tooltip-content">{content}</span></span>;
+  const bubble = useRef<HTMLSpanElement>(null);
+  // Once shown, shift the bubble back inside the window when it would cross an edge; the arrow keeps pointing at the trigger.
+  const place = () => requestAnimationFrame(() => {
+    const element = bubble.current;
+    if (!element) return;
+    element.style.setProperty('--t98-tooltip-shift', '0px');
+    const box = element.getBoundingClientRect(), gap = 8, width = document.documentElement.clientWidth;
+    const shift = box.right > width - gap ? width - gap - box.right : box.left < gap ? gap - box.left : 0;
+    element.style.setProperty('--t98-tooltip-shift', `${shift}px`);
+  });
+  const show = () => { setDismissed(false); place(); };
+  return <span className={cx('t98-tooltip', className)} data-dismissed={dismissed || undefined} onMouseEnter={show} onFocus={show} onKeyDown={event => { if (event.key === 'Escape') { setDismissed(true); event.preventDefault(); } }}>{cloneElement(children, { 'aria-describedby': cx(children.props['aria-describedby'], id) })}<span ref={bubble} role="tooltip" id={id} className="t98-tooltip-content">{content}</span></span>;
 }
 
 export function Breadcrumb({ items, className }: { items: { label: ReactNode; href?: string }[]; className?: string }) {

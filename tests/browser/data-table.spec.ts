@@ -252,3 +252,19 @@ test('wrapping columns keep their longest word at 320px instead of one letter pe
   });
   expect(fit.content).toBeGreaterThanOrEqual(fit.word - 1);
 });
+
+test('in right-to-left layouts, headers and plain cells align to the start (right) side', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/tests/data-table.html');
+  await page.evaluate(() => { document.documentElement.dir = 'rtl'; });
+  const table = page.getByRole('table', { name: 'Wrapped table' });
+  for (const cell of [table.getByRole('columnheader').first(), table.getByRole('rowheader').first()]) {
+    const placed = await cell.evaluate(element => {
+      const box = element.getBoundingClientRect(), range = document.createRange(); range.selectNodeContents(element);
+      const text = range.getBoundingClientRect(), style = getComputedStyle(element);
+      // Text hugs the start (right) edge: its gap to the right padding edge is smaller than to the left one.
+      return { right: box.right - parseFloat(style.paddingRight) - text.right, left: text.left - box.left - parseFloat(style.paddingLeft) };
+    });
+    expect(placed.right).toBeLessThan(placed.left);
+  }
+});

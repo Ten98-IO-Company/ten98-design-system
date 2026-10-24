@@ -39,8 +39,10 @@ for (const theme of ['light', 'dark'] as const) {
     await expect(screen.getByRole('heading', { level: 1, name: 'Settings' })).toBeVisible();
     expect(await overflow(page), 'no page overflow').toBeLessThanOrEqual(1);
 
-    // Settings navigation: current page, omitted items and hidden empty group.
-    const nav = screen.getByRole('navigation', { name: 'Settings' });
+    // Settings navigation: current page, omitted items and hidden empty group. Narrow layouts show it inside the
+    // "Settings: Team" disclosure (#85), so open that first.
+    if (width < 500) await screen.locator('summary', { hasText: 'Settings: Team' }).click();
+    const nav = screen.getByRole('navigation', { name: 'Settings' }).filter({ visible: true });
     await expect(nav.getByRole('link', { name: 'Team' })).toHaveAttribute('aria-current', 'page');
     await expect(nav.getByRole('link', { name: 'Profile' })).not.toHaveAttribute('aria-current', 'page');
     await expect(nav.getByText('Billing')).toHaveCount(0);
@@ -180,4 +182,11 @@ test('CopyButton shows a visible, selected fallback when the clipboard is denied
   const manual = keys.getByLabel('Select and copy');
   await expect(manual).toBeFocused();
   expect(await manual.evaluate((input: HTMLInputElement) => input.value.slice(input.selectionStart ?? 0, input.selectionEnd ?? 0))).toContain('t98_live_');
+});
+
+test('a new invitation link takes focus when it appears (#83)', async ({ page }) => {
+  await page.goto('/tests/workspace-flows.html?theme=light');
+  await page.getByLabel('Email address').fill('teammate@example.com');
+  await page.getByRole('button', { name: 'Send invitation' }).click();
+  await expect(page.getByLabel('Invitation link')).toBeFocused();
 });
