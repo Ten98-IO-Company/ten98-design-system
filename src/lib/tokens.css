@@ -54,3 +54,7 @@
 [data-density='comfortable'] { --t98-control-height: 36px; --t98-cell-padding: 10px; }
 [data-density='compact'] { --t98-control-height: 32px; --t98-cell-padding: 6px; }
 @media (prefers-reduced-motion: reduce) { :root, .t98-theme { --t98-motion: 0ms; } }
+/* Touch screens: every control is a 44px target whatever the density or width (cross-app audit, #151). */
+@media (pointer: coarse) {
+  :root, [data-theme], .t98-theme, [data-density] { --t98-control-height: var(--t98-control-touch); --t98-control-md: var(--t98-control-touch); }
+}

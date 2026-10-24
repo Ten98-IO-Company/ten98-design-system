@@ -190,3 +190,30 @@ test('a new invitation link takes focus when it appears (#83)', async ({ page })
   await page.getByRole('button', { name: 'Send invitation' }).click();
   await expect(page.getByLabel('Invitation link')).toBeFocused();
 });
+
+test('invitation resend and new link confirm once, and an unconfirmed resend offers only its exact retry (#151)', async ({ page }) => {
+  await page.goto('/tests/workspace-flows.html?theme=light');
+  const expires = page.getByRole('table', { name: 'Invitations' }).locator('time').first();
+  await expect(expires).toHaveAttribute('title', 'Nov 1, 2026');
+  await expect(expires).toHaveAttribute('datetime', '2026-11-01T00:00:00.000Z');
+  const dialog = page.getByRole('dialog');
+
+  await page.getByRole('button', { name: /^New link: new.person/ }).click();
+  await expect(dialog).toContainText('The current link stops working.');
+  await dialog.getByRole('button', { name: 'New link', exact: true }).click();
+  await expect(dialog).toBeHidden();
+  expect(await only(page, 'renew:')).toEqual(['renew:{"id":"i1"}']);
+  await expect(page.getByLabel('Invitation link')).toHaveValue(/fedcba/);
+
+  await page.getByRole('button', { name: /^Resend: new.person/ }).click();
+  await dialog.getByRole('button', { name: 'Resend', exact: true }).click();
+  await expect(dialog).toBeHidden();
+  expect(await only(page, 'resend:')).toEqual(['resend:{"id":"i1"}']);
+  await expect(page.getByRole('alert').filter({ hasText: 'Result not confirmed' })).toBeVisible();
+  await expect(page.getByRole('button', { name: /^(Resend|New link|Revoke): new.person/ })).toHaveCount(0);
+  // The retry repeats the confirmed attempt directly, without a second confirmation.
+  await page.getByRole('button', { name: 'Retry: Resend: new.person@example.com' }).click();
+  await expect(dialog).toBeHidden();
+  expect(await only(page, 'resend:')).toEqual(['resend:{"id":"i1"}', 'resend:{"id":"i1"}']);
+  await expect(page.getByRole('button', { name: /^Resend: new.person/ })).toBeVisible();
+});

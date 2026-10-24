@@ -246,3 +246,11 @@ test('the easy owner setup prefills an optional workspace name, and the first-pr
   await skip.click();
   await expect(page.getByRole('status')).toHaveText('skipped');
 });
+
+test('the first-project onboarding step rejects a name of only spaces with a field error (#151)', async ({ page }, info) => {
+  await open(page, 'onboarding-project', 'light', info.project.name === 'narrow-dark' ? 320 : 1440);
+  await page.getByLabel('Project name').fill('   ');
+  await page.getByRole('button', { name: 'Create project' }).click();
+  await expect(page.getByText('Enter a project name.')).toBeVisible();
+  await expect(page.getByRole('status')).toHaveCount(0);
+});

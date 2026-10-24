@@ -177,3 +177,16 @@ test('ProjectCreateFlow renders the site origin only for projects that have one'
   const campaign = renderToStaticMarkup(h(ProjectCreateFlow, { mode: 'create', defaultValues: { name: '' }, showOrigin: false, onSubmit() {} }));
   assert.doesNotMatch(campaign, /name="origin"/);
 });
+
+test('TeamFlow explains an empty invitation list, hints a solo member to invite, and shows expiry as relative text (#151)', () => {
+  const solo = render(h(TeamFlow, { ...teamProps, members: [members[0]], invitations: [], formatRelative: () => 'in 3 days' }));
+  assert.match(solo, /You’re the only member\. Invite someone to work together\./);
+  assert.match(solo, /No pending invitations\.<\/h3><p>Invitations you send appear here until they’re accepted\.<\/p>/);
+  assert.doesNotMatch(render(h(TeamFlow, teamProps)), /only member/);
+  const html = render(h(TeamFlow, { ...teamProps, formatRelative: () => 'in 3 days' }));
+  assert.match(html, /<time datetime="2026-11-01T00:00:00.000Z" title="Nov 1, 2026">in 3 days<\/time>/i);
+  assert.doesNotMatch(html, /Resend: |New link: /);
+  const withActions = render(h(TeamFlow, { ...teamProps, onResendInvitation: noop, onRenewInvitationLink: noop }));
+  assert.match(withActions, /aria-label="Resend: new@example\.com"[^>]*>Resend</);
+  assert.match(withActions, /aria-label="New link: new@example\.com"[^>]*>New link</);
+});

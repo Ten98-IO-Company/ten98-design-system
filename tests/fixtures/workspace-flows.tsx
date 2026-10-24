@@ -37,6 +37,7 @@ function Screen() {
   const [secret, setSecret] = useState<{ id: string; token: string }>();
   const [policy, setPolicy] = useState(false);
   const [link, setLink] = useState<{ id: string; url: string }>();
+  const [unconfirmed, setUnconfirmed] = useState<string>();
   return <SettingsLayout title="Settings" scope="Acme workspace" items={items} current="team">
     <Stack gap={8}>
       <ApiKeysFlow keys={keys} scopes={[{ value: 'read', label: 'Read' }, { value: 'write', label: 'Write', description: 'Create and change records.' }]}
@@ -48,7 +49,10 @@ function Screen() {
         onRoleChange={values => log('role', values)} onRemove={values => log('remove', values)}
         invitations={[{ id: 'i1', email: 'new.person@example.com', role: 'member', expiresAt: '2026-11-01', status: 'pending' }, { id: 'i2', email: 'old@example.com', role: 'admin', expiresAt: '2026-08-01', status: 'expired' }]}
         onInvite={values => { log('invite', values); setLink({ id: 'i3', url: 'https://app.example.com/invitations/accept?token=0123456789abcdef0123456789abcdef' }); }}
-        onRevokeInvitation={values => log('revokeInvitation', values)} inviteLink={link} onDismissInviteLink={() => setLink(undefined)}
+        onRevokeInvitation={values => log('revokeInvitation', values)} unconfirmed={unconfirmed}
+        // The first resend has an unknown outcome, so the flow must offer only its exact retry; the retry then succeeds.
+        onResendInvitation={values => { log('resend', values); setUnconfirmed(unconfirmed ? undefined : 'Result not confirmed. Retry to make sure it went through.'); }}
+        onRenewInvitationLink={values => { log('renew', values); setLink({ id: 'i1-renewed', url: 'https://app.example.com/invitations/accept?token=fedcba9876543210fedcba9876543210' }); }} inviteLink={link} onDismissInviteLink={() => setLink(undefined)}
         policy={{ twoFactorRequired: policy, onChange: required => { log('policy', required); setPolicy(required); } }}
         ownership={{ candidates: [{ value: 'u2', label: 'Sam Lee' }, { value: 'u3', label: 'Priya Nair' }], onTransfer: values => log('transfer', values) }} />
       <WorkspaceCreateFlow mode="rename" defaultValues={{ name: 'Acme' }} onSubmit={values => log('workspace', values)} cancel={{ onClick: () => log('cancel', 'workspace') }} />

@@ -405,7 +405,10 @@ export interface WorkspaceOnboardingProps extends Omit<AuthFormBaseProps<Workspa
 export function WorkspaceOnboarding({ title = 'Workspace access', email, subheading = 'Create a workspace', help, defaultValues, nameLabel = 'Workspace name', sampleOptIn = false, onSkip, skipLabel = 'Skip for now', submitLabel = 'Create workspace', busyLabel = 'Creating workspace…', onRefresh, refreshLabel = 'Refresh access', signOut, account, children, fieldErrors, onSubmit, ...frame }: WorkspaceOnboardingProps) {
   const id = useId();
   const signOutLabel = signOut?.label ?? 'Sign out';
-  return <AuthFormFrame {...frame} onSubmit={typed(onSubmit, raw => ({ name: text(raw, 'name'), ...(sampleOptIn ? { sample: raw.sample === 'true' } : {}) }))} title={title} description={`Signed in as ${email}`} fieldErrors={fieldErrors} submitLabel={submitLabel} busyLabel={busyLabel}
+  // A name of only spaces gets the same field error as in the create flows, instead of reaching the server.
+  const [blank, setBlank] = useState(false);
+  return <AuthFormFrame {...frame} onSubmit={typed(onSubmit, raw => ({ name: text(raw, 'name').trim(), ...(sampleOptIn ? { sample: raw.sample === 'true' } : {}) }))}
+    validate={raw => { const ok = Boolean(text(raw, 'name').trim()); setBlank(!ok); return ok; }} title={title} description={`Signed in as ${email}`} fieldErrors={fieldErrors} submitLabel={submitLabel} busyLabel={busyLabel}
     after={onSkip && actionRow([<Button key="skip" type="button" variant="ghost" size="sm" onClick={onSkip}>{skipLabel}</Button>])}
     below={(onRefresh || signOut || account || children) && <Stack gap={4}>
       {(onRefresh || signOut || account) && <div className="t98-auth-aux">
@@ -422,7 +425,7 @@ export function WorkspaceOnboarding({ title = 'Workspace access', email, subhead
     </Stack>}>
     <Heading level={2} className="t98-auth-subheading">{subheading}</Heading>
     {help && <Text tone="muted" size="sm">{help}</Text>}
-    <Field label={nameLabel} htmlFor={`${id}-name`} error={fieldErrors?.name ?? fieldErrors?.workspaceName}>
+    <Field label={nameLabel} htmlFor={`${id}-name`} error={fieldErrors?.name ?? fieldErrors?.workspaceName ?? (blank ? `Enter a ${nameLabel.toLowerCase()}.` : undefined)}>
       <Input name="name" autoComplete="organization" required maxLength={120} defaultValue={defaultValues?.name} />
     </Field>
     {sampleOptIn && <div className="t98-auth-choice"><Checkbox name="sample" value="true" label={sampleOptIn.label} defaultChecked={sampleOptIn.defaultChecked} /></div>}
