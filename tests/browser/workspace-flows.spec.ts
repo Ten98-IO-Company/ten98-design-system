@@ -39,8 +39,10 @@ for (const theme of ['light', 'dark'] as const) {
     await expect(screen.getByRole('heading', { level: 1, name: 'Settings' })).toBeVisible();
     expect(await overflow(page), 'no page overflow').toBeLessThanOrEqual(1);
 
-    // Settings navigation: current page, omitted items and hidden empty group.
-    const nav = screen.getByRole('navigation', { name: 'Settings' });
+    // Settings navigation: current page, omitted items and hidden empty group. Narrow layouts show it inside the
+    // "Settings: Team" disclosure (#85), so open that first.
+    if (width < 500) await screen.locator('summary', { hasText: 'Settings: Team' }).click();
+    const nav = screen.getByRole('navigation', { name: 'Settings' }).filter({ visible: true });
     await expect(nav.getByRole('link', { name: 'Team' })).toHaveAttribute('aria-current', 'page');
     await expect(nav.getByRole('link', { name: 'Profile' })).not.toHaveAttribute('aria-current', 'page');
     await expect(nav.getByText('Billing')).toHaveCount(0);
