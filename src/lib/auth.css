@@ -17,7 +17,7 @@
 .brand-mark{width:37px;height:37px;display:inline-flex;align-items:center;justify-content:center;background:var(--color-accent,var(--t98-accent));border-radius:11px;color:var(--color-on-accent,var(--t98-on-accent));font-family:'Aptos Display','Segoe UI',sans-serif;font-size:21px;font-weight:800;letter-spacing:-1.3px;flex-shrink:0}
 .brand>span:last-child{display:flex;flex-direction:column;gap:0}
 .brand strong{font-family:'Aptos Display','Segoe UI',sans-serif;font-size:25px;line-height:1.15;font-weight:800;letter-spacing:-1.2px}
-.brand small{font-size:10px;letter-spacing:2.6px;font-weight:650;color:var(--color-text-muted,var(--t98-muted));margin-top:3px}
+.brand small{font-size:12px;letter-spacing:1.8px;font-weight:650;color:var(--color-text-muted,var(--t98-muted));margin-top:3px}
 .auth-shell{display:grid;grid-template-columns:1fr 1fr;min-height:100dvh;background:var(--color-surface,var(--t98-surface))}
 .auth-story{background:var(--color-canvas,var(--t98-bg));border-inline-end:1px solid var(--color-border,var(--t98-border));padding:40px 50px;display:flex;flex-direction:column;justify-content:space-between;isolation:isolate;position:relative;overflow:hidden}
 .auth-story>.brand{padding:0}
@@ -64,7 +64,7 @@
 .auth-story>.brand{gap:8px}
 .auth-story .brand-mark{height:31px;width:31px;font-size:18px;border-radius:9px}
 .auth-story .brand strong{font-size:22px}
-.auth-story .brand small{font-size:8px;letter-spacing:2px}
+.auth-story .brand small{font-size:12px;letter-spacing:1.4px}
 .auth-story>div:not(.auth-orbit){padding:35px 0 0}
 .auth-story :is(h1,.auth-story-title){font-size:42px;letter-spacing:-.036em;line-height:1.12}
 .auth-story .eyebrow{font-size:12px;letter-spacing:0;margin-bottom:13px}
