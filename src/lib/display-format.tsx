@@ -51,12 +51,21 @@ export function createDisplayFormatter({ locale, timeZone, missing = 'Unavailabl
     currency: (value, code, options) => {
       if (absent(value)) return missing;
       const text = typeof value === 'number' ? String(value) : value.trim();
-      if (!decimal.test(text)) return String(value);
-      const base = new Intl.NumberFormat(locale, { style: 'currency', currency: code });
-      const digits = options?.wholeUnits ? 0 : Math.min(20, Math.max(base.resolvedOptions().maximumFractionDigits ?? 2, text.split('.')[1]?.length ?? 0));
-      // Intl formats a decimal string exactly (ECMA-402 NumberFormat v3), so no digit is lost to binary floating point.
-      return new Intl.NumberFormat(locale, { style: 'currency', currency: code, minimumFractionDigits: options?.wholeUnits ? 0 : undefined, maximumFractionDigits: digits })
-        .format(text as unknown as number);
+      if (typeof value === 'string' && !decimal.test(text)) return missing;
+      try {
+        const base = new Intl.NumberFormat(locale, { style: 'currency', currency: code });
+        const whole = { minimumFractionDigits: 0, maximumFractionDigits: 0 };
+        // A number keeps the currency's usual digits, so 0.1 + 0.2 reads $0.30. Only an exact decimal string widens to
+        // show every digit it carries, and Intl formats such a string exactly (ECMA-402 NumberFormat v3).
+        if (typeof value === 'number') return (options?.wholeUnits ? new Intl.NumberFormat(locale, { style: 'currency', currency: code, ...whole }) : base).format(value);
+        const digits = Math.min(20, Math.max(base.resolvedOptions().maximumFractionDigits ?? 2, text.split('.')[1]?.length ?? 0));
+        return new Intl.NumberFormat(locale, { style: 'currency', currency: code, ...(options?.wholeUnits ? whole : { maximumFractionDigits: digits }) })
+          .format(text as unknown as number);
+      } catch (error) {
+        // A malformed currency code: still show the amount and the code rather than failing the whole screen.
+        if (error instanceof RangeError) return `${text} ${code.toUpperCase()}`;
+        throw error;
+      }
     },
     date: orMissing(dates.date),
     dateTime: orMissing(dates.dateTime),

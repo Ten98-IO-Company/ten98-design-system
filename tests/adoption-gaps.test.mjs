@@ -311,7 +311,12 @@ test('currency formats exact decimal strings without float rounding (#158)', () 
   assert.equal(format.currency('12345678901234567.89', 'USD'), '$12,345,678,901,234,567.89');
   assert.match(format.currency('1250.5', 'AED', { wholeUnits: true }), /^AED\s1,251$/u);
   assert.equal(format.currency(19.9, 'USD'), '$19.90');
-  assert.equal(format.currency('not money', 'USD'), 'not money');
+  assert.equal(format.currency('not money', 'USD'), 'Unavailable');
+  // A number keeps the currency's usual digits; only an exact string widens (#160 review).
+  assert.equal(format.currency(0.1 + 0.2, 'USD'), '$0.30');
+  assert.equal(format.currency('0.30000000000000004', 'USD'), '$0.30000000000000004');
+  // A malformed currency code shows the amount and the code instead of throwing.
+  assert.equal(format.currency('12.5', 'us dollars'), '12.5 US DOLLARS');
 });
 
 test('numbers, percentages and counts follow the locale, including right-to-left Arabic (#158)', () => {
