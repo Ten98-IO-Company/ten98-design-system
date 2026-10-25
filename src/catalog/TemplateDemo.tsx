@@ -4,7 +4,7 @@ import { useId, useState } from 'react';
 import {
   ActivityFeed, Alert, Badge, Breadcrumb, Button, Card, Checkbox, CollectionTemplate,
   ContentPreview, DataTable, DestinationPicker, DetailTemplate, EditorTemplate, EmptyState,
-  Field, FlowSection, Icon, Input, MediaStrip, MetricCard, OverviewTemplate, Select,
+  Field, FlowSection, Icon, Input, MediaStrip, MetricCard, OverviewTemplate, SectionNav, Select,
   SettingsTemplate, Textarea, type DataColumn, type MediaItem,
 } from '../lib';
 
@@ -98,7 +98,7 @@ export function TemplateDemo({ kind, mode = 'default' }: { kind: TemplateKind; m
   </CollectionTemplate>;
 
   if (kind === 'DetailTemplate') return <DetailTemplate title={name || 'Untitled campaign'} description="Campaign content, destinations and change history." actions={action} breadcrumb={breadcrumb} scope={scope} status={<Badge>Draft</Badge>} aria-busy={busy || undefined}
-    navigation={<nav className="t98-form-actions" aria-label="Campaign sections"><a href={`#${id}-summary`}>Summary</a><a href={`#${id}-destinations`}>Destinations and media</a><a href={`#${id}-activity`}>Activity</a></nav>}
+    navigation={<SectionNav label="Campaign sections" items={[{ id: 'summary', label: 'Summary', href: `#${id}-summary`, current: true }, { id: 'destinations', label: 'Destinations and media', href: `#${id}-destinations` }, { id: 'activity', label: 'Activity', href: `#${id}-activity` }]} />}
     aside={<Card title="Owner and review"><p><strong>Owner:</strong> Alex Morgan</p><p><strong>Review:</strong> Not requested</p><p><strong>Time zone:</strong> Asia/Dubai</p><p>No delivery has been requested.</p></Card>}>
     {feedback}
     <FlowSection id={`${id}-summary`} title="Summary" description="The current draft and its purpose.">
@@ -141,7 +141,7 @@ export function TemplateDemo({ kind, mode = 'default' }: { kind: TemplateKind; m
   </EditorTemplate>;
 
   return <SettingsTemplate title="Workspace settings" description="Manage identity, review preferences and notifications." scope={scope} aria-busy={busy || undefined}
-    navigation={<nav className="t98-control-stack" aria-label="Settings sections"><a href={`#${id}-general`}>General</a><a href={`#${id}-notifications`}>Notifications</a></nav>} feedback={feedback}>
+    navigation={<SectionNav label="Settings sections" wrap items={[{ id: 'general', label: 'General', href: `#${id}-general`, current: true }, { id: 'notifications', label: 'Notifications', href: `#${id}-notifications` }]} />} feedback={feedback}>
     <form id={`${id}-form`} className="t98-form-stack" onSubmit={event => { event.preventDefault(); if (!locked) setMessage('Values saved in the local example. No request was sent.'); }}>
       <FlowSection id={`${id}-general`} title="General" description="Identity and default review behavior for this workspace.">
         <Field label="Workspace name" htmlFor={`${id}-name`}><Input name="name" required maxLength={100} value={name} disabled={busy} readOnly={readOnly} onChange={event => { setName(event.target.value); setMessage(''); }} /></Field>
