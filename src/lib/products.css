@@ -264,3 +264,5 @@
 .t98-content-preview-comment { margin-top: var(--t98-space-3); padding-top: var(--t98-space-2); border-top: var(--t98-border-width) solid var(--t98-border); }
 .t98-content-preview-frame--mobile { max-inline-size: calc(375px + 2 * var(--t98-space-4) + 2px); }
 .t98-content-preview-frame--desktop { max-inline-size: calc(600px + 2 * var(--t98-space-4) + 2px); }
+/* Touch screens: disclosure toggles and the issue links of a validation list are controls, so they get the 44px target. */
+@media (pointer: coarse) { .t98-content-preview-more, .t98-evidence-disclosure > summary { min-block-size: var(--t98-control-touch); } .t98-evidence-disclosure > summary { display: flex; align-items: center; } .t98-validation li > a { display: inline-flex; align-items: center; min-block-size: var(--t98-control-touch); } }

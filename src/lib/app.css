@@ -341,3 +341,5 @@ td{font-size:13px}
 .table-cards td :is(button,a,.badge,.chip){white-space:normal;overflow-wrap:anywhere;min-width:0;max-width:100%;height:auto}
 .table-cards td[data-label]::before{content:attr(data-label);display:block;color:var(--color-text-muted);font-size:12px;margin-block-end:4px}
 }
+/* Touch screens: the legacy app classes get the same 44px floor as @ten98/ui controls (quality sweep). */
+@media (pointer: coarse){:is(.button,.btn),.field input,.field select,.field textarea{min-height:var(--t98-control-touch,44px)}.icon-button,.account .icon-button{width:var(--t98-control-touch,44px);height:var(--t98-control-touch,44px)}}

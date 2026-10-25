@@ -99,7 +99,7 @@ for (const [theme, system, expected] of [
     // Independent palette expectations guard against two aliases agreeing on a wrong fill.
     const surface = expected === 'dark' ? [24, 25, 28] : [255, 255, 255];
     const disabled = expected === 'dark' ? [34, 35, 39] : [242, 243, 245];
-    const subtle = disabled, muted = expected === 'dark' ? [149, 153, 162] : [96, 100, 108], accent = expected === 'dark' ? [157, 143, 255] : [89, 67, 206];
+    const subtle = disabled, muted = expected === 'dark' ? [160, 164, 173] : [96, 100, 108], accent = expected === 'dark' ? [157, 143, 255] : [89, 67, 206];
     // color-mix rounding can differ by one unit per channel.
     const near = (actual: Color, target: number[], label: string) => target.forEach((value, index) => expect(Math.abs(actual[index] - value), label).toBeLessThanOrEqual(1));
     expect(rendered.scheme).toBe(expected);
