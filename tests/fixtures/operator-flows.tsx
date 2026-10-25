@@ -22,7 +22,8 @@ function Screen() {
       review={review} onEnableTested={({ id }) => { record(`enable:${id}`); setReview(undefined); }} onDismissReview={() => setReview(undefined)} />
     <ProviderCredentialsFlow state={params.get('state') === 'uncertain' ? 'uncertain' : 'ready'} onReload={() => record('reload')} connections={connections} vaultConfigured={vault} paused={false}
       onAdd={values => record(`add:${JSON.stringify(values)}`)} onCheck={({ id }) => record(`check:${id}`)} onRotate={values => record(`rotate:${JSON.stringify(values)}`)}
-      onDisconnect={({ id }) => record(`disconnect:${id}`)} onSavePause={({ paused }) => record(`pause:${paused}`)} />
+      onDisconnect={({ id }) => record(`disconnect:${id}`)} onSavePause={({ paused }) => record(`pause:${paused}`)}
+      budget={{ month: '2026-10', spentUsd: '0.000123', reservedUsd: '12.5', uncertainUsd: '0' }} ledger={[{ id: 'l1', operation: 'Keyword search', status: 'settled', estimateUsd: '0.0004', actualUsd: null }]} />
     <Text id="log">{log.join(' | ')}</Text>
   </Stack>;
 }

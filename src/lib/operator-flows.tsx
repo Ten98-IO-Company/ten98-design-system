@@ -8,7 +8,8 @@ import { Disclosure, RadioGroup, StatusLine } from './controls.js';
 import { DataTable, type DataColumn } from './patterns.js';
 import { DescriptionList, FormActions, Heading, Inline, Stack, Text } from './structure.js';
 import { ConfirmDialog, CopyButton } from './workspace.js';
-import { SettingsFlow, formatFlowDate, ranOrThrow, staticTable, useSingleSubmit } from './flow-frame.js';
+import { useDisplayFormat } from './display-format.js';
+import { SettingsFlow, useFlowDate, ranOrThrow, staticTable, useSingleSubmit } from './flow-frame.js';
 import type { FlowState, Submit } from './settings-base.js';
 
 const lines = (value: string) => value.split('\n').map(line => line.trim()).filter(Boolean);
@@ -71,7 +72,8 @@ const blankDraft: OidcDraftValues = { name: '', issuer: '', clientId: '', client
 
 /** Operator settings for the installation's OIDC sign-in providers: drafts, test sign-in, enable after a test, disable. */
 export function OidcProvidersFlow({ state = 'ready', onRetry, providers, callbackUrl, vaultConfigured, onSaveDraft, onDisable, onStartTest, review, onEnableTested, onDismissReview, onRetryReview,
-  formatDate = formatFlowDate, title = 'Identity providers', description = 'Manage your installation’s sign-in providers.', fieldErrors, ...flow }: OidcProvidersFlowProps) {
+  formatDate: ownFormatDate, title = 'Identity providers', description = 'Manage your installation’s sign-in providers.', fieldErrors, ...flow }: OidcProvidersFlowProps) {
+  const formatDate = useFlowDate(ownFormatDate);
   const [editing, setEditing] = useState<OidcDraftValues | null>(null);
   const [formKey, setFormKey] = useState(0);
   const [disabling, setDisabling] = useState<OidcProviderConfig>();
@@ -233,8 +235,9 @@ export interface ProviderConnection {
 }
 /** Credentials are write-only: blank on open, cleared after submit, never returned by the app. */
 export type ProviderCredentials = { provider: 'openrouter'; apiKey: string } | { provider: 'dataforseo'; login: string; password: string };
-export interface ProviderBudget { month: string; spentUsd: number; reservedUsd: number; uncertainUsd: number }
-export interface ProviderLedgerEntry { id: string; operation: string; status: string; estimateUsd: number | null; actualUsd: number | null }
+/** Money is an exact decimal string in US dollars, for example "0.000123", so no amount is rounded through floating point. */
+export interface ProviderBudget { month: string; spentUsd: string; reservedUsd: string; uncertainUsd: string }
+export interface ProviderLedgerEntry { id: string; operation: string; status: string; estimateUsd: string | null; actualUsd: string | null }
 export interface ProviderCredentialsFlowProps extends FlowState {
   /** `lost-access`: the viewer is no longer the owner (typed secrets are wiped). `uncertain`: the last change may already be
    * saved, so controls stay locked until a reload. */
@@ -254,7 +257,8 @@ export interface ProviderCredentialsFlowProps extends FlowState {
   budget?: ProviderBudget;
   ledger?: ProviderLedgerEntry[];
   formatDate?: (value: string | Date) => string;
-  formatUsd?: (value: number) => string;
+  /** Defaults to the DisplayFormatProvider's exact currency format, so sub-cent amounts keep their digits. */
+  formatUsd?: (value: string) => string;
   title?: string;
   description?: string;
 }
@@ -262,7 +266,6 @@ export interface ProviderCredentialsFlowProps extends FlowState {
 const providerNames: Record<ProviderKind, string> = { openrouter: 'OpenRouter', dataforseo: 'DataForSEO' };
 const checkLabels = { untested: 'Saved — untested', ok: 'Check passed', error: 'Check failed' } as const;
 const checkTones = { untested: 'neutral', ok: 'success', error: 'danger' } as const;
-const defaultUsd = (value: number) => new Intl.NumberFormat('en', { style: 'currency', currency: 'USD' }).format(value);
 
 function CredentialFields({ provider, renewing }: { provider: ProviderKind; renewing: boolean }) {
   const prefix = renewing ? 'New ' : '';
@@ -283,7 +286,10 @@ function readCredentials(form: HTMLFormElement, provider: ProviderKind): Provide
 
 /** Workspace-owner settings for paid provider connections (AI and search): add, check, rotate, disconnect, and pause paid work. */
 export function ProviderCredentialsFlow({ state = 'ready', onReload, connections, vaultConfigured, onAdd, onCheck, onRotate, onDisconnect, paused, onSavePause, pauseSaved, budget, ledger,
-  formatDate = formatFlowDate, formatUsd = defaultUsd, title = 'Provider connections', description = 'AI and search provider credentials for this workspace.', ...flow }: ProviderCredentialsFlowProps) {
+  formatDate: ownFormatDate, formatUsd: ownFormatUsd, title = 'Provider connections', description = 'AI and search provider credentials for this workspace.', ...flow }: ProviderCredentialsFlowProps) {
+  const formatDate = useFlowDate(ownFormatDate);
+  const display = useDisplayFormat();
+  const formatUsd = ownFormatUsd ?? ((value: string) => display.currency(value, 'USD'));
   const [adding, setAdding] = useState<ProviderKind>('openrouter');
   const [rotating, setRotating] = useState<ProviderConnection>();
   const [disconnecting, setDisconnecting] = useState<ProviderConnection>();

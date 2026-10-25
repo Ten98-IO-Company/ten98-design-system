@@ -4,7 +4,7 @@ import { useId, useState, type FormEvent, type ReactNode } from 'react';
 import { Alert, Button, Checkbox, Field, Icon, Input, type Tone } from './primitives.js';
 import { DescriptionList, Heading, Link, Stack, Text, type LinkProps } from './structure.js';
 import { AuthLayout, type AuthSurface } from './workspace.js';
-import { FlowActionControl, FlowFrame, HiddenInputs, formatFlowDate, passwordHint, useSingleSubmit, type LabelledAction } from './flow-frame.js';
+import { FlowActionControl, FlowFrame, HiddenInputs, useFlowDate, passwordHint, useSingleSubmit, type LabelledAction } from './flow-frame.js';
 
 /* Presentation-only authentication flows. Applications keep requests, sessions, routing, CSRF and OIDC redirects,
  * and supply every message; these components never decide whether a credential is valid. */
@@ -328,7 +328,8 @@ export interface InvitationAcceptFlowProps extends AuthFormBaseProps<InvitationV
   cancel?: LabelledAction;
 }
 /** Workspace invitation screens for every step of acceptance. The application validates the invitation and the session. */
-export function InvitationAcceptFlow({ state, token, invitation, formatDate = formatFlowDate, roleLabel = role => role, signedInEmail, accountExists = false, providers, onSignIn, signInLabel, onSwitchAccount, onRetry, continueAction, passwordPolicy = defaultPasswordPolicy, messages, cancel, busyLabel, linkComponent, fieldErrors, onSubmit, ...frame }: InvitationAcceptFlowProps) {
+export function InvitationAcceptFlow({ state, token, invitation, formatDate: ownFormatDate, roleLabel = role => role, signedInEmail, accountExists = false, providers, onSignIn, signInLabel, onSwitchAccount, onRetry, continueAction, passwordPolicy = defaultPasswordPolicy, messages, cancel, busyLabel, linkComponent, fieldErrors, onSubmit, ...frame }: InvitationAcceptFlowProps) {
+  const formatDate = useFlowDate(ownFormatDate);
   const id = useId();
   const copy = { ...invitationMessages, ...messages };
   const fill = (text: string) => text.replace('{signedIn}', signedInEmail ?? '').replace('{invited}', invitation?.email ?? '').replace('{workspace}', invitation?.workspaceName ?? '');

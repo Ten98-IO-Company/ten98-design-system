@@ -289,3 +289,57 @@ test('#151: createDateFormatter formats one timestamp the same way for a locale 
   assert.equal(at(-24), '1 day ago');
   assert.equal(format.date('not a date'), 'not a date');
 });
+
+test('a missing value is never shown as 0, and 0 is never shown as missing (#158)', () => {
+  const format = ui.createDisplayFormatter({ locale: 'en', timeZone: 'UTC' });
+  for (const method of ['number', 'compact', 'percent']) {
+    assert.equal(format[method](null), 'Unavailable');
+    assert.equal(format[method](undefined), 'Unavailable');
+    assert.equal(format[method](Number.NaN), 'Unavailable');
+  }
+  assert.equal(format.number(0), '0');
+  assert.equal(format.percent(0), '0%');
+  assert.equal(format.currency('0', 'USD'), '$0.00');
+  assert.equal(format.currency(null, 'USD'), 'Unavailable');
+  assert.equal(format.date(null), 'Unavailable');
+  assert.equal(ui.createDisplayFormatter({ missing: '—' }).number(null), '—');
+});
+
+test('currency formats exact decimal strings without float rounding (#158)', () => {
+  const format = ui.createDisplayFormatter({ locale: 'en', timeZone: 'UTC' });
+  assert.equal(format.currency('0.000123', 'USD'), '$0.000123');
+  assert.equal(format.currency('12345678901234567.89', 'USD'), '$12,345,678,901,234,567.89');
+  assert.match(format.currency('1250.5', 'AED', { wholeUnits: true }), /^AED\s1,251$/u);
+  assert.equal(format.currency(19.9, 'USD'), '$19.90');
+  assert.equal(format.currency('not money', 'USD'), 'not money');
+});
+
+test('numbers, percentages and counts follow the locale, including right-to-left Arabic (#158)', () => {
+  const en = ui.createDisplayFormatter({ locale: 'en' });
+  assert.equal(en.number(12345.678, { maximumFractionDigits: 1 }), '12,345.7');
+  assert.equal(en.compact(12400), '12.4K');
+  assert.equal(en.percent(0.256), '25.6%');
+  assert.equal(en.count(1, { one: 'post', other: 'posts' }), '1 post');
+  assert.equal(en.count(3, { one: 'post', other: 'posts' }), '3 posts');
+  const ar = ui.createDisplayFormatter({ locale: 'ar-EG' });
+  assert.equal(ar.number(1234), new Intl.NumberFormat('ar-EG').format(1234));
+  assert.notEqual(ar.number(1234), '1,234');
+});
+
+test('a date-only value shows its calendar day in every time zone; an instant follows the zone (#158)', () => {
+  const west = ui.createDateFormatter({ locale: 'en', timeZone: 'America/Los_Angeles' });
+  assert.equal(west.date('2026-11-01'), 'Nov 1, 2026');
+  assert.equal(west.date('2026-11-01T03:00:00Z'), 'Oct 31, 2026');
+});
+
+test('flows take their default date and money format from ui.DisplayFormatProvider (#158)', () => {
+  const sessions = [{ id: 's1', device: 'Chrome', lastActiveAt: '2030-01-15T12:00:00Z', current: true }];
+  const plain = renderToStaticMarkup(h(ui.SessionListFlow, { sessions, onRevoke: (() => undefined), onRevokeOthers: (() => undefined) }));
+  assert.match(plain, /Jan 15, 2030/);
+  const german = renderToStaticMarkup(h(ui.DisplayFormatProvider, { locale: 'de-DE', timeZone: 'Europe/Berlin' }, h(ui.SessionListFlow, { sessions, onRevoke: (() => undefined), onRevokeOthers: (() => undefined) })));
+  assert.match(german, /15\.01\.2030/);
+});
+
+test('ui.saveFile is exported for browser downloads', () => {
+  assert.equal(typeof ui.saveFile, 'function');
+});

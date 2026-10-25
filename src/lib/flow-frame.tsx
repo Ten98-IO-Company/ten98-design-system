@@ -6,16 +6,17 @@ import { FormActions, Heading, Link, Stack, Text, type LinkProps } from './struc
 import { ConfirmDialog } from './workspace.js';
 import type { AuthAction, PasswordPolicy } from './auth-flows.js';
 import type { FlowState } from './settings-base.js';
+import { useDisplayFormat } from './display-format.js';
 
 /* Internal building blocks shared by the authentication, account and workspace flows: one frame, one single-submit
  * guard, one date formatter and one action control. Not exported from the package entry point. */
 
-/** Deterministic across servers and browsers: English, UTC, medium date. Unparseable values are shown as given. */
-const flowDateFormat = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeZone: 'UTC' });
-export const formatFlowDate = (value: string | Date) => {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? String(value) : flowDateFormat.format(date);
-};
+/** A flow's own date format, else the DisplayFormatProvider's; without a provider, English and UTC, the same on the
+ * server and in every browser. Unparseable values are shown as given. */
+export function useFlowDate(own?: (value: string | Date) => string) {
+  const display = useDisplayFormat();
+  return own ?? display.date;
+}
 
 /** Runs the handler once at a time so a double activation cannot send two requests. Resolves false when the call was
  * dropped because another was still pending, so a confirm dialog can stay open instead of closing as if it ran. */

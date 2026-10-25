@@ -89,3 +89,11 @@ test('provider credentials: write-only keys, confirm before disconnect, workspac
   await page.getByRole('button', { name: 'Reload saved settings' }).click();
   await expect(page.locator('#log')).toHaveText('reload');
 });
+
+test('provider spending shows exact sub-cent dollar amounts from decimal strings (#158)', async ({ page }) => {
+  await page.goto('/tests/operator-flows.html');
+  await page.getByRole('button', { name: 'Review spending' }).click();
+  await expect(page.getByText('$0.000123')).toBeVisible();
+  await expect(page.getByText('$12.50')).toBeVisible();
+  await expect(page.getByRole('cell', { name: '$0.0004' })).toBeVisible();
+});

@@ -8,7 +8,7 @@ import { SidebarNav, type NavLinkComponent, type SidebarNavGroup } from './shell
 import { FormActions, Heading, Inline, Stack, Text } from './structure.js';
 import { SettingsTemplate } from './templates.js';
 import { ConfirmDialog, CopyButton, SecretField, type CopyButtonMessages } from './workspace.js';
-import { FlowActionControl, SettingsFlow, TargetConfirm, formText, formatFlowDate, ranOrThrow, staticTable, useSingleSubmit, type LabelledAction } from './flow-frame.js';
+import { FlowActionControl, SettingsFlow, TargetConfirm, formText, useFlowDate, ranOrThrow, staticTable, useSingleSubmit, type LabelledAction } from './flow-frame.js';
 import type { FlowState, Submit } from './settings-base.js';
 
 /* Presentation-only workspace settings flows. Applications keep requests, authorization and secrets, and supply every
@@ -96,7 +96,8 @@ function ApiKeyForm({ scopes, expiryOptions, onCreate, fieldErrors, copy }: Pick
   </form>;
 }
 /** API keys: create with scopes and expiry, show the new secret once, revoke after one confirmation. */
-export function ApiKeysFlow({ keys, scopes, expiryOptions, onCreate, revealedSecret, onDismissSecret, onRevoke, page, onPageChange, formatDate = formatFlowDate, title = 'API keys', description, messages, ...state }: ApiKeysFlowProps) {
+export function ApiKeysFlow({ keys, scopes, expiryOptions, onCreate, revealedSecret, onDismissSecret, onRevoke, page, onPageChange, formatDate: ownFormatDate, title = 'API keys', description, messages, ...state }: ApiKeysFlowProps) {
+  const formatDate = useFlowDate(ownFormatDate);
   const copy = { ...apiKeyMessages, ...messages };
   const [target, setTarget] = useState<ApiKey>();
   const locked = state.busy || state.disabled;
@@ -189,7 +190,8 @@ export interface TeamFlowProps extends FlowState {
   messages?: Partial<TeamMessages>;
 }
 /** The one place to manage members, roles, invitations, the two-factor policy and ownership. */
-export function TeamFlow({ currentUserId, members, roles, roleLabels, invitationStatusLabels, assignableRoles, onRoleChange, onRemove, invitations, onInvite, onRevokeInvitation, onResendInvitation, onRenewInvitationLink, inviteLink, onDismissInviteLink, policy, ownership, defaultInviteRole = roles[roles.length - 1]?.value, formatDate = formatFlowDate, formatRelative, title = 'Team', description, messages, ...state }: TeamFlowProps) {
+export function TeamFlow({ currentUserId, members, roles, roleLabels, invitationStatusLabels, assignableRoles, onRoleChange, onRemove, invitations, onInvite, onRevokeInvitation, onResendInvitation, onRenewInvitationLink, inviteLink, onDismissInviteLink, policy, ownership, defaultInviteRole = roles[roles.length - 1]?.value, formatDate: ownFormatDate, formatRelative, title = 'Team', description, messages, ...state }: TeamFlowProps) {
+  const formatDate = useFlowDate(ownFormatDate);
   const id = useId();
   const copy = { ...teamMessages, ...messages };
   const singleFlight = useSingleSubmit();

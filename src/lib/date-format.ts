@@ -23,6 +23,9 @@ const units: [Intl.RelativeTimeFormatUnit, number][] = [['year', 31_536_000], ['
 export function createDateFormatter({ locale, timeZone }: DateFormatterOptions = {}): DateFormatter {
   const date = new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeZone });
   const dateTime = new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short', timeZone });
+  // A date-only value such as "2026-11-01" is a calendar day, not an instant: show that day in every time zone.
+  const calendarDay = new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeZone: 'UTC' });
+  const dateOnly = (value: string | number | Date) => typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
   const relative = new Intl.RelativeTimeFormat(locale, { numeric: 'always' });
   const parse = (value: string | number | Date) => value instanceof Date ? value : new Date(value);
   const safe = (format: (when: Date) => string) => (value: string | number | Date) => {
@@ -30,8 +33,8 @@ export function createDateFormatter({ locale, timeZone }: DateFormatterOptions =
     return Number.isNaN(when.getTime()) ? String(value) : format(when);
   };
   return {
-    date: safe(when => date.format(when)),
-    dateTime: safe(when => dateTime.format(when)),
+    date: value => dateOnly(value) ? safe(when => calendarDay.format(when))(value) : safe(when => date.format(when))(value),
+    dateTime: value => dateOnly(value) ? safe(when => calendarDay.format(when))(value) : safe(when => dateTime.format(when))(value),
     relative: (value, now = new Date()) => safe(when => {
       const seconds = (when.getTime() - now.getTime()) / 1000;
       let index = units.findIndex(([, length]) => Math.abs(seconds) >= length);
