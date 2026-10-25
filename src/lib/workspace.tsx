@@ -255,7 +255,8 @@ export function useToast(): ToastApi { const context = useContext(ToastContext);
  * onboarding, loading, failure and boundary screens use the same brand, side panel and password policy. */
 export interface AuthFrame { brand?: ReactNode; aside?: ReactNode; passwordPolicy?: PasswordPolicy }
 const AuthFrameContext = createContext<AuthFrame>({});
-/** Supplies the shared auth frame to AuthLayout, every auth flow, AppStateScreen and AuthErrorBoundary. A screen's own
+/** Supplies the shared auth frame to AuthLayout, every auth flow, AppStateScreen and AuthErrorBoundary. Mount it outside
+ * AuthErrorBoundary (provider, then boundary, then router): a boundary outside it renders its fallback without the frame. A screen's own
  * prop still wins; pass `aside={null}` to drop the side panel on one screen. */
 export function AuthFrameProvider({ children, ...frame }: AuthFrame & { children: ReactNode }) {
   return <AuthFrameContext.Provider value={frame}>{children}</AuthFrameContext.Provider>;
