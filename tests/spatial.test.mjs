@@ -112,6 +112,23 @@ test('the calendar is a grid with weekday headers, today and outside states and 
   assert.doesNotMatch(render(CalendarMonth, calendar), /t98-calendar-create/);
 });
 
+test('a calendar entry renders its time, network, label and status as distinct ordered parts, tone applied', () => {
+  const rich = { ...calendar, days: new Map([['2026-10-21', [{ id: 'a', label: 'Launch post', time: '09:30', network: 'Instagram', status: 'Scheduled', tone: 'info', onSelect() {} }]]]) };
+  const html = render(CalendarMonth, rich);
+  // Each part is its own classed node, in reading order, inside one entry button.
+  assert.match(html, /class="t98-calendar-entry-time">09:30<\/span><span class="t98-calendar-entry-network">Instagram<\/span><span class="t98-calendar-entry-label">Launch post<\/span><span class="t98-calendar-entry-status t98-tone--info">Scheduled<\/span>/);
+  assert.match(html, /<button[^>]*class="t98-calendar-entry"[^>]*tabindex="0"/);
+  // A status without an explicit tone falls back to neutral; time and network are omitted when absent.
+  const plain = render(CalendarMonth, { ...calendar, days: new Map([['2026-10-21', [{ id: 'a', label: 'Launch', status: 'Review' }]]]) });
+  assert.match(plain, /class="t98-calendar-entry-status t98-tone--neutral">Review<\/span><\/span>/);
+  assert.doesNotMatch(plain, /t98-calendar-entry-time|t98-calendar-entry-network/);
+  // The phone-width rule stacks the entry's parts and gives the label the full width.
+  assert.match(styles, /@media \(max-width: 760px\)\s*{\s*\.t98-calendar-entry\s*{[^}]*flex-direction:\s*column/);
+  assert.match(styles, /\.t98-calendar-entry-label\s*{[^}]*inline-size:\s*100%/);
+  // Every new part class is styled.
+  for (const name of ['t98-calendar-entry-time', 't98-calendar-entry-network', 't98-calendar-entry-label', 't98-calendar-entry-status']) assert.ok(styles.includes(`.${name}`), `${name} is styled`);
+});
+
 test('a calendar day name states its entry count so the grid cell is not announced as just a date', () => {
   const html = render(CalendarMonth, calendar);
   assert.match(html, /aria-label="[^"]*21 October 2026, today, 1 entry"/);
