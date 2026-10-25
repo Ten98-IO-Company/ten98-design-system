@@ -142,13 +142,20 @@ export function SectionNav({ label, items, linkComponent: LinkComponent, onSelec
     observer?.observe(list);
     return () => { list.removeEventListener('scroll', measure); observer?.disconnect(); };
   }, [wrap, items.length]);
-  // Bring the current section into the row's view without scrolling the page.
+  // Bring the current section into the row's view without scrolling the page; again once web fonts load, because a font
+  // swap changes the tab widths after the first layout.
   useEffect(() => {
-    const list = listRef.current, current = list?.querySelector<HTMLElement>('[aria-current="page"]');
-    if (!list || !current || wrap) return;
-    const row = list.getBoundingClientRect(), box = current.getBoundingClientRect();
-    if (box.right > row.right) list.scrollBy({ left: box.right - row.right + 16 });
-    else if (box.left < row.left) list.scrollBy({ left: box.left - row.left - 16 });
+    const reveal = () => {
+      const list = listRef.current, current = list?.querySelector<HTMLElement>('[aria-current="page"]');
+      if (!list || !current || wrap) return;
+      const row = list.getBoundingClientRect(), box = current.getBoundingClientRect();
+      if (box.right > row.right) list.scrollBy({ left: box.right - row.right + 16 });
+      else if (box.left < row.left) list.scrollBy({ left: box.left - row.left - 16 });
+    };
+    reveal();
+    let live = true;
+    void document.fonts?.ready.then(() => { if (live) reveal(); });
+    return () => { live = false; };
   }, [currentId, wrap]);
   return <nav aria-label={label} className="t98-section-nav">
     <ul ref={listRef} className={cx('t98-section-nav__list', wrap && 't98-section-nav__list--wrap')} data-overflow={overflow || undefined}>
