@@ -6,7 +6,8 @@ import { Combobox, CodeBlock, RadioGroup, StatusLine } from './controls.js';
 import { DataTable, type DataColumn } from './patterns.js';
 import { DescriptionList, FormActions, Heading, Image, Inline, Link, Stack, Text, type LinkProps } from './structure.js';
 import { ConfirmDialog, CopyButton } from './workspace.js';
-import { SettingsFlow, TargetConfirm, formText, formatFlowDate, passwordHint, staticTable, useSingleSubmit } from './flow-frame.js';
+import { saveFile } from './save-file.js';
+import { SettingsFlow, TargetConfirm, formText, useFlowDate, passwordHint, staticTable, useSingleSubmit } from './flow-frame.js';
 import { defaultPasswordPolicy, type OidcProvider, type PasswordPolicy } from './auth-flows.js';
 import type { FlowState, Submit } from './settings-base.js';
 
@@ -186,24 +187,6 @@ const twoFactorMessages: TwoFactorSetupMessages = {
   disableCode: 'Authenticator or recovery code', disableCodeRequired: 'Enter a code from your authenticator app or a recovery code.',
 };
 
-/**
- * Saves text as a file with the FileSaver.js (MIT, Eli Grey) approach: a Blob, an object URL and a download anchor
- * clicked programmatically, with the URL revoked afterwards so the Blob can be released.
- */
-function saveTextFile(name: string, text: string) {
-  const url = URL.createObjectURL(new Blob([text], { type: 'text/plain;charset=utf-8' }));
-  const anchor = document.createElement('a');
-  anchor.href = url;
-  anchor.download = name;
-  anchor.rel = 'noopener';
-  anchor.hidden = true;
-  // Some browsers ignore downloads from detached anchors, so attach it for the click, as FileSaver.js does.
-  document.body.append(anchor);
-  anchor.click();
-  anchor.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 4e4);
-}
-
 export interface TwoFactorSetupFlowProps extends FlowState {
   stage: TwoFactorSetupStage;
   enrolment?: TwoFactorEnrolment;
@@ -275,7 +258,7 @@ export function TwoFactorSetupFlow({ stage, enrolment, recoveryCodes = [], codeL
   if (stage === 'codes') {
     const text = recoveryCodes.join('\n');
     const download = () => {
-      try { saveTextFile(downloadName, `${text}\n`); setSaveError(false); } catch { setSaveError(true); }
+      try { saveFile(downloadName, `${text}\n`, 'text/plain;charset=utf-8'); setSaveError(false); } catch { setSaveError(true); }
     };
     return <SettingsFlow {...state} title={title} description={description} extraActions={<Button type="button" onClick={() => void single(onAcknowledgeCodes)}>{copy.acknowledge}</Button>}>
       <Text tone="muted" size="sm">{copy.codesIntro}</Text>
@@ -335,7 +318,8 @@ export interface SessionListFlowProps extends FlowState {
   messages?: Partial<SessionListMessages>;
 }
 /** Active sessions with sign-out. The current session is marked and offers no revoke action. */
-export function SessionListFlow({ sessions, onRevoke, onRevokeOthers, formatDate = formatFlowDate, title = 'Active sessions', description, messages, ...state }: SessionListFlowProps) {
+export function SessionListFlow({ sessions, onRevoke, onRevokeOthers, formatDate: ownFormatDate, title = 'Active sessions', description, messages, ...state }: SessionListFlowProps) {
+  const formatDate = useFlowDate(ownFormatDate);
   const copy = { ...sessionMessages, ...messages };
   const [target, setTarget] = useState<AccountSession>();
   const [others, setOthers] = useState(false);
@@ -387,7 +371,8 @@ export interface LinkedIdentitiesFlowProps extends FlowState {
   messages?: Partial<LinkedIdentitiesMessages>;
 }
 /** Linked sign-in providers. The application verifies ownership and the password; the flow only blocks the last method. */
-export function LinkedIdentitiesFlow({ identities, providers, hasPassword, onLink, onUnlink, pendingProof, onConfirmProof, onDismissProof, formatDate = formatFlowDate, title = 'Linked sign-in providers', description, messages, fieldErrors, ...state }: LinkedIdentitiesFlowProps) {
+export function LinkedIdentitiesFlow({ identities, providers, hasPassword, onLink, onUnlink, pendingProof, onConfirmProof, onDismissProof, formatDate: ownFormatDate, title = 'Linked sign-in providers', description, messages, fieldErrors, ...state }: LinkedIdentitiesFlowProps) {
+  const formatDate = useFlowDate(ownFormatDate);
   const id = useId();
   const copy = { ...identityMessages, ...messages };
   const [password, setPassword] = useState('');

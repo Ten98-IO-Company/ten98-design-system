@@ -1,4 +1,4 @@
-import { AccountProfileFlow, Field, Input, LinkedIdentitiesFlow, OidcProvidersFlow, PasswordChangeFlow, ProviderCredentialsFlow, SessionListFlow, SettingsPanel, TwoFactorSetupFlow } from '../lib';
+import { AccountProfileFlow, DisplayFormatProvider, Field, Input, LinkedIdentitiesFlow, OidcProvidersFlow, PasswordChangeFlow, ProviderCredentialsFlow, SessionListFlow, SettingsPanel, TwoFactorSetupFlow } from '../lib';
 import { tsx, type ComponentEntry, type ComponentProp } from './model';
 
 const prop = (name: string, type: string, description: string, required = false, defaultValue?: string): ComponentProp => ({ name, type, description, required, defaultValue });
@@ -121,6 +121,20 @@ export const accountFlowEntries: ComponentEntry[] = [
       { name: 'Enrolling', description: 'QR code, setup key and verification.', preview: <TwoFactorSetupFlow stage="enrolling" enrolment={{ qrDataUrl: 'data:image/gif;base64,R0lGODlhAQABAAAAACw=', manualKey: 'JBSWY3DPEHPK3PXP' }} {...twoFactorHandlers} />, code: tsx(['TwoFactorSetupFlow'], twoFactorJsx('enrolling', '\n  enrolment={enrolment}'), enrolmentSetup) },
       { name: 'Recovery codes', description: 'Shown once, with copy and download.', preview: <TwoFactorSetupFlow stage="codes" recoveryCodes={['a1b2-c3d4', 'e5f6-g7h8']} {...twoFactorHandlers} />, code: tsx(['TwoFactorSetupFlow'], twoFactorJsx('codes', "\n  recoveryCodes={['a1b2-c3d4', 'e5f6-g7h8']}"), twoFactorSetup) },
       { name: 'On', description: 'Regenerate or turn off, each confirmed.', preview: <TwoFactorSetupFlow stage="on" {...twoFactorHandlers} />, code: tsx(['TwoFactorSetupFlow'], twoFactorJsx('on'), twoFactorSetup) },
+    ],
+  },
+  {
+    name: 'DisplayFormatProvider', category: 'Application adapters', description: 'The viewer’s locale, time zone and missing-value word for every number, money and date the flows show.',
+    usage: 'Mount once at the app root with the viewer’s saved locale and time zone. Flows that show dates (SessionListFlow, LinkedIdentitiesFlow, ApiKeysFlow, TeamFlow, InvitationAcceptFlow, OidcProvidersFlow, ProviderCredentialsFlow) use it unless given formatDate; ProviderCredentialsFlow money uses its exact currency format. In app code, call useDisplayFormat() for number, compact, percent, count, currency, date, dateTime and relative, or createDisplayFormatter outside React. Money is an exact decimal string, so "0.000123" USD reads $0.000123. A missing value (null, undefined, NaN) shows the missing word and is never shown as 0. A date-only string shows its calendar day in every time zone. Without a provider: English and UTC.',
+    props: [prop('locale', 'string', 'BCP 47 locale, for example the viewer’s saved preference.', false, 'browser default'), prop('timeZone', 'string', 'IANA time zone, for example "Asia/Dubai".', false, 'browser default'), prop('missing', 'string', 'Shown for a missing value.', false, "'Unavailable'"), prop('children', 'ReactNode', 'The app.', true)],
+    tokens: [], accessibility: ['Adds no markup.', 'A missing value is a word, not a dash, so screen readers announce it.'], related: ['SessionListFlow', 'ProviderCredentialsFlow', 'TeamFlow'],
+    example: tsx(['DisplayFormatProvider', 'SessionListFlow'], `<DisplayFormatProvider locale="de-DE" timeZone="Europe/Berlin">
+  <SessionListFlow sessions={sessions} onRevoke={({ id }) => revoke(id)} onRevokeOthers={revokeOthers} />
+</DisplayFormatProvider>`, sessionSetup),
+    states: [
+      { name: 'German, Berlin time', description: 'The same sessions with dates in the viewer’s locale and zone.', preview: <DisplayFormatProvider locale="de-DE" timeZone="Europe/Berlin"><SessionListFlow sessions={sessions} onRevoke={nothing} onRevokeOthers={nothing} /></DisplayFormatProvider>, code: tsx(['DisplayFormatProvider', 'SessionListFlow'], `<DisplayFormatProvider locale="de-DE" timeZone="Europe/Berlin">
+  <SessionListFlow sessions={sessions} onRevoke={({ id }) => revoke(id)} onRevokeOthers={revokeOthers} />
+</DisplayFormatProvider>`, sessionSetup) },
     ],
   },
   {
