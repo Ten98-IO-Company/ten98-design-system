@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { Alert, Button, Checkbox, Dialog, Field, Icon, Input, Select, cx, type DialogProps, type Tone } from './primitives.js';
 import { addDays, inclusiveDays } from './dates.js';
+import type { PasswordPolicy } from './auth-flows.js';
 
 export interface ProductOption { id: string; name: string; description?: string }
 /** Native scope selection; the consumer handles navigation and data changes. */
@@ -250,11 +251,26 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 }
 export function useToast(): ToastApi { const context = useContext(ToastContext); if (!context) throw new Error('useToast must be used within ToastProvider'); return context; }
 
+/** What every authentication screen of one app shares: set once at the root so sign-in, setup, recovery, invitations,
+ * onboarding, loading, failure and boundary screens use the same brand, side panel and password policy. */
+export interface AuthFrame { brand?: ReactNode; aside?: ReactNode; passwordPolicy?: PasswordPolicy }
+const AuthFrameContext = createContext<AuthFrame>({});
+/** Supplies the shared auth frame to AuthLayout, every auth flow, AppStateScreen and AuthErrorBoundary. A screen's own
+ * prop still wins; pass `aside={null}` to drop the side panel on one screen. */
+export function AuthFrameProvider({ children, ...frame }: AuthFrame & { children: ReactNode }) {
+  return <AuthFrameContext.Provider value={frame}>{children}</AuthFrameContext.Provider>;
+}
+export const useAuthFrame = () => useContext(AuthFrameContext);
+
 /** Branded authentication presentation; authentication and recovery remain application-owned. */
 export type AuthSurface = 'plain' | 'card';
 /** `card` shows the form as a bordered card on the canvas: centred on its own, or centred in the form column beside an `aside`.
  * The default is `card` without an `aside` and `plain` (the open form column) with one. */
-export function AuthLayout({ brand, title, description, aside, children, footer, label, surface }: { brand: ReactNode; title?: string; description?: string; aside?: ReactNode; children: ReactNode; footer?: ReactNode; surface?: AuthSurface; label?: string }) {
+export function AuthLayout({ brand: ownBrand, title, description, aside: ownAside, children, footer, label, surface }: { brand?: ReactNode; title?: string; description?: string; aside?: ReactNode; children: ReactNode; footer?: ReactNode; surface?: AuthSurface; label?: string }) {
+  const frame = useAuthFrame();
+  // undefined falls back to the AuthFrameProvider; an explicit null or false keeps that piece off this screen.
+  const brand = ownBrand === undefined ? frame.brand : ownBrand;
+  const aside = ownAside === undefined ? frame.aside : ownAside;
   // A labelled layout is the page's main landmark; unlabelled keeps the 0.3.x div for apps that supply their own <main>.
   const Root = label ? 'main' : 'div';
   return <Root className={['t98-auth-layout auth-shell', aside && 'auth-split', (surface ?? (aside ? 'plain' : 'card')) === 'card' && 't98-auth-layout--card'].filter(Boolean).join(' ')} aria-label={label}>{aside && <aside className="auth-story t98-auth-aside">{brand}{aside}<div className="auth-orbit" aria-hidden="true"/></aside>}<section className="auth-form"><div className="auth-form-inner">{!aside && <div className="t98-auth-brand">{brand}</div>}{title !== undefined && <h1 className="t98-auth-title">{title}</h1>}{description && <p>{description}</p>}<div className="t98-auth-fields">{children}</div>{footer && <footer className="auth-footnote">{footer}</footer>}</div></section></Root>;

@@ -10,7 +10,10 @@ import { AuthLayout, type AuthSurface } from './workspace.js';
 export type AppStateKind = 'loading' | 'error' | 'boundary' | 'unconfirmed' | 'not-found';
 export interface AppStateScreenProps {
   state: AppStateKind;
-  brand: ReactNode;
+  /** Defaults to the AuthFrameProvider's brand. */
+  brand?: ReactNode;
+  /** Side panel, so loading and failure screens share the sign-in layout. Defaults to the AuthFrameProvider's; `null` drops it. */
+  aside?: ReactNode;
   /** Default `card` matches the sign-in screens; `plain` keeps the open column. */
   surface?: AuthSurface;
   title?: string;
@@ -28,9 +31,9 @@ const stateCopy: Record<AppStateKind, { title: string; message: string; retryLab
   'not-found': { title: 'Page not found', message: 'This page does not exist or has moved.', retryLabel: 'Go to home' },
 };
 /** Full-screen loading and failure states shown before the application shell is available. */
-export function AppStateScreen({ state, brand, surface, title, message, onRetry, retryLabel, homeHref }: AppStateScreenProps) {
+export function AppStateScreen({ state, brand, aside, surface, title, message, onRetry, retryLabel, homeHref }: AppStateScreenProps) {
   const copy = stateCopy[state];
-  return <AuthLayout label={title ?? copy.title} brand={brand} surface={surface} title={title ?? copy.title}>
+  return <AuthLayout label={title ?? copy.title} brand={brand} aside={aside} surface={surface} title={title ?? copy.title}>
     <Stack gap={4}>
       {/* Loading and not-found share one status node, so replacing loading with not-found changes the text inside a live
           region that already exists and is announced. A missing page is not a failure, so it is not an alert. */}
@@ -64,6 +67,6 @@ export class AuthErrorBoundary extends Component<AuthErrorBoundaryProps, { faile
     const { fallback, onReload } = this.props;
     // A custom onReload recovers in place, so clear the failure and render the children again.
     const retry = onReload ? () => { this.setState({ failed: false }); onReload(); } : () => location.reload();
-    return <AppStateScreen brand={null} onRetry={retry} {...fallback} state="boundary" />;
+    return <AppStateScreen onRetry={retry} {...fallback} state="boundary" />;
   }
 }
