@@ -48,6 +48,8 @@ span.t98-truncate, strong.t98-truncate, em.t98-truncate, small.t98-truncate, cod
 .t98-link--inline { text-decoration: underline; }
 .t98-link--standalone { text-decoration: none; font-weight: var(--t98-weight-semibold); }
 .t98-link--standalone:hover { text-decoration: underline; }
+/* Touch screens: a standalone link is a control, so it gets the 44px target; inline links in a sentence are exempt. */
+@media (pointer: coarse) { .t98-link--standalone { display: inline-flex; align-items: center; min-block-size: var(--t98-control-touch); } }
 .t98-link--quiet { color: inherit; text-decoration: none; }
 .t98-link--quiet:hover { color: var(--t98-accent); text-decoration: underline; }
 .t98-link:focus-visible { outline: 3px solid var(--t98-accent); outline-offset: 2px; }
