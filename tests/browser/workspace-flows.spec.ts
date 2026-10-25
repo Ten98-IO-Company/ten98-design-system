@@ -190,3 +190,90 @@ test('a new invitation link takes focus when it appears (#83)', async ({ page })
   await page.getByRole('button', { name: 'Send invitation' }).click();
   await expect(page.getByLabel('Invitation link')).toBeFocused();
 });
+
+test('invitation resend and new link confirm once, and an unconfirmed resend offers only its exact retry (#151)', async ({ page }) => {
+  await page.goto('/tests/workspace-flows.html?theme=light');
+  // Opt-in relative expiry keeps the exact date visible, not only in a title touch users cannot reach.
+  const expiresCell = page.getByRole('table', { name: 'Invitations' }).getByRole('cell').filter({ has: page.locator('time') }).first();
+  await expect(expiresCell.locator('time')).toHaveAttribute('datetime', '2026-11-01T00:00:00.000Z');
+  await expect(expiresCell).toContainText('Nov 1, 2026');
+  const dialog = page.getByRole('dialog');
+
+  await page.getByRole('button', { name: /^New link: new.person/ }).click();
+  await expect(dialog).toContainText('The current link stops working.');
+  await dialog.getByRole('button', { name: 'New link', exact: true }).click();
+  await expect(dialog).toBeHidden();
+  expect(await only(page, 'renew:')).toEqual(['renew:{"id":"i1"}']);
+  await expect(page.getByLabel('Invitation link')).toHaveValue(/fedcba/);
+  await expect(page.getByLabel('Invitation link')).toBeFocused();
+
+  await page.getByRole('button', { name: /^Resend: new.person/ }).click();
+  await dialog.getByRole('button', { name: 'Resend', exact: true }).click();
+  await expect(dialog).toBeHidden();
+  expect(await only(page, 'resend:')).toEqual(['resend:{"id":"i1"}']);
+  await expect(page.getByRole('alert').filter({ hasText: 'Result not confirmed' })).toBeVisible();
+  await expect(page.getByRole('button', { name: /^(Resend|New link|Revoke): new.person/ })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /: second@example\.com$/ })).toHaveCount(0);
+  // Focus follows the row's buttons as they swap, instead of falling to the page.
+  const retry = page.getByRole('button', { name: 'Retry: Resend: new.person@example.com' });
+  await expect(retry).toBeFocused();
+  // The retry repeats the confirmed attempt directly, without a second confirmation.
+  await retry.click();
+  await expect(dialog).toBeHidden();
+  expect(await only(page, 'resend:')).toEqual(['resend:{"id":"i1"}', 'resend:{"id":"i1"}']);
+  await expect(page.getByRole('button', { name: /^Resend: new.person/ })).toBeFocused();
+});
+
+test('Cancel or Escape from an invitation confirm returns focus to the button that opened it (#153 review)', async ({ page }) => {
+  await page.goto('/tests/workspace-flows.html?theme=light');
+  const revoke = page.getByRole('button', { name: /^Revoke: new.person/ });
+  await revoke.click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Cancel' }).click();
+  await expect(revoke).toBeFocused();
+  const renew = page.getByRole('button', { name: /^New link: new.person/ });
+  await renew.click();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toBeHidden();
+  await expect(renew).toBeFocused();
+});
+
+test('a confirm dropped by the single-submit guard stays open with its error instead of closing as if it ran (#153 review)', async ({ page }) => {
+  await page.goto('/tests/workspace-flows.html?theme=light&slowRole=1');
+  await page.getByLabel('Role for Sam Lee').selectOption('admin');
+  await page.getByRole('button', { name: /^Revoke: new.person/ }).click();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByRole('button', { name: 'Revoke', exact: true }).click();
+  await expect(dialog.getByRole('alert')).toContainText('could not be completed');
+  await expect(dialog).toBeVisible();
+  expect(await only(page, 'revokeInvitation:')).toEqual([]);
+});
+
+test('an empty unconfirmed value is not retry mode: every invitation keeps its actions (#153 review)', async ({ page }) => {
+  await page.goto('/tests/workspace-flows.html?theme=light&unconfirmed=blank');
+  await page.getByRole('button', { name: /^Resend: new.person/ }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Resend', exact: true }).click();
+  await expect(page.getByRole('dialog')).toBeHidden();
+  await expect(page.getByRole('button', { name: /^Retry/ })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /^Resend: / })).toHaveCount(2);
+});
+
+test('an unconfirmed revoke of an invitation that is no longer pending offers no Retry and leaves other rows usable (#153 review)', async ({ page }) => {
+  await page.goto('/tests/workspace-flows.html?theme=light&revokeUnconfirmed=1');
+  await page.getByRole('button', { name: /^Revoke: new.person/ }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Revoke', exact: true }).click();
+  await expect(page.getByRole('alert').filter({ hasText: 'Result not confirmed.' })).toBeVisible();
+  await expect(page.getByRole('button', { name: /^Retry/ })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /^Revoke: second@example\.com$/ })).toBeVisible();
+});
+
+test('a Checkbox hit target is its whole label row, at least 44px tall at any pointer (Discover target check)', async ({ page }) => {
+  await page.goto('/tests/workspace-flows.html?theme=light');
+  const box = page.getByRole('checkbox', { name: 'Require two-factor authentication for every member' });
+  // The visible box stays 15px; the target WCAG 2.5.8 measures is the label that wraps it.
+  const row = (await box.locator('xpath=ancestor::label[1]').boundingBox())!;
+  expect(row.height).toBeGreaterThanOrEqual(43.5);
+  expect(row.width).toBeGreaterThanOrEqual(44);
+  await page.getByText('Require two-factor authentication for every member').click();
+  await expect(box).toBeChecked();
+  expect(await only(page, 'policy:')).toEqual(['policy:true']);
+});

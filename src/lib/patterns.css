@@ -170,3 +170,4 @@
   .t98-app-shell--drawer .t98-shell-sidebar { transition: transform var(--t98-motion-normal) var(--t98-ease-standard), visibility 0s linear var(--t98-motion-normal); }
   .t98-app-shell--drawer .t98-shell-sidebar[data-sidebar-state='open'] { transition-delay: 0s; }
 }
+@media (pointer: coarse) { .t98-sort-button, .t98-table-checkbox-target { min-height: 2.75rem; } .t98-table-checkbox-target { min-width: 2.75rem; } }

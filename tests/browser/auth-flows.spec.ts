@@ -246,3 +246,22 @@ test('the easy owner setup prefills an optional workspace name, and the first-pr
   await skip.click();
   await expect(page.getByRole('status')).toHaveText('skipped');
 });
+
+test('the first-project onboarding step rejects a name of only spaces with its own field error and focuses the name (#151)', async ({ page }, info) => {
+  await open(page, 'onboarding-project', 'light', info.project.name === 'narrow-dark' ? 320 : 1440);
+  await page.getByLabel('Project name').fill('   ');
+  await page.getByRole('button', { name: 'Create project' }).click();
+  await expect(page.getByText('Name your first project.')).toBeVisible();
+  await expect(page.getByLabel('Project name')).toBeFocused();
+  await expect(page.getByRole('status')).toHaveCount(0);
+});
+
+test('not-found replaces loading inside the same status region, so it is announced (#153 review)', async ({ page }) => {
+  await open(page, 'loading-then-not-found', 'light', 1440);
+  const status = page.getByRole('status');
+  await status.evaluate(element => { (element as HTMLElement & { marked?: boolean }).marked = true; });
+  await page.getByRole('button', { name: 'Finish loading' }).click();
+  await expect(status).toHaveText('This page does not exist or has moved.');
+  expect(await status.evaluate(element => (element as HTMLElement & { marked?: boolean }).marked)).toBe(true);
+  await expect(page.getByRole('link', { name: 'Go to home' })).toBeVisible();
+});

@@ -310,7 +310,9 @@ test('packaged light and dark semantic colors retain required text and control c
 });
 
 test('scoped system themes and comfortable density explicitly reset inherited settings', () => {
-  const rules = cssRules(readFileSync(file('src/lib/tokens.css'), 'utf8'));
+  // Base values only: media-scoped overrides (dark scheme, coarse pointer) are not the defaults this test compares.
+  const unscoped = readFileSync(file('src/lib/tokens.css'), 'utf8').replace(/@media[^{]*\{(?:[^{}]*\{[^{}]*\})*[^{}]*\}/g, '');
+  const rules = cssRules(unscoped);
   const light = rules.find(rule => selectors(rule).includes('[data-theme=light]'));
   assert.ok(light);
   assert.ok(selectors(light).includes('[data-theme=system]'), 'System theme has an explicit light default inside a dark ancestor');
@@ -469,4 +471,12 @@ test('the packed archive ships the Inter files, their licence and the notice', (
   const notice = readFileSync(file('THIRD_PARTY_NOTICES.md'), 'utf8');
   assert.match(notice, /Inter 4\.001, https:\/\/github\.com\/rsms\/inter at commit 66647c0bb/);
   assert.match(notice, /Copyright 2016 The Inter Project Authors/);
+});
+
+test('touch screens give every small target class a 44px floor, not only md controls (#153 review)', () => {
+  const css = ['primitives', 'patterns', 'workspace'].map(name => readFileSync(file(`src/lib/${name}.css`), 'utf8')).join('\n');
+  const coarse = [...css.matchAll(/@media \(pointer: coarse\) \{([^@]*)\}\s*$/gm)].map(match => match[1]).join('\n');
+  for (const selector of ['.t98-button--sm', '.t98-button--lg', '.t98-sort-button', '.t98-table-checkbox-target', '.t98-permission-target'])
+    assert.ok(coarse.includes(selector), `${selector} has a coarse-pointer size`);
+  assert.match(coarse, /\.t98-button--sm, \.t98-button--lg \{ min-height: var\(--t98-control-touch\); \}/);
 });

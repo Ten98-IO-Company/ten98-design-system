@@ -8,7 +8,7 @@ import { SidebarNav, type NavLinkComponent, type SidebarNavGroup } from './shell
 import { FormActions, Heading, Inline, Stack, Text } from './structure.js';
 import { SettingsTemplate } from './templates.js';
 import { ConfirmDialog, CopyButton, SecretField, type CopyButtonMessages } from './workspace.js';
-import { FlowActionControl, SettingsFlow, TargetConfirm, formText, formatFlowDate, staticTable, useSingleSubmit, type LabelledAction } from './flow-frame.js';
+import { FlowActionControl, SettingsFlow, TargetConfirm, formText, formatFlowDate, ranOrThrow, staticTable, useSingleSubmit, type LabelledAction } from './flow-frame.js';
 import type { FlowState, Submit } from './settings-base.js';
 
 /* Presentation-only workspace settings flows. Applications keep requests, authorization and secrets, and supply every
@@ -129,14 +129,17 @@ export interface TeamPolicy { twoFactorRequired: boolean; onChange: (required: b
 export interface TeamOwnership { candidates: SelectOption[]; onTransfer: Submit<{ userId: string }> }
 export interface TeamMessages {
   members: string; member: string; email: string; role: string; twoFactor: string; twoFactorOn: string; twoFactorOff: string; twoFactorUnknown: string; actions: string; you: string; remove: string; removeTitle: string; removeDescription: string; membersEmpty: string;
-  roleFor: string; invitations: string; invitationsEmpty: string; expires: string; status: string; revokeInvitation: string; revokeInvitationTitle: string; revokeInvitationDescription: string;
+  roleFor: string; soloMemberHint: string; invitations: string; invitationsEmpty: string; invitationsEmptyDescription: string; expires: string; status: string; revokeInvitation: string; revokeInvitationTitle: string; revokeInvitationDescription: string;
+  resendInvitation: string; resendInvitationTitle: string; resendInvitationDescription: string; renewInvitationLink: string; renewInvitationLinkTitle: string; renewInvitationLinkDescription: string; retry: string;
   inviteHeading: string; inviteEmail: string; inviteRole: string; invite: string; linkLabel: string; linkWarning: string; linkDismiss: string; copy: string; copied: string; copyFailed: string; copyManual: string;
   policy: string; policyLabel: string; ownership: string; ownershipDescription: string; ownershipCandidate: string; ownershipChoose: string; transfer: string; transferTitle: string; transferDescription: string; transferConfirmation: string;
 }
 const teamMessages: TeamMessages = {
   members: 'Members', member: 'Member', email: 'Email', role: 'Role', twoFactor: 'Two-factor', twoFactorOn: 'On', twoFactorOff: 'Off', twoFactorUnknown: 'Not reported', actions: 'Actions', you: 'You', remove: 'Remove', removeTitle: 'Remove this member?',
-  removeDescription: 'They lose access to this workspace immediately.', membersEmpty: 'No members.', roleFor: 'Role for {name}', invitations: 'Invitations', invitationsEmpty: 'No pending invitations.', expires: 'Expires', status: 'Status',
+  removeDescription: 'They lose access to this workspace immediately.', membersEmpty: 'No members.', roleFor: 'Role for {name}', soloMemberHint: 'You’re the only member. Invite someone to work together.', invitations: 'Invitations', invitationsEmpty: 'No pending invitations.', invitationsEmptyDescription: 'Invitations you send appear here until they’re accepted.', expires: 'Expires', status: 'Status',
   revokeInvitation: 'Revoke', revokeInvitationTitle: 'Revoke this invitation?', revokeInvitationDescription: 'The invitation link stops working.',
+  resendInvitation: 'Resend', resendInvitationTitle: 'Resend this invitation?', resendInvitationDescription: 'Another email goes to this address. The current link keeps working.',
+  renewInvitationLink: 'New link', renewInvitationLinkTitle: 'Create a new invitation link?', renewInvitationLinkDescription: 'The current link stops working. Share the new one.', retry: 'Retry',
   inviteHeading: 'Invite someone', inviteEmail: 'Email address', inviteRole: 'Role', invite: 'Send invitation', linkLabel: 'Invitation link', linkWarning: 'Share this link now. It won’t be shown again.', linkDismiss: 'Done',
   copy: 'Copy link', copied: 'Copied', copyFailed: 'Copy failed. The link is selected: copy it manually.', copyManual: 'Select and copy',
   policy: 'Policy', policyLabel: 'Require two-factor authentication for every member', ownership: 'Ownership', ownershipDescription: 'Make another member the owner. You become an administrator.', ownershipCandidate: 'New owner', ownershipChoose: 'Choose a member',
@@ -146,6 +149,9 @@ const teamMessages: TeamMessages = {
 const canonicalRoleLabels: Partial<Record<string, string>> = { owner: 'Owner', admin: 'Admin', editor: 'Editor', viewer: 'Viewer' };
 /** Sentence-case labels for the known invitation states; an unknown status is shown as given. */
 const invitationStatusText: Record<string, string> = { pending: 'Pending', accepted: 'Accepted', expired: 'Expired', revoked: 'Revoked' };
+type InvitationActionKind = 'resend' | 'renew' | 'revoke';
+const invitationKinds: InvitationActionKind[] = ['resend', 'renew', 'revoke'];
+const isoDate = (value: DateValue) => { const date = new Date(value); return Number.isNaN(date.getTime()) ? undefined : date.toISOString(); };
 const invitationTone = (status: string) => ({ pending: 'info', accepted: 'success', expired: 'warning', revoked: 'neutral' } as const)[status as 'pending'] ?? 'neutral';
 export interface TeamFlowProps extends FlowState {
   currentUserId: string;
@@ -164,6 +170,10 @@ export interface TeamFlowProps extends FlowState {
   /** Invitations are the only way to add people. */
   onInvite: Submit<{ email: string; role: string }>;
   onRevokeInvitation: Submit<{ id: string }>;
+  /** Sends the invitation email again. Each invitation action is confirmed once; after an unconfirmed outcome only its exact retry is offered. */
+  onResendInvitation?: Submit<{ id: string }>;
+  /** Replaces the invitation link; show the new one through `inviteLink`. */
+  onRenewInvitationLink?: Submit<{ id: string }>;
   /** Shown once for copying until the application clears it. */
   inviteLink?: { id: string; url: string };
   onDismissInviteLink?: () => void;
@@ -172,20 +182,55 @@ export interface TeamFlowProps extends FlowState {
   /** Role preselected in the invite form. Defaults to the last entry of `roles`, which should be the least privileged. */
   defaultInviteRole?: string;
   formatDate?: (value: DateValue) => string;
+  /** Opt-in: expiry as relative text ("in 3 days") above the `formatDate` date, for example createDateFormatter(...).relative. Without it the cell shows `formatDate` alone. */
+  formatRelative?: (value: DateValue) => string;
   title?: string;
   description?: string;
   messages?: Partial<TeamMessages>;
 }
 /** The one place to manage members, roles, invitations, the two-factor policy and ownership. */
-export function TeamFlow({ currentUserId, members, roles, roleLabels, invitationStatusLabels, assignableRoles, onRoleChange, onRemove, invitations, onInvite, onRevokeInvitation, inviteLink, onDismissInviteLink, policy, ownership, defaultInviteRole = roles[roles.length - 1]?.value, formatDate = formatFlowDate, title = 'Team', description, messages, ...state }: TeamFlowProps) {
+export function TeamFlow({ currentUserId, members, roles, roleLabels, invitationStatusLabels, assignableRoles, onRoleChange, onRemove, invitations, onInvite, onRevokeInvitation, onResendInvitation, onRenewInvitationLink, inviteLink, onDismissInviteLink, policy, ownership, defaultInviteRole = roles[roles.length - 1]?.value, formatDate = formatFlowDate, formatRelative, title = 'Team', description, messages, ...state }: TeamFlowProps) {
   const id = useId();
   const copy = { ...teamMessages, ...messages };
   const singleFlight = useSingleSubmit();
   const [removing, setRemoving] = useState<TeamMember>();
-  const [revoking, setRevoking] = useState<TeamInvitation>();
+  const [pending, setPending] = useState<{ kind: InvitationActionKind; invitation: TeamInvitation }>();
+  // The latest submission, so an unconfirmed outcome offers only an exact retry of that invitation action.
+  const [attempted, setAttempted] = useState<{ kind: InvitationActionKind; id: string }>();
   const [newOwner, setNewOwner] = useState('');
   const [transferring, setTransferring] = useState(false);
   const locked = state.busy || state.disabled;
+  const actions = useRef<HTMLDivElement>(null);
+  const linkFocus = useRef(false);
+  const returnTo = useRef<{ id: string; opener: HTMLElement } | undefined>(undefined);
+  // The attempt is recorded only when the guarded action really starts; a dropped call never changes it.
+  const submit = (action: () => void | Promise<void>, attempt?: { kind: InvitationActionKind; id: string }) => singleFlight(() => { setAttempted(attempt); return action(); });
+  const confirmed = (action: () => void | Promise<void>, attempt?: { kind: InvitationActionKind; id: string }) => ranOrThrow(submit(action, attempt));
+  const invitationHandlers: Record<InvitationActionKind, Submit<{ id: string }> | undefined> = { resend: onResendInvitation, renew: onRenewInvitationLink, revoke: onRevokeInvitation };
+  const invitationCopy = {
+    resend: { label: copy.resendInvitation, title: copy.resendInvitationTitle, description: copy.resendInvitationDescription },
+    renew: { label: copy.renewInvitationLink, title: copy.renewInvitationLinkTitle, description: copy.renewInvitationLinkDescription },
+    revoke: { label: copy.revokeInvitation, title: copy.revokeInvitationTitle, description: copy.revokeInvitationDescription },
+  };
+  const invitationAction = (kind: InvitationActionKind, invitation: TeamInvitation) => () => invitationHandlers[kind]?.({ id: invitation.id });
+  // Retry mode only while the warning is on screen and the attempted invitation is still pending; otherwise rows act normally.
+  const retrying = state.unconfirmed && attempted && invitations.some(row => row.id === attempted.id && row.status === 'pending') ? attempted : undefined;
+  const firstAction = (invitationId: string) => actions.current?.querySelector<HTMLElement>(`[data-invitation="${CSS.escape(invitationId)}"] button`);
+  // Swapping a row between its actions and Retry removes the focused button, so focus follows to the replacement.
+  const retryingId = retrying?.id;
+  const previousRetry = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    const left = previousRetry.current;
+    previousRetry.current = retryingId;
+    if (left && !retryingId && document.activeElement === document.body) firstAction(left)?.focus();
+  }, [retryingId]);
+  const invitationActions = (row: TeamInvitation) => {
+    if (retrying) return retrying.id !== row.id ? null
+      : <span data-invitation={row.id}><Button type="button" variant="secondary" size="sm" disabled={locked} aria-label={`${copy.retry}: ${invitationCopy[retrying.kind].label}: ${row.email}`} onClick={() => void submit(invitationAction(retrying.kind, row), retrying)}>{copy.retry}</Button></span>;
+    if (row.status !== 'pending') return null;
+    const kinds = invitationKinds.filter(kind => invitationHandlers[kind]);
+    return <span data-invitation={row.id}><Inline gap={2}>{kinds.map(kind => <Button key={kind} type="button" variant="secondary" size="sm" disabled={locked} aria-label={`${invitationCopy[kind].label}: ${row.email}`} onClick={event => { returnTo.current = { id: row.id, opener: event.currentTarget }; setPending({ kind, invitation: row }); }}>{invitationCopy[kind].label}</Button>)}</Inline></span>;
+  };
   // An admin may invite only editors and viewers, yet still sees owner and admin rows, so labels come from every canonical role.
   const roleLabel = (value: string) => roleLabels?.[value] ?? canonicalRoleLabels[value] ?? roles.find(role => role.value === value)?.label ?? value;
   const memberColumns: DataColumn<TeamMember>[] = [
@@ -194,14 +239,16 @@ export function TeamFlow({ currentUserId, members, roles, roleLabels, invitation
       const allowed = assignableRoles(row);
       if (!allowed.length) return roleLabel(row.role);
       const options = [row.role, ...allowed.filter(role => role !== row.role)].map(role => ({ value: role, label: roleLabel(role) }));
-      return <Select aria-label={copy.roleFor.replace('{name}', row.name)} options={options} value={row.role} disabled={locked} onChange={event => { const role = event.target.value; void singleFlight(() => onRoleChange({ id: row.id, role })); }} />;
+      return <Select aria-label={copy.roleFor.replace('{name}', row.name)} options={options} value={row.role} disabled={locked} onChange={event => { const role = event.target.value; void submit(() => onRoleChange({ id: row.id, role })); }} />;
     } },
     { key: 'twoFactor', header: copy.twoFactor, render: row => row.twoFactor === undefined ? <Text as="span" tone="muted">{copy.twoFactorUnknown}</Text> : <Badge tone={row.twoFactor ? 'success' : 'warning'}>{row.twoFactor ? copy.twoFactorOn : copy.twoFactorOff}</Badge> },
   ];
   const invitationColumns: DataColumn<TeamInvitation>[] = [
     { key: 'email', header: copy.email, rowHeader: true, wrap: true },
     { key: 'role', header: copy.role, render: row => roleLabel(row.role) },
-    { key: 'expiresAt', header: copy.expires, render: row => formatDate(row.expiresAt) },
+    // Relative to the viewer's clock, so the server-rendered text may differ from the browser's by design.
+    { key: 'expiresAt', header: copy.expires, render: row => !formatRelative ? formatDate(row.expiresAt)
+      : <Stack gap={0}><time dateTime={isoDate(row.expiresAt)} suppressHydrationWarning>{formatRelative(row.expiresAt)}</time><Text as="span" size="sm" tone="muted">{formatDate(row.expiresAt)}</Text></Stack> },
     { key: 'status', header: copy.status, render: row => <Badge tone={invitationTone(row.status)}>{invitationStatusLabels?.[row.status] ?? invitationStatusText[row.status] ?? row.status}</Badge> },
   ];
   const candidate = ownership?.candidates.find(option => option.value === newOwner);
@@ -209,25 +256,25 @@ export function TeamFlow({ currentUserId, members, roles, roleLabels, invitation
     <Stack gap={6}>
       {policy && <Stack gap={2}>
         <Heading level={3} size="sm">{copy.policy}</Heading>
-        <Checkbox label={copy.policyLabel} checked={policy.twoFactorRequired} onChange={event => { const next = event.target.checked; void singleFlight(() => policy.onChange(next)); }} />
+        <Checkbox label={copy.policyLabel} checked={policy.twoFactorRequired} onChange={event => { const next = event.target.checked; void submit(() => policy.onChange(next)); }} />
       </Stack>}
       <Stack gap={2}>
         <Heading level={3} size="sm">{copy.members}</Heading>
         <DataTable<TeamMember> ariaLabel={copy.members} columns={members.some(member => member.twoFactor !== undefined) ? memberColumns : memberColumns.filter(column => column.key !== 'twoFactor')} rows={members} rowKey={row => row.id} {...staticTable} emptyTitle={copy.membersEmpty}
           rowActionsLabel={copy.actions} rowActions={row => row.id === currentUserId || !assignableRoles(row).length ? null
             : <Button type="button" variant="secondary" size="sm" disabled={locked} aria-label={`${copy.remove}: ${row.name}`} onClick={() => setRemoving(row)}>{copy.remove}</Button>} />
+        {members.length === 1 && <Text tone="muted" size="sm">{copy.soloMemberHint}</Text>}
       </Stack>
-      <Stack gap={2}>
+      <div ref={actions}><Stack gap={2}>
         <Heading level={3} size="sm">{copy.invitations}</Heading>
-        {inviteLink && <OneTimeValue label={copy.linkLabel} value={inviteLink.url} masked={false} focusOnShow warning={copy.linkWarning} dismiss={onDismissInviteLink && { label: copy.linkDismiss, onClick: onDismissInviteLink }}
-          messages={{ copy: copy.copy, copied: copy.copied, copyFailed: copy.copyFailed, select: copy.copyManual }} />}
-        <DataTable<TeamInvitation> ariaLabel={copy.invitations} columns={invitationColumns} rows={invitations} rowKey={row => row.id} {...staticTable} emptyTitle={copy.invitationsEmpty} emptyDescription={null}
-          rowActionsLabel={copy.actions} rowActions={row => row.status !== 'pending' ? null
-            : <Button type="button" variant="secondary" size="sm" disabled={locked} aria-label={`${copy.revokeInvitation}: ${row.email}`} onClick={() => setRevoking(row)}>{copy.revokeInvitation}</Button>} />
+        {inviteLink && <div data-invitation-link=""><OneTimeValue label={copy.linkLabel} value={inviteLink.url} masked={false} focusOnShow warning={copy.linkWarning} dismiss={onDismissInviteLink && { label: copy.linkDismiss, onClick: onDismissInviteLink }}
+          messages={{ copy: copy.copy, copied: copy.copied, copyFailed: copy.copyFailed, select: copy.copyManual }} /></div>}
+        <DataTable<TeamInvitation> ariaLabel={copy.invitations} columns={invitationColumns} rows={invitations} rowKey={row => row.id} {...staticTable} emptyTitle={copy.invitationsEmpty} emptyDescription={copy.invitationsEmptyDescription}
+          rowActionsLabel={copy.actions} rowActions={invitationActions} />
         <form key={inviteLink?.id ?? 'invite'} onSubmit={event => {
           event.preventDefault();
           const form = new FormData(event.currentTarget);
-          void singleFlight(() => onInvite({ email: formText(form, 'email'), role: formText(form, 'role') }));
+          void submit(() => onInvite({ email: formText(form, 'email'), role: formText(form, 'role') }));
         }}>
           <Stack gap={3}>
             <Heading level={4} size="sm">{copy.inviteHeading}</Heading>
@@ -236,7 +283,7 @@ export function TeamFlow({ currentUserId, members, roles, roleLabels, invitation
             <FormActions><Button type="submit">{copy.invite}</Button></FormActions>
           </Stack>
         </form>
-      </Stack>
+      </Stack></div>
       {ownership && <Stack gap={3}>
         <Heading level={3} size="sm">{copy.ownership}</Heading>
         <Text tone="muted" size="sm">{copy.ownershipDescription}</Text>
@@ -244,10 +291,20 @@ export function TeamFlow({ currentUserId, members, roles, roleLabels, invitation
         <FormActions><Button type="button" variant="danger" disabled={locked || !candidate} onClick={() => setTransferring(true)}>{copy.transfer}</Button></FormActions>
       </Stack>}
     </Stack>
-    <TargetConfirm target={removing} onClose={() => setRemoving(undefined)} title={copy.removeTitle} description={copy.removeDescription} subject={member => member.name} confirmLabel={copy.remove} onConfirm={member => onRemove({ id: member.id })} />
-    <TargetConfirm target={revoking} onClose={() => setRevoking(undefined)} title={copy.revokeInvitationTitle} description={copy.revokeInvitationDescription} subject={invitation => invitation.email} confirmLabel={copy.revokeInvitation} onConfirm={invitation => onRevokeInvitation({ id: invitation.id })} />
+    <TargetConfirm target={removing} onClose={() => setRemoving(undefined)} title={copy.removeTitle} description={copy.removeDescription} subject={member => member.name} confirmLabel={copy.remove} onConfirm={member => confirmed(() => onRemove({ id: member.id }))} />
+    <ConfirmDialog open={pending !== undefined} onOpenChange={open => { if (!open) setPending(undefined); }} title={pending ? invitationCopy[pending.kind].title : copy.revokeInvitationTitle}
+      description={pending ? `${pending.invitation.email}. ${invitationCopy[pending.kind].description}` : ''} confirmLabel={pending ? invitationCopy[pending.kind].label : copy.revokeInvitation} danger={pending?.kind !== 'resend'}
+      // A new link takes focus as a sent invitation's does (#83). Otherwise focus returns to the button that opened the dialog,
+      // or, when the row swapped it for Retry, to the row's replacement control.
+      restoreFocus={() => {
+        const link = linkFocus.current ? actions.current?.querySelector<HTMLElement>('[data-invitation-link] input') : undefined;
+        linkFocus.current = false;
+        const back = returnTo.current;
+        return link ?? (back?.opener.isConnected ? back.opener : back ? firstAction(back.id) : undefined);
+      }}
+      onConfirm={() => pending ? confirmed(invitationAction(pending.kind, pending.invitation), { kind: pending.kind, id: pending.invitation.id }).then(() => { linkFocus.current = pending.kind === 'renew'; }) : undefined} />
     {ownership && <ConfirmDialog open={transferring} onOpenChange={setTransferring} title={copy.transferTitle} description={candidate ? `${candidate.label}. ${copy.transferDescription}` : copy.transferDescription} confirmLabel={copy.transfer} danger confirmationText={copy.transferConfirmation}
-      onConfirm={() => candidate ? ownership.onTransfer({ userId: candidate.value }) : undefined} />}
+      onConfirm={() => candidate ? confirmed(() => ownership.onTransfer({ userId: candidate.value })) : undefined} />}
   </SettingsFlow>;
 }
 
@@ -260,19 +317,27 @@ interface NameFormProps extends FlowState {
   cancel?: LabelledAction;
   cancelLabel: string;
   onSubmit: (form: FormData) => void | Promise<void>;
+  /** Called instead of onSubmit when the name is empty or only spaces, so the flow can show its field error. */
+  onBlankName: () => void;
   children: ReactNode;
 }
-function NameForm({ title, description, submitLabel, cancel, cancelLabel, onSubmit, children, ...state }: NameFormProps) {
+function NameForm({ title, description, submitLabel, cancel, cancelLabel, onSubmit, onBlankName, children, ...state }: NameFormProps) {
   const singleSubmit = useSingleSubmit();
   return <SettingsFlow {...state} title={title} description={description} submitLabel={submitLabel}
     extraActions={cancel && <FlowActionControl action={cancel} label={cancel.label ?? cancelLabel} variant="secondary" size="md" />}
-    onSubmit={event => { event.preventDefault(); const form = new FormData(event.currentTarget); void singleSubmit(() => onSubmit(form)); }}>
+    onSubmit={event => {
+      event.preventDefault();
+      const form = new FormData(event.currentTarget);
+      // A name of only spaces is rejected here, the same way in every app, instead of reaching the server.
+      if (!formText(form, 'name').trim()) { onBlankName(); event.currentTarget.querySelector<HTMLInputElement>('[name="name"]')?.focus(); return; }
+      void singleSubmit(() => onSubmit(form));
+    }}>
     {children}
   </SettingsFlow>;
 }
 
-export interface WorkspaceCreateFlowMessages { nameLabel: string; create: string; rename: string; createTitle: string; renameTitle: string; cancel: string }
-const workspaceMessages: WorkspaceCreateFlowMessages = { nameLabel: 'Workspace name', create: 'Create workspace', rename: 'Save name', createTitle: 'Create a workspace', renameTitle: 'Workspace name', cancel: 'Cancel' };
+export interface WorkspaceCreateFlowMessages { nameLabel: string; create: string; rename: string; createTitle: string; renameTitle: string; cancel: string; creating: string; saving: string; nameBlank: string }
+const workspaceMessages: WorkspaceCreateFlowMessages = { nameLabel: 'Workspace name', create: 'Create workspace', rename: 'Save name', createTitle: 'Create a workspace', renameTitle: 'Workspace name', cancel: 'Cancel', creating: 'Creating workspace…', saving: 'Saving…', nameBlank: 'Enter a workspace name.' };
 export interface WorkspaceCreateFlowProps extends FlowState {
   mode: 'create' | 'rename';
   defaultValues: { name: string };
@@ -286,16 +351,16 @@ export interface WorkspaceCreateFlowProps extends FlowState {
 export function WorkspaceCreateFlow({ mode, defaultValues, onSubmit, cancel, title, description, messages, ...state }: WorkspaceCreateFlowProps) {
   const id = useId();
   const copy = { ...workspaceMessages, ...messages };
-  return <NameForm {...state} title={title ?? (mode === 'create' ? copy.createTitle : copy.renameTitle)} description={description} submitLabel={mode === 'create' ? copy.create : copy.rename} cancel={cancel} cancelLabel={copy.cancel}
-    onSubmit={form => onSubmit({ name: formText(form, 'name') })}>
-    <Field label={copy.nameLabel} htmlFor={`${id}-name`} error={state.fieldErrors?.name}><Input name="name" autoComplete="organization" required maxLength={120} defaultValue={defaultValues.name} /></Field>
+  const [blank, setBlank] = useState(false);
+  return <NameForm {...state} busyLabel={state.busyLabel ?? (mode === 'create' ? copy.creating : copy.saving)} title={title ?? (mode === 'create' ? copy.createTitle : copy.renameTitle)} description={description} submitLabel={mode === 'create' ? copy.create : copy.rename} cancel={cancel} cancelLabel={copy.cancel}
+    onBlankName={() => setBlank(true)} onSubmit={form => { setBlank(false); return onSubmit({ name: formText(form, 'name').trim() }); }}>
+    <Field label={copy.nameLabel} htmlFor={`${id}-name`} error={state.fieldErrors?.name ?? (blank ? copy.nameBlank : undefined)}><Input name="name" autoComplete="organization" required maxLength={120} defaultValue={defaultValues.name} /></Field>
   </NameForm>;
 }
 
-export interface ProjectCreateFlowMessages { nameLabel: string; originLabel: string; originHint: string; create: string; save: string; createTitle: string; editTitle: string; cancel: string }
+export interface ProjectCreateFlowMessages { nameLabel: string; originLabel: string; originHint: string; create: string; save: string; createTitle: string; editTitle: string; cancel: string; creating: string; saving: string; nameBlank: string }
 const projectMessages: ProjectCreateFlowMessages = {
-  nameLabel: 'Project name', originLabel: 'Site origin', originHint: 'The address of the site, for example https://www.example.com.', create: 'Create project', save: 'Save project', createTitle: 'Create a project', editTitle: 'Project details', cancel: 'Cancel',
-};
+  nameLabel: 'Project name', originLabel: 'Site origin', originHint: 'The address of the site, for example https://www.example.com.', create: 'Create project', save: 'Save project', createTitle: 'Create a project', editTitle: 'Project details', cancel: 'Cancel', creating: 'Creating project…', saving: 'Saving…', nameBlank: 'Enter a project name.' };
 export interface ProjectCreateFlowProps extends FlowState {
   mode: 'create' | 'edit';
   defaultValues: { name: string; origin?: string };
@@ -303,22 +368,27 @@ export interface ProjectCreateFlowProps extends FlowState {
   originRequired?: boolean;
   /** Defaults to true. False is for projects without a website: no origin field, validation or submitted value. */
   showOrigin?: boolean;
-  onSubmit: Submit<{ name: string; origin?: string }>;
+  /** A checkbox such as "Add sample data" for a first-project step; its value is submitted as `sample`. `false` or omitted hides it. */
+  sampleOptIn?: { label: string; defaultChecked?: boolean } | false;
+  onSubmit: Submit<{ name: string; origin?: string; sample?: boolean }>;
+  /** A secondary action beside the submit, for example `{ label: 'Skip for now', onClick }` on a first-project step. */
   cancel?: LabelledAction;
   title?: string;
   description?: string;
   messages?: Partial<ProjectCreateFlowMessages>;
 }
 /** Names a project and sets the origin of its site. */
-export function ProjectCreateFlow({ mode, defaultValues, originRequired = true, showOrigin = true, onSubmit, cancel, title, description, messages, ...state }: ProjectCreateFlowProps) {
+export function ProjectCreateFlow({ mode, defaultValues, originRequired = true, showOrigin = true, sampleOptIn = false, onSubmit, cancel, title, description, messages, ...state }: ProjectCreateFlowProps) {
   const id = useId();
   const copy = { ...projectMessages, ...messages };
-  return <NameForm {...state} title={title ?? (mode === 'create' ? copy.createTitle : copy.editTitle)} description={description} submitLabel={mode === 'create' ? copy.create : copy.save} cancel={cancel} cancelLabel={copy.cancel}
-    onSubmit={form => onSubmit(showOrigin ? { name: formText(form, 'name'), origin: formText(form, 'origin') } : { name: formText(form, 'name') })}>
-    <Field label={copy.nameLabel} htmlFor={`${id}-name`} error={state.fieldErrors?.name}><Input name="name" autoComplete="off" required maxLength={120} defaultValue={defaultValues.name} /></Field>
+  const [blank, setBlank] = useState(false);
+  return <NameForm {...state} busyLabel={state.busyLabel ?? (mode === 'create' ? copy.creating : copy.saving)} onBlankName={() => setBlank(true)} title={title ?? (mode === 'create' ? copy.createTitle : copy.editTitle)} description={description} submitLabel={mode === 'create' ? copy.create : copy.save} cancel={cancel} cancelLabel={copy.cancel}
+    onSubmit={form => { setBlank(false); return onSubmit({ name: formText(form, 'name').trim(), ...(showOrigin ? { origin: formText(form, 'origin') } : {}), ...(sampleOptIn ? { sample: form.get('sample') === 'true' } : {}) }); }}>
+    <Field label={copy.nameLabel} htmlFor={`${id}-name`} error={state.fieldErrors?.name ?? (blank ? copy.nameBlank : undefined)}><Input name="name" autoComplete="off" required maxLength={120} defaultValue={defaultValues.name} /></Field>
     {/* Text with a URL keyboard, not type="url": a bare domain such as example.com must reach the app's own validation
         and field error rather than the browser's untranslatable bubble. */}
     {showOrigin && <Field label={copy.originLabel} htmlFor={`${id}-origin`} description={copy.originHint} error={state.fieldErrors?.origin}><Input name="origin" type="text" inputMode="url" autoComplete="off" spellCheck={false} required={originRequired} maxLength={2048} defaultValue={defaultValues.origin} /></Field>}
+    {sampleOptIn && <Checkbox name="sample" value="true" label={sampleOptIn.label} defaultChecked={sampleOptIn.defaultChecked} />}
   </NameForm>;
 }
 
@@ -344,7 +414,7 @@ export function DangerZoneFlow({ actions, onConfirm, title, description, message
   // After a remount the attempt is unknown, so actions marked retryOnly stand in for it, but they confirm again:
   // only an attempt confirmed in this mount may be retried directly.
   const retry = state.unconfirmed ? actions.filter(action => attempted !== undefined ? action.id === attempted : action.retryOnly) : [];
-  const directRetry = state.unconfirmed !== undefined && attempted !== undefined;
+  const directRetry = !!state.unconfirmed && attempted !== undefined;
   const shown = state.unconfirmed ? retry : actions;
   const run = (action: DangerAction) => { setAttempted(action.id); return onConfirm({ id: action.id }); };
   return <SettingsFlow {...state} title={title ?? copy.title} description={description}>
@@ -357,7 +427,7 @@ export function DangerZoneFlow({ actions, onConfirm, title, description, message
       </div>)}
     </Stack>
     <ConfirmDialog open={target !== undefined} onOpenChange={open => { if (!open) setTarget(undefined); }} title={target ? copy.confirmTitle.replace('{action}', target.title) : copy.title} description={target?.description ?? ''} confirmLabel={target?.confirmLabel} danger
-      confirmationText={target?.confirmationText} onConfirm={() => target ? singleFlight(() => run(target)) : undefined} />
+      confirmationText={target?.confirmationText} onConfirm={() => target ? ranOrThrow(singleFlight(() => run(target))) : undefined} />
   </SettingsFlow>;
 }
 

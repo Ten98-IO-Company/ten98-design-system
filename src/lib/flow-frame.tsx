@@ -17,14 +17,19 @@ export const formatFlowDate = (value: string | Date) => {
   return Number.isNaN(date.getTime()) ? String(value) : flowDateFormat.format(date);
 };
 
-/** Runs the handler once at a time so a double activation cannot send two requests. */
+/** Runs the handler once at a time so a double activation cannot send two requests. Resolves false when the call was
+ * dropped because another was still pending, so a confirm dialog can stay open instead of closing as if it ran. */
 export function useSingleSubmit() {
   const pending = useRef(false);
   return async (action: () => void | Promise<void>) => {
-    if (pending.current) return;
+    if (pending.current) return false;
     pending.current = true;
-    try { await action(); } finally { pending.current = false; }
+    try { await action(); return true; } finally { pending.current = false; }
   };
+}
+/** For a confirm dialog's onConfirm: a call the single-submit guard dropped rejects, so the dialog stays open with its error. */
+export async function ranOrThrow(run: Promise<boolean>) {
+  if (!await run) throw new Error('Another change is still being saved.');
 }
 
 /** A string form value, or '' when the field is absent or a file. */

@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useCallback, useContext, useEffect, useId, useRef, useState, type ReactNode } from 'react';
-import { Alert, Button, Checkbox, Dialog, Field, Icon, Input, Select, cx, type Tone } from './primitives.js';
+import { Alert, Button, Checkbox, Dialog, Field, Icon, Input, Select, cx, type DialogProps, type Tone } from './primitives.js';
 import { addDays, inclusiveDays } from './dates.js';
 
 export interface ProductOption { id: string; name: string; description?: string }
@@ -218,9 +218,10 @@ export interface ConfirmDialogProps {
   acknowledgement?: string;
   /** Label of the button that closes without confirming, for example "Keep editing". */
   cancelLabel?: string;
+  restoreFocus?: DialogProps['restoreFocus'];
 }
 /** Blocks closing while a mutation is pending; rejected mutations stay open for retry. */
-export function ConfirmDialog({ open, onOpenChange, title, description, onConfirm, confirmLabel = 'Confirm', danger = false, confirmationText, children, acknowledgement, cancelLabel = 'Cancel' }: ConfirmDialogProps) {
+export function ConfirmDialog({ open, onOpenChange, title, description, onConfirm, confirmLabel = 'Confirm', danger = false, confirmationText, children, acknowledgement, cancelLabel = 'Cancel', restoreFocus }: ConfirmDialogProps) {
   const id = useId(); const [input, setInput] = useState(''); const [acknowledged, setAcknowledged] = useState(false); const [pending, setPending] = useState(false); const [error, setError] = useState(''); const busy = useRef(false);
   useEffect(() => { if (open) { setInput(''); setAcknowledged(false); setError(''); } }, [open]);
   const blocked = (!!confirmationText && input !== confirmationText) || (!!acknowledgement && !acknowledged);
@@ -229,7 +230,7 @@ export function ConfirmDialog({ open, onOpenChange, title, description, onConfir
     busy.current = true; setPending(true); setError('');
     try { await onConfirm(); onOpenChange(false); } catch { setError('The action could not be completed. Try again.'); } finally { busy.current = false; setPending(false); }
   }
-  return <Dialog open={open} onOpenChange={next => { if (!busy.current) onOpenChange(next); }} closeDisabled={pending} title={title} description={description} footer={<><Button variant="secondary" disabled={pending} onClick={() => onOpenChange(false)}>{cancelLabel}</Button><Button variant={danger ? 'danger' : 'primary'} loading={pending} disabled={blocked} onClick={confirm}>{confirmLabel}</Button></>}>
+  return <Dialog open={open} onOpenChange={next => { if (!busy.current) onOpenChange(next); }} closeDisabled={pending} restoreFocus={restoreFocus} title={title} description={description} footer={<><Button variant="secondary" disabled={pending} onClick={() => onOpenChange(false)}>{cancelLabel}</Button><Button variant={danger ? 'danger' : 'primary'} loading={pending} disabled={blocked} onClick={confirm}>{confirmLabel}</Button></>}>
     {children}
     {acknowledgement && <Checkbox label={acknowledgement} required checked={acknowledged} disabled={pending} onChange={event => setAcknowledged(event.target.checked)}/>}
     {confirmationText ? <Field label={`Type ${confirmationText} to confirm`} htmlFor={id}><Input value={input} autoComplete="off" disabled={pending} onChange={event => setInput(event.target.value)}/></Field> : !children && !acknowledgement && <p className="t98-confirm-hint">Review this action before continuing.</p>}

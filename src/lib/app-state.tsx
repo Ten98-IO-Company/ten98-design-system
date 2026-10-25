@@ -7,7 +7,7 @@ import { Alert, Button } from './primitives.js';
 import { Stack, Text } from './structure.js';
 import { AuthLayout, type AuthSurface } from './workspace.js';
 
-export type AppStateKind = 'loading' | 'error' | 'boundary' | 'unconfirmed';
+export type AppStateKind = 'loading' | 'error' | 'boundary' | 'unconfirmed' | 'not-found';
 export interface AppStateScreenProps {
   state: AppStateKind;
   brand: ReactNode;
@@ -17,23 +17,32 @@ export interface AppStateScreenProps {
   message?: string;
   onRetry?: () => void;
   retryLabel?: string;
+  /** `not-found`: where "Go to home" leads; without it the action uses `onRetry`. */
+  homeHref?: string;
 }
 const stateCopy: Record<AppStateKind, { title: string; message: string; retryLabel: string }> = {
   loading: { title: 'Loading', message: 'Loading your workspace…', retryLabel: '' },
   error: { title: 'Could not load', message: 'The request did not complete.', retryLabel: 'Try again' },
   boundary: { title: 'This screen stopped working', message: 'An unexpected error interrupted this screen.', retryLabel: 'Reload' },
   unconfirmed: { title: 'Result not confirmed', message: 'The request may or may not have completed. Reload to check the current state before you try again.', retryLabel: 'Reload' },
+  'not-found': { title: 'Page not found', message: 'This page does not exist or has moved.', retryLabel: 'Go to home' },
 };
 /** Full-screen loading and failure states shown before the application shell is available. */
-export function AppStateScreen({ state, brand, surface, title, message, onRetry, retryLabel }: AppStateScreenProps) {
+export function AppStateScreen({ state, brand, surface, title, message, onRetry, retryLabel, homeHref }: AppStateScreenProps) {
   const copy = stateCopy[state];
   return <AuthLayout label={title ?? copy.title} brand={brand} surface={surface} title={title ?? copy.title}>
-    {state === 'loading'
-      ? <div className="t98-auth-state" role="status"><span className="t98-spinner" aria-hidden="true" /><Text as="span">{message ?? copy.message}</Text></div>
-      : <Stack gap={4}>
-        <Alert tone={state === 'unconfirmed' ? 'warning' : 'danger'} role="alert" title={message ?? copy.message} />
-        {onRetry && <Button type="button" onClick={onRetry}>{retryLabel ?? copy.retryLabel}</Button>}
-      </Stack>}
+    <Stack gap={4}>
+      {/* Loading and not-found share one status node, so replacing loading with not-found changes the text inside a live
+          region that already exists and is announced. A missing page is not a failure, so it is not an alert. */}
+      {state === 'loading' || state === 'not-found'
+        ? <div className={state === 'loading' ? 't98-auth-state' : undefined} role="status">
+          {state === 'loading' && <span className="t98-spinner" aria-hidden="true" />}<Text as="span">{message ?? copy.message}</Text>
+        </div>
+        : <Alert tone={state === 'unconfirmed' ? 'warning' : 'danger'} role="alert" title={message ?? copy.message} />}
+      {state === 'loading' ? null : state === 'not-found' && homeHref
+          ? <Button href={homeHref}>{retryLabel ?? copy.retryLabel}</Button>
+          : onRetry && <Button type="button" onClick={onRetry}>{retryLabel ?? copy.retryLabel}</Button>}
+    </Stack>
   </AuthLayout>;
 }
 

@@ -155,3 +155,5 @@
 .t98-palette--fuchsia { --t98-tone-bg: light-dark(#FAE8FF, #4A1250); --t98-tone-text: light-dark(#86198F, #F0ABFC); }
 @media (prefers-reduced-motion: reduce) { .t98-spinner, .t98-skeleton, .t98-progress:indeterminate { animation: none; } .t98-button, .t98-input, .t98-switch-track, .t98-switch-thumb, .t98-tooltip-content, .t98-accordion summary .t98-icon { transition: none; } }
 @media (max-width: 480px) { .t98-card-header, .t98-card-content { padding: var(--t98-space-4); } .t98-card-header { flex-wrap: wrap; } .t98-dialog-header { padding: 20px 20px 0; } .t98-dialog-body { padding: 20px; } .t98-tab-list { gap: 17px; } }
+/* Touch screens: small and large buttons reach the 44px touch target too (tokens.css sets md; #151). */
+@media (pointer: coarse) { .t98-button--sm, .t98-button--lg { min-height: var(--t98-control-touch); } }

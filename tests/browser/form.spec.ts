@@ -103,3 +103,26 @@ test('a busy action keeps or returns focus: loading Buttons stay focused, app-di
   await expect(exportButton).toBeEnabled();
   await expect(exportButton).toBeFocused();
 });
+
+test('on a touch screen controls are 44px tall even in compact density (#151)', async ({ browser }) => {
+  const context = await browser.newContext({ hasTouch: true, isMobile: true, viewport: { width: 1024, height: 800 } });
+  const page = await context.newPage();
+  await page.goto('/tests/form.html');
+  await page.evaluate(() => document.documentElement.setAttribute('data-density', 'compact'));
+  const coarse = await page.evaluate(() => matchMedia('(pointer: coarse)').matches);
+  test.skip(!coarse, 'this browser does not report a coarse pointer for touch emulation');
+  const height = await page.getByRole('button', { name: 'Save' }).evaluate(element => element.getBoundingClientRect().height);
+  expect(height).toBeGreaterThanOrEqual(43.5);
+  await context.close();
+});
+
+test('on a touch screen small row buttons are 44px targets too (#153 review)', async ({ browser }) => {
+  const context = await browser.newContext({ hasTouch: true, isMobile: true, viewport: { width: 1024, height: 800 } });
+  const page = await context.newPage();
+  await page.goto('/tests/workspace-flows.html?theme=light');
+  const coarse = await page.evaluate(() => matchMedia('(pointer: coarse)').matches);
+  test.skip(!coarse, 'this browser does not report a coarse pointer for touch emulation');
+  const height = await page.getByRole('button', { name: /^Revoke: new.person/ }).evaluate(element => element.getBoundingClientRect().height);
+  expect(height).toBeGreaterThanOrEqual(43.5);
+  await context.close();
+});

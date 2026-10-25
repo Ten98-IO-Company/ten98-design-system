@@ -34,3 +34,4 @@
 .t98-review-confirm-reason { flex: 1 1 12rem; margin: 0; color: var(--t98-muted); font-size: var(--t98-text-sm); overflow-wrap: anywhere; }
 @media (forced-colors: active) { .t98-review-confirm { border-color: CanvasText; } .t98-review-confirm--danger { border-inline-start-style: double; border-inline-start-width: 4px; } }
 
+@media (pointer: coarse) { .t98-permission-target { min-width:44px; min-height:44px; } }

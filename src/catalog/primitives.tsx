@@ -329,6 +329,7 @@ export const primitiveEntries: ComponentEntry[] = [
       { name: 'footer', type: 'ReactNode', description: 'Optional action area beneath the body.' },
       { name: 'className', type: 'string', description: 'Additional class on the native dialog.' },
       { name: 'onBeforeClose', type: "(reason: 'escape' | 'backdrop' | 'close-button') => boolean | void", description: 'Called before Escape, backdrop or close-button closes. Return false to keep the dialog open (for example to show a discard-changes prompt); focus stays inside. Not called while closeDisabled.' },
+      { name: 'restoreFocus', type: '() => HTMLElement | null | undefined', description: 'Where focus goes on close, for example a control that replaced the button that opened the dialog. Falls back to the element focused when it opened.' },
       { name: 'eyebrow', type: 'ReactNode', description: 'Short context above the title, for example the record being edited.' },
       { name: 'onSubmit', type: '(data: FormData, event) => void | Promise<void>', description: 'Makes body and footer one form; type="submit" footer buttons submit it. Called once per submit; the dialog cannot close until it settles.' },
       { name: 'dirty / discardMessage', type: 'boolean / ReactNode', description: 'Unsaved changes: Escape, the backdrop and the close button show a "Discard unsaved changes?" prompt; Escape there means keep editing.' },

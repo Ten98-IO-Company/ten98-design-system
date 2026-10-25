@@ -285,10 +285,12 @@ export interface DialogProps { open: boolean; onOpenChange: (open: boolean) => v
   dirty?: boolean;
   discardMessage?: ReactNode;
   /** `wide` fits editors such as a post composer (up to 880px). */
-  size?: 'default' | 'wide' }
+  size?: 'default' | 'wide';
+  /** Where focus goes on close, for example a control that replaced the one that opened the dialog. Falls back to the element focused when it opened. */
+  restoreFocus?: () => HTMLElement | null | undefined }
 export type DialogCloseReason = 'escape' | 'backdrop' | 'close-button';
 /* Behaviour follows the WAI-ARIA APG Modal Dialog pattern and react-aria's useOverlay close interception (Apache-2.0); no code is copied. */
-export function Dialog({ open, onOpenChange, title, description, children, footer, className, closeDisabled = false, onBeforeClose, eyebrow, onSubmit, dirty = false, discardMessage = 'Your changes have not been saved.', size = 'default' }: DialogProps) {
+export function Dialog({ open, onOpenChange, title, description, children, footer, className, closeDisabled = false, onBeforeClose, eyebrow, onSubmit, restoreFocus, dirty = false, discardMessage = 'Your changes have not been saved.', size = 'default' }: DialogProps) {
   const id = useId();
   const ref = useRef<HTMLDialogElement>(null);
   const trigger = useRef<HTMLElement | null>(null);
@@ -329,7 +331,7 @@ export function Dialog({ open, onOpenChange, title, description, children, foote
       requestClose('escape');
       return;
     }
-    if (open) onOpenChange(false); trigger.current?.focus(); trigger.current = null;
+    if (open) onOpenChange(false); (restoreFocus?.() ?? trigger.current)?.focus(); trigger.current = null;
   }} onClick={event => { if (!closeDisabled && event.target === event.currentTarget) { const bounds = event.currentTarget.getBoundingClientRect(); if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) requestClose('backdrop'); } }}>
     <div className="t98-dialog-header"><div>{eyebrow != null && <p className="t98-dialog-eyebrow">{eyebrow}</p>}<h2 id={`${id}-title`} className="t98-dialog-title">{title}</h2>{description && <p id={`${id}-description`} className="t98-dialog-description">{description}</p>}</div><Button variant="ghost" aria-label="Close dialog" disabled={locked} className="t98-icon-button" onClick={() => requestClose('close-button')} icon={<Icon name="x" />} /></div>
     {confirmingDiscard && <div className="t98-dialog-discard" role="alertdialog" aria-labelledby={`${id}-discard`} aria-describedby={`${id}-discard-message`}>

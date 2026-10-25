@@ -387,6 +387,8 @@ export interface WorkspaceOnboardingProps extends Omit<AuthFormBaseProps<Workspa
   defaultValues?: { name?: string };
   /** Label of the name field, for example "Project name" for a create-first-project step. Defaults to "Workspace name". */
   nameLabel?: string;
+  /** Field error for a name of only spaces. Defaults to "Enter a workspace name." built from nameLabel; set it for other wording or languages. */
+  nameBlankMessage?: string;
   /** A checkbox inside the form, for example "Add sample data"; its value is submitted as `sample`. `false` or omitted hides it. */
   sampleOptIn?: { label: string; defaultChecked?: boolean } | false;
   submitLabel?: string;
@@ -402,10 +404,13 @@ export interface WorkspaceOnboardingProps extends Omit<AuthFormBaseProps<Workspa
   children?: ReactNode;
 }
 /** Shown to a signed-in account that has no workspace access yet: create one, refresh access or sign out. */
-export function WorkspaceOnboarding({ title = 'Workspace access', email, subheading = 'Create a workspace', help, defaultValues, nameLabel = 'Workspace name', sampleOptIn = false, onSkip, skipLabel = 'Skip for now', submitLabel = 'Create workspace', busyLabel = 'Creating workspace…', onRefresh, refreshLabel = 'Refresh access', signOut, account, children, fieldErrors, onSubmit, ...frame }: WorkspaceOnboardingProps) {
+export function WorkspaceOnboarding({ title = 'Workspace access', email, subheading = 'Create a workspace', help, defaultValues, nameLabel = 'Workspace name', nameBlankMessage = `Enter a ${nameLabel.toLowerCase()}.`, sampleOptIn = false, onSkip, skipLabel = 'Skip for now', submitLabel = 'Create workspace', busyLabel = 'Creating workspace…', onRefresh, refreshLabel = 'Refresh access', signOut, account, children, fieldErrors, onSubmit, ...frame }: WorkspaceOnboardingProps) {
   const id = useId();
   const signOutLabel = signOut?.label ?? 'Sign out';
-  return <AuthFormFrame {...frame} onSubmit={typed(onSubmit, raw => ({ name: text(raw, 'name'), ...(sampleOptIn ? { sample: raw.sample === 'true' } : {}) }))} title={title} description={`Signed in as ${email}`} fieldErrors={fieldErrors} submitLabel={submitLabel} busyLabel={busyLabel}
+  // A name of only spaces gets the same field error as in the create flows, instead of reaching the server.
+  const [blank, setBlank] = useState(false);
+  return <AuthFormFrame {...frame} onSubmit={typed(onSubmit, raw => ({ name: text(raw, 'name').trim(), ...(sampleOptIn ? { sample: raw.sample === 'true' } : {}) }))}
+    validate={raw => { const ok = Boolean(text(raw, 'name').trim()); setBlank(!ok); if (!ok) document.getElementById(`${id}-name`)?.focus(); return ok; }} title={title} description={`Signed in as ${email}`} fieldErrors={fieldErrors} submitLabel={submitLabel} busyLabel={busyLabel}
     after={onSkip && actionRow([<Button key="skip" type="button" variant="ghost" size="sm" onClick={onSkip}>{skipLabel}</Button>])}
     below={(onRefresh || signOut || account || children) && <Stack gap={4}>
       {(onRefresh || signOut || account) && <div className="t98-auth-aux">
@@ -422,7 +427,7 @@ export function WorkspaceOnboarding({ title = 'Workspace access', email, subhead
     </Stack>}>
     <Heading level={2} className="t98-auth-subheading">{subheading}</Heading>
     {help && <Text tone="muted" size="sm">{help}</Text>}
-    <Field label={nameLabel} htmlFor={`${id}-name`} error={fieldErrors?.name ?? fieldErrors?.workspaceName}>
+    <Field label={nameLabel} htmlFor={`${id}-name`} error={fieldErrors?.name ?? fieldErrors?.workspaceName ?? (blank ? nameBlankMessage : undefined)}>
       <Input name="name" autoComplete="organization" required maxLength={120} defaultValue={defaultValues?.name} />
     </Field>
     {sampleOptIn && <div className="t98-auth-choice"><Checkbox name="sample" value="true" label={sampleOptIn.label} defaultChecked={sampleOptIn.defaultChecked} /></div>}
