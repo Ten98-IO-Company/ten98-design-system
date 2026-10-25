@@ -1,6 +1,6 @@
 import type { ComponentProps, ReactNode } from 'react';
 import { AppBrand } from '../lib/app';
-import { AppStateScreen, AuthErrorBoundary, AuthStory, FirstUserSetupFlow, InvitationAcceptFlow, OidcProviderButtons, PasswordRecoveryFlow, SignInFlow, TwoFactorChallengeFlow, WorkspaceOnboarding } from '../lib';
+import { AppStateScreen, AuthErrorBoundary, AuthFrameProvider, AuthStory, FirstUserSetupFlow, InvitationAcceptFlow, OidcProviderButtons, PasswordRecoveryFlow, SignInFlow, TwoFactorChallengeFlow, WorkspaceOnboarding } from '../lib';
 import { tsx, type ComponentEntry, type ComponentProp, type ComponentState } from './model';
 
 const prop = (name: string, type: string, description: string, required = false, defaultValue?: string): ComponentProp => ({ name, type, description, required, defaultValue });
@@ -8,6 +8,9 @@ const tokens = ['--t98-surface', '--t98-subtle', '--t98-surface-raised', '--t98-
 const ownership = 'Applications keep requests, sessions, routing, CSRF and OIDC redirects, and supply every message; this component only presents them.';
 const brand = <AppBrand product="Campaign" />;
 const nothing = () => undefined;
+const frameSetup = `const brand = <AppBrand product="Campaign" href="/" />;
+const story = <AuthStory label="About Campaign" eyebrow="Campaign management" title="Plan. Publish." lead="Manage social posts and campaign assets." footnote="ten98 Campaign" />;`;
+const frameStory = <AuthStory label="About Campaign" eyebrow="Campaign management" title="Plan. Publish." lead="Manage social posts and campaign assets." footnote="ten98 Campaign" />;
 
 /** Copyable file: public imports plus AppBrand from the app entry point. */
 function code(imports: string[], jsx: string, setup = '', reactImports: string[] = []) {
@@ -15,7 +18,7 @@ function code(imports: string[], jsx: string, setup = '', reactImports: string[]
 }
 
 const baseProps = [
-  prop('brand', 'ReactNode', 'Brand content, normally AppBrand.', true),
+  prop('brand', 'ReactNode', 'Brand content, normally AppBrand. Defaults to the AuthFrameProvider’s.'),
   prop('title', 'string', 'The screen’s only h1.', true),
   prop('description', 'string', 'Supporting copy below the title.'),
   prop('eyebrow', 'string', 'Small label above the title.'),
@@ -117,9 +120,26 @@ export const authFlowEntries: ComponentEntry[] = [
     states: [state('With channels', 'Eyebrow, emphasized title, lead, channel chips and footnote.', signIn({ aside: <AuthStory eyebrow="CAMPAIGN MANAGEMENT" title="Plan. Publish." emphasis="Measure." lead="Manage social posts, advertising and campaign assets." channels={[{ icon: 'send', label: 'Social' }, { icon: 'target', label: 'Advertising' }]} footnote="ten98 Campaign" /> }), code(['AuthStory', 'SignInFlow'], '<SignInFlow\n  brand={<AppBrand product="Campaign" />}\n  title="Sign in"\n  onSubmit={() => undefined}\n  aside={\n    <AuthStory\n      eyebrow="CAMPAIGN MANAGEMENT"\n      title="Plan. Publish."\n      emphasis="Measure."\n      lead="Manage social posts, advertising and campaign assets."\n      channels={[{ icon: \'send\', label: \'Social\' }, { icon: \'target\', label: \'Advertising\' }]}\n      footnote="ten98 Campaign"\n    />\n  }\n/>'))],
   },
   {
+    name: 'AuthFrameProvider', category: 'Application adapters', description: 'One brand, side panel and password policy for every authentication screen of an app.',
+    usage: 'Mount once at the app root, outside AuthErrorBoundary: AuthFrameProvider, then AuthErrorBoundary, then the router. A boundary placed outside the provider shows its fallback without the brand and side panel. AuthLayout, SignInFlow, FirstUserSetupFlow, TwoFactorChallengeFlow, PasswordRecoveryFlow, InvitationAcceptFlow, WorkspaceOnboarding, AppStateScreen and AuthErrorBoundary read it, so loading, sign-in and failure share one layout and the screens drop their own brand, aside and passwordPolicy props. A screen’s own prop wins; aside={null} drops the panel on that screen. Landmark labels default to each screen’s title.',
+    props: [prop('brand', 'ReactNode', 'Brand content, normally AppBrand with the app’s home href.'), prop('aside', 'ReactNode', 'Side panel, normally AuthStory.'), prop('passwordPolicy', 'PasswordPolicy', 'Minimum and maximum length and hint for the sign-in, setup, recovery and invitation password fields.', false, '{ minLength: 12, maxLength: 128 }'), prop('children', 'ReactNode', 'The app.', true)],
+    tokens, accessibility: ['Adds no markup or landmarks of its own.', 'Each screen stays one labelled main landmark named by its title.'], related: ['AuthLayout', 'AppStateScreen', 'AuthErrorBoundary', 'SignInFlow'],
+    example: code(['AuthFrameProvider', 'AuthStory', 'SignInFlow'], `<AuthFrameProvider brand={brand} aside={story}>
+  <SignInFlow title="Sign in" onSubmit={() => undefined} />
+</AuthFrameProvider>`, frameSetup),
+    states: [
+      state('Sign-in from the frame', 'The flow passes only its title; brand and side panel come from the provider.', <AuthFrameProvider brand={brand} aside={frameStory}><SignInFlow title="Sign in" onSubmit={nothing} /></AuthFrameProvider>, code(['AuthFrameProvider', 'AuthStory', 'SignInFlow'], `<AuthFrameProvider brand={brand} aside={story}>
+  <SignInFlow title="Sign in" onSubmit={() => undefined} />
+</AuthFrameProvider>`, frameSetup)),
+      state('Loading in the same frame', 'Loading uses the sign-in layout, so nothing jumps when sign-in appears.', <AuthFrameProvider brand={brand} aside={frameStory}><AppStateScreen state="loading" /></AuthFrameProvider>, code(['AuthFrameProvider', 'AuthStory', 'AppStateScreen'], `<AuthFrameProvider brand={brand} aside={story}>
+  <AppStateScreen state="loading" />
+</AuthFrameProvider>`, frameSetup)),
+    ],
+  },
+  {
     name: 'AppStateScreen', category: 'Application adapters', description: 'Full-screen loading and failure states before the app shell is available.',
     usage: 'Use while a session or configuration loads, when it fails, or as a boundary fallback. Loading is a status; error and boundary show an alert with a retry button when onRetry is given. not-found says the page is missing and links home through homeHref. The title is the screen’s h1.',
-    props: [prop('state', "'loading' | 'error' | 'boundary' | 'unconfirmed' | 'not-found'", 'Which state to show. unconfirmed is a warning for an outcome the app could not verify; it defaults to asking for a reload before retrying. not-found is a missing page or record, not a failure.', true), prop('brand', 'ReactNode', 'Brand content, normally AppBrand.', true), prop('title', 'string', 'The h1. Defaults per state.'), prop('message', 'string', 'What happened, in plain words. Defaults per state.'), prop('onRetry', '() => void', 'Shows the retry button.'), prop('retryLabel', 'string', 'Retry button text. Defaults to Try again, or Reload for boundary.'), prop('homeHref', 'string', 'not-found: where Go to home leads. Without it the action uses onRetry.')],
+    props: [prop('state', "'loading' | 'error' | 'boundary' | 'unconfirmed' | 'not-found'", 'Which state to show. unconfirmed is a warning for an outcome the app could not verify; it defaults to asking for a reload before retrying. not-found is a missing page or record, not a failure.', true), prop('brand', 'ReactNode', 'Brand content, normally AppBrand. Defaults to the AuthFrameProvider’s.'), prop('aside', 'ReactNode', 'Side panel, so loading and failure use the sign-in layout. Defaults to the AuthFrameProvider’s; null drops it.'), prop('title', 'string', 'The h1. Defaults per state.'), prop('message', 'string', 'What happened, in plain words. Defaults per state.'), prop('onRetry', '() => void', 'Shows the retry button.'), prop('retryLabel', 'string', 'Retry button text. Defaults to Try again, or Reload for boundary.'), prop('homeHref', 'string', 'not-found: where Go to home leads. Without it the action uses onRetry.')],
     tokens, accessibility: ['Loading uses role=status; failures use role=alert.', 'not-found uses a polite role=status, not an alert, so replacing the loading state is still announced.', 'One h1 per screen.'], related: ['AuthErrorBoundary', 'SignInFlow', 'Alert'],
     example: code(['AppStateScreen'], '<AppStateScreen\n  state="error"\n  brand={<AppBrand product="Campaign" />}\n  title="Could not load your session"\n  message="The server did not respond."\n  onRetry={() => window.location.reload()}\n/>'),
     states: [

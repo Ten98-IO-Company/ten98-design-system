@@ -3,7 +3,7 @@
 import { useId, useState, type FormEvent, type ReactNode } from 'react';
 import { Alert, Button, Checkbox, Field, Icon, Input, type Tone } from './primitives.js';
 import { DescriptionList, Heading, Link, Stack, Text, type LinkProps } from './structure.js';
-import { AuthLayout, type AuthSurface } from './workspace.js';
+import { AuthLayout, useAuthFrame, type AuthSurface } from './workspace.js';
 import { FlowActionControl, FlowFrame, HiddenInputs, formatFlowDate, passwordHint, useSingleSubmit, type LabelledAction } from './flow-frame.js';
 
 /* Presentation-only authentication flows. Applications keep requests, sessions, routing, CSRF and OIDC redirects,
@@ -11,6 +11,11 @@ import { FlowActionControl, FlowFrame, HiddenInputs, formatFlowDate, passwordHin
 
 export interface PasswordPolicy { minLength: number; maxLength: number; hint?: string }
 export const defaultPasswordPolicy: PasswordPolicy = { minLength: 12, maxLength: 128 };
+/** A flow's own policy, else the AuthFrameProvider's, else the default. */
+function usePasswordPolicy<P extends Partial<PasswordPolicy>>(own: P | undefined) {
+  const frame = useAuthFrame();
+  return { ...defaultPasswordPolicy, ...(own ?? frame.passwordPolicy) };
+}
 
 export type AuthFieldName = 'email' | 'password' | 'token' | 'name' | 'workspaceName' | 'code' | 'confirmation';
 export type AuthFieldErrors = Partial<Record<AuthFieldName, string>>;
@@ -21,9 +26,9 @@ export interface AuthNotice { tone: Tone; text: string }
 export type AuthAction = { onClick: (email: string) => void; href?: never } | { href: string; onClick?: never };
 
 export interface AuthFormBaseProps<Values = AuthFormValues> {
-  /** Brand content, normally `AppBrand`. */
-  brand: ReactNode;
-  /** Side panel, normally `AuthStory`. */
+  /** Brand content, normally `AppBrand`. Defaults to the AuthFrameProvider's. */
+  brand?: ReactNode;
+  /** Side panel, normally `AuthStory`. Defaults to the AuthFrameProvider's; `null` drops it on this screen. */
   aside?: ReactNode;
   /** `card` shows the form as a bordered card, also beside an `aside`. Defaults to `card` without an `aside`, `plain` with one. */
   surface?: AuthSurface;
@@ -129,9 +134,9 @@ export interface SignInFlowProps extends AuthFormBaseProps<SignInValues> {
   providers?: ReactNode;
 }
 /** Email and password sign-in. The application authenticates; this renders the screen. */
-export function SignInFlow({ defaultValues, passwordPolicy, submitLabel = 'Sign in', busyLabel = 'Signing in…', forgotPassword, cancel, providers, linkComponent, fieldErrors, onSubmit, ...frame }: SignInFlowProps) {
+export function SignInFlow({ defaultValues, passwordPolicy: ownPolicy, submitLabel = 'Sign in', busyLabel = 'Signing in…', forgotPassword, cancel, providers, linkComponent, fieldErrors, onSubmit, ...frame }: SignInFlowProps) {
   const id = useId();
-  const maxLength = passwordPolicy?.maxLength ?? defaultPasswordPolicy.maxLength;
+  const { maxLength } = usePasswordPolicy(ownPolicy);
   return <AuthFormFrame {...frame} onSubmit={typed(onSubmit, raw => ({ email: text(raw, 'email'), password: text(raw, 'password') }))} fieldErrors={fieldErrors} linkComponent={linkComponent} submitLabel={submitLabel} busyLabel={busyLabel} below={providers}
     after={cancel && <div className="t98-auth-aux">{cancel.href !== undefined ? <Link href={cancel.href} variant="standalone" component={linkComponent}>{cancel.label}</Link> : <Button type="button" variant="secondary" onClick={cancel.onClick}>{cancel.label}</Button>}</div>}>
     <Field label="Email address" htmlFor={`${id}-email`} error={fieldErrors?.email}>
@@ -162,7 +167,8 @@ export interface FirstUserSetupFlowProps extends AuthFormBaseProps<FirstUserSetu
 }
 /** Owner account creation for a new installation: optionally gated by a setup token the application verifies, or, with
  * `setupToken={false}`, the first sign-up becomes the owner. */
-export function FirstUserSetupFlow({ defaultValues, passwordPolicy = defaultPasswordPolicy, setupToken = true, tokenLength, tokenHint, workspaceName = false, workspaceNameRequired = true, sampleOptIn = false, signInInstead, submitLabel = 'Create owner account', busyLabel = 'Creating account…', linkComponent, fieldErrors, onSubmit, ...frame }: FirstUserSetupFlowProps) {
+export function FirstUserSetupFlow({ defaultValues, passwordPolicy: ownPolicy, setupToken = true, tokenLength, tokenHint, workspaceName = false, workspaceNameRequired = true, sampleOptIn = false, signInInstead, submitLabel = 'Create owner account', busyLabel = 'Creating account…', linkComponent, fieldErrors, onSubmit, ...frame }: FirstUserSetupFlowProps) {
+  const passwordPolicy = usePasswordPolicy(ownPolicy);
   const id = useId();
   return <AuthFormFrame {...frame} onSubmit={typed(onSubmit, raw => ({ name: text(raw, 'name'), ...(setupToken ? { token: text(raw, 'token') } : {}), email: text(raw, 'email'), password: text(raw, 'password'), ...(workspaceName ? optional(raw, 'workspaceName') : {}), sample: raw.sample === 'true' }))} fieldErrors={fieldErrors} linkComponent={linkComponent} submitLabel={submitLabel} busyLabel={busyLabel}
     after={signInInstead && <div className="t98-auth-aux"><FlowActionControl action={signInInstead} label={signInInstead.label ?? 'Sign in instead'} linkComponent={linkComponent} variant="ghost" /></div>}>
@@ -258,7 +264,8 @@ export type PasswordRecoveryFlowProps = PasswordRecoveryBaseProps & (
   | { stage: 'reset'; onSubmit?: (values: RecoveryResetValues) => void | Promise<void> }
 );
 /** Password reset request and new-password screens. The application sends links and checks tokens. */
-export function PasswordRecoveryFlow({ stage, token, availability = 'enabled', sent = false, invalid = false, onRequestNewLink, requestNewLinkLabel = 'Request a new link', defaultValues, passwordPolicy = defaultPasswordPolicy, messages, submitLabel, busyLabel, backToSignIn, linkComponent, fieldErrors, onSubmit, ...frame }: PasswordRecoveryFlowProps) {
+export function PasswordRecoveryFlow({ stage, token, availability = 'enabled', sent = false, invalid = false, onRequestNewLink, requestNewLinkLabel = 'Request a new link', defaultValues, passwordPolicy: ownPolicy, messages, submitLabel, busyLabel, backToSignIn, linkComponent, fieldErrors, onSubmit, ...frame }: PasswordRecoveryFlowProps) {
+  const passwordPolicy = usePasswordPolicy(ownPolicy);
   const id = useId();
   const [mismatch, setMismatch] = useState(false);
   const copy = { ...recoveryMessages, ...messages };
@@ -328,7 +335,8 @@ export interface InvitationAcceptFlowProps extends AuthFormBaseProps<InvitationV
   cancel?: LabelledAction;
 }
 /** Workspace invitation screens for every step of acceptance. The application validates the invitation and the session. */
-export function InvitationAcceptFlow({ state, token, invitation, formatDate = formatFlowDate, roleLabel = role => role, signedInEmail, accountExists = false, providers, onSignIn, signInLabel, onSwitchAccount, onRetry, continueAction, passwordPolicy = defaultPasswordPolicy, messages, cancel, busyLabel, linkComponent, fieldErrors, onSubmit, ...frame }: InvitationAcceptFlowProps) {
+export function InvitationAcceptFlow({ state, token, invitation, formatDate = formatFlowDate, roleLabel = role => role, signedInEmail, accountExists = false, providers, onSignIn, signInLabel, onSwitchAccount, onRetry, continueAction, passwordPolicy: ownPolicy, messages, cancel, busyLabel, linkComponent, fieldErrors, onSubmit, ...frame }: InvitationAcceptFlowProps) {
+  const passwordPolicy = usePasswordPolicy(ownPolicy);
   const id = useId();
   const copy = { ...invitationMessages, ...messages };
   const fill = (text: string) => text.replace('{signedIn}', signedInEmail ?? '').replace('{invited}', invitation?.email ?? '').replace('{workspace}', invitation?.workspaceName ?? '');
