@@ -265,3 +265,15 @@ test('an unconfirmed revoke of an invitation that is no longer pending offers no
   await expect(page.getByRole('button', { name: /^Retry/ })).toHaveCount(0);
   await expect(page.getByRole('button', { name: /^Revoke: second@example\.com$/ })).toBeVisible();
 });
+
+test('a Checkbox hit target is its whole label row, at least 44px tall at any pointer (Discover target check)', async ({ page }) => {
+  await page.goto('/tests/workspace-flows.html?theme=light');
+  const box = page.getByRole('checkbox', { name: 'Require two-factor authentication for every member' });
+  // The visible box stays 15px; the target WCAG 2.5.8 measures is the label that wraps it.
+  const row = (await box.locator('xpath=ancestor::label[1]').boundingBox())!;
+  expect(row.height).toBeGreaterThanOrEqual(43.5);
+  expect(row.width).toBeGreaterThanOrEqual(44);
+  await page.getByText('Require two-factor authentication for every member').click();
+  await expect(box).toBeChecked();
+  expect(await only(page, 'policy:')).toEqual(['policy:true']);
+});
