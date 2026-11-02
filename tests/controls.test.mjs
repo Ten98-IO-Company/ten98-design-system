@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createElement as h } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { Blockquote, Popover, LoadMore, ResourceCard, Image, Form, Field as UIField, Textarea, CheckboxGroup, CodeBlock, MediaPlayer, MultiCombobox, Combobox, DateTimeField, Disclosure, FileField, Fieldset, InlineCode, Pager, RadioGroup, Scroller, SegmentedControl, StatusLine, Button, Input, ReportToolbar } from '../dist/index.js';
+import { Blockquote, Popover, LoadMore, ResourceCard, Image, Form, Field as UIField, Textarea, CheckboxGroup, CodeBlock, MediaPlayer, MultiCombobox, Combobox, DateTimeField, Disclosure, FileField, Fieldset, InlineCode, Pager, RadioGroup, Scroller, SegmentedControl, StatusLine, Button, Input, ReportToolbar, MetricTabs } from '../dist/index.js';
 
 const styles = readFileSync(new URL('../dist/styles.css', import.meta.url), 'utf8');
 const classes = html => [...html.matchAll(/class="([^"]+)"/g)].flatMap(match => match[1].split(' '));
@@ -372,4 +372,67 @@ test('controlled advanced state overrides its default and keeps the content avai
   assert.match(opened, /<details[^>]*\bopen=""/);
   assert.match(closed, /name="country"[^>]*value="France"|value="France"[^>]*name="country"/);
   assert.match(opened, /name="country"[^>]*value="France"|value="France"[^>]*name="country"/);
+});
+
+
+test('MetricTabs preserves measured zero and the caller supplied comparison meaning', () => {
+  let changes = 0;
+  const html = render(h(MetricTabs, { label: 'Report metrics', value: 'views', onValueChange: () => changes++, items: [
+    { value: 'views', label: 'Page views', metric: 0, change: { label: '+25% since the prior period', tone: 'negative' }, content: 'Views panel' },
+    { value: 'events', label: 'Events', metric: '2,000', change: { label: 'No comparable prior period' } },
+  ] }));
+  assert.match(html, /role="tablist" aria-label="Report metrics"/);
+  assert.match(html, /t98-metric-tab-value">0<\/strong>/);
+  assert.match(html, /t98-metric-tab-value">2,000<\/strong>/);
+  assert.match(html, /data-tone="negative">\+25% since the prior period/);
+  assert.match(html, /data-tone="neutral">No comparable prior period/);
+  assert.equal(changes, 0);
+});
+
+test('MetricTabs withholds unavailable metrics and comparisons and exposes the disabled reason', () => {
+  const html = render(h(MetricTabs, { label: 'Report metrics', value: 'views', onValueChange() {}, items: [
+    { value: 'views', label: 'Page views', metric: 0 },
+    { value: 'sessions', label: 'Sessions', metric: '987654321', change: { label: 'Do not infer this comparison', tone: 'positive' }, unavailableReason: 'Requires session history' },
+    { value: 'retained', label: 'Retained metric', metric: '123456789', unavailableReason: ' ' },
+  ] }));
+  const tabs = [...html.matchAll(/<button\b[^>]*role="tab"[\s\S]*?<\/button>/g)].map(match => match[0]);
+  assert.equal(tabs.length, 3);
+  for (const tab of tabs.slice(1)) {
+    assert.match(tab, /aria-disabled="true"/);
+    assert.match(tab, /tabindex="-1"/);
+    assert.match(tab, /t98-metric-tab-value">—<\/strong>/);
+  }
+  assert.match(tabs[1], /Requires session history/);
+  assert.match(tabs[2], /Metric unavailable/);
+  assert.doesNotMatch(html, /987654321|123456789|Do not infer this comparison/);
+});
+
+test('MetricTabs delegates controlled selection and keeps associated inactive panels mounted', () => {
+  const items = [
+    { value: 'views', label: 'Page views', metric: '34', content: h(Input, { name: 'view-draft', defaultValue: 'Retained draft' }) },
+    { value: 'events', label: 'Events', metric: '12', content: 'Events panel' },
+  ];
+  for (const value of ['views', 'events']) {
+    const html = render(h(MetricTabs, { label: 'Report metrics', className: 'consumer-metrics', items, value, onValueChange() {} }));
+    const tabs = [...html.matchAll(/<button\b[^>]*role="tab"[\s\S]*?<\/button>/g)].map(match => match[0]);
+    const selectedIndex = value === 'views' ? 0 : 1;
+    assert.match(tabs[selectedIndex], /aria-selected="true"[^>]*tabindex="0"/);
+    assert.match(tabs[1 - selectedIndex], /aria-selected="false"[^>]*tabindex="-1"/);
+    const panelId = tabs[selectedIndex].match(/aria-controls="([^"]+)"/)[1];
+    assert.ok(html.includes(`role="tabpanel" id="${panelId}"`));
+    assert.equal((html.match(/role="tabpanel"/g) ?? []).length, 2);
+    assert.equal((html.match(/ hidden=""/g) ?? []).length, 1);
+    assert.match(html, /name="view-draft"[^>]*value="Retained draft"/);
+    assert.match(html, /consumer-metrics/);
+  }
+});
+
+test('MetricTabs suppresses the selected panel when its history becomes unavailable', () => {
+  const item = { value: 'views', label: 'Page views', metric: 'Retained metric', content: 'Retained chart payload' };
+  const props = { label: 'Report metrics', value: 'views', onValueChange() {} };
+  assert.match(render(h(MetricTabs, { ...props, items: [item] })), /Retained chart payload/);
+  const html = render(h(MetricTabs, { ...props, items: [{ ...item, unavailableReason: 'History is no longer available' }] }));
+  assert.match(html, /aria-selected="true" aria-disabled="true"/);
+  assert.match(html, /role="status">History is no longer available/);
+  assert.doesNotMatch(html, /Retained metric|Retained chart payload/);
 });

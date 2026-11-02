@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useId, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent, type ReactNode } from 'react';
 import { cx } from './primitives.js';
 import { StatusLine } from './controls.js';
 import { VisuallyHidden } from './structure.js';
@@ -86,6 +86,7 @@ function SwatchKey({ series, index }: { series: ChartSeries; index: number }) {
 
 interface ChartFrameProps {
   label: string;
+  bare?: boolean;
   context?: ReactNode;
   summary: ReactNode;
   summaryId: string;
@@ -108,17 +109,17 @@ interface ChartFrameProps {
 const EAGER_TABLE_ROWS = 500;
 
 /** Shared chart chrome: caption, application summary, computed statistics, state messages, legend and a data table with every point. */
-function ChartFrame({ label, context, summary, summaryId, statsId, stats, notice, loading, empty, emptyMessage, legend, tableLabel, table, rows = 0, children }: ChartFrameProps) {
+function ChartFrame({ label, bare = false, context, summary, summaryId, statsId, stats, notice, loading, empty, emptyMessage, legend, tableLabel, table, rows = 0, children }: ChartFrameProps) {
   const [tableOpen, setTableOpen] = useState(false);
   const showTable = typeof table !== 'function' || rows <= EAGER_TABLE_ROWS || tableOpen;
-  return <figure className="t98-chart" aria-busy={loading || undefined}>
-    <figcaption className="t98-chart-caption"><strong>{label}</strong>{context && <span className="t98-chart-context">{context}</span>}</figcaption>
+  return <figure className={cx('t98-chart', bare && 't98-chart--bare')} aria-busy={loading || undefined}>
+    <figcaption className={cx('t98-chart-caption', bare && 't98-visually-hidden')}><strong>{label}</strong>{context && <span className="t98-chart-context">{context}</span>}</figcaption>
     {notice && <p className="t98-chart-notice" role="note">{notice}</p>}
     {loading ? <StatusLine busy>Loading chart…</StatusLine>
       : empty ? <p className="t98-chart-empty">{emptyMessage ?? 'No data for this period.'}</p>
       : children}
-    <p id={summaryId} className="t98-chart-summary">{summary}</p>
-    <p id={statsId} className="t98-chart-stats">{stats}</p>
+    <p id={summaryId} className={cx('t98-chart-summary', bare && 't98-visually-hidden')}>{summary}</p>
+    <p id={statsId} className={cx('t98-chart-stats', bare && 't98-visually-hidden')}>{stats}</p>
     {!loading && !empty && legend}
     {!loading && !empty && <details className="t98-chart-data" onToggle={event => { if (event.currentTarget.open) setTableOpen(true); }}>
       <summary>View data table{rows > EAGER_TABLE_ROWS ? ` (${rows.toLocaleString('en')} rows)` : ''}</summary>
@@ -129,6 +130,10 @@ function ChartFrame({ label, context, summary, summaryId, statsId, stats, notice
 
 export interface TimeSeriesChartProps {
   label: string;
+  /** Plot SVG height in pixels; positive finite values are at least 120. Defaults to 240. */
+  height?: number;
+  /** Removes outer chrome visually; the chart name, description, notices and data table remain accessible. */
+  bare?: boolean;
   /** Date range, filters or units shown beside the label. */
   context?: ReactNode;
   /** The application's own reading of the chart; referenced by the SVG through aria-describedby. */
@@ -201,13 +206,16 @@ function planTicks(texts: readonly string[], centres: readonly number[], width: 
 }
 
 /** Bars, grouped or stacked bars, a line or an area over time. Keyboard: arrows move between points and series, Home/End jump. */
-export function TimeSeriesChart({ label, context, summary, kind, series, xScale = 'band', xDomain, formatY = plain, yDomain = 'nice', baselineLabel, xHeader = 'Point', formatXTick, fit = 'scroll', minStep, tableColumns = [], onInspect, notice, loading, emptyMessage }: TimeSeriesChartProps) {
+export function TimeSeriesChart({ label, height = HEIGHT, bare = false, context, summary, kind, series, xScale = 'band', xDomain, formatY = plain, yDomain = 'nice', baselineLabel, xHeader = 'Point', formatXTick, fit = 'scroll', minStep, tableColumns = [], onInspect, notice, loading, emptyMessage }: TimeSeriesChartProps) {
   const uid = useId().replace(/:/g, '');
   const summaryId = `${uid}-summary`;
   const statsId = `${uid}-stats`;
+  const tooltipId = `${uid}-tooltip`;
+  const chartHeight = Number.isFinite(height) && height > 0 ? Math.max(120, height) : HEIGHT;
   const scrollRef = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState<{ index: number; series: number } | null>(null);
   const [announcement, setAnnouncement] = useState('');
+  const [tooltipIndex, setTooltipIndex] = useState<number | null>(null);
   const [available, setAvailable] = useState(FALLBACK_WIDTH);
   useEffect(() => {
     const box = scrollRef.current;
@@ -219,6 +227,13 @@ export function TimeSeriesChart({ label, context, summary, kind, series, xScale 
     return () => observer.disconnect();
   }, [loading, series.length > 0 && series.some(item => item.points.length > 0)]);
   const count = Math.max(0, ...series.map(item => item.points.length));
+  const showTooltip = tooltipIndex !== null && tooltipIndex < count;
+  useEffect(() => {
+    if (!showTooltip) return;
+    const dismiss = (event: globalThis.KeyboardEvent) => { if (event.key === 'Escape') setTooltipIndex(null); };
+    document.addEventListener('keydown', dismiss);
+    return () => document.removeEventListener('keydown', dismiss);
+  }, [showTooltip]);
   const stacked = kind === 'stacked-bars';
   const isBars = kind === 'bars' || kind === 'grouped-bars' || stacked;
   const xLabelAt = (index: number) => series.find(item => item.points[index])?.points[index].xLabel ?? `Point ${index + 1}`;
@@ -255,7 +270,7 @@ export function TimeSeriesChart({ label, context, summary, kind, series, xScale 
   const plotLeft = MARGIN.left;
   const plotRight = width - MARGIN.right;
   const plotTop = MARGIN.top;
-  const plotBottom = HEIGHT - MARGIN.bottom;
+  const plotBottom = chartHeight - MARGIN.bottom;
   const y = linearScale(domain, [plotBottom, plotTop]);
   const yAt = (value: number) => y(value) ?? plotBottom;
   const band = bandScale(count, [plotLeft, plotRight], { paddingInner: 0.25, paddingOuter: 0.1 });
@@ -281,6 +296,7 @@ export function TimeSeriesChart({ label, context, summary, kind, series, xScale 
   };
   const inspect = (next: { index: number; series: number }) => {
     setActive(next);
+    setTooltipIndex(next.index);
     setAnnouncement(describe(next.series, next.index));
     onInspect?.(next.index);
     const box = scrollRef.current;
@@ -291,6 +307,7 @@ export function TimeSeriesChart({ label, context, summary, kind, series, xScale 
     }
   };
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'Escape') { setTooltipIndex(null); return; }
     if (!count || !series.length) return;
     const current = active ?? { index: 0, series: 0 };
     const moves: Record<string, { index: number; series: number }> = {
@@ -305,6 +322,22 @@ export function TimeSeriesChart({ label, context, summary, kind, series, xScale 
     if (!next || event.altKey || event.ctrlKey || event.metaKey) return;
     event.preventDefault();
     inspect(next);
+  };
+
+  const onPointerMove = (event: PointerEvent<SVGSVGElement>) => {
+    if (!count) return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    const x = (event.clientX - rect.left) * width / rect.width;
+    const y = (event.clientY - rect.top) * chartHeight / rect.height;
+    if (x < plotLeft || x > plotRight || y < plotTop || y > plotBottom) { setTooltipIndex(null); return; }
+    let nearest = 0, distance = Infinity;
+    for (let index = 0; index < count; index++) {
+      const delta = Math.abs((centre(index) ?? 0) - x);
+      if (delta < distance) { nearest = index; distance = delta; }
+    }
+    // Hover is presentation only: it must not trigger the caller's keyboard-inspection callback.
+    setTooltipIndex(nearest);
   };
 
   const patterns = tonePatterns(uid);
@@ -370,13 +403,15 @@ export function TimeSeriesChart({ label, context, summary, kind, series, xScale 
     }
   });
 
-  const activeCell = active ? cells[active.series]?.[active.index] : undefined;
-  const activeX = active ? centre(active.index) : null;
-  const activeY = active && activeCell && activeCell.value !== null
-    ? stacked ? yAt(stack[active.series][active.index]![1]) : yAt(activeCell.value) : null;
+  const highlighted = tooltipIndex === null ? active : { index: tooltipIndex, series: active?.series ?? 0 };
+  const activeCell = highlighted ? cells[highlighted.series]?.[highlighted.index] : undefined;
+  const activeX = highlighted ? centre(highlighted.index) : null;
+  const activeY = highlighted && activeCell && activeCell.value !== null
+    ? stacked ? yAt(stack[highlighted.series][highlighted.index]![1]) : yAt(activeCell.value) : null;
 
-  const legend = <ul className="t98-chart-legend" aria-label="Series">
-    {series.map((item, s) => <li key={item.id}><SwatchKey series={item} index={s} /><span>{item.label}{item.role === 'comparison' ? ' (comparison, outlined)' : ''}{item.unavailable ? ' — unavailable' : ''}</span></li>)}
+  const showSeriesLegend = series.length > 1 || series.some(item => item.role === 'comparison' || item.unavailable);
+  const legend = (showSeriesLegend || hasPartial || hasUnavailable) && <ul className="t98-chart-legend" aria-label="Series">
+    {showSeriesLegend && series.map((item, s) => <li key={item.id}><SwatchKey series={item} index={s} /><span>{item.label}{item.role === 'comparison' ? ' (comparison, outlined)' : ''}{item.unavailable ? ' — unavailable' : ''}</span></li>)}
     {hasPartial && <li><svg className="t98-chart-key" width="30" height="14" viewBox="0 0 30 14" aria-hidden="true" focusable="false"><circle className="t98-chart-partial-mark" cx="15" cy="7" r="5" /></svg><span>Dashed ring: partial data</span></li>}
     {hasUnavailable && <li><svg className="t98-chart-key" width="30" height="14" viewBox="0 0 30 14" aria-hidden="true" focusable="false"><rect className="t98-chart-unavailable-column" x="8" y="1" width="14" height="12" fill={`url(#${uid}-hatch)`} /></svg><span>Hatched: unavailable, not zero</span></li>}
   </ul>;
@@ -395,11 +430,12 @@ export function TimeSeriesChart({ label, context, summary, kind, series, xScale 
     </tr>)}</tbody>
   </table>;
 
-  return <ChartFrame label={label} context={context} summary={summary} summaryId={summaryId} statsId={statsId} stats={stats} notice={notice} loading={loading}
+  return <ChartFrame label={label} bare={bare} context={context} summary={summary} summaryId={summaryId} statsId={statsId} stats={stats} notice={notice} loading={loading}
     empty={count === 0} emptyMessage={emptyMessage} legend={legend} tableLabel={`${label} data table`} table={table} rows={count}>
+    <div className="t98-chart-plot" onPointerLeave={() => setTooltipIndex(null)}>
     <div ref={scrollRef} className="t98-chart-scroll" dir="ltr" tabIndex={0} role="group" aria-label={`${label} plot. Arrow keys move between points and series.`}
-      aria-describedby={`${summaryId} ${statsId}`} onKeyDown={onKeyDown} onFocus={() => { if (!active && count) inspect({ index: 0, series: 0 }); }} onBlur={() => setActive(null)}>
-      <svg className="t98-chart-svg" width={width} height={HEIGHT} viewBox={`0 0 ${width} ${HEIGHT}`} role="img" aria-label={label} aria-describedby={`${summaryId} ${statsId}`}>
+      aria-describedby={`${summaryId} ${statsId}${showTooltip ? ` ${tooltipId}` : ''}`} onKeyDown={onKeyDown} onFocus={() => { if (!active && count) inspect({ index: 0, series: 0 }); }} onBlur={() => { setActive(null); setTooltipIndex(null); }}>
+      <svg className="t98-chart-svg" width={width} height={chartHeight} viewBox={`0 0 ${width} ${chartHeight}`} role="img" aria-label={label} aria-describedby={`${summaryId} ${statsId}`} onPointerMove={onPointerMove}>
         <defs>
           {patterns}
           <pattern id={`${uid}-hatch`} width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
@@ -420,13 +456,21 @@ export function TimeSeriesChart({ label, context, summary, kind, series, xScale 
           {tick.full !== null && <title>{tick.full}</title>}{tick.text}
         </text>)}
         {layers}
-        {active && activeX !== null && <g className="t98-chart-active" aria-hidden="true">
+        {highlighted && activeX !== null && <g className="t98-chart-active" aria-hidden="true">
           <line x1={activeX} x2={activeX} y1={plotTop} y2={plotBottom} />
           {activeY !== null && <circle cx={activeX} cy={activeY} r="9" />}
         </g>}
       </svg>
     </div>
-    <p className="t98-chart-readout" role="status" aria-live="polite" aria-atomic="true">{announcement}</p>
+    {showTooltip && <div id={tooltipId} className="t98-chart-tooltip" role="tooltip">
+      <strong>{xLabelAt(tooltipIndex)}</strong>
+      <ul>{series.map((item, index) => {
+        const cell = cells[index]?.[tooltipIndex];
+        return <li key={item.id}>{item.label}{item.role === 'comparison' ? ' (comparison)' : ''}: {!cell || cell.value === null ? 'unavailable' : `${formatY(cell.value)}${cell.state === 'partial' ? ' (partial)' : ''}`}</li>;
+      })}</ul>
+    </div>}
+    </div>
+    <p className={cx('t98-chart-readout', bare && 't98-visually-hidden')} role="status" aria-live="polite" aria-atomic="true">{announcement}</p>
   </ChartFrame>;
 }
 

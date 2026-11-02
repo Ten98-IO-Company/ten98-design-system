@@ -23,7 +23,7 @@ async function doubleText(page: Page) {
   };
 }
 const overflow = (page: Page) => page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
-const readoutOf = (plot: ReturnType<Page['locator']>) => plot.locator('xpath=following-sibling::p[@role="status"]');
+const readoutOf = (plot: ReturnType<Page['locator']>) => plot.locator('xpath=ancestor::figure[1]').getByRole('status');
 
 for (const theme of ['light', 'dark'] as const) {
   test(`charts stay inspectable by keyboard and inside the page in ${theme}`, async ({ page }, info) => {
@@ -236,4 +236,92 @@ test('BarList filter rows are 44px targets and the share donut fits its card at 
   expect(fits, 'the donut stays inside its card').toBe(true);
   expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
   await restore();
+});
+
+test('analytics controls chart height and bare frame preserve accessible context, zero values and the data table', async ({ page }) => {
+  await page.goto('/tests/charts.html');
+  const embedded = page.locator('figure', { has: page.getByRole('img', { name: 'Embedded page views', exact: true }) });
+  const graphic = embedded.getByRole('img', { name: 'Embedded page views', exact: true });
+  await expect(graphic).toHaveAttribute('height', '144');
+  await expect(graphic).toHaveAccessibleDescription(/Page views include a day with zero/);
+  for (const selector of ['figcaption', '.t98-chart-summary', '.t98-chart-stats']) {
+    const size = await embedded.locator(selector).boundingBox();
+    expect(size!.width, 'bare context is visually hidden').toBeLessThanOrEqual(1);
+    expect(size!.height, 'bare context is visually hidden').toBeLessThanOrEqual(1);
+  }
+  await expect(embedded.getByRole('list', { name: 'Series' })).toHaveCount(0);
+  await embedded.getByText('View data table', { exact: true }).click();
+  const table = embedded.getByRole('region', { name: 'Embedded page views data table' });
+  await expect(table.getByRole('cell', { name: '0', exact: true })).toHaveCount(1);
+  await expect(table.getByRole('rowheader')).toHaveCount(3);
+  await expect(page.getByRole('img', { name: 'Weekly visits', exact: true })).toHaveAttribute('height', '240');
+  const comparison = page.locator('figure', { has: page.getByRole('img', { name: 'Daily event comparison', exact: true }) });
+  await expect(comparison.getByRole('img')).toHaveAttribute('height', '320');
+  await expect(comparison.getByRole('list', { name: 'Series' })).toContainText('Previous page views (comparison, outlined)');
+  await expect(comparison.getByRole('list', { name: 'Series' })).toContainText('Dashed ring: partial data');
+  await expect(comparison.getByRole('list', { name: 'Series' })).toContainText('Hatched: unavailable, not zero');
+  await comparison.getByText('View data table', { exact: true }).click();
+  const cells = comparison.getByRole('region', { name: 'Daily event comparison data table' });
+  await expect(cells.getByRole('cell', { name: 'Unavailable', exact: true })).toHaveCount(1);
+  await expect(cells.getByRole('cell', { name: '3 (partial)', exact: true })).toHaveCount(1);
+});
+
+test('analytics controls chart tooltip reports every series on hover and focus, dismisses and stays inside a 320px RTL zoomed figure', async ({ page }, info) => {
+  await page.setViewportSize({ width: 320, height: 1000 });
+  await mkdir(resolve('.qa/analytics-controls'), { recursive: true });
+  for (const dir of ['ltr', 'rtl']) {
+    await page.goto(`/tests/charts.html?dir=${dir}&theme=${info.project.name === 'narrow-dark' ? 'dark' : 'light'}`);
+    const figure = page.locator('figure', { has: page.getByRole('img', { name: 'Daily event comparison', exact: true }) });
+    const plot = figure.getByRole('group', { name: /Daily event comparison plot/ });
+    const tooltip = figure.getByRole('tooltip');
+    for (const zoom of [1, 2]) {
+      await page.evaluate(value => { document.documentElement.style.zoom = String(value); }, zoom);
+      await page.locator('#daily-inspections').click();
+      const before = Number((await page.locator('#daily-inspections').textContent())!.split(': ')[1]);
+      await plot.focus();
+      await page.keyboard.press('Home');
+      await expect(tooltip).toContainText('October 30, 2026: the full recorded UTC day, including all available page views and custom event observations');
+      await expect(tooltip).toContainText('Page views: 0');
+      await expect(tooltip).toContainText(/Events: unavailable/i);
+      await expect(tooltip).toContainText(/Previous page views.*14.*comparison|Previous page views.*comparison.*14/i);
+      await expect(page.locator('#daily-inspections')).toHaveText(`Daily inspections: ${before + 2}`);
+      await page.keyboard.press('ArrowRight');
+      await expect(tooltip).toContainText(/Events: 3.*partial/i);
+      const frame = await figure.boundingBox();
+      const bounds = await tooltip.boundingBox();
+      expect(bounds!.x).toBeGreaterThanOrEqual(frame!.x - 0.5);
+      expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(Math.min(320, frame!.x + frame!.width) + 0.5);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
+      await page.keyboard.press('Escape');
+      await expect(tooltip).toHaveCount(0);
+      await page.locator('#daily-inspections').click();
+      await expect(plot).not.toBeFocused();
+      const inspections = await page.locator('#daily-inspections').textContent();
+      const marker = plot.locator('.t98-chart-marker').first();
+      await marker.scrollIntoViewIfNeeded();
+      const point = await marker.boundingBox();
+      await page.mouse.move(point!.x + point!.width / 2, point!.y + point!.height / 2);
+      await expect(tooltip).toContainText('Page views: 0');
+      await expect(tooltip).toContainText(/Events: unavailable/i);
+      await tooltip.hover();
+      await expect(tooltip).toContainText('Page views: 0');
+      await expect(page.locator('#daily-inspections')).toHaveText(inspections!);
+      await figure.screenshot({ path: resolve('.qa/analytics-controls', `chart-tooltip-detail-${info.project.name}-${dir}-zoom${zoom}.png`) });
+      await expect(plot).not.toBeFocused();
+      await page.keyboard.press('Escape');
+      await expect(tooltip).toHaveCount(0);
+      await expect(page.locator('#daily-inspections')).toHaveText(inspections!);
+      await marker.scrollIntoViewIfNeeded();
+      const currentPoint = await marker.boundingBox();
+      await page.mouse.move(currentPoint!.x + currentPoint!.width / 2, currentPoint!.y + currentPoint!.height / 2);
+      await expect(tooltip).toBeVisible();
+      await page.locator('#daily-inspections').hover();
+      await expect(tooltip).toHaveCount(0);
+      await plot.focus();
+      await page.keyboard.press('ArrowRight');
+      await expect(tooltip).toBeVisible();
+      await page.locator('#daily-inspections').click();
+      await expect(tooltip).toHaveCount(0);
+    }
+  }
 });

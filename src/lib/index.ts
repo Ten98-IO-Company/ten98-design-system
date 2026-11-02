@@ -13,6 +13,7 @@ export * from './templates.js';
 export * from './layout.js';
 export * from './reporting.js';
 export * from './report-toolbar.js';
+export * from './metric-tabs.js';
 export * from './inspection.js';
 export * from './sidebar.js';
 export * from './account-menu.js';

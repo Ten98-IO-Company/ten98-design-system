@@ -1,6 +1,8 @@
 import { useId, useState } from 'react';
 import { Button, Field, Input } from '../lib/primitives.js';
 import { ReportToolbar } from '../lib/index.js';
+import { MetricTabs } from '../lib/metric-tabs.js';
+import { TimeSeriesChart } from '../lib/charts.js';
 import { CopyButton } from '../lib/workspace.js';
 import {
   AppliedFilters, ComparisonMetric, TrackerStatus,
@@ -145,7 +147,31 @@ ${advanced ? "const [country, setCountry] = useState('United Arab Emirates');" :
 const [applied, setApplied] = useState('All results');
 const [exports, setExports] = useState(0);`, ['useState']);
 
+function MetricTabsDemo({ initial = 'pageViews' }: { initial?: string }) {
+  const [value, setValue] = useState(initial);
+  return <MetricTabs label="Daily metric" value={value} onValueChange={setValue} items={[
+    { value: 'pageViews', label: 'Page views', metric: '1,234', change: { label: 'Previous period unavailable', tone: 'neutral' }, content: <TimeSeriesChart label="Daily page views" summary="Three supplied daily observations." kind="line" height={200} bare fit="compress" series={[{ id: 'views', label: 'Page views', points: [400, 420, 414].map((y, x) => ({ x, xLabel: `Day ${x + 1}`, y })) }]} /> },
+    { value: 'customEvents', label: 'Custom events', metric: 0, content: <TimeSeriesChart label="Daily custom events" summary="Three supplied observations are measured zero." kind="line" height={200} bare fit="compress" series={[{ id: 'events', label: 'Custom events', points: [0, 0, 0].map((y, x) => ({ x, xLabel: `Day ${x + 1}`, y })) }]} /> },
+    { value: 'visitors', label: 'Unique visitors', metric: null, unavailableReason: 'Daily visitor history is not supplied.' },
+  ]} />;
+}
+
+const metricTabsCode = (initial = 'pageViews') => tsx(['MetricTabs', 'TimeSeriesChart'], `<MetricTabs label="Daily metric" value={metric} onValueChange={setMetric} items={[
+  { value: 'pageViews', label: 'Page views', metric: '1,234', content: <TimeSeriesChart label="Daily page views" summary="Three supplied observations." kind="line" height={200} bare fit="compress" series={[{ id: 'views', label: 'Page views', points: [400, 420, 414].map((y, x) => ({ x, xLabel: 'Day ' + (x + 1), y })) }]} /> },
+  { value: 'customEvents', label: 'Custom events', metric: 0, content: <TimeSeriesChart label="Daily custom events" summary="Measured zero for three days." kind="line" height={200} bare fit="compress" series={[{ id: 'events', label: 'Custom events', points: [0, 0, 0].map((y, x) => ({ x, xLabel: 'Day ' + (x + 1), y })) }]} /> },
+  { value: 'visitors', label: 'Unique visitors', metric: null, unavailableReason: 'Daily visitor history is not supplied.' },
+]} />`, `const [metric, setMetric] = useState('${initial}');`, ['useState']);
+
 export const measurementEntries: ComponentEntry[] = [
+  {
+    name: 'MetricTabs', category: 'Data display', description: 'Controlled metric selection with formatted observations, app-supplied change meaning and unavailable reasons.',
+    usage: 'Use metric tabs when supplied daily series support switching a shared chart. The caller owns the selected metric, actual observations and change calculations. An unavailable metric shows its reason and cannot select an invented history.',
+    props: [prop('label', 'string', 'Accessible metric tablist name.', true), prop('items', 'readonly MetricTabItem[]', 'Selection value, label, formatted metric, optional change label/tone, unavailableReason and panel content.', true), prop('value', 'string', 'Controlled selected metric key.', true), prop('onValueChange', '(value: string) => void', 'Requests selection of an available metric.', true), prop('className', 'string', 'Additional wrapper class.')],
+    tokens: [...surfaceTokens, '--t98-text-metric', '--t98-focus', '--t98-control-touch', '--t98-accent', '--t98-accent-soft'],
+    accessibility: ['Reuses Tabs tablist, linked panels, automatic arrow activation, Home/End and one roving Tab stop.', 'Arrow keys follow RTL writing direction. Unavailable tabs remain visible with a reason and skip selection.', 'Measured zero stays zero. Change meaning is supplied by the app and is not inferred from arrow direction.', 'Metric controls wrap at narrow widths and retain at least 44px targets.'],
+    related: ['Tabs', 'MetricCard', 'TimeSeriesChart', 'ReportToolbar'], example: metricTabsCode(),
+    states: [{ name: 'Supplied daily history', description: 'Page views and custom events use only their supplied daily series; visitor history is unavailable.', preview: <MetricTabsDemo />, code: metricTabsCode() }, { name: 'Measured zero', description: 'The custom-event observation is zero, while an unavailable metric remains a separate state.', preview: <MetricTabsDemo initial="customEvents" />, code: metricTabsCode('customEvents') }],
+  },
   {
     name: 'ReportToolbar', category: 'Controls', description: 'Primary report controls, optional advanced filters, applied scope and separate result actions.',
     usage: 'Compose existing date, timezone and search fields in controls. Advanced disclosure hides optional inputs while primary controls, summary and result actions stay available. The caller owns its form, draft/applied state, query timing, authorization and provider requests; revealing filters never applies a report.',

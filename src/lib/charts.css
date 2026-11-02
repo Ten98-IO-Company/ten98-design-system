@@ -116,3 +116,8 @@ a.t98-bar-list-name { color: var(--t98-accent); }
   .t98-hour-cell--4 { background: Highlight; color: HighlightText; }
   .t98-hour-cell--unavailable { background: repeating-linear-gradient(45deg, Canvas 0 3px, CanvasText 3px 5px); }
 }
+
+.t98-chart--bare { padding: 0; border: 0; border-radius: 0; background: transparent; }
+.t98-chart-plot { position: relative; min-inline-size: 0; }
+.t98-chart-tooltip { position: absolute; z-index: 1; inset-block-start: var(--t98-space-2); inset-inline-end: var(--t98-space-2); max-inline-size: calc(100% - 2 * var(--t98-space-2)); padding: var(--t98-space-3); border: 1px solid var(--t98-border-strong); border-radius: var(--t98-radius); background: var(--t98-surface); color: var(--t98-text); overflow-wrap: anywhere; }
+.t98-chart-tooltip ul { margin: var(--t98-space-2) 0 0; padding: 0; list-style: none; }

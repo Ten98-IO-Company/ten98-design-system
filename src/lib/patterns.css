@@ -171,3 +171,16 @@
   .t98-app-shell--drawer .t98-shell-sidebar[data-sidebar-state='open'] { transition-delay: 0s; }
 }
 @media (pointer: coarse) { .t98-sort-button, .t98-table-checkbox-target { min-height: var(--t98-control-touch); } .t98-table-checkbox-target { min-width: var(--t98-control-touch); } }
+
+
+.t98-metric-tabs { min-inline-size: 0; max-inline-size: 100%; border: 1px solid var(--t98-border); border-radius: var(--t98-radius); background: var(--t98-surface); }
+.t98-metric-tabs > .t98-tab-list { align-items: stretch; flex-wrap: wrap; gap: 0; padding: 0; border-block-end: 1px solid var(--t98-border); overflow: visible; }
+.t98-metric-tabs > .t98-tab-list > .t98-tab { display: flex; flex-direction: column; align-items: flex-start; gap: var(--t98-space-1); flex: 1 1 10rem; min-inline-size: 0; max-inline-size: 100%; min-block-size: max(44px, var(--t98-control-touch)); padding: var(--t98-space-3); border: 0; border-block-end: 2px solid transparent; border-radius: 0; background: transparent; color: var(--t98-text); text-align: start; white-space: normal; overflow-wrap: anywhere; }
+.t98-metric-tabs > .t98-tab-list > .t98-tab[aria-selected='true'] { border-block-end-color: var(--t98-accent); background: var(--t98-accent-soft); color: var(--t98-text); }
+.t98-metric-tabs > .t98-tab-list > .t98-tab[aria-disabled='true'] { opacity: 1; color: var(--t98-muted); cursor: not-allowed; }
+.t98-metric-tabs .t98-metric-tab-label, .t98-metric-tabs .t98-metric-tab-reason { color: var(--t98-muted); font-size: var(--t98-text-sm); }
+.t98-metric-tabs .t98-metric-tab-value { max-inline-size: 100%; font-size: var(--t98-text-metric); font-weight: var(--t98-weight-semibold); line-height: var(--t98-leading-tight); }
+.t98-metric-tabs .t98-metric-tab-change { max-inline-size: 100%; color: var(--t98-muted); font-size: var(--t98-text-xs); }
+.t98-metric-tabs .t98-metric-tab-change[data-tone='positive'] { color: var(--t98-success); }
+.t98-metric-tabs .t98-metric-tab-change[data-tone='negative'] { color: var(--t98-danger); }
+.t98-metric-tabs > .t98-tab-panel { min-inline-size: 0; max-inline-size: 100%; padding: var(--t98-space-3); overflow-wrap: anywhere; }
