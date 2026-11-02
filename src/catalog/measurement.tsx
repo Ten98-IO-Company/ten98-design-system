@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { Button } from '../lib/primitives.js';
+import { useId, useState } from 'react';
+import { Button, Field, Input } from '../lib/primitives.js';
+import { ReportToolbar } from '../lib/index.js';
 import { CopyButton } from '../lib/workspace.js';
 import {
   AppliedFilters, ComparisonMetric, TrackerStatus,
@@ -116,7 +117,43 @@ const change: ComparisonChange = ${JSON.stringify(fixture.change)};
 const [hidden, setHidden] = useState(false);`, ['useState']);
 }
 
+
+function ReportToolbarDemo({ advanced = true }: { advanced?: boolean }) {
+  const id = useId();
+  const [query, setQuery] = useState('');
+  const [country, setCountry] = useState('United Arab Emirates');
+  const [applied, setApplied] = useState('All results');
+  const [exports, setExports] = useState(0);
+  return <form onSubmit={event => { event.preventDefault(); setApplied(query || 'All results'); }}>
+    <ReportToolbar controls={<><Field label="Search" htmlFor={`${id}-query`}><Input id={`${id}-query`} type="search" value={query} onChange={event => setQuery(event.target.value)}/></Field><Button type="submit">Apply report</Button></>}
+      advanced={advanced ? <Field label="Country" htmlFor={`${id}-country`}><Input id={`${id}-country`} value={country} onChange={event => setCountry(event.target.value)}/></Field> : undefined}
+      summary={<AppliedFilters label="Applied report scope" filters={[{ id: 'query', label: 'Search', value: applied }]}/>}
+      actions={<Button type="button" variant="secondary" onClick={() => setExports(count => count + 1)}>Export result ({exports})</Button>}/>
+  </form>;
+}
+const reportToolbarCode = (advanced = true) => tsx(['ReportToolbar', 'Field', 'Input', 'Button', 'AppliedFilters'], `<form onSubmit={event => { event.preventDefault(); setApplied(query || 'All results'); }}>
+  <ReportToolbar
+    controls={<>
+      <Field label="Search" htmlFor="report-query"><Input id="report-query" type="search" value={query} onChange={event => setQuery(event.target.value)}/></Field>
+      <Button type="submit">Apply report</Button>
+    </>}
+    ${advanced ? 'advanced={<Field label="Country" htmlFor="report-country"><Input id="report-country" value={country} onChange={event => setCountry(event.target.value)}/></Field>}' : ''}
+    summary={<AppliedFilters label="Applied report scope" filters={[{ id: 'query', label: 'Search', value: applied }]}/>}
+    actions={<Button type="button" variant="secondary" onClick={() => setExports(count => count + 1)}>Export result ({exports})</Button>}/>
+</form>`, `const [query, setQuery] = useState('');
+${advanced ? "const [country, setCountry] = useState('United Arab Emirates');" : ''}
+const [applied, setApplied] = useState('All results');
+const [exports, setExports] = useState(0);`, ['useState']);
+
 export const measurementEntries: ComponentEntry[] = [
+  {
+    name: 'ReportToolbar', category: 'Controls', description: 'Primary report controls, optional advanced filters, applied scope and separate result actions.',
+    usage: 'Compose existing date, timezone and search fields in controls. Advanced disclosure hides optional inputs while primary controls, summary and result actions stay available. The caller owns its form, draft/applied state, query timing, authorization and provider requests; revealing filters never applies a report.',
+    props: [prop('controls', 'ReactNode', 'Always-visible primary date, timezone, search and Apply controls.', true), prop('advanced', 'ReactNode', 'Optional advanced filter inputs inside the shared Disclosure.'), prop('advancedLabel', 'string', 'Accessible advanced disclosure label.', false, 'Advanced filters'), prop('advancedOpen', 'boolean', 'Controlled advanced disclosure state.'), prop('defaultAdvancedOpen', 'boolean', 'Initial uncontrolled advanced disclosure state.', false, 'false'), prop('onAdvancedOpenChange', '(open: boolean) => void', 'Requests an advanced disclosure state change.'), prop('summary', 'ReactNode', 'Always-visible applied scope or result summary.'), prop('actions', 'ReactNode', 'Always-visible caller-owned secondary result actions.'), prop('label', 'string', 'Accessible report control group name.', false, 'Report controls'), prop('className', 'string', 'Additional class on the report control group.')],
+    tokens: [...surfaceTokens, '--t98-focus', '--t98-control-touch'], accessibility: ['A named group preserves primary controls, advanced filters, summary and result action reading order.', 'Native disclosure keyboard interaction supports Enter and Space; closed advanced controls are outside the tab order.', 'Every supplied field and action retains its own accessible name and native behavior. Labels and long summaries wrap on narrow screens.'], related: ['Disclosure', 'AppliedFilters', 'DateRangeField', 'Field', 'Input', 'Select', 'Button'], example: reportToolbarCode(),
+    states: [{ name: 'Advanced report filters', description: 'Editing or revealing draft fields does not change the applied query. Apply and Export are caller-owned local actions.', preview: <ReportToolbarDemo/>, code: reportToolbarCode() }, { name: 'Primary controls only', description: 'Omitting advanced content removes the disclosure while keeping the summary and result action.', preview: <ReportToolbarDemo advanced={false}/>, code: reportToolbarCode(false) }],
+  },
+
   {
     name: 'AppliedFilters', category: 'Controls', description: 'Readable applied dimension/operator/value chips, with controlled remove and clear actions and a separate draft indicator.',
     usage: 'Use next to measured Discover or Campaign results. Pass the scope of the rendered result, retaining it while pending edits or requests differ. The consumer owns filters, result updates, URL history and server queries; this component never searches or applies draft edits.',
