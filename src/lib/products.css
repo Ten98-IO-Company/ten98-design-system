@@ -266,3 +266,8 @@
 .t98-content-preview-frame--desktop { max-inline-size: calc(600px + 2 * var(--t98-space-4) + 2px); }
 /* Touch screens: disclosure toggles and the issue links of a validation list are controls, so they get the 44px target. */
 @media (pointer: coarse) { .t98-content-preview-more, .t98-evidence-disclosure > summary { min-block-size: var(--t98-control-touch); } .t98-evidence-disclosure > summary { display: flex; align-items: center; } .t98-validation li > a { display: inline-flex; align-items: center; min-block-size: var(--t98-control-touch); } }
+.t98-report-toolbar { min-inline-size: 0; max-inline-size: 100%; color: var(--t98-text); font: var(--t98-text-sm)/var(--t98-leading-normal) var(--t98-font); overflow-wrap: anywhere; }
+.t98-report-toolbar-controls > .t98-field { flex: 1 1 12rem; max-inline-size: min(100%, 18rem); }
+.t98-report-toolbar-controls > :not(.t98-field) { flex: 0 1 auto; max-inline-size: 100%; }
+.t98-report-toolbar-summary { flex: 1 1 18rem; max-inline-size: 100%; }
+.t98-report-toolbar-actions { flex: 0 1 auto; max-inline-size: 100%; }

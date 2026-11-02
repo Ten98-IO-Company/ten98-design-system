@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createElement as h } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { Blockquote, Popover, LoadMore, ResourceCard, Image, Form, Field as UIField, Textarea, CheckboxGroup, CodeBlock, MediaPlayer, MultiCombobox, Combobox, DateTimeField, Disclosure, FileField, Fieldset, InlineCode, Pager, RadioGroup, Scroller, SegmentedControl, StatusLine, Button } from '../dist/index.js';
+import { Blockquote, Popover, LoadMore, ResourceCard, Image, Form, Field as UIField, Textarea, CheckboxGroup, CodeBlock, MediaPlayer, MultiCombobox, Combobox, DateTimeField, Disclosure, FileField, Fieldset, InlineCode, Pager, RadioGroup, Scroller, SegmentedControl, StatusLine, Button, Input, ReportToolbar } from '../dist/index.js';
 
 const styles = readFileSync(new URL('../dist/styles.css', import.meta.url), 'utf8');
 const classes = html => [...html.matchAll(/class="([^"]+)"/g)].flatMap(match => match[1].split(' '));
@@ -339,4 +339,37 @@ test('Popover links a native popover panel to its trigger as a labelled non-moda
   assert.match(html, new RegExp(`aria-controls="${id}" aria-expanded="false" aria-haspopup="dialog"`));
   assert.match(html, new RegExp(`<div id="${id}" popover="auto" role="dialog" aria-label="Emoji" tabindex="-1" class="t98-popover-panel">`));
   assert.ok(styles.includes('.t98-popover-panel'));
+});
+
+const renderToolbar = props => renderToStaticMarkup(h(ReportToolbar, { controls: h(Input, { name: 'query', 'aria-label': 'Search reports' }), ...props }));
+
+test('ReportToolbar exports a named group without owning a form or implicit actions', () => {
+  const html = renderToolbar();
+  assert.match(html, /role="group"[^>]*aria-label="Report controls"|aria-label="Report controls"[^>]*role="group"/);
+  assert.match(html, /name="query"/);
+  assert.doesNotMatch(html, /<form|<details|<summary|<button/);
+});
+
+test('ReportToolbar preserves caller slots and does not execute their callbacks during rendering', () => {
+  let calls = 0;
+  const html = renderToolbar({ label: 'Visitor report', advanced: h(Input, { name: 'country' }), advancedLabel: 'More report filters',
+    summary: h('p', null, 'Applied result stays visible'), actions: h(Button, { type: 'button', onClick: () => calls++ }, 'Export result') });
+  assert.match(html, /aria-label="Visitor report"/);
+  assert.match(html, /<summary[^>]*>[\s\S]*More report filters/);
+  assert.match(html, /name="country"/);
+  assert.match(html, /Applied result stays visible/);
+  assert.match(html, /Export result/);
+  assert.doesNotMatch(html, /<details[^>]*\bopen(?:=|\s|>)/);
+  assert.equal(calls, 0);
+  assert.doesNotMatch(html, /<form/);
+});
+
+test('controlled advanced state overrides its default and keeps the content available to reopen', () => {
+  const advanced = h(Input, { name: 'country', defaultValue: 'France' });
+  const closed = renderToolbar({ advanced, advancedOpen: false, defaultAdvancedOpen: true, onAdvancedOpenChange: () => assert.fail('SSR must not request an open change') });
+  const opened = renderToolbar({ advanced, advancedOpen: true, defaultAdvancedOpen: false });
+  assert.doesNotMatch(closed, /<details[^>]*\bopen(?:=|\s|>)/);
+  assert.match(opened, /<details[^>]*\bopen=""/);
+  assert.match(closed, /name="country"[^>]*value="France"|value="France"[^>]*name="country"/);
+  assert.match(opened, /name="country"[^>]*value="France"|value="France"[^>]*name="country"/);
 });
