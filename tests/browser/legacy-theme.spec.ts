@@ -2,6 +2,57 @@ import { test, expect, type Page } from '@playwright/test';
 
 type Color = number[];
 
+test('nested theme shadow tokens resolve at descendants across public CSS entrypoints and live theme/system switches', async ({ page }) => {
+  await page.emulateMedia({ colorScheme: 'light' });
+  await page.goto('/tests/legacy-theme.html?shadows=1');
+  const light = {
+    base: '0 1px 2px rgb(16 17 20 / 4%)',
+    '-raised': '0 8px 24px -4px rgb(16 17 20 / 12%), 0 2px 4px rgb(16 17 20 / 4%)',
+    '-popover': '0 4px 12px -2px rgb(16 17 20 / 10%), 0 1px 3px rgb(16 17 20 / 6%)',
+    '-dialog': '0 24px 48px -12px rgb(16 17 20 / 22%)',
+    '-panel': 'none',
+  };
+  const dark = {
+    base: 'none',
+    '-raised': '0 8px 24px -4px rgb(0 0 0 / 50%)',
+    '-popover': '0 4px 12px -2px rgb(0 0 0 / 45%), 0 0 0 1px #2B2D32',
+    '-dialog': '0 24px 48px -12px rgb(0 0 0 / 60%), 0 0 0 1px #2B2D32',
+    '-panel': 'none',
+  };
+  for (const entry of ['tokens.css', 'styles.css']) {
+    const frame = page.frameLocator(`iframe[title="Shadow ${entry}"]`);
+    await expect(frame.locator('[data-shadow]')).toHaveCount(5);
+    for (const [os, outer, inner, expected] of [
+      ['light', 'dark', 'light', light],
+      ['light', 'light', 'dark', dark],
+      ['light', 'dark', 'system', light],
+      ['dark', 'dark', 'system', dark],
+      ['dark', 'dark', 'light', light],
+      ['dark', 'light', 'dark', dark],
+      ['light', 'dark', 'system', light],
+    ] as const) {
+      await page.emulateMedia({ colorScheme: os });
+      await frame.locator('body').evaluate((body, themes) => {
+        body.querySelector('#outer')!.setAttribute('data-theme', themes.outer);
+        body.querySelector('#inner')!.setAttribute('data-theme', themes.inner);
+      }, { outer, inner });
+      const shadows = await frame.locator('body').evaluate((body, literals) =>
+        [...body.querySelectorAll<HTMLElement>('[data-shadow]')].map(probe => {
+          // Normalize independently specified CSS through the same browser, not the source token parser.
+          const reference = document.createElement('div');
+          reference.style.boxShadow = literals[probe.dataset.shadow as keyof typeof literals];
+          body.append(reference);
+          const expected = getComputedStyle(reference).boxShadow;
+          reference.remove();
+          return { token: probe.dataset.shadow, actual: getComputedStyle(probe).boxShadow, expected };
+        }), expected);
+      for (const shadow of shadows) {
+        expect(shadow.actual, `${entry}: ${outer}/${inner}, OS ${os}, --t98-shadow${shadow.token === 'base' ? '' : shadow.token}`).toBe(shadow.expected);
+      }
+    }
+  }
+});
+
 // The same W3C sRGB calculation used by library.test.mjs, applied to rendered colors.
 function contrast(foreground: Color, background: Color) {
   const luminance = (color: Color) => color.slice(0, 3).reduce((sum, channel, index) => {
