@@ -76,6 +76,32 @@ function Sections() {
   </Stack>;
 }
 
+function SectionsWrap() {
+  const [dirty, setDirty] = useState(true);
+  const [current, setCurrent] = useState('overview');
+  const [selected, setSelected] = useState(0);
+  const [accepted, setAccepted] = useState(0);
+  return <main aria-label="Wrapped section content" style={{ display: 'grid', gap: 12, inlineSize: '100%', minWidth: 0, boxSizing: 'border-box', paddingInline: 16 }}>
+    <Text as="p" size="sm">Report sections</Text>
+    <SectionNav wrap label="Wrapped report sections" linkComponent={RouterLink} items={[
+      { id: 'overview', label: 'Overview', href: 'wrap-overview', current: current === 'overview' },
+      { id: 'citations', label: 'Specialized citation reports', href: 'wrap-citations', current: current === 'citations' },
+      { id: 'evidence', label: 'CitationEvidenceScope'.repeat(8), href: 'wrap-evidence', badge: 'Retained evidence', current: current === 'evidence' },
+      { id: 'restricted', label: 'RestrictedCitationObservationReport'.repeat(4), href: 'wrap-restricted', disabled: true, disabledReason: 'Requires report access' },
+      { id: 'hidden', label: 'Hidden specialist section', href: 'wrap-hidden', hidden: true },
+      { id: 'sources', label: 'Sources', href: 'wrap-sources', current: current === 'sources' },
+    ]} onSelect={(item, event) => {
+      setSelected(count => count + 1);
+      if (dirty) { event.preventDefault(); return; }
+      setCurrent(item.id);
+      setAccepted(count => count + 1);
+    }} />
+    <Button variant="secondary" onClick={() => setDirty(value => !value)}>{dirty ? 'Discard draft' : 'Restore draft'}</Button>
+    <Text as="p" role="status" aria-label="Wrapped current section" size="sm">Selected: {current}</Text>
+    <Text as="p" role="status" aria-label="Wrapped section guard" size="sm">selected {selected}, accepted {accepted}</Text>
+  </main>;
+}
+
 function Switchers() {
   const [workspace, setWorkspace] = useState('acme');
   const [project, setProject] = useState<string | null>('launch');
@@ -154,4 +180,4 @@ function AppFixture() {
 
 const fixtureRoot = document.getElementById('shell-fixture');
 if (!fixtureRoot) throw new Error('Shell fixture root is missing.');
-createRoot(fixtureRoot).render(params.get('view') === 'app' ? <AppFixture /> : <Fixture />);
+createRoot(fixtureRoot).render(params.get('view') === 'app' ? <AppFixture /> : params.get('view') === 'sections-wrap' ? <SectionsWrap /> : <Fixture />);

@@ -4,7 +4,7 @@ import { expect, test, type Page } from '@playwright/test';
 const evidence = '.qa/shell';
 
 test.beforeEach(async ({ page }, info) => {
-  if (info.title.startsWith('app ')) return;
+  if (info.title.startsWith('app ') || info.title.startsWith('SectionNav wrap:')) return;
   await page.goto(`/tests/shell.html?theme=${info.project.name === 'narrow-dark' ? 'dark' : 'light'}`);
   await expect(page.getByRole('navigation', { name: 'Discover' })).toBeVisible();
 });
@@ -424,4 +424,121 @@ test('the sidebar status label keeps a readable width at 1280px, wrapping its ac
   await page.locator('.t98-sidebar-status__label').first().evaluate(element => { element.textContent = 'Connect your channels'; });
   const width = await page.locator('.t98-sidebar-status__label').first().evaluate(element => element.getBoundingClientRect().width);
   expect(width).toBeGreaterThanOrEqual(100);
+});
+
+
+async function openWrappedSections(page: Page, theme: string, direction: 'ltr' | 'rtl', zoom: number) {
+  await page.setViewportSize({ width: 320, height: 900 });
+  await page.goto(`/tests/shell.html?view=sections-wrap&theme=${theme}`);
+  // CSS body zoom reproduces the consumer's constrained grid; this is not native browser zoom.
+  await page.evaluate(({ direction, zoom }) => {
+    document.documentElement.dir = direction;
+    document.body.style.margin = '0';
+    document.body.style.zoom = String(zoom);
+  }, { direction, zoom });
+  await page.evaluate(() => document.fonts.ready.then(() => undefined));
+  await expect(page.getByRole('navigation', { name: 'Wrapped report sections' })).toBeVisible();
+}
+
+test('SectionNav wrap: complete labels fit the padded grid at 320px with CSS body zoom', async ({ page }, info) => {
+  const theme = info.project.name === 'narrow-dark' ? 'dark' : 'light';
+  for (const direction of ['ltr', 'rtl'] as const) for (const zoom of [1, 2]) {
+    await openWrappedSections(page, theme, direction, zoom);
+    const nav = page.getByRole('navigation', { name: 'Wrapped report sections' });
+    const list = nav.getByRole('list');
+    await expect(nav.getByRole('listitem')).toHaveCount(5);
+    await expect(nav.getByRole('link')).toHaveCount(4);
+    await expect(nav.getByText('Hidden specialist section', { exact: true })).toHaveCount(0);
+    await expect(nav.getByRole('link', { name: 'Specialized citation reports', exact: true })).toHaveText('Specialized citation reports');
+    await expect(nav.locator('[aria-disabled="true"]')).toContainText('Requires report access');
+    const metrics = await page.getByRole('main', { name: 'Wrapped section content' }).evaluate(main => {
+      const nav = main.querySelector('nav')!;
+      const list = nav.querySelector('ul')!;
+      const zoom = Number(getComputedStyle(document.body).zoom) || 1;
+      const mainBox = main.getBoundingClientRect();
+      const mainStyle = getComputedStyle(main);
+      const start = mainBox.left + parseFloat(mainStyle.paddingLeft) * zoom;
+      const end = mainBox.right - parseFloat(mainStyle.paddingRight) * zoom;
+      const violations: string[] = [];
+      for (const element of [nav, list, ...nav.querySelectorAll('li, .t98-section-nav__link, .t98-badge')]) {
+        const box = element.getBoundingClientRect();
+        if (box.left < start - 1 || box.right > end + 1 || box.left < -1 || box.right > innerWidth + 1) violations.push(`bounds: ${element.tagName} ${element.className}`);
+      }
+      for (const element of [document.documentElement, document.body, main, nav, list]) {
+        if (element.scrollWidth > element.clientWidth + 1) violations.push(`horizontal overflow: ${element.tagName}`);
+      }
+      for (const element of [nav, list, ...nav.querySelectorAll('.t98-section-nav__link')]) {
+        const style = getComputedStyle(element);
+        if (style.maskImage !== 'none' || style.clipPath !== 'none' || ['hidden', 'clip'].includes(style.overflowX) || ['hidden', 'clip'].includes(style.overflowY) || !['none', '0'].includes(style.webkitLineClamp) || style.textOverflow === 'ellipsis') violations.push(`clipping style: ${element.className}`);
+      }
+      let wrapped = false;
+      const target = nav.querySelectorAll('.t98-section-nav__link')[2];
+      for (const link of nav.querySelectorAll<HTMLElement>('.t98-section-nav__link')) {
+        const box = link.getBoundingClientRect();
+        if (box.height / zoom < 43.5) violations.push(`touch height: ${link.textContent}`);
+        const walker = document.createTreeWalker(link, NodeFilter.SHOW_TEXT);
+        let node: Node | null;
+        while ((node = walker.nextNode())) {
+          if (!node.textContent?.trim() || node.parentElement?.closest('.t98-visually-hidden')) continue;
+          const range = document.createRange();
+          range.selectNodeContents(node);
+          const fragments = [...range.getClientRects()];
+          if (link === target && new Set(fragments.map(rect => Math.round(rect.top))).size > 1) wrapped = true;
+          for (const fragment of fragments) {
+            if (fragment.left < start - 1 || fragment.right > end + 1 || fragment.left < box.left - 1 || fragment.right > box.right + 1 || fragment.top < box.top - 1 || fragment.bottom > box.bottom + 1) violations.push(`text fragment: ${node.textContent}`);
+          }
+        }
+      }
+      return { violations, wrapped, mainWidth: mainBox.width, contentWidth: end - start, display: mainStyle.display, listMask: getComputedStyle(list).maskImage };
+    });
+    expect(metrics.violations, `${direction}, CSS body zoom ${zoom}`).toEqual([]);
+    expect(metrics.display).toBe('grid');
+    expect(metrics.mainWidth).toBeCloseTo(320, 0);
+    expect(metrics.contentWidth).toBeCloseTo(320 - 32 * zoom, 0);
+    expect(metrics.wrapped).toBe(true);
+    expect(metrics.listMask).toBe('none');
+    await expect(list).not.toHaveAttribute('data-overflow', /.+/);
+    await page.screenshot({ path: info.outputPath(`sections-wrap-${direction}-css-zoom-${zoom}.png`), fullPage: true });
+  }
+});
+
+test('SectionNav wrap: keyboard skips unavailable sections and retains the caller navigation guard', async ({ page }, info) => {
+  const theme = info.project.name === 'narrow-dark' ? 'dark' : 'light';
+  for (const direction of ['ltr', 'rtl'] as const) for (const zoom of [1, 2]) {
+    await openWrappedSections(page, theme, direction, zoom);
+    const nav = page.getByRole('navigation', { name: 'Wrapped report sections' });
+    const overview = nav.getByRole('link', { name: 'Overview', exact: true });
+    const citations = nav.getByRole('link', { name: 'Specialized citation reports', exact: true });
+    const evidence = nav.getByRole('link', { name: /^CitationEvidenceScope/ });
+    const sources = nav.getByRole('link', { name: 'Sources', exact: true });
+    const guard = page.getByRole('status', { name: 'Wrapped section guard' });
+    await expect(overview).toHaveAttribute('aria-current', 'page');
+    await overview.focus();
+    await page.keyboard.press('Tab');
+    await expect(citations).toBeFocused();
+    const focus = await citations.evaluate(element => ({ visible: element.matches(':focus-visible'), style: getComputedStyle(element).outlineStyle, width: parseFloat(getComputedStyle(element).outlineWidth) }));
+    expect(focus.visible).toBe(true);
+    expect(focus.style).not.toBe('none');
+    expect(focus.width).toBeGreaterThan(0);
+    await page.keyboard.press('Enter');
+    await expect(guard).toHaveText('selected 1, accepted 0');
+    await expect(overview).toHaveAttribute('aria-current', 'page');
+    expect(new URL(page.url()).hash).toBe('');
+    await page.keyboard.press('Tab');
+    await expect(evidence).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(sources).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(page.getByRole('button', { name: 'Discard draft', exact: true })).toBeFocused();
+    await page.keyboard.press('Enter');
+    await overview.focus();
+    await page.keyboard.press('Tab');
+    await expect(citations).toBeFocused();
+    await page.keyboard.press('Enter');
+    await expect(guard).toHaveText('selected 2, accepted 1');
+    await expect(citations).toHaveAttribute('aria-current', 'page');
+    await expect(nav.locator('[aria-current="page"]')).toHaveCount(1);
+    await expect(page.getByRole('status', { name: 'Wrapped current section' })).toHaveText('Selected: citations');
+    await expect.poll(() => new URL(page.url()).hash).toBe('#/wrap-citations');
+  }
 });
