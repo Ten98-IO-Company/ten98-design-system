@@ -43,9 +43,9 @@ jobs:
 
       - name: Typecheck browser regressions
         run: >-
-          node node_modules/typescript/bin/tsc --ignoreConfig --noEmit --strict --skipLibCheck
+          node node_modules/typescript/bin/tsc --ignoreConfig --noEmit --strict --skipLibCheck --types node
           --target ES2022 --module ESNext --moduleResolution Bundler --lib ES2022,DOM,DOM.Iterable
-          --esModuleInterop tests/browser/auth-heading.spec.ts tests/browser/report-toolbar.spec.ts
+          --esModuleInterop tests/browser/auth-heading.spec.ts tests/browser/report-toolbar.spec.ts tests/browser/shell.spec.ts
         timeout-minutes: 2
       - name: Install Chromium and Linux dependencies
         run: npx --no-install playwright install --with-deps chromium
