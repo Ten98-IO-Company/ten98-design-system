@@ -223,7 +223,10 @@ for (const [theme, system, expected] of [
 
 test('restoring the old fills reproduces dark surface, action and navigation contrast failures', async ({ page }) => {
   await page.goto('/tests/legacy-theme.html?theme=dark&baseline=1');
+  await expect(page.locator('#danger')).toHaveCSS('background-color', 'rgb(255, 243, 245)');
   const old = await colors(page);
+  expect(old.actions.danger.fill.slice(0, 3)).toEqual([255, 243, 245]);
+  expect(old.actions.danger.text.slice(0, 3)).toEqual([255, 163, 153]);
   expect(old.header[3]).toBeCloseTo(0.851, 2);
   expect(contrast(old.headerText, composite(old.header, old.canvas))).toBeLessThan(4.5);
   expect(contrast(old.disabledText, old.disabled)).toBeLessThan(4.5);
