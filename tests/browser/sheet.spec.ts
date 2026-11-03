@@ -211,3 +211,51 @@ test('sheet narrow layouts preserve 44px actions and stable scrolling chrome in 
     }
   }
 });
+
+test('sheet consumer overlay keeps shell account actions reachable and saves above sticky table headers after tab changes', async ({ page }, info) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto('/tests/sheet.html?consumer=1');
+  await page.getByRole('button', { name: 'Edit project context', exact: true }).click();
+  const panel = page.getByRole('dialog', { name: 'Project context editor', exact: true });
+  await expect(panel).toBeVisible();
+  expect((await panel.boundingBox())!.y).toBeCloseTo(60, 0);
+  await page.getByRole('button', { name: 'Account menu', exact: true }).click();
+  const signOut = page.getByRole('button', { name: 'Sign out', exact: true });
+  const menuAction = await signOut.boundingBox();
+  expect(menuAction!.y + menuAction!.height).toBeGreaterThan((await panel.boundingBox())!.y);
+  await mkdir(resolve('.qa/sheet-overlay'), { recursive: true });
+  await page.screenshot({ path: resolve('.qa/sheet-overlay', `${info.project.name}-account-over-sheet.png`) });
+  await signOut.click();
+  await expect(page.locator('#consumer-signouts')).toHaveText('Sign outs: 1');
+  await panel.getByLabel('Brand name', { exact: true }).fill('Draft survives background tabs');
+  await page.getByRole('tab', { name: 'Pages', exact: true }).click();
+  await expect(page.getByRole('tab', { name: 'Pages', exact: true })).toHaveAttribute('aria-selected', 'true');
+  await expect(panel.getByLabel('Brand name', { exact: true })).toHaveValue('Draft survives background tabs');
+  const save = panel.getByRole('button', { name: 'Save changes', exact: true });
+  const target = await save.boundingBox();
+  const tableHeader = page.getByRole('columnheader', { name: 'Primary domain', exact: true });
+  const header = await tableHeader.boundingBox();
+  await page.locator('#consumer-table').evaluate((element, y) => { element.style.top = `${y}px`; }, target!.y + target!.height / 2 - header!.height / 2);
+  const overlapping = await tableHeader.boundingBox();
+  expect(overlapping!.y).toBeLessThan(target!.y + target!.height / 2);
+  expect(overlapping!.y + overlapping!.height).toBeGreaterThan(target!.y + target!.height / 2);
+  expect(await save.evaluate(element => { const box = element.getBoundingClientRect(); return element.contains(document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2)); })).toBe(true);
+  await save.click();
+  await expect(page.locator('#consumer-saves')).toHaveText('Consumer saves: 1');
+  await expect(panel.getByLabel('Brand name', { exact: true })).toHaveValue('Draft survives background tabs');
+});
+
+test('sheet consumer top inset stays inside narrow LTR and RTL viewports', async ({ page }, info) => {
+  await page.setViewportSize({ width: 320, height: 900 });
+  for (const dir of ['ltr', 'rtl']) {
+    await page.goto(`/tests/sheet.html?consumer=1&dir=${dir}&theme=${info.project.name === 'narrow-dark' ? 'dark' : 'light'}`);
+    await page.getByRole('button', { name: 'Edit project context', exact: true }).click();
+    const panel = page.getByRole('dialog', { name: 'Project context editor', exact: true });
+    const box = await panel.boundingBox();
+    expect(box!.y).toBeCloseTo(60, 0);
+    expect(box!.x).toBeGreaterThanOrEqual(-0.5);
+    expect(box!.x + box!.width).toBeLessThanOrEqual(320.5);
+    expect(box!.y + box!.height).toBeLessThanOrEqual(900.5);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
+  }
+});

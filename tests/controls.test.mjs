@@ -539,3 +539,18 @@ test('Sheet defaults to medium width and honors an explicit close lock', () => {
   assert.doesNotMatch(html, /<dialog[^>]*\bopen=/);
   assert.ok(styles.includes('.t98-sheet[open]'));
 });
+
+
+test('Sheet offsets only modeless panels while preserving caller styles', () => {
+  for (const topInset of [72, 'var(--t98-header-height)']) {
+    const html = render(h(Sheet, { open: true, modal: false, onClose() {}, title: 'Details', topInset, style: { color: 'red', insetBlockStart: '999px' } }, 'Editor content'));
+    assert.match(html, /aria-modal="false"/);
+    assert.match(html, /color:red/);
+    assert.ok(html.includes(`inset-block-start:${typeof topInset === 'number' ? topInset + 'px' : topInset}`));
+    assert.doesNotMatch(html, /999px/);
+  }
+  const modal = render(h(Sheet, { open: true, onClose() {}, title: 'Details', topInset: 72, style: { color: 'blue' } }, 'Editor content'));
+  assert.match(modal, /aria-modal="true"/);
+  assert.match(modal, /color:blue/);
+  assert.doesNotMatch(modal, /inset-block-start/);
+});

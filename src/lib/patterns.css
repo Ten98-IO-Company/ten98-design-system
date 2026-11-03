@@ -211,6 +211,7 @@
 .t98-sheet--md { --t98-sheet-width: 560px; }
 .t98-sheet--lg { --t98-sheet-width: 720px; }
 .t98-sheet[open] { display: flex; flex-direction: column; position: fixed; inset-block: 0; inset-inline-start: auto; inset-inline-end: 0; margin: 0; inline-size: min(var(--t98-sheet-width, 560px), 100%); max-inline-size: 100%; block-size: auto; max-block-size: none; min-block-size: 0; padding: 0; overflow: hidden; border: 0; border-inline-start: 1px solid var(--t98-border); border-radius: 0; overflow-wrap: anywhere; }
+.t98-sheet[open][aria-modal='false'] { z-index: calc(var(--t98-z-sticky) + 1); }
 .t98-sheet > .t98-dialog-header { flex: 0 0 auto; flex-wrap: wrap; gap: var(--t98-space-3); padding: var(--t98-space-4); border-block-end: 1px solid var(--t98-border); }
 .t98-sheet .t98-dialog-header-actions, .t98-sheet-recovery { display: flex; align-items: center; flex-wrap: wrap; gap: var(--t98-space-2); min-inline-size: 0; max-inline-size: 100%; }
 .t98-sheet > .t98-dialog-form, .t98-sheet .t98-dialog-fieldset { display: flex; flex-direction: column; flex: 1 1 auto; min-block-size: 0; min-inline-size: 0; }

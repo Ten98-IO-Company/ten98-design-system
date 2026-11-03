@@ -2,7 +2,7 @@
 
 import {
   Children, cloneElement, forwardRef, isValidElement, useEffect, useId, useRef, useState,
-  type ButtonHTMLAttributes, type ComponentType, type FormEvent, type MouseEvent, type HTMLAttributes, type InputHTMLAttributes,
+  type ButtonHTMLAttributes, type ComponentType, type CSSProperties, type FormEvent, type MouseEvent, type HTMLAttributes, type InputHTMLAttributes,
   type OptgroupHTMLAttributes, type OptionHTMLAttributes, type ReactElement, type ReactNode, type SelectHTMLAttributes,
   type SVGProps, type TextareaHTMLAttributes,
 } from 'react';
@@ -273,7 +273,7 @@ export function Tabs({ items, value, onValueChange, label = 'Sections', classNam
   </div>{items.map((item, index) => (keepMounted || active === item.value) && <div key={item.value} role="tabpanel" id={`${id}-panel-${index}`} aria-labelledby={`${id}-tab-${index}`} hidden={active !== item.value} tabIndex={0} className="t98-tab-panel">{item.content}</div>)}</div>;
 }
 
-export interface DialogProps { open: boolean; onOpenChange: (open: boolean) => void; title: ReactNode; description?: ReactNode; children: ReactNode; footer?: ReactNode; className?: string; closeDisabled?: boolean;
+export interface DialogProps { open: boolean; onOpenChange: (open: boolean) => void; title: ReactNode; description?: ReactNode; children: ReactNode; footer?: ReactNode; className?: string; style?: CSSProperties; closeDisabled?: boolean;
   /** Native modal dialog by default; false permits interaction with the background. */
   modal?: boolean;
   /** Header controls beside the close button, outside the title and form fieldsets. */
@@ -294,7 +294,7 @@ export interface DialogProps { open: boolean; onOpenChange: (open: boolean) => v
   restoreFocus?: () => HTMLElement | null | undefined }
 export type DialogCloseReason = 'escape' | 'backdrop' | 'close-button';
 /* Behaviour follows the WAI-ARIA APG Modal Dialog pattern and react-aria's useOverlay close interception (Apache-2.0); no code is copied. */
-export function Dialog({ open, onOpenChange, title, description, children, footer, className, closeDisabled = false, modal = true, actions, onBeforeClose, eyebrow, onSubmit, restoreFocus, dirty = false, discardMessage = 'Your changes have not been saved.', size = 'default' }: DialogProps) {
+export function Dialog({ open, onOpenChange, title, description, children, footer, className, style, closeDisabled = false, modal = true, actions, onBeforeClose, eyebrow, onSubmit, restoreFocus, dirty = false, discardMessage = 'Your changes have not been saved.', size = 'default' }: DialogProps) {
   const id = useId();
   const ref = useRef<HTMLDialogElement>(null);
   const trigger = useRef<HTMLElement | null>(null);
@@ -368,7 +368,7 @@ export function Dialog({ open, onOpenChange, title, description, children, foote
     onOpenChange(false);
   }
   const closeButton = <Button variant="ghost" aria-label="Close dialog" disabled={locked} className="t98-icon-button" onClick={() => requestClose('close-button')} icon={<Icon name="x" />} />;
-  return <dialog ref={ref} className={cx('t98-dialog', size === 'wide' && 't98-dialog--wide', className)} aria-modal={modal} aria-labelledby={`${id}-title`} aria-describedby={description ? `${id}-description` : undefined} onKeyDown={event => {
+  return <dialog ref={ref} style={style} className={cx('t98-dialog', size === 'wide' && 't98-dialog--wide', className)} aria-modal={modal} aria-labelledby={`${id}-title`} aria-describedby={description ? `${id}-description` : undefined} onKeyDown={event => {
     if (!modal && event.key === 'Escape' && !event.defaultPrevented) { event.preventDefault(); event.stopPropagation(); requestClose('escape'); }
   }} onCancel={event => { event.preventDefault(); requestClose('escape'); }} onClose={() => {
     const dialog = ref.current;

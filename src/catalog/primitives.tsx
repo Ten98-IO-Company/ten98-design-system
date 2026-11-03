@@ -361,7 +361,7 @@ export const primitiveEntries: ComponentEntry[] = [
     usage: 'Open from an explicit launcher. The application owns drafts, submit handling and pending state. Use ConfirmDialog for its built-in typed confirmation and async confirmation flow.',
     props: [
       { name: 'open', type: 'boolean', required: true, description: 'Desired native dialog state. Modal dialogs enter the browser top layer.' },
-      { name: 'modal / actions', type: 'boolean / ReactNode', description: 'Modal defaults to true. False keeps the background interactive. Optional header actions sit outside the title and form.' },
+      { name: 'modal / actions', type: 'boolean / ReactNode', description: 'Modal defaults to true. False keeps the background interactive. Optional header actions sit outside the title and form. Native dialog style accepts React CSSProperties.' },
       { name: 'onOpenChange', type: '(open: boolean) => void', required: true, description: 'Close request callback from close button, Escape, backdrop or native close. Update app state.' },
       { name: 'title', type: 'ReactNode', required: true, description: 'Visible h2 associated as the dialog’s accessible name.' },
       { name: 'description', type: 'ReactNode', description: 'Supporting paragraph associated through aria-describedby.' },
@@ -391,7 +391,8 @@ export const primitiveEntries: ComponentEntry[] = [
       { name: 'title / description', type: 'ReactNode / ReactNode', description: 'Required visible title supplies the accessible dialog name; optional description supplies supporting context.' },
       { name: 'children / footer / actions', type: 'ReactNode', description: 'Labelled editor content, optional footer and header controls. Header controls sit outside the form.' },
       { name: 'width', type: "'sm' | 'md' | 'lg'", defaultValue: "'md'", description: '400, 560 or 720px on desktop. Below 600px the sheet fills the viewport.' },
-      { name: 'modal', type: 'boolean', defaultValue: 'true', description: 'Native modal focus containment by default. False permits editing the background; Escape closes only when focus is inside the sheet.' },
+      { name: 'modal', type: 'boolean', defaultValue: 'true', description: 'Native modal focus containment by default. False permits editing the background; Escape closes only when focus is inside the sheet. The panel sits above sticky content and below shell popovers.' },
+      { name: 'topInset', type: "CSSProperties['insetBlockStart']", defaultValue: '0', description: 'Nonmodal panels only: offset below the actual app header boundary, for example a measured height or a CSS length/token. Keep global navigation reachable. Modal placement stays full height.' },
       { name: 'busy', type: 'boolean', defaultValue: 'false', description: 'App-owned save pending state: locks editing, submission and every user/native close path.' },
       { name: 'unconfirmed', type: 'ReactNode', description: 'Content other than null, undefined or false explains an unknown save outcome and locks editing, submission and dismissal until the app resolves it.' },
       { name: 'error / recovery', type: 'ReactNode', description: 'App-owned error stays in the panel. Recovery controls remain enabled in the header outside disabled editor and pending form fieldsets.' },

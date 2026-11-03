@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Button, Dialog, Field, Heading, Input, Sheet, Stack, Text } from '@ten98/ui';
+import { AccountMenu, AppTopbar, Button, DataTable, Dialog, Field, Heading, Input, Sheet, Stack, Tabs, Text } from '@ten98/ui';
 import '@ten98/ui/app-tokens.css';
 import '@ten98/ui/app.css';
 import '@ten98/ui/product.css';
@@ -8,6 +8,34 @@ import '@ten98/ui/product.css';
 const params = new URLSearchParams(location.search);
 document.documentElement.dataset.theme = params.get('theme') || 'light';
 document.documentElement.dir = params.get('dir') === 'rtl' ? 'rtl' : 'ltr';
+
+function ConsumerScreen() {
+  const [open, setOpen] = useState(false);
+  const [tab, setTab] = useState('brand');
+  const [draft, setDraft] = useState('Saved brand');
+  const [saves, setSaves] = useState(0);
+  const [signOuts, setSignOuts] = useState(0);
+  return <>
+    <header style={{ position: 'fixed', insetBlockStart: 0, insetInline: 0, height: 60, zIndex: 'var(--t98-z-popover)', background: 'var(--t98-surface)' }}>
+      <AppTopbar breadcrumb={{ current: 'Project context' }} actions={<AccountMenu name="Synthetic account" items={[{ id: 'signout', kind: 'button', label: 'Sign out', onSelect: () => setSignOuts(count => count + 1) }]} />} />
+    </header>
+    <main style={{ paddingBlockStart: 76 }}><Stack gap={4}>
+      <Button type="button" onClick={() => setOpen(true)}>Edit project context</Button>
+      <Tabs label="Context sections" value={tab} onValueChange={setTab} items={[{ value: 'brand', label: 'Brand', content: <Text>Saved brand context.</Text> }, { value: 'pages', label: 'Pages', content: <Text>Saved key pages.</Text> }]} />
+      <Text id="consumer-saves">Consumer saves: {saves}</Text>
+      <Text id="consumer-signouts">Sign outs: {signOuts}</Text>
+      <div id="consumer-table" style={{ position: 'absolute', insetInline: 0, top: 310 }}>
+        <DataTable ariaLabel="Background records" stickyHeader searchable={false} sortable={false} pagination={false} columns={[{ key: 'label', header: 'Competitor', render: row => row.label }, { key: 'domain', header: 'Primary domain', render: row => row.domain }]} rows={[{ id: 'one', label: 'Saved competitor', domain: 'example.test' }]} rowKey={row => row.id} />
+      </div>
+      <Sheet open={open} modal={false} width="sm" topInset={60} title="Project context editor" onClose={() => setOpen(false)}>
+        <form aria-label="Edit project context" onSubmit={event => { event.preventDefault(); setSaves(count => count + 1); }}>
+          <Field label="Brand name" htmlFor="consumer-brand"><Input id="consumer-brand" name="brand" value={draft} onChange={event => setDraft(event.target.value)} /></Field>
+          <Button type="submit">Save changes</Button>
+        </form>
+      </Sheet>
+    </Stack></main>
+  </>;
+}
 
 function Screen() {
   const [open, setOpen] = useState(false);
@@ -65,4 +93,4 @@ function Screen() {
   </Stack>;
 }
 
-createRoot(document.getElementById('sheet-fixture')!).render(<Screen />);
+createRoot(document.getElementById('sheet-fixture')!).render(params.has('consumer') ? <ConsumerScreen /> : <Screen />);
