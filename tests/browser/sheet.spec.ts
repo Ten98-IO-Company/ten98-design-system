@@ -218,7 +218,7 @@ test('sheet consumer overlay keeps shell account actions reachable and saves abo
   await page.getByRole('button', { name: 'Edit project context', exact: true }).click();
   const panel = page.getByRole('dialog', { name: 'Project context editor', exact: true });
   await expect(panel).toBeVisible();
-  expect((await panel.boundingBox())!.y).toBeCloseTo(60, 0);
+  await expect.poll(async () => Math.abs((await panel.boundingBox())!.y - Math.max(0, (await page.locator('.t98-shell-header').boundingBox())!.y + (await page.locator('.t98-shell-header').boundingBox())!.height))).toBeLessThanOrEqual(1);
   await page.getByRole('button', { name: 'Account menu', exact: true }).click();
   const signOut = page.getByRole('button', { name: 'Sign out', exact: true });
   const menuAction = await signOut.boundingBox();
@@ -245,17 +245,84 @@ test('sheet consumer overlay keeps shell account actions reachable and saves abo
   await expect(panel.getByLabel('Brand name', { exact: true })).toHaveValue('Draft survives background tabs');
 });
 
-test('sheet consumer top inset stays inside narrow LTR and RTL viewports', async ({ page }, info) => {
-  await page.setViewportSize({ width: 320, height: 900 });
+test('sheet consumer boundary follows shell wrapping, resize, scroll and CSS zoom in narrow RTL and desktop layouts', async ({ page }, info) => {
   for (const dir of ['ltr', 'rtl']) {
+    await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto(`/tests/sheet.html?consumer=1&dir=${dir}&theme=${info.project.name === 'narrow-dark' ? 'dark' : 'light'}`);
     await page.getByRole('button', { name: 'Edit project context', exact: true }).click();
     const panel = page.getByRole('dialog', { name: 'Project context editor', exact: true });
-    const box = await panel.boundingBox();
-    expect(box!.y).toBeCloseTo(60, 0);
-    expect(box!.x).toBeGreaterThanOrEqual(-0.5);
-    expect(box!.x + box!.width).toBeLessThanOrEqual(320.5);
-    expect(box!.y + box!.height).toBeLessThanOrEqual(900.5);
+    const aligned = async () => {
+      await expect.poll(async () => {
+        const header = await page.locator('.t98-shell-header').boundingBox();
+        return Math.abs((await panel.boundingBox())!.y - Math.max(0, header!.y + header!.height));
+      }).toBeLessThanOrEqual(1);
+      const box = await panel.boundingBox();
+      expect(box!.x).toBeGreaterThanOrEqual(-0.5);
+      expect(box!.x + box!.width).toBeLessThanOrEqual(page.viewportSize()!.width + 0.5);
+      expect(box!.y + box!.height).toBeLessThanOrEqual(900.5);
+    };
+    await aligned();
+    await page.getByRole('button', { name: 'Wrap header', exact: true }).click();
+    await aligned();
+    await page.setViewportSize({ width: 320, height: 900 });
+    await aligned();
+    await page.evaluate(() => { document.documentElement.style.zoom = '2'; });
+    await aligned();
+    await page.evaluate(() => window.scrollTo(0, 100));
+    await aligned();
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await aligned();
     expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
   }
+});
+
+test('sheet shell boundary callback observes only when requested and cleans up replacements and unmounts', async ({ page }) => {
+  await page.goto('/tests/sheet.html?lifecycle=1');
+  const button = (name: string) => page.getByRole('button', { name, exact: true });
+  const report = async (): Promise<{ observers: number; reads: number; listeners: number; frames: number; calls: number; last: number | null; identity: number | null }> => {
+    await button('Read boundary probe').click();
+    return JSON.parse(await page.locator('#boundary-probe').innerText());
+  };
+  await button('Toggle shell mount').click();
+  expect(await report()).toEqual({ observers: 0, reads: 0, listeners: 0, frames: 0, calls: 0, last: null, identity: null });
+  await button('Toggle boundary callback').click();
+  await expect.poll(async () => (await report()).calls).toBeGreaterThan(0);
+  const first = await report();
+  const header = await page.locator('.t98-shell-header').boundingBox();
+  expect(first.last).toBeCloseTo(header!.y + header!.height, 0);
+  await button('Toggle boundary callback').click();
+  await expect.poll(async () => { const value = await report(); return [value.observers, value.listeners, value.frames]; }).toEqual([0, 0, 0]);
+  const disabled = await report();
+  await page.evaluate(() => { window.dispatchEvent(new Event('resize')); window.dispatchEvent(new Event('scroll')); window.visualViewport?.dispatchEvent(new Event('resize')); });
+  const inactive = await report();
+  expect(inactive.reads).toBe(disabled.reads);
+  expect(inactive.calls).toBe(disabled.calls);
+  await button('Toggle boundary callback').click();
+  await expect.poll(async () => (await report()).observers).toBe(1);
+  const beforeIdentity = await report();
+  for (let count = 0; count < 3; count++) await button('Change callback identity').click();
+  await expect.poll(async () => (await report()).frames).toBe(0);
+  const changed = await report();
+  expect(changed.observers).toBe(1);
+  expect(changed.calls - beforeIdentity.calls).toBeLessThanOrEqual(3);
+  await button('Replace header').click();
+  await expect(page.locator('div.t98-shell-header')).toBeVisible();
+  await expect.poll(async () => { const box = await page.locator('.t98-shell-header').boundingBox(); return Math.abs((await report()).last! - box!.y - box!.height); }).toBeLessThanOrEqual(1);
+  const replaced = await report();
+  expect(replaced.observers).toBe(1);
+  expect(replaced.identity).toBe(3);
+  await button('Replace header').click();
+  await expect(page.locator('.t98-shell-header')).toHaveCount(0);
+  await expect.poll(async () => { const value = await report(); return [value.last, value.observers, value.listeners, value.frames]; }).toEqual([0, 0, 0, 0]);
+  await button('Replace header').click();
+  await expect(page.locator('header.t98-shell-header')).toBeVisible();
+  await expect.poll(async () => (await report()).observers).toBe(1);
+  await button('Toggle shell mount').click();
+  await expect.poll(async () => { const value = await report(); return [value.observers, value.listeners, value.frames]; }).toEqual([0, 0, 0]);
+  const unmounted = await report();
+  await page.evaluate(() => { window.dispatchEvent(new Event('resize')); window.dispatchEvent(new Event('scroll')); window.visualViewport?.dispatchEvent(new Event('scroll')); });
+  const afterUnmount = await report();
+  expect(afterUnmount.calls).toBe(unmounted.calls);
+  expect(afterUnmount.reads).toBe(unmounted.reads);
+  await button('Restore boundary probe').click();
 });
