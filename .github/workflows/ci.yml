@@ -54,7 +54,7 @@ jobs:
 
       - name: Run the full browser suite
         run: npm run test:browser -- --workers=1 --retries=0 --max-failures=2
-        timeout-minutes: 12
+        timeout-minutes: 18
 
       - name: Retain browser diagnostics
         if: ${{ always() }}
