@@ -161,3 +161,5 @@
   .t98-breadcrumb a { display: inline-flex; align-items: center; min-block-size: var(--t98-control-touch); }
   .t98-accordion summary { min-block-size: var(--t98-control-touch); box-sizing: border-box; }
 }
+
+.t98-dialog-header-actions { display: flex; align-items: flex-start; flex-wrap: wrap; gap: var(--t98-space-2); }

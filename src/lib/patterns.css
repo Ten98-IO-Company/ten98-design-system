@@ -205,3 +205,18 @@
 .t98-suggestion-queue-title:focus-visible, .t98-suggestion-queue-heading:focus-visible { outline: var(--t98-focus-width) solid var(--t98-focus); outline-offset: var(--t98-focus-offset); }
 .t98-suggestion-queue-empty { padding-block: var(--t98-space-3); color: var(--t98-muted); }
 @media (max-width: 420px) { .t98-suggestion-queue-item { flex-basis: 100%; } }
+
+
+.t98-sheet--sm { --t98-sheet-width: 400px; }
+.t98-sheet--md { --t98-sheet-width: 560px; }
+.t98-sheet--lg { --t98-sheet-width: 720px; }
+.t98-sheet[open] { display: flex; flex-direction: column; position: fixed; inset-block: 0; inset-inline-start: auto; inset-inline-end: 0; margin: 0; inline-size: min(var(--t98-sheet-width, 560px), 100%); max-inline-size: 100%; block-size: auto; max-block-size: none; min-block-size: 0; padding: 0; overflow: hidden; border: 0; border-inline-start: 1px solid var(--t98-border); border-radius: 0; overflow-wrap: anywhere; }
+.t98-sheet > .t98-dialog-header { flex: 0 0 auto; flex-wrap: wrap; gap: var(--t98-space-3); padding: var(--t98-space-4); border-block-end: 1px solid var(--t98-border); }
+.t98-sheet .t98-dialog-header-actions, .t98-sheet-recovery { display: flex; align-items: center; flex-wrap: wrap; gap: var(--t98-space-2); min-inline-size: 0; max-inline-size: 100%; }
+.t98-sheet > .t98-dialog-form, .t98-sheet .t98-dialog-fieldset { display: flex; flex-direction: column; flex: 1 1 auto; min-block-size: 0; min-inline-size: 0; }
+.t98-sheet .t98-dialog-body { display: flex; flex-direction: column; gap: var(--t98-space-3); flex: 1 1 auto; min-block-size: 0; min-inline-size: 0; overflow: auto; padding: var(--t98-space-4); }
+.t98-sheet .t98-dialog-footer { position: static; flex: 0 0 auto; padding: var(--t98-space-4); }
+.t98-sheet > .t98-dialog-discard { flex: 0 1 auto; max-block-size: 40%; overflow: auto; margin: var(--t98-space-3) var(--t98-space-4) 0; }
+.t98-sheet .t98-button, .t98-sheet summary { min-block-size: max(44px, var(--t98-control-touch)); }
+.t98-sheet .t98-icon-button { flex: none; min-inline-size: max(44px, var(--t98-control-touch)); inline-size: max(44px, var(--t98-control-touch)); }
+@media (max-width: 600px) { .t98-sheet[open] { inline-size: 100%; border-inline-start: 0; } }

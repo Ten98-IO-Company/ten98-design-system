@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createElement as h } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { Blockquote, Popover, LoadMore, ResourceCard, Image, Form, Field as UIField, Textarea, CheckboxGroup, CodeBlock, MediaPlayer, MultiCombobox, Combobox, DateTimeField, Disclosure, FileField, Fieldset, InlineCode, Pager, RadioGroup, Scroller, SegmentedControl, StatusLine, Button, Input, ReportToolbar, MetricTabs, SuggestionQueue } from '../dist/index.js';
+import { Blockquote, Popover, LoadMore, ResourceCard, Image, Form, Field as UIField, Textarea, CheckboxGroup, CodeBlock, MediaPlayer, MultiCombobox, Combobox, DateTimeField, Disclosure, FileField, Fieldset, InlineCode, Pager, RadioGroup, Scroller, SegmentedControl, StatusLine, Button, Input, ReportToolbar, MetricTabs, SuggestionQueue, Sheet } from '../dist/index.js';
 
 const styles = readFileSync(new URL('../dist/styles.css', import.meta.url), 'utf8');
 const classes = html => [...html.matchAll(/class="([^"]+)"/g)].flatMap(match => match[1].split(' '));
@@ -488,4 +488,54 @@ test('SuggestionQueue handles an empty queue and retains empty group labels and 
   assert.match(html, /Nothing to review\./); assert.match(html, /Locations/); assert.match(html, /No retained observations/);
   assert.doesNotMatch(html, /<button|<details|<ul/);
   assert.match(render(h(SuggestionQueue, { label: 'Empty queue', groups: [], emptyMessage: 'No groups to review.' })), /No groups to review\./);
+});
+
+
+test('Sheet reuses Dialog semantics, named header actions and each inline-end width', () => {
+  for (const width of ['sm', 'md', 'lg']) {
+    const html = render(h(Sheet, { open: true, onClose() {}, width, title: 'Edit campaign', description: 'App supplied scope', actions: h(Button, { type: 'button' }, 'Header action'), footer: h(Button, { type: 'button' }, 'Footer action') }, h(Input, { name: 'campaign', defaultValue: 'Retained draft' })));
+    assert.match(html, /^<dialog/); assert.match(html, /aria-modal="true"/);
+    assert.ok(html.includes(`t98-sheet--${width}`));
+    assert.match(html, /aria-labelledby="[^"]+-title" aria-describedby="[^"]+-description"/);
+    assert.match(html, /<h2[^>]*>Edit campaign<\/h2>/);
+    assert.match(html, /t98-dialog-header-actions/);
+    assert.doesNotMatch(html.match(/<h2[\s\S]*?<\/h2>/)[0], /<button/);
+    assert.match(html, /Header action/); assert.match(html, /Footer action/);
+    assert.match(html, /name="campaign"[^>]*value="Retained draft"/);
+    assert.match(html, /<legend[^>]*><span class="t98-visually-hidden">Details<\/span><\/legend>/);
+  }
+});
+
+test('Sheet busy and unconfirmed states lock closing and editor fields while keeping header recovery outside them', () => {
+  for (const props of [{ busy: true }, { unconfirmed: 'The outcome has not been confirmed.' }, { unconfirmed: true }]) {
+    const html = render(h(Sheet, { open: true, onClose() {}, title: 'Edit campaign', onSubmit() {}, recovery: h(Button, { type: 'button' }, 'Check save status'), ...props }, h(Input, { name: 'editor' })));
+    const close = html.match(/<button[^>]*aria-label="Close dialog"[^>]*>/)[0];
+    assert.match(close, /disabled=""/);
+    assert.match(html, /<fieldset[^>]*disabled=""/);
+    const recoveryAt = html.indexOf('Check save status');
+    assert.ok(recoveryAt > 0 && recoveryAt < html.indexOf('<form'));
+    assert.match(html, /<form class="t98-dialog-form"/);
+    if (props.busy) assert.match(html, /Saving changes…/);
+    else assert.match(html, /Save status unknown/);
+  }
+});
+
+test('Sheet errors remain app supplied and do not lock a retryable editor or imply a save outcome', () => {
+  let closes = 0, submits = 0;
+  const html = render(h(Sheet, { open: true, modal: false, onClose: () => closes++, onSubmit: () => submits++, title: 'Edit campaign', unconfirmed: false, error: 'Please revise the name.', footer: h(Button, { type: 'submit', name: 'intent', value: 'save' }, 'Save') }, h(Input, { name: 'campaign' })));
+  assert.match(html, /aria-modal="false"/);
+  assert.match(html, /role="alert"/); assert.match(html, /Please revise the name\./);
+  assert.doesNotMatch(html, /disabled=""|Saving changes|Save status unknown/);
+  assert.equal((html.match(/<form\b/g) ?? []).length, 1);
+  const submit = html.match(/<button[^>]*type="submit"[^>]*>/)[0];
+  for (const attribute of ['name="intent"', 'value="save"']) assert.ok(submit.includes(attribute));
+  assert.equal(closes, 0); assert.equal(submits, 0);
+});
+
+test('Sheet defaults to medium width and honors an explicit close lock', () => {
+  const html = render(h(Sheet, { open: false, onClose() {}, closeDisabled: true, title: 'Details' }, 'Editor content'));
+  assert.match(html, /t98-sheet--md/);
+  assert.match(html.match(/<button[^>]*aria-label="Close dialog"[^>]*>/)[0], /disabled=""/);
+  assert.doesNotMatch(html, /<dialog[^>]*\bopen=/);
+  assert.ok(styles.includes('.t98-sheet[open]'));
 });
