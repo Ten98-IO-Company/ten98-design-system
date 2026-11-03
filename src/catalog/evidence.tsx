@@ -3,6 +3,7 @@
 import { useId, useState } from 'react';
 import { Button, Field, Input, Select } from '../lib/primitives.js';
 import { EvidenceSummary, OperationResults, ReviewSummary, ValidationSummary, type EvidenceSummaryProps, type OperationTargetResult, type ValidationTarget } from '../lib/evidence.js';
+import { SuggestionQueue, type SuggestionQueueGroup, type SuggestionQueueChange } from '../lib/suggestion-queue.js';
 import { tsx, type ComponentEntry, type ComponentProp } from './model.js';
 
 const prop = (name: string, type: string, description: string, required = false, defaultValue?: string): ComponentProp => ({ name, type, description, required, defaultValue });
@@ -132,6 +133,31 @@ const changedSinceCheck = false;
 const checking = false;
 const recheck = () => {};`);
 
+type SuggestionMode = 'editable' | 'read-only' | 'dismissed' | 'empty';
+const queueSeed: SuggestionQueueGroup[] = [
+  { id: 'competitors', label: 'Competitors', provenance: 'Suggested from your site.', items: [
+    { id: 'northstar', label: 'Northstar Studio', state: 'suggested', provenance: 'Listed alongside your brand.' },
+    { id: 'atlas', label: 'Atlas Design', state: 'accepted' },
+    { id: 'crest', label: 'Crest Research', state: 'dismissed' },
+  ] },
+  { id: 'pages', label: 'Pages', items: [{ id: 'guide', label: '/guides/choosing-a-design-partner', state: 'suggested', edited: true }] },
+];
+function SuggestionDemo({ mode = 'editable' }: { mode?: SuggestionMode }) {
+  const id = useId();
+  const [groups, setGroups] = useState<SuggestionQueueGroup[]>(() => mode === 'empty' ? [] : queueSeed.map(group => ({ ...group, items: group.items.map(item => ({ ...item, state: mode === 'dismissed' ? 'dismissed' : item.state })) })));
+  const onStateChange = ({ groupId, itemIds, state }: SuggestionQueueChange) => setGroups(current => current.map(group => group.id === groupId ? { ...group, items: group.items.map(item => itemIds.includes(item.id) ? { ...item, state } : item) } : group));
+  return <SuggestionQueue label="Review setup suggestions" readOnly={mode === 'read-only'} readOnlyReason="Your workspace role permits review only." groups={groups.map(group => ({ ...group, items: group.items.map(item => ({ ...item, editor: item.id === 'northstar' ? <Field label="Edit competitor name" htmlFor={`${id}-competitor`}><Input id={`${id}-competitor`} value={item.label} onChange={event => setGroups(current => current.map(row => row.id === group.id ? { ...row, items: row.items.map(value => value.id === item.id ? { ...value, label: event.target.value, edited: true } : value) } : row))} /></Field> : undefined })) }))} onStateChange={onStateChange} />;
+}
+const suggestionCode = (mode: SuggestionMode) => tsx(['SuggestionQueue', 'type SuggestionQueueGroup'], `<SuggestionQueue label="Review setup suggestions" groups={groups}${mode === 'read-only' ? '\n  readOnly readOnlyReason="Your workspace role permits review only."' : ''}
+  onStateChange={({ groupId, itemIds, state }) => setGroups(current => current.map(group =>
+    group.id === groupId ? { ...group, items: group.items.map(item =>
+      itemIds.includes(item.id) ? { ...item, state } : item) } : group))} />`, `const [groups, setGroups] = useState<SuggestionQueueGroup[]>(${mode === 'empty' ? '[]' : `[
+  { id: 'competitors', label: 'Competitors', provenance: 'Suggested from your site.', items: [
+    { id: 'northstar', label: 'Northstar Studio', state: '${mode === 'dismissed' ? 'dismissed' : 'suggested'}' },
+    { id: 'atlas', label: 'Atlas Design', state: '${mode === 'dismissed' ? 'dismissed' : 'accepted'}', edited: true },
+  ] },
+]`});`, ['useState']);
+
 export const evidenceEntries: ComponentEntry[] = [
   {
     name: 'EvidenceSummary', category: 'Data display', description: 'Source, observation time, measurement basis, freshness and coverage beside an app-supplied result.',
@@ -154,6 +180,13 @@ export const evidenceEntries: ComponentEntry[] = [
     props: [prop('title', 'ReactNode', 'Region heading.', false, 'Operation results'), prop('description', 'ReactNode', 'Operation and scope context.'), prop('items', 'readonly OperationTargetResult[]', 'Stable id, target, submitted/accepted/delivered/observed/pending/unknown/confirmed/error/suppressed/skipped status, optional detail/receipt/error/actions for every target.', true), prop('loading', 'boolean', 'Shows loading text while preserving any previously supplied items.', false, 'false'), prop('emptyMessage', 'ReactNode', 'Message for an empty, non-loading result set.', false, 'No operation results yet.'), prop('className', 'string', 'Additional root classes.')],
     tokens, accessibility: ['Named region with a semantic list of individually labelled targets.', 'Status labels distinguish pending, unknown, confirmed, failed, suppressed and skipped without relying on color.', 'Polite list updates announce changed outcomes. App-supplied buttons and links retain native keyboard behavior.', 'Long target names and receipts must wrap on narrow screens. No automatic retry or focus movement occurs.'], related: ['ReviewSummary', 'EvidenceSummary', 'ActivityFeed', 'Alert'], example: operationCode('partial'),
     states: [{ name: 'Suppressed and skipped', description: 'Targets that were deliberately not sent are neutral and never read as failures.', preview: <OperationResults items={[{ id: 's', target: 'lina@example.com', status: 'suppressed', detail: 'Unsubscribed on 2 October 2026.' }, { id: 'k', target: 'omar@example.com', status: 'skipped', detail: 'No consent recorded for email.' }, { id: 'e', target: 'sara@example.com', status: 'error', error: 'Mailbox does not exist.' }]} />, code: tsx(['OperationResults'], '<OperationResults items={[\n  { id: "s", target: "lina@example.com", status: "suppressed", detail: "Unsubscribed on 2 October 2026." },\n  { id: "k", target: "omar@example.com", status: "skipped", detail: "No consent recorded for email." },\n  { id: "e", target: "sara@example.com", status: "error", error: "Mailbox does not exist." },\n]} />') }, { name: 'Submitted, accepted, delivered and observed', description: 'Each provider-supported stage retains its own meaning; accepted is not delivery.', preview: <OperationResults items={(['submitted', 'accepted', 'delivered', 'observed'] as const).map(status => ({ id: status, target: status, status, receipt: 'demo-receipt-' + status }))} />, code: tsx(['OperationResults'], '<OperationResults items={(["submitted", "accepted", "delivered", "observed"] as const).map(status => ({ id: status, target: status, status, receipt: "demo-receipt-" + status }))} />') }, ...(['partial', 'pending', 'unknown', 'confirmed', 'error', 'loading', 'empty', 'read-only'] as const).map(mode => ({ name: mode === 'partial' ? 'Partial / mixed outcomes' : mode === 'read-only' ? 'Read-only receipts' : mode[0].toUpperCase() + mode.slice(1), description: 'Local simulation only. Unknown receipts expose an explicit simulated check; no request or retry occurs automatically.', preview: <OperationDemo initial={mode} />, code: operationCode(mode) }))],
+  },
+  {
+    name: 'SuggestionQueue', category: 'Data display', description: 'Grouped suggestions with explicit accept, dismiss and restore actions before app-owned submission.',
+    usage: 'Use for Discover guided setup and Campaign content review. Groups, current display labels, edited markers and states remain controlled by the app. A single onStateChange callback supplies groupId, itemIds and the requested state; acceptance is review state, not a saved result. Accept all affects suggested items only; Dismiss all affects suggested and accepted items; Restore returns a dismissed item to suggested. Group totals include dismissed items. Supply a labelled editor slot when editing is available and keep label synchronized with its current value. The app owns validation, authorization, revision and submission.',
+    props: [prop('label', 'string', 'Accessible queue heading.', true), prop('groups', 'readonly SuggestionQueueGroup[]', 'Unique group ids; item ids are unique within each group. Items supply label, state, description, provenance, editor and edited marker.', true), prop('onStateChange', '(change: SuggestionQueueChange) => void', 'One controlled change request for individual or bulk actions. Omit for read-only presentation.'), prop('readOnly', 'boolean', 'Suppresses state actions and editor slots; labels, status and provenance remain visible.', false, 'false'), prop('readOnlyReason', 'ReactNode', 'Optional explanation for read-only presentation.'), prop('emptyMessage', 'ReactNode', 'Shown when a queue or group has no suggestions.'), prop('className', 'string', 'Additional root classes.')],
+    tokens, accessibility: ['Named queue and group regions with semantic lists; no interactive controls nested in listbox options.', 'Status icons and text identify suggested, accepted and dismissed items; edited values are explicitly marked.', 'Native buttons and collapsed dismissed disclosure support Tab, Enter and Space with 44px targets.', 'Focus is repaired after a controlled transition removes its action, without overriding app-directed focus.', 'Desktop items wrap as chips and stack at narrow widths; long labels, editors and provenance wrap in RTL and light/dark themes.'], related: ['ReviewSummary', 'ReviewConfirm', 'Stepper', 'Disclosure', 'Field'], example: suggestionCode('editable'),
+    states: [{ name: 'Editable suggestions', description: 'Review suggestions and edit the supplied competitor field. No result is saved.', preview: <SuggestionDemo />, code: suggestionCode('editable') }, ...(['read-only', 'dismissed', 'empty'] as const).map(mode => ({ name: mode === 'read-only' ? 'Read-only' : mode === 'dismissed' ? 'All dismissed' : 'Empty', description: 'Counts and supplied decisions remain explicit. Dismissed items are available through the collapsed disclosure.', preview: <SuggestionDemo mode={mode} />, code: suggestionCode(mode) }))],
   },
   {
     name: 'ReviewSummary', category: 'Data display', description: 'Scope and resource identity with before/after values and consequences for an explicit review.',

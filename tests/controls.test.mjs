@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createElement as h } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { Blockquote, Popover, LoadMore, ResourceCard, Image, Form, Field as UIField, Textarea, CheckboxGroup, CodeBlock, MediaPlayer, MultiCombobox, Combobox, DateTimeField, Disclosure, FileField, Fieldset, InlineCode, Pager, RadioGroup, Scroller, SegmentedControl, StatusLine, Button, Input, ReportToolbar, MetricTabs } from '../dist/index.js';
+import { Blockquote, Popover, LoadMore, ResourceCard, Image, Form, Field as UIField, Textarea, CheckboxGroup, CodeBlock, MediaPlayer, MultiCombobox, Combobox, DateTimeField, Disclosure, FileField, Fieldset, InlineCode, Pager, RadioGroup, Scroller, SegmentedControl, StatusLine, Button, Input, ReportToolbar, MetricTabs, SuggestionQueue } from '../dist/index.js';
 
 const styles = readFileSync(new URL('../dist/styles.css', import.meta.url), 'utf8');
 const classes = html => [...html.matchAll(/class="([^"]+)"/g)].flatMap(match => match[1].split(' '));
@@ -435,4 +435,57 @@ test('MetricTabs suppresses the selected panel when its history becomes unavaila
   assert.match(html, /aria-selected="true" aria-disabled="true"/);
   assert.match(html, /role="status">History is no longer available/);
   assert.doesNotMatch(html, /Retained metric|Retained chart payload/);
+});
+
+
+const queueGroups = [{ id: 'terms', label: 'Campaign terms', provenance: 'Retained report', items: [
+  { id: 'one', label: 'Search phrase', state: 'suggested', description: 'App supplied detail', editor: h(Input, { name: 'queue-editor', defaultValue: 'Draft phrase' }), edited: true },
+  { id: 'two', label: 'Other phrase', state: 'suggested' },
+  { id: 'three', label: 'Accepted phrase', state: 'accepted', provenance: 'Observation 17' },
+  { id: 'four', label: 'Old phrase', state: 'dismissed' },
+] }];
+
+test('SuggestionQueue retains controlled states, all-item totals, provenance and native named actions', () => {
+  let calls = 0;
+  const html = render(h(SuggestionQueue, { label: 'Review suggestions', groups: queueGroups, onStateChange: () => calls++ }));
+  assert.match(html, /aria-label="Review suggestions"/);
+  assert.match(html, /role="status" aria-live="polite" aria-atomic="true"><bdi>1 of 4 accepted; 2 suggested; 1 dismissed\./);
+  assert.match(html, /<p><bdi>1 of 4 accepted<\/bdi><\/p>/);
+  assert.match(html, /Retained report/); assert.match(html, /Observation 17/);
+  assert.match(html, /Suggested/); assert.match(html, /Accepted/); assert.match(html, /Edited/);
+  assert.match(html, /name="queue-editor"/);
+  for (const name of ['Accept all in Campaign terms', 'Dismiss all in Campaign terms', 'Accept Search phrase', 'Dismiss Accepted phrase', 'Restore Old phrase']) assert.ok(html.includes(`aria-label="${name}"`));
+  assert.doesNotMatch(html, /aria-label="Accept Accepted phrase"/);
+  for (const button of html.matchAll(/<button\b[^>]*>/g)) assert.match(button[0], /type="button"/);
+  assert.doesNotMatch(html, /<form|role="listbox"/);
+  assert.equal(calls, 0);
+});
+
+test('SuggestionQueue keeps dismissed items in a closed shared Disclosure with Restore', () => {
+  const html = render(h(SuggestionQueue, { label: 'Review suggestions', groups: queueGroups, onStateChange() {} }));
+  const details = html.match(/<details\b[\s\S]*?<\/details>/)[0];
+  assert.doesNotMatch(details.match(/^<details[^>]*>/)[0], / open/);
+  assert.match(details, /<summary[^>]*>[\s\S]*Dismissed \(1\)/);
+  assert.match(details, /data-state="dismissed"/);
+  assert.match(details, /aria-label="Restore Old phrase"/);
+  assert.doesNotMatch(details, /aria-label="Dismiss Old phrase"|aria-label="Accept Old phrase"/);
+});
+
+test('SuggestionQueue read-only and missing callbacks withhold actions and editor slots, not review evidence', () => {
+  for (const props of [{ readOnly: true, onStateChange() {} }, {}]) {
+    const html = render(h(SuggestionQueue, { label: 'Review suggestions', groups: queueGroups, readOnlyReason: 'Only editors can change suggestions.', ...props }));
+    assert.doesNotMatch(html, /<button|queue-editor/);
+    assert.match(html, /Only editors can change suggestions\./);
+    assert.match(html, /Search phrase/); assert.match(html, /Accepted phrase/);
+    assert.match(html, /Observation 17/); assert.match(html, /Edited/);
+    assert.match(html, /Dismissed \(1\)/);
+  }
+});
+
+test('SuggestionQueue handles an empty queue and retains empty group labels and provenance', () => {
+  const html = render(h(SuggestionQueue, { label: 'Review suggestions', groups: [{ id: 'empty', label: 'Locations', provenance: 'No retained observations', items: [] }], emptyMessage: 'Nothing to review.' }));
+  assert.match(html, /0 of 0 accepted; 0 suggested; 0 dismissed\./);
+  assert.match(html, /Nothing to review\./); assert.match(html, /Locations/); assert.match(html, /No retained observations/);
+  assert.doesNotMatch(html, /<button|<details|<ul/);
+  assert.match(render(h(SuggestionQueue, { label: 'Empty queue', groups: [], emptyMessage: 'No groups to review.' })), /No groups to review\./);
 });
