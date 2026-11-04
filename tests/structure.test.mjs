@@ -65,6 +65,32 @@ test('options, description lists and prose lists keep native semantics', async (
   for (const name of new Set(classes(details + list)).values()) if (name !== 't98-list-item') assert.ok(styles.includes(`.${name}`), `${name} is styled`);
 });
 
+test('DescriptionList keeps its original markup for explicit defaults and every column count', async () => {
+  const { DescriptionList } = await import('../dist/index.js');
+  const items = [{ term: 'Owner', description: 'Growth team' }];
+  for (const columns of [1, 2, 3]) {
+    const original = renderToStaticMarkup(h(DescriptionList, { items, columns }));
+    const explicit = renderToStaticMarkup(h(DescriptionList, { items, columns, orientation: 'vertical', density: 'comfortable' }));
+    assert.equal(original, `<dl class="t98-description-list t98-description-list--${columns}"><div><dt>Owner</dt><dd>Growth team</dd></div></dl>`);
+    assert.equal(explicit, original);
+  }
+});
+
+test('DescriptionList horizontal compact pairs preserve values, links and native list attributes', async () => {
+  const { DescriptionList } = await import('../dist/index.js');
+  const url = 'https://example.com/reports/organic-search-visibility?country=ae';
+  const html = renderToStaticMarkup(h(DescriptionList, {
+    id: 'record-metadata', 'aria-label': 'Record metadata', dir: 'rtl', 'data-record': 'report-2048',
+    orientation: 'horizontal', density: 'compact', className: 'consumer-details',
+    items: [{ key: 'count', term: 'Measured results', description: 0 }, { key: 'source', term: 'Canonical source URL', description: h('a', { href: url }, url) }],
+  }));
+  assert.match(html, /^<dl id="record-metadata" aria-label="Record metadata" dir="rtl" data-record="report-2048"/);
+  assert.match(html, /class="t98-description-list t98-description-list--1 t98-description-list--horizontal t98-description-list--compact consumer-details"/);
+  assert.ok(html.includes('<div><dt>Measured results</dt><dd>0</dd></div>'));
+  assert.ok(html.includes(`<dt>Canonical source URL</dt><dd><a href="${url}">${url}</a></dd>`));
+  assert.doesNotMatch(html, /orientation=|density=|role=|style=/);
+});
+
 test('Text can keep the line breaks and spacing of multi-line text while long words still wrap', async () => {
   const { Text } = await import('../dist/index.js');
   const html = renderToStaticMarkup(h(Text, { preserveWhitespace: true }, 'Line one\n\n  indented line'));

@@ -155,9 +155,17 @@ export function Blockquote({ source, cite, className, children, ...props }: Bloc
 }
 
 export interface DescriptionItem { term: ReactNode; description: ReactNode; key?: string }
+export interface DescriptionListProps extends Omit<HTMLAttributes<HTMLDListElement>, 'style' | 'children'> {
+  items: readonly DescriptionItem[];
+  columns?: 1 | 2 | 3;
+  /** Horizontal pairs align labels beside values when each item's container has enough room. */
+  orientation?: 'vertical' | 'horizontal';
+  /** Compact reduces the space between pairs without changing text size. */
+  density?: 'comfortable' | 'compact';
+}
 /** Label/value pairs for identity, settings or review details. `columns` places pairs side by side on wide screens. */
-export function DescriptionList({ items, columns = 1, className, ...props }: Omit<HTMLAttributes<HTMLDListElement>, 'style' | 'children'> & { items: DescriptionItem[]; columns?: 1 | 2 | 3 }) {
-  return <dl {...props} className={cx('t98-description-list', `t98-description-list--${columns}`, className)}>
+export function DescriptionList({ items, columns = 1, orientation = 'vertical', density = 'comfortable', className, ...props }: DescriptionListProps) {
+  return <dl {...props} className={cx('t98-description-list', `t98-description-list--${columns}`, orientation === 'horizontal' && 't98-description-list--horizontal', density === 'compact' && 't98-description-list--compact', className)}>
     {items.map((item, index) => <div key={item.key ?? index}><dt>{item.term}</dt><dd>{item.description}</dd></div>)}
   </dl>;
 }

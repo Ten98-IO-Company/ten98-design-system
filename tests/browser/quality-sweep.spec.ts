@@ -59,7 +59,7 @@ for (const config of configs) test(`catalogue quality sweep: ${config.name}`, as
   const prefix = config.theme === 'dark' ? '/?theme=dark' : '/';
   await page.goto(`${prefix}#components`);
   await page.locator('.reference-component-card').first().waitFor();
-  const links = await page.locator('.reference-component-card').evaluateAll(nodes => nodes.map(node => ({ href: node.getAttribute('href')!, name: node.querySelector('h2')!.textContent! })));
+  const links = await page.locator('.reference-component-card').evaluateAll(nodes => nodes.map(node => ({ href: node.getAttribute('href')!, name: node.querySelector('h3')!.textContent! })));
   const report: Record<string, string[]> = {};
   for (const link of links) {
     await page.goto(`${prefix}${link.href}?tab=states`);

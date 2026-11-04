@@ -65,9 +65,19 @@ span.t98-truncate, strong.t98-truncate, em.t98-truncate, small.t98-truncate, cod
 .t98-aspect-square { aspect-ratio: 1; width: 100%; } .t98-aspect-video { aspect-ratio: 16 / 9; width: 100%; } .t98-aspect-portrait { aspect-ratio: 4 / 5; width: 100%; }
 
 .t98-description-list { font-family: var(--t98-font); display: grid; gap: var(--t98-space-3) var(--t98-space-6); margin: 0; min-width: 0; }
-.t98-description-list--2 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr)); }
-.t98-description-list--3 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr)); }
+.t98-description-list--2 { grid-template-columns: repeat(auto-fit, minmax(min(100%, max(14rem, calc((100% - var(--t98-space-6)) / 2))), 1fr)); }
+.t98-description-list--3 { grid-template-columns: repeat(auto-fit, minmax(min(100%, max(12rem, calc((100% - var(--t98-space-6) * 2) / 3))), 1fr)); }
 .t98-description-list > div { display: grid; gap: var(--t98-space-1); min-width: 0; }
-.t98-description-list dt { color: var(--t98-muted); font-size: var(--t98-text-sm); font-weight: var(--t98-weight-medium); }
-.t98-description-list dd { margin: 0; color: var(--t98-text); font-size: var(--t98-text-md); overflow-wrap: anywhere; }
+.t98-description-list dt { min-width: 0; color: var(--t98-muted); font-size: var(--t98-text-sm); font-weight: var(--t98-weight-medium); overflow-wrap: anywhere; }
+.t98-description-list dd { min-width: 0; margin: 0; color: var(--t98-text); font-size: var(--t98-text-md); overflow-wrap: anywhere; }
+.t98-description-list--compact { gap: var(--t98-space-2) var(--t98-space-4); }
+/* Query each pair, so narrow grid cells stack even when the whole list is wide. */
+.t98-description-list--horizontal > div { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: var(--t98-space-4); container: t98-description-item / inline-size; }
+.t98-description-list--horizontal > div > dt { flex: 0 1 10rem; max-inline-size: 100%; }
+.t98-description-list--horizontal > div > dd { flex: 1 1 14rem; }
+.t98-description-list--horizontal.t98-description-list--compact > div { column-gap: var(--t98-space-3); }
+@container t98-description-item (max-width: 26rem) {
+  .t98-description-list--horizontal > div > dt,
+  .t98-description-list--horizontal > div > dd { flex-basis: 100%; }
+}
 .t98-list { font-family: var(--t98-font); display: flex; flex-direction: column; margin: 0; padding-inline-start: 1.25rem; color: var(--t98-text); font-size: var(--t98-text-md); line-height: var(--t98-leading-normal); }
