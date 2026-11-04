@@ -159,14 +159,17 @@ td strong{font-weight:500;color:var(--color-text-muted)}
 .auth-note{margin-top:23px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--color-text-muted);border-top:1px solid var(--color-border);padding-top:17px}
 .field{display:flex;flex-direction:column;gap:6px;margin-bottom:16px;font-size:13px;color:var(--color-text)}
 .field>span{font-weight:500}
-.field input,.field select,.field textarea{width:100%;background:var(--color-surface);border:1px solid var(--color-border-control);border-radius:6px;min-height:var(--control-md);padding:8px 12px;font-size:13px;line-height:18px;color:var(--color-text);transition:border-color var(--motion-fast)}
+.field input:not(:where([type=checkbox],[type=radio])),.field select,.field textarea{width:100%;background:var(--color-surface);border:1px solid var(--color-border-control);border-radius:6px;min-height:var(--control-md);padding:8px 12px;font-size:13px;line-height:18px;color:var(--color-text);transition:border-color var(--motion-fast)}
+.field input[type=range]{margin:0}
+/* Choice labels own the touch target; the native input keeps its compact geometry. */
+.field :where(label:has(>input:is([type=checkbox],[type=radio]))){display:flex;align-items:center;gap:9px;min-height:var(--t98-control-touch,44px)}
 .field input::placeholder,.field textarea::placeholder{color:var(--color-text-placeholder)}
-.field :is(input,select,textarea):hover:not(:disabled){border-color:var(--color-text-muted)}
-.field :is(input,select,textarea):focus{border-color:var(--color-focus)}
-.field :is(input,select,textarea)[aria-invalid=true]{border-color:var(--color-danger)}
+.field :is(input:not(:where([type=checkbox],[type=radio])),select,textarea):hover:not(:disabled){border-color:var(--color-text-muted)}
+.field :is(input:not(:where([type=checkbox],[type=radio])),select,textarea):focus{border-color:var(--color-focus)}
+.field :is(input:not(:where([type=checkbox],[type=radio])),select,textarea)[aria-invalid=true]{border-color:var(--color-danger)}
 .field .required{color:var(--color-text-muted)}
 .field textarea{min-height:100px;resize:vertical;line-height:1.65}
-.field :is(input,select,textarea):disabled{background:var(--color-disabled-surface);color:var(--color-disabled-text)}
+.field :is(input:not(:where([type=checkbox],[type=radio])),select,textarea):disabled{background:var(--color-disabled-surface);color:var(--color-disabled-text)}
 .field-help{display:block;color:var(--color-text-muted);font-size:12px;line-height:18px;margin:-10px 0 16px}
 .form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:17px}
 .form-grid>*{min-width:0}
@@ -342,4 +345,4 @@ td{font-size:13px}
 .table-cards td[data-label]::before{content:attr(data-label);display:block;color:var(--color-text-muted);font-size:12px;margin-block-end:4px}
 }
 /* Touch screens: the legacy app classes get the same 44px floor as @ten98/ui controls (quality sweep). */
-@media (pointer: coarse){:is(.button,.btn),.field input,.field select,.field textarea{min-height:var(--t98-control-touch,44px)}.icon-button,.account .icon-button{width:var(--t98-control-touch,44px);height:var(--t98-control-touch,44px)}}
+@media (pointer: coarse){:is(.button,.btn),.field input:not(:where([type=checkbox],[type=radio])),.field select,.field textarea{min-height:var(--t98-control-touch,44px)}.icon-button,.account .icon-button{width:var(--t98-control-touch,44px);height:var(--t98-control-touch,44px)}}
