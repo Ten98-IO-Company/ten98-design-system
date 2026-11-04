@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
-  Button, CheckboxGroup, CodeBlock, Combobox, DateTimeField, Disclosure, Field, FileField, Fieldset, Heading, InlineCode, Input, Pager, RadioGroup, Scroller, SegmentedControl, Stack, StatusLine, Text,
+  Button, Checkbox, CheckboxGroup, CodeBlock, Combobox, DateTimeField, Disclosure, Field, FileField, Fieldset, Heading, InlineCode, Input, Pager, RadioGroup, Scroller, SegmentedControl, Stack, StatusLine, Text,
   type FileItem,
 } from '@ten98/ui';
 import '@ten98/ui/app-tokens.css';
 import '@ten98/ui/app.css';
 import '@ten98/ui/product.css';
 
-// Composed the way an application screen must be: library components only, no elements or styles.
+// Includes the legacy .field composition still used by application settings.
 document.documentElement.dataset.theme = new URLSearchParams(location.search).get('theme') || 'light';
 const channels = [
   { value: 'email', label: 'Email', description: 'Sent from the campaign address.' },
@@ -34,6 +34,19 @@ function Screen() {
   const [page, setPage] = useState(2);
   return <Stack as="main" gap={6} id="controls">
     <Heading level={1}>Controls</Heading>
+    <fieldset className="field" id="legacy-controls">
+      <legend>Privacy controls</legend>
+      <Checkbox label="Capture tags" name="captureTags" />
+      <Checkbox label="Disabled capture" disabled />
+      <RadioGroup legend="Capture mode" name="captureMode" options={[{ value: 'all', label: 'All events' }, { value: 'limited', label: 'Limited events' }, { value: 'disabled', label: 'Unavailable mode', disabled: true }]} />
+      <label><input type="checkbox" name="nativeCapture" />Native capture</label>
+      <label><input type="radio" name="nativeMode" value="enabled" />Native mode</label>
+      <label><input type="checkbox" disabled />Disabled native capture</label>
+      <div className="field"><label htmlFor="legacy-project">Project name</label><input id="legacy-project" name="projectName" defaultValue="Example" /></div>
+      <div className="field"><label htmlFor="legacy-window">Window</label><select id="legacy-window" name="window" defaultValue="week"><option value="week">Week</option></select></div>
+      <div className="field"><label htmlFor="legacy-notes">Notes</label><textarea id="legacy-notes" name="notes" defaultValue="Synthetic settings" /></div>
+      <div className="field"><label htmlFor="legacy-rate">Sample rate</label><input id="legacy-rate" type="range" name="sampleRate" defaultValue="50" /></div>
+    </fieldset>
     <Disclosure summary="Advanced settings" open={open} onOpenChange={setOpen} actions={<Button variant="secondary" size="sm">Reset</Button>}>
       <Text tone="muted">Retry limits and delivery windows.</Text>
     </Disclosure>
