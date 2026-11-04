@@ -65,18 +65,38 @@ code,pre { font-family: var(--t98-mono); }
 .reference-component-card h2 svg { color: var(--t98-muted); }
 .reference-component-card p { color: var(--t98-muted); font-size: 12px; flex: 1; }
 .reference-component-card small { font-size: 12px; color: var(--t98-muted); margin-top: 20px; }
+.reference-component-grid.reference-component-index { grid-template-columns: minmax(0,1fr); gap: 36px; }
+.reference-component-group { min-width: 0; }
+.reference-component-group > header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 20px; margin-bottom: 12px; }
+.reference-component-group > header h2 { font-size: 17px; font-weight: 600; overflow-wrap: anywhere; }
+.reference-component-group > header > span { color: var(--t98-muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.reference-component-group > ul { list-style: none; padding: 0; margin: 0; border-top: 1px solid var(--t98-border); }
+.reference-component-group li { min-width: 0; border-bottom: 1px solid var(--t98-border); }
+.reference-component-index .reference-component-card { display: grid; grid-template-columns: minmax(9rem,1fr) minmax(0,2fr) minmax(8rem,.8fr); align-items: start; gap: 16px 24px; color: var(--t98-text); min-width: 0; padding: 18px 8px; border: 0; border-radius: 0; background: transparent; scroll-margin-block: 24px; }
+.reference-component-index .reference-component-card:hover { background: var(--t98-subtle); }
+.reference-component-index .reference-component-card:focus-visible { outline-offset: -3px; background: var(--t98-subtle); }
+.reference-component-index .reference-component-card > * { min-width: 0; }
+.reference-component-index .reference-component-card h3 { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
+.reference-component-index .reference-component-card h3 svg { flex: none; margin-block-start: 3px; color: var(--t98-muted); }
+.reference-component-index .reference-component-card p { color: var(--t98-muted); font-size: 13px; line-height: 1.65; overflow-wrap: anywhere; }
+.reference-component-meta { display: grid; gap: 4px; color: var(--t98-muted); font-size: 12px; overflow-wrap: anywhere; }
+.reference-component-index .reference-component-meta small { margin-top: 0; font-size: inherit; font-variant-numeric: tabular-nums; }
 .reference-detail-layout { display: grid; grid-template-columns: 180px minmax(0,1fr); gap: 28px; }
 .reference-component-rail { align-self: start; position: sticky; top: 20px; min-width: 0; }
 .reference-component-rail .reference-component-filters { display: grid; gap: 8px; }
 .reference-component-rail .reference-component-filters .t98-input { width: 100%; min-width: 0; font-size: 12px; }
-.reference-component-rail nav { max-height: calc(100dvh - 210px); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; }
-.reference-component-rail nav a { display: block; padding: 9px 10px; border-radius: 5px; color: var(--t98-muted); font-size: 12px; overflow-wrap: anywhere; }
+.reference-component-rail nav { max-height: max(12rem,calc(100dvh - 280px)); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; padding: 3px; margin: -3px; }
+.reference-component-rail nav a { display: block; min-height: 44px; padding: 9px 10px; border-radius: 5px; color: var(--t98-muted); font-size: 12px; overflow-wrap: anywhere; scroll-margin-block: 12px; }
+.reference-component-rail .t98-disclosure-summary { font-size: 13px; }
+.reference-component-rail .t98-disclosure-body { padding-inline: 0; }
+.reference-component-rail .reference-component-filters > .t98-input { min-height: 44px; }
 .reference-component-rail nav a:hover { background: var(--t98-subtle); }
 .reference-component-rail nav a[aria-current] { background: var(--t98-subtle); color: var(--t98-text); font-weight: 500; }
 .reference-component-rail nav small { display: block; font-size: 12px; font-weight: 400; color: var(--t98-muted); margin-top: 2px; }
 .reference-detail { min-width: 0; }
-.reference-back { display: inline-flex; gap: 7px; align-items: center; font-size: 12px; margin-bottom: 24px; }
+.reference-back { display: inline-flex; gap: 7px; align-items: center; min-height: 44px; font-size: 12px; margin-bottom: 16px; }
 .reference-back svg { transform: rotate(180deg); }
+[dir="rtl"] .reference-back svg { transform: none; }
 .reference-entry-import { display: flex; align-items: center; flex-wrap: wrap; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
 .reference-entry-import > code { font-size: 12px; overflow-wrap: anywhere; }
 .reference-detail-tabs { display: flex; flex-wrap: wrap; gap: 20px; border-bottom: 1px solid var(--t98-border); margin-bottom: 28px; }
@@ -144,11 +164,15 @@ code,pre { font-family: var(--t98-mono); }
   .catalog-main { padding: 28px 24px; }
   .catalog-search-button > span,.catalog-search-button kbd { display: none; }
   .reference-component-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .reference-component-index .reference-component-card { grid-template-columns: minmax(9rem,1fr) minmax(0,2fr); }
+  .reference-component-meta { grid-column: 2; display: flex; flex-wrap: wrap; gap: 4px 16px; }
   .reference-detail-layout { grid-template-columns: 160px minmax(0,1fr); gap: 20px; }
 }
 @media (max-width: 1000px) {
   .reference-detail-layout { display: block; }
-  .reference-component-rail { display: none; }
+  .reference-component-rail { position: static; border-bottom: 1px solid var(--t98-border); padding-bottom: 12px; margin-bottom: 24px; }
+  .reference-component-rail .reference-component-filters { grid-template-columns: minmax(0,1fr) minmax(10rem,1fr); }
+  .reference-component-rail nav { max-height: min(45dvh,22rem); }
   .reference-count { white-space: normal; }
   .catalog-breadcrumb > span:first-of-type { display: none; }
   .catalog-breadcrumb > span:nth-of-type(2) { display: none; }
@@ -161,11 +185,11 @@ code,pre { font-family: var(--t98-mono); }
   .catalog-menu-toggle { display: flex; align-items: center; justify-content: center; min-width: 32px; min-height: 32px; padding: 0; }
   .catalog-backdrop { display: block; position: fixed; inset: 0; z-index: 25; background: var(--t98-overlay); }
   .catalog-body { margin-inline-start: 0; }
-  .catalog-header { display: grid; padding: 12px 16px; gap: 12px; }
-  .catalog-header-controls { display: flex; gap: 8px; flex-wrap: wrap; }
+  .catalog-header { display: grid; grid-template-columns: minmax(0,1fr); padding: 12px 16px; gap: 12px; }
+  .catalog-header-controls { display: flex; gap: 8px; flex-wrap: wrap; min-width: 0; }
   .catalog-header-controls .t98-input { min-height: 38px; }
   .catalog-header-controls .t98-input[aria-label="Appearance"] { width: 88px; }
-  .catalog-header-controls .t98-input[aria-label="Density"] { width: 126px; }
+  .catalog-header-controls .t98-input[aria-label="Density"] { width: auto; flex: 1 1 auto; min-width: 0; max-width: 100%; }
   .catalog-search-button { min-height: 38px; min-width: 36px; }
   .catalog-main { padding: 24px 16px; }
   .catalog-main-footer { flex-wrap: wrap; font-size: 12px; }
@@ -175,7 +199,10 @@ code,pre { font-family: var(--t98-mono); }
   .reference-count { display: inline-block; margin-top: 10px; }
   .reference-component-grid { grid-template-columns: 1fr; }
   .reference-component-card { padding: 20px; }
+  .reference-component-index .reference-component-card { grid-template-columns: minmax(0,1fr); gap: 8px; padding: 16px 8px; }
+  .reference-component-meta { grid-column: 1; }
   .reference-component-filters { display: grid; grid-template-columns: minmax(0,1fr); }
+  .reference-component-rail .reference-component-filters { grid-template-columns: minmax(0,1fr); }
   .reference-component-filters > .t98-input { width: 100%; }
   .reference-detail-tabs { gap: 16px; }
   .reference-preview { padding: 16px; }
@@ -189,6 +216,8 @@ code,pre { font-family: var(--t98-mono); }
   html { scroll-behavior: auto; }
   .catalog-sidebar { transition: none; }
 }
+
+@media (max-height: 720px) { .reference-component-rail { position: static; } }
 
 .reference-template-picker { display:grid; grid-template-columns:minmax(0,20rem) minmax(0,1fr); align-items:center; gap:var(--t98-space-6); margin-block:var(--t98-space-6); }
 .reference-template-context { min-width:0; border-inline-start:1px solid var(--t98-border); padding-inline-start:var(--t98-space-6); }

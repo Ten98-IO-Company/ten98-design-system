@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Badge, Blockquote, Button, DescriptionList, FeatureControls, Field, FormActions, FormGrid, Grid, Heading, Image, Inline, Input, Link, List, ListItem, Option, OptionGroup, Select, Stack, Text, VisuallyHidden } from '../lib';
+import { Badge, Blockquote, Button, CopyButton, DescriptionList, Disclosure, FeatureControls, Field, FormActions, FormGrid, Grid, Heading, Image, Inline, Input, Link, List, ListItem, Option, OptionGroup, Select, Stack, Text, VisuallyHidden } from '../lib';
 import { tsx, type ComponentEntry, type ComponentProp } from './model';
 
 const space: ComponentProp = { name: 'gap', type: '0 | 1 | 2 | 3 | 4 | 5 | 6 | 8 | 10 | 12 | 16', description: 'Spacing token step between children (--t98-space-N).' };
@@ -11,6 +11,30 @@ function entry(name: string, description: string, usage: string, props: Componen
   const example = tsx(imports, code);
   return { name, category: 'Layout', description, usage: `${usage} ${noElements}`, props, nativeProps, tokens, accessibility, related, example, states: [{ name: 'Default', description, preview, code: example }] };
 }
+
+const descriptionDefaultCode = tsx(['DescriptionList'], '<DescriptionList columns={2} items={[\n  { term: \'Owner\', description: \'Growth team\' },\n  { term: \'Status\', description: \'Approved\' },\n]} />');
+const descriptionSource = 'https://example.com/research/organic-search-visibility/quarterly-report?country=ae&device=mobile';
+const descriptionHorizontalCode = tsx(['DescriptionList', 'Link'], '<DescriptionList orientation="horizontal" density="compact" aria-label="Report metadata" items={[\n  { term: \'Report owner\', description: \'Search team\' },\n  { term: \'Measurement scope\', description: \'United Arab Emirates · mobile\' },\n  { term: \'Last observation\', description: \'No observation supplied\' },\n  { term: \'Canonical source URL\', description: <Link href="' + descriptionSource + '">' + descriptionSource + '</Link> },\n]} />');
+const descriptionDisclosureCode = tsx(['Badge', 'CopyButton', 'DescriptionList', 'Disclosure', 'Heading', 'Inline', 'Link', 'Stack', 'Text'], '<Stack gap={4}>\n  <Inline justify="between" align="start">\n    <Stack gap={1}><Heading level={3}>Organic search review</Heading><Text tone="muted">Report rpt_2048 · illustrative record</Text></Stack>\n    <Inline><Badge tone="warning">Needs review</Badge><CopyButton value="rpt_2048" label="Copy record ID" /></Inline>\n  </Inline>\n  <DescriptionList items={[{ term: \'Owner\', description: \'Search team\' }, { term: \'Scope\', description: \'United Arab Emirates · mobile\' }]} columns={2} />\n  <Disclosure summary="Source and collection details" variant="plain">\n    <DescriptionList orientation="horizontal" density="compact" items={[\n      { term: \'Source URL\', description: <Link href="' + descriptionSource + '">' + descriptionSource + '</Link> },\n      { term: \'Collection status\', description: \'No observation supplied\' },\n    ]} />\n  </Disclosure>\n</Stack>');
+const descriptionListEntry: ComponentEntry = {
+  name: 'DescriptionList', category: 'Layout', description: 'Native label and value pairs with optional horizontal alignment and compact spacing.',
+  usage: 'Use for identity, settings summaries and review details. Columns arrange whole pairs; horizontal orientation aligns labels beside values only when each pair has enough room. Keep identity, status and actions visible when secondary metadata is disclosed. ' + noElements,
+  props: [
+    { name: 'items', type: 'readonly DescriptionItem[]', required: true, description: 'Pairs in reading order: term and description are ReactNode; key is optional.' },
+    { name: 'columns', type: '1 | 2 | 3', defaultValue: '1', description: 'Pairs per row on wide screens; narrow cells remain readable.' },
+    { name: 'orientation', type: "'vertical' | 'horizontal'", defaultValue: 'vertical', description: 'Horizontal labels share a fixed column beside values; each pair stacks at container widths of 26rem or less.' },
+    { name: 'density', type: "'comfortable' | 'compact'", defaultValue: 'comfortable', description: 'Compact reduces spacing between pairs without shrinking text.' },
+  ],
+  nativeProps: 'Standard dl attributes, excluding style and children.',
+  tokens: ['--t98-space-1', '--t98-space-2', '--t98-space-3', '--t98-space-4', '--t98-space-6', '--t98-muted', '--t98-text-sm'],
+  accessibility: ['Native dl/dt/dd preserves term/value reading order.', 'Long labels and URLs wrap in both directions without truncation.', 'Container queries adapt each pair independently, including multi-column lists.'],
+  related: ['Disclosure', 'ReviewSummary', 'CopyButton'], example: descriptionDefaultCode,
+  states: [
+    { name: 'Default', description: 'Original vertical, comfortable layout with pairs in two responsive columns.', preview: <DescriptionList columns={2} items={[{ term: 'Owner', description: 'Growth team' }, { term: 'Status', description: 'Approved' }]} />, code: descriptionDefaultCode },
+    { name: 'Horizontal compact', description: 'Illustrative report metadata with a full source URL. Narrow containers stack each label above its value.', preview: <DescriptionList orientation="horizontal" density="compact" aria-label="Report metadata" items={[{ term: 'Report owner', description: 'Search team' }, { term: 'Measurement scope', description: 'United Arab Emirates · mobile' }, { term: 'Last observation', description: 'No observation supplied' }, { term: 'Canonical source URL', description: <Link href={descriptionSource}>{descriptionSource}</Link> }]} />, code: descriptionHorizontalCode },
+    { name: 'Disclosure composition', description: 'Record identity, supplied status and the working copy action stay visible when source details are collapsed.', preview: <Stack gap={4}><Inline justify="between" align="start"><Stack gap={1}><Heading level={3}>Organic search review</Heading><Text tone="muted">Report rpt_2048 · illustrative record</Text></Stack><Inline><Badge tone="warning">Needs review</Badge><CopyButton value="rpt_2048" label="Copy record ID" /></Inline></Inline><DescriptionList columns={2} items={[{ term: 'Owner', description: 'Search team' }, { term: 'Scope', description: 'United Arab Emirates · mobile' }]} /><Disclosure summary="Source and collection details" variant="plain"><DescriptionList orientation="horizontal" density="compact" items={[{ term: 'Source URL', description: <Link href={descriptionSource}>{descriptionSource}</Link> }, { term: 'Collection status', description: 'No observation supplied' }]} /></Disclosure></Stack>, code: descriptionDisclosureCode },
+  ],
+};
 
 export const structureEntries: ComponentEntry[] = [
   entry('Stack', 'Stacks children vertically with one token gap.', 'Use for page regions, cards’ content, form bodies and any vertical rhythm. Set as="form" with action/method for native forms, or as="ul"/"li" for unmarked layout lists.',
@@ -75,11 +99,7 @@ export const structureEntries: ComponentEntry[] = [
     [{ name: 'label', type: 'string', required: true, description: 'Group name announced with each option.' }], [], ['Groups are announced by screen readers; keep labels short.'],
     ['Option', 'OptionGroup', 'Select'], '<Select aria-label="Range">\n  <OptionGroup label="Recent">\n    <Option value="7">7 days</Option>\n    <Option value="30">30 days</Option>\n  </OptionGroup>\n</Select>',
     <Select aria-label="Range"><OptionGroup label="Recent"><Option value="7">7 days</Option><Option value="30">30 days</Option></OptionGroup></Select>, ['Select', 'Option'], 'Standard optgroup attributes.'),
-  entry('DescriptionList', 'Label and value pairs.', 'Use for identity, settings summaries and review details. Set columns to place pairs side by side on wide screens.',
-    [{ name: 'items', type: '{ term: ReactNode; description: ReactNode; key?: string }[]', required: true, description: 'Pairs in reading order.' }, { name: 'columns', type: '1 | 2 | 3', description: 'Pairs per row on wide screens.' }],
-    ['--t98-space-1', '--t98-space-3', '--t98-muted', '--t98-text-sm'], ['Renders native dl/dt/dd so each value is announced with its term.'],
-    ['DescriptionList'], '<DescriptionList columns={2} items={[\n  { term: \'Owner\', description: \'Growth team\' },\n  { term: \'Status\', description: \'Approved\' },\n]} />',
-    <DescriptionList columns={2} items={[{ term: 'Owner', description: 'Growth team' }, { term: 'Status', description: 'Approved' }]} />, ['ReviewSummary'], 'Standard dl attributes.'),
+  descriptionListEntry,
   entry('List', 'A prose list with visible markers.', 'Use for steps and bullet points in text. For unmarked layout lists use Stack as="ul" with Stack as="li".',
     [{ name: 'ordered', type: 'boolean', description: 'Numbered list. Defaults to bullets.' }, { ...space, description: 'Spacing token step between items. Defaults to 1.' }],
     ['--t98-space-1', '--t98-text-md'], ['Native list semantics announce the item count.'],
