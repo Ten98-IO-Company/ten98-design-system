@@ -46,6 +46,7 @@ jobs:
           node node_modules/typescript/bin/tsc --ignoreConfig --noEmit --strict --skipLibCheck --types node
           --target ES2022 --module ESNext --moduleResolution Bundler --lib ES2022,DOM,DOM.Iterable
           --esModuleInterop tests/browser/auth-heading.spec.ts tests/browser/report-toolbar.spec.ts tests/browser/shell.spec.ts
+          tests/browser/charts.spec.ts tests/browser/metric-tabs.spec.ts tests/browser/legacy-theme.spec.ts tests/browser/suggestion-queue.spec.ts tests/browser/sheet.spec.ts
         timeout-minutes: 2
       - name: Install Chromium and Linux dependencies
         run: npx --no-install playwright install --with-deps chromium
@@ -53,7 +54,7 @@ jobs:
 
       - name: Run the full browser suite
         run: npm run test:browser -- --workers=1 --retries=0 --max-failures=2
-        timeout-minutes: 12
+        timeout-minutes: 18
 
       - name: Retain browser diagnostics
         if: ${{ always() }}

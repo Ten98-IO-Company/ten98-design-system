@@ -222,3 +222,17 @@ test('SectionNav is one scrollable row with logical, touch-sized styles', () => 
   assert.match(rule('t98-section-nav__link'), /border-block-end/);
   assert.doesNotMatch(rule('t98-section-nav__link') + rule('t98-section-nav__list'), /(?:margin|padding|border)-(?:left|right)|text-align:\s*(?:left|right)/);
 });
+
+test('AppShell header boundary callbacks are client-only and preserve header slots during SSR', () => {
+  let calls = 0;
+  const onHeaderBottomChange = () => { calls += 1; };
+  const topbar = shellFrame({ header: 'Superseded', onHeaderBottomChange });
+  assert.match(topbar, /<header class="t98-shell-header t98-shell-header--topbar">/);
+  assert.doesNotMatch(topbar, /Superseded|onHeaderBottomChange/);
+  const plain = shellFrame({ topbar: undefined, header: 'Plain header', onHeaderBottomChange });
+  assert.match(plain, /<div class="t98-shell-header">Plain header<\/div>/);
+  assert.doesNotMatch(plain, /<header|onHeaderBottomChange/);
+  const absent = shellFrame({ topbar: undefined, onHeaderBottomChange });
+  assert.doesNotMatch(absent, /t98-shell-header|onHeaderBottomChange/);
+  assert.equal(calls, 0);
+});

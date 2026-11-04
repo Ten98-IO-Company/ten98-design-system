@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createElement as h } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { Blockquote, Popover, LoadMore, ResourceCard, Image, Form, Field as UIField, Textarea, CheckboxGroup, CodeBlock, MediaPlayer, MultiCombobox, Combobox, DateTimeField, Disclosure, FileField, Fieldset, InlineCode, Pager, RadioGroup, Scroller, SegmentedControl, StatusLine, Button, Input, ReportToolbar } from '../dist/index.js';
+import { Blockquote, Popover, LoadMore, ResourceCard, Image, Form, Field as UIField, Textarea, CheckboxGroup, CodeBlock, MediaPlayer, MultiCombobox, Combobox, DateTimeField, Disclosure, FileField, Fieldset, InlineCode, Pager, RadioGroup, Scroller, SegmentedControl, StatusLine, Button, Input, ReportToolbar, MetricTabs, SuggestionQueue, Sheet } from '../dist/index.js';
 
 const styles = readFileSync(new URL('../dist/styles.css', import.meta.url), 'utf8');
 const classes = html => [...html.matchAll(/class="([^"]+)"/g)].flatMap(match => match[1].split(' '));
@@ -372,4 +372,185 @@ test('controlled advanced state overrides its default and keeps the content avai
   assert.match(opened, /<details[^>]*\bopen=""/);
   assert.match(closed, /name="country"[^>]*value="France"|value="France"[^>]*name="country"/);
   assert.match(opened, /name="country"[^>]*value="France"|value="France"[^>]*name="country"/);
+});
+
+
+test('MetricTabs preserves measured zero and the caller supplied comparison meaning', () => {
+  let changes = 0;
+  const html = render(h(MetricTabs, { label: 'Report metrics', value: 'views', onValueChange: () => changes++, items: [
+    { value: 'views', label: 'Page views', metric: 0, change: { label: '+25% since the prior period', tone: 'negative' }, content: 'Views panel' },
+    { value: 'events', label: 'Events', metric: '2,000', change: { label: 'No comparable prior period' } },
+  ] }));
+  assert.match(html, /role="tablist" aria-label="Report metrics"/);
+  assert.match(html, /t98-metric-tab-value">0<\/strong>/);
+  assert.match(html, /t98-metric-tab-value">2,000<\/strong>/);
+  assert.match(html, /data-tone="negative">\+25% since the prior period/);
+  assert.match(html, /data-tone="neutral">No comparable prior period/);
+  assert.equal(changes, 0);
+});
+
+test('MetricTabs withholds unavailable metrics and comparisons and exposes the disabled reason', () => {
+  const html = render(h(MetricTabs, { label: 'Report metrics', value: 'views', onValueChange() {}, items: [
+    { value: 'views', label: 'Page views', metric: 0 },
+    { value: 'sessions', label: 'Sessions', metric: '987654321', change: { label: 'Do not infer this comparison', tone: 'positive' }, unavailableReason: 'Requires session history' },
+    { value: 'retained', label: 'Retained metric', metric: '123456789', unavailableReason: ' ' },
+  ] }));
+  const tabs = [...html.matchAll(/<button\b[^>]*role="tab"[\s\S]*?<\/button>/g)].map(match => match[0]);
+  assert.equal(tabs.length, 3);
+  for (const tab of tabs.slice(1)) {
+    assert.match(tab, /aria-disabled="true"/);
+    assert.match(tab, /tabindex="-1"/);
+    assert.match(tab, /t98-metric-tab-value">—<\/strong>/);
+  }
+  assert.match(tabs[1], /Requires session history/);
+  assert.match(tabs[2], /Metric unavailable/);
+  assert.doesNotMatch(html, /987654321|123456789|Do not infer this comparison/);
+});
+
+test('MetricTabs delegates controlled selection and keeps associated inactive panels mounted', () => {
+  const items = [
+    { value: 'views', label: 'Page views', metric: '34', content: h(Input, { name: 'view-draft', defaultValue: 'Retained draft' }) },
+    { value: 'events', label: 'Events', metric: '12', content: 'Events panel' },
+  ];
+  for (const value of ['views', 'events']) {
+    const html = render(h(MetricTabs, { label: 'Report metrics', className: 'consumer-metrics', items, value, onValueChange() {} }));
+    const tabs = [...html.matchAll(/<button\b[^>]*role="tab"[\s\S]*?<\/button>/g)].map(match => match[0]);
+    const selectedIndex = value === 'views' ? 0 : 1;
+    assert.match(tabs[selectedIndex], /aria-selected="true"[^>]*tabindex="0"/);
+    assert.match(tabs[1 - selectedIndex], /aria-selected="false"[^>]*tabindex="-1"/);
+    const panelId = tabs[selectedIndex].match(/aria-controls="([^"]+)"/)[1];
+    assert.ok(html.includes(`role="tabpanel" id="${panelId}"`));
+    assert.equal((html.match(/role="tabpanel"/g) ?? []).length, 2);
+    assert.equal((html.match(/ hidden=""/g) ?? []).length, 1);
+    assert.match(html, /name="view-draft"[^>]*value="Retained draft"/);
+    assert.match(html, /consumer-metrics/);
+  }
+});
+
+test('MetricTabs suppresses the selected panel when its history becomes unavailable', () => {
+  const item = { value: 'views', label: 'Page views', metric: 'Retained metric', content: 'Retained chart payload' };
+  const props = { label: 'Report metrics', value: 'views', onValueChange() {} };
+  assert.match(render(h(MetricTabs, { ...props, items: [item] })), /Retained chart payload/);
+  const html = render(h(MetricTabs, { ...props, items: [{ ...item, unavailableReason: 'History is no longer available' }] }));
+  assert.match(html, /aria-selected="true" aria-disabled="true"/);
+  assert.match(html, /role="status">History is no longer available/);
+  assert.doesNotMatch(html, /Retained metric|Retained chart payload/);
+});
+
+
+const queueGroups = [{ id: 'terms', label: 'Campaign terms', provenance: 'Retained report', items: [
+  { id: 'one', label: 'Search phrase', state: 'suggested', description: 'App supplied detail', editor: h(Input, { name: 'queue-editor', defaultValue: 'Draft phrase' }), edited: true },
+  { id: 'two', label: 'Other phrase', state: 'suggested' },
+  { id: 'three', label: 'Accepted phrase', state: 'accepted', provenance: 'Observation 17' },
+  { id: 'four', label: 'Old phrase', state: 'dismissed' },
+] }];
+
+test('SuggestionQueue retains controlled states, all-item totals, provenance and native named actions', () => {
+  let calls = 0;
+  const html = render(h(SuggestionQueue, { label: 'Review suggestions', groups: queueGroups, onStateChange: () => calls++ }));
+  assert.match(html, /aria-label="Review suggestions"/);
+  assert.match(html, /role="status" aria-live="polite" aria-atomic="true"><bdi>1 of 4 accepted; 2 suggested; 1 dismissed\./);
+  assert.match(html, /<p><bdi>1 of 4 accepted<\/bdi><\/p>/);
+  assert.match(html, /Retained report/); assert.match(html, /Observation 17/);
+  assert.match(html, /Suggested/); assert.match(html, /Accepted/); assert.match(html, /Edited/);
+  assert.match(html, /name="queue-editor"/);
+  for (const name of ['Accept all in Campaign terms', 'Dismiss all in Campaign terms', 'Accept Search phrase', 'Dismiss Accepted phrase', 'Restore Old phrase']) assert.ok(html.includes(`aria-label="${name}"`));
+  assert.doesNotMatch(html, /aria-label="Accept Accepted phrase"/);
+  for (const button of html.matchAll(/<button\b[^>]*>/g)) assert.match(button[0], /type="button"/);
+  assert.doesNotMatch(html, /<form|role="listbox"/);
+  assert.equal(calls, 0);
+});
+
+test('SuggestionQueue keeps dismissed items in a closed shared Disclosure with Restore', () => {
+  const html = render(h(SuggestionQueue, { label: 'Review suggestions', groups: queueGroups, onStateChange() {} }));
+  const details = html.match(/<details\b[\s\S]*?<\/details>/)[0];
+  assert.doesNotMatch(details.match(/^<details[^>]*>/)[0], / open/);
+  assert.match(details, /<summary[^>]*>[\s\S]*Dismissed \(1\)/);
+  assert.match(details, /data-state="dismissed"/);
+  assert.match(details, /aria-label="Restore Old phrase"/);
+  assert.doesNotMatch(details, /aria-label="Dismiss Old phrase"|aria-label="Accept Old phrase"/);
+});
+
+test('SuggestionQueue read-only and missing callbacks withhold actions and editor slots, not review evidence', () => {
+  for (const props of [{ readOnly: true, onStateChange() {} }, {}]) {
+    const html = render(h(SuggestionQueue, { label: 'Review suggestions', groups: queueGroups, readOnlyReason: 'Only editors can change suggestions.', ...props }));
+    assert.doesNotMatch(html, /<button|queue-editor/);
+    assert.match(html, /Only editors can change suggestions\./);
+    assert.match(html, /Search phrase/); assert.match(html, /Accepted phrase/);
+    assert.match(html, /Observation 17/); assert.match(html, /Edited/);
+    assert.match(html, /Dismissed \(1\)/);
+  }
+});
+
+test('SuggestionQueue handles an empty queue and retains empty group labels and provenance', () => {
+  const html = render(h(SuggestionQueue, { label: 'Review suggestions', groups: [{ id: 'empty', label: 'Locations', provenance: 'No retained observations', items: [] }], emptyMessage: 'Nothing to review.' }));
+  assert.match(html, /0 of 0 accepted; 0 suggested; 0 dismissed\./);
+  assert.match(html, /Nothing to review\./); assert.match(html, /Locations/); assert.match(html, /No retained observations/);
+  assert.doesNotMatch(html, /<button|<details|<ul/);
+  assert.match(render(h(SuggestionQueue, { label: 'Empty queue', groups: [], emptyMessage: 'No groups to review.' })), /No groups to review\./);
+});
+
+
+test('Sheet reuses Dialog semantics, named header actions and each inline-end width', () => {
+  for (const width of ['sm', 'md', 'lg']) {
+    const html = render(h(Sheet, { open: true, onClose() {}, width, title: 'Edit campaign', description: 'App supplied scope', actions: h(Button, { type: 'button' }, 'Header action'), footer: h(Button, { type: 'button' }, 'Footer action') }, h(Input, { name: 'campaign', defaultValue: 'Retained draft' })));
+    assert.match(html, /^<dialog/); assert.match(html, /aria-modal="true"/);
+    assert.ok(html.includes(`t98-sheet--${width}`));
+    assert.match(html, /aria-labelledby="[^"]+-title" aria-describedby="[^"]+-description"/);
+    assert.match(html, /<h2[^>]*>Edit campaign<\/h2>/);
+    assert.match(html, /t98-dialog-header-actions/);
+    assert.doesNotMatch(html.match(/<h2[\s\S]*?<\/h2>/)[0], /<button/);
+    assert.match(html, /Header action/); assert.match(html, /Footer action/);
+    assert.match(html, /name="campaign"[^>]*value="Retained draft"/);
+    assert.match(html, /<legend[^>]*><span class="t98-visually-hidden">Details<\/span><\/legend>/);
+  }
+});
+
+test('Sheet busy and unconfirmed states lock closing and editor fields while keeping header recovery outside them', () => {
+  for (const props of [{ busy: true }, { unconfirmed: 'The outcome has not been confirmed.' }, { unconfirmed: true }]) {
+    const html = render(h(Sheet, { open: true, onClose() {}, title: 'Edit campaign', onSubmit() {}, recovery: h(Button, { type: 'button' }, 'Check save status'), ...props }, h(Input, { name: 'editor' })));
+    const close = html.match(/<button[^>]*aria-label="Close dialog"[^>]*>/)[0];
+    assert.match(close, /disabled=""/);
+    assert.match(html, /<fieldset[^>]*disabled=""/);
+    const recoveryAt = html.indexOf('Check save status');
+    assert.ok(recoveryAt > 0 && recoveryAt < html.indexOf('<form'));
+    assert.match(html, /<form class="t98-dialog-form"/);
+    if (props.busy) assert.match(html, /Saving changes…/);
+    else assert.match(html, /Save status unknown/);
+  }
+});
+
+test('Sheet errors remain app supplied and do not lock a retryable editor or imply a save outcome', () => {
+  let closes = 0, submits = 0;
+  const html = render(h(Sheet, { open: true, modal: false, onClose: () => closes++, onSubmit: () => submits++, title: 'Edit campaign', unconfirmed: false, error: 'Please revise the name.', footer: h(Button, { type: 'submit', name: 'intent', value: 'save' }, 'Save') }, h(Input, { name: 'campaign' })));
+  assert.match(html, /aria-modal="false"/);
+  assert.match(html, /role="alert"/); assert.match(html, /Please revise the name\./);
+  assert.doesNotMatch(html, /disabled=""|Saving changes|Save status unknown/);
+  assert.equal((html.match(/<form\b/g) ?? []).length, 1);
+  const submit = html.match(/<button[^>]*type="submit"[^>]*>/)[0];
+  for (const attribute of ['name="intent"', 'value="save"']) assert.ok(submit.includes(attribute));
+  assert.equal(closes, 0); assert.equal(submits, 0);
+});
+
+test('Sheet defaults to medium width and honors an explicit close lock', () => {
+  const html = render(h(Sheet, { open: false, onClose() {}, closeDisabled: true, title: 'Details' }, 'Editor content'));
+  assert.match(html, /t98-sheet--md/);
+  assert.match(html.match(/<button[^>]*aria-label="Close dialog"[^>]*>/)[0], /disabled=""/);
+  assert.doesNotMatch(html, /<dialog[^>]*\bopen=/);
+  assert.ok(styles.includes('.t98-sheet[open]'));
+});
+
+
+test('Sheet offsets only modeless panels while preserving caller styles', () => {
+  for (const topInset of [72, 'var(--t98-header-height)']) {
+    const html = render(h(Sheet, { open: true, modal: false, onClose() {}, title: 'Details', topInset, style: { color: 'red', insetBlockStart: '999px' } }, 'Editor content'));
+    assert.match(html, /aria-modal="false"/);
+    assert.match(html, /color:red/);
+    assert.ok(html.includes(`inset-block-start:${typeof topInset === 'number' ? topInset + 'px' : topInset}`));
+    assert.doesNotMatch(html, /999px/);
+  }
+  const modal = render(h(Sheet, { open: true, onClose() {}, title: 'Details', topInset: 72, style: { color: 'blue' } }, 'Editor content'));
+  assert.match(modal, /aria-modal="true"/);
+  assert.match(modal, /color:blue/);
+  assert.doesNotMatch(modal, /inset-block-start/);
 });

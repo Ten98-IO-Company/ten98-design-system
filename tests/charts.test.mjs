@@ -220,3 +220,34 @@ test('series beyond five keep distinct line styles, and foldChartSeries folds th
   assert.deepEqual(foldChartSeries([mk('a', [null]), mk('b', [null]), mk('c', [null])], 1)[1].points[0], { x: 0, xLabel: 'D0', y: null, state: 'unavailable' });
   assert.equal(foldChartSeries(six.slice(0, 5), 4).length, 5);
 });
+
+test('chart height keeps its default, accepts explicit pixels and sanitizes unusable values', () => {
+  for (const height of [undefined, 0, -1, NaN, Infinity]) assert.match(chart('line', { height }), /height="240" viewBox="0 0 640 240"/);
+  assert.match(chart('line', { height: 320 }), /height="320" viewBox="0 0 640 320"/);
+  assert.match(chart('line', { height: 1 }), /height="120" viewBox="0 0 640 120"/);
+  assert.doesNotMatch(chart('stacked-bars', { height: 120, series: [{ id: 'net', label: 'Net', points: [point(1, -5), point(2, 3)] }] }), /NaN|Infinity/);
+});
+
+test('bare charts retain their semantic name, descriptions, notices and complete data table', () => {
+  const html = chart('line', { bare: true, notice: 'Partial report' });
+  assert.match(html, /class="t98-chart t98-chart--bare"/);
+  assert.match(html, /<figcaption class="t98-chart-caption t98-visually-hidden"><strong>Visits<\/strong>/);
+  assert.match(html, /class="t98-chart-summary t98-visually-hidden">Visits dipped on day 2\./);
+  assert.match(html, /class="t98-chart-stats t98-visually-hidden"/);
+  assert.match(html, /role="img" aria-label="Visits" aria-describedby="[^"]+"/);
+  assert.match(html, /role="note">Partial report/);
+  assert.match(html, /View data table/);
+  assert.match(html, /<th scope="row">Day 4<\/th>/);
+  assert.match(html, /<td[^>]*>Unavailable<\/td>/);
+  assert.doesNotMatch(html, /role="tooltip"/);
+  assert.ok(styles.includes('.t98-chart--bare'));
+  assert.ok(styles.includes('.t98-chart-tooltip'));
+});
+
+test('a clean single series omits its redundant legend while comparison and data-state keys remain', () => {
+  const clean = [{ id: 'v', label: 'Visits', points: [point(1, 0), point(2, 12)] }];
+  assert.doesNotMatch(chart('line', { series: clean }), /class="t98-chart-legend"/);
+  assert.match(chart('line', { series: [...clean, { ...clean[0], id: 'previous', label: 'Previous', role: 'comparison' }] }), /Previous \(comparison, outlined\)/);
+  assert.match(chart('line'), /Dashed ring: partial data/);
+  assert.match(chart('line'), /Hatched: unavailable, not zero/);
+});

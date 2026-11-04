@@ -21,6 +21,19 @@
       document.addEventListener('DOMContentLoaded', () => document.head.append(baseline), { once: true });
     }
   </script>
+  <script type="module">
+    import tokenStyles from '@ten98/ui/tokens.css?inline';
+    import bundledStyles from '@ten98/ui/styles.css?inline';
+    if (new URLSearchParams(location.search).has('shadows')) {
+      for (const [entry, css] of [['tokens.css', tokenStyles], ['styles.css', bundledStyles]]) {
+        const frame = document.createElement('iframe');
+        frame.title = `Shadow ${entry}`;
+        const probes = ['', '-raised', '-popover', '-dialog', '-panel'].map(suffix => `<div data-shadow="${suffix || 'base'}" style="box-shadow:var(--t98-shadow${suffix});width:40px;height:8px"></div>`).join('');
+        frame.srcdoc = `<!doctype html><html><head><style>${css}</style></head><body><div id="outer" data-theme="dark"><div id="inner" data-theme="light">${probes}</div></div></body></html>`;
+        document.body.append(frame);
+      }
+    }
+  </script>
 </head>
 <body>
   <section class="workspace-main" aria-label="Synthetic workspace">

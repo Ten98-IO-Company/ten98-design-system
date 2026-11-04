@@ -66,6 +66,8 @@ export const chartEntries: ComponentEntry[] = [
       prop('kind', "'bars' | 'grouped-bars' | 'stacked-bars' | 'line' | 'area'", 'Drawing style. Stacked negatives extend below the baseline.', true),
       prop('series', 'ChartSeries[]', 'Series with points { x, xLabel, y, state, note }; y may be null. A comparison series is outlined, not filled.', true),
       prop('context', 'ReactNode', 'Date range, filters or units beside the label.'),
+      prop('height', 'number', 'Plot height in pixels; finite positive values have a 120px minimum. Invalid values use the default.', false, '240'),
+      prop('bare', 'boolean', 'Omit visible frame, caption, summary and statistics while retaining accessible descriptions, state notices and the data table.', false, 'false'),
       prop('xScale', "'band' | 'linear'", 'Even spacing by position, or placement by x (with xDomain).', false, "'band'"),
       prop('xDomain', 'readonly [number, number]', 'Range of x for a linear scale.'),
       prop('formatY', '(value: number) => string', 'Formats axis ticks, announcements, the table and the computed statistics.'),

@@ -1,6 +1,6 @@
 'use client';
 
-import { Children, Fragment, useEffect, useId, useMemo, useRef, useState, type HTMLAttributes, type KeyboardEvent, type MouseEvent, type ReactNode, type RefObject, type SyntheticEvent } from 'react';
+import { Children, Fragment, useCallback, useEffect, useId, useMemo, useRef, useState, type HTMLAttributes, type KeyboardEvent, type MouseEvent, type ReactNode, type RefObject, type SyntheticEvent } from 'react';
 import { Badge, Button, Icon, Input, cx } from './primitives.js';
 import { Pager, StatusLine } from './controls.js';
 import { extent, linearScale, segments } from './chart-scale.js';
@@ -544,6 +544,10 @@ export interface AppShellProps {
   header?: ReactNode;
   /** Usually an `AppTopbar`; rendered in a header landmark outside `main`. */
   topbar?: ReactNode;
+  /** Reports the outer header's visible bottom as non-negative CSS pixels for `Sheet topInset`.
+   * Header and Sheet must share effective CSS zoom and have no CSS transforms. Reports 0 without a header;
+   * omitting this callback disables measurement and event listeners. */
+  onHeaderBottomChange?: (bottom: number) => void;
   /** Stack of `Banner`s above the main content. */
   banners?: ReactNode;
   /** Adds the mobile drawer (focus trap, Escape, shade) and shares its state with `AppTopbar menuToggle`. */
@@ -561,8 +565,55 @@ type FrameProps = Omit<AppShellProps, 'navigation'> & {
   drawer?: { closeLabel: string; modal: boolean; close: () => void };
 };
 
-function ShellFrame({ sidebar, header, topbar, banners, sidebarLabel = 'Application navigation', skipLinkLabel = 'Skip to content', mainLabel, children, mainId, asideProps, workspaceProps, drawer }: FrameProps) {
+function ShellFrame({ sidebar, header, topbar, onHeaderBottomChange, banners, sidebarLabel = 'Application navigation', skipLinkLabel = 'Skip to content', mainLabel, children, mainId, asideProps, workspaceProps, drawer }: FrameProps) {
   const main = useRef<HTMLElement>(null);
+  const headerElement = useRef<HTMLElement | null>(null);
+  const setHeaderElement = useCallback((element: HTMLElement | null) => { headerElement.current = element; }, []);
+  const headerCallback = useRef(onHeaderBottomChange);
+  useEffect(() => { headerCallback.current = onHeaderBottomChange; }, [onHeaderBottomChange]);
+  const headerKind = topbar ? 'topbar' : header ? 'header' : 'none';
+  const measureHeader = Boolean(onHeaderBottomChange);
+  useEffect(() => {
+    if (!measureHeader) return;
+    const element = headerElement.current;
+    let active = true;
+    let frame: number | undefined;
+    let previous: number | undefined;
+    const measure = () => {
+      frame = undefined;
+      if (!active) return;
+      let bottom = 0;
+      if (element) {
+        const rect = element.getBoundingClientRect();
+        const style = window.getComputedStyle(element);
+        const cssHeight = Number.parseFloat(style.height) + (style.boxSizing === 'border-box' ? 0 :
+          Number.parseFloat(style.paddingTop) + Number.parseFloat(style.paddingBottom) +
+          Number.parseFloat(style.borderTopWidth) + Number.parseFloat(style.borderBottomWidth));
+        const zoom = Number.isFinite(cssHeight) && cssHeight > 0 && rect.height > 0 ? rect.height / cssHeight : 1;
+        bottom = Math.max(0, rect.bottom / zoom);
+      }
+      if (bottom !== previous) { previous = bottom; headerCallback.current?.(bottom); }
+    };
+    if (!element) { measure(); return () => { active = false; }; }
+    const queue = () => { if (active && frame === undefined) frame = window.requestAnimationFrame(measure); };
+    const observer = typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(queue);
+    observer?.observe(element, { box: 'border-box' });
+    const viewport = window.visualViewport;
+    window.addEventListener('resize', queue);
+    window.addEventListener('scroll', queue, { capture: true, passive: true });
+    viewport?.addEventListener('resize', queue);
+    viewport?.addEventListener('scroll', queue, { passive: true });
+    queue();
+    return () => {
+      active = false;
+      if (frame !== undefined) window.cancelAnimationFrame(frame);
+      observer?.disconnect();
+      window.removeEventListener('resize', queue);
+      window.removeEventListener('scroll', queue, true);
+      viewport?.removeEventListener('resize', queue);
+      viewport?.removeEventListener('scroll', queue);
+    };
+  }, [measureHeader, headerKind]);
   /* Skip link per the WCAG G1 technique, with the focus-the-target refinement from the APG landmark guidance.
    * The href stays as the no-JS fallback only. Every JS activation (click, Enter, Ctrl/Meta/Shift click, middle click)
    * is cancelled and main is focused instead, so the URL hash, which apps use for capability tokens, is never rewritten. */
@@ -576,7 +627,7 @@ function ShellFrame({ sidebar, header, topbar, banners, sidebarLabel = 'Applicat
     </aside>
     {drawer?.modal && <div className="t98-shell-shade" aria-hidden="true" onClick={drawer.close} />}
     <div {...workspaceProps} className="t98-shell-workspace">
-      {topbar ? <header className="t98-shell-header t98-shell-header--topbar">{topbar}</header> : header && <div className="t98-shell-header">{header}</div>}
+      {topbar ? <header ref={setHeaderElement} className="t98-shell-header t98-shell-header--topbar">{topbar}</header> : header && <div ref={setHeaderElement} className="t98-shell-header">{header}</div>}
       {banners && <div className="t98-shell-banners">{banners}</div>}
       <main ref={main} className="t98-shell-main" id={mainId} tabIndex={-1} aria-label={mainLabel}>{children}</main>
     </div>

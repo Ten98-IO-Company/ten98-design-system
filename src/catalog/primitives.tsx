@@ -5,6 +5,7 @@ import {
 } from '../lib/primitives.js';
 import { tsx, type ComponentEntry, type ComponentState } from './model.js';
 import primitivesSource from '../lib/primitives.tsx?raw';
+import { Sheet } from '../lib/sheet.js';
 
 const controlTokens = ['--t98-font', '--t98-control-height', '--t98-control-border', '--t98-radius', '--t98-surface', '--t98-text', '--t98-muted', '--t98-accent', '--t98-danger'];
 const tones = ['neutral', 'accent', 'success', 'warning', 'danger', 'info'] as const;
@@ -105,6 +106,44 @@ function DialogPreview({ pending = false }: { pending?: boolean }) {
 
 function dialogCode(pending = false) {
   return tsx(['Button', 'Dialog', 'Field', 'Input'], `<>\n  <Button onClick={() => { setBusy(${pending}); setOpen(true); }}>Open dialog</Button>\n  <Dialog\n    open={open}\n    onOpenChange={setOpen}\n    title="Edit project"\n    description="Dialog state belongs to the application."\n    closeDisabled={busy}\n    footer={busy\n      ? <Button onClick={() => setBusy(false)}>Finish simulated save</Button>\n      : <Button variant="secondary" onClick={() => setOpen(false)}>Done</Button>}\n  >\n    {busy\n      ? <p role="status">Simulated save is pending. Finish it to enable dismissal.</p>\n      : <Field htmlFor={id} label="Project name"><Input defaultValue="Launch campaign" /></Field>}\n  </Dialog>\n</>`, 'const [open, setOpen] = useState(false);\nconst [busy, setBusy] = useState(false);\nconst id = useId();', ['useState', 'useId']);
+}
+
+type SheetMode = 'default' | 'dirty' | 'busy' | 'unconfirmed' | 'modeless';
+
+function SheetPreview({ mode = 'default' }: { mode?: SheetMode }) {
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState('Launch campaign');
+  const [busy, setBusy] = useState(false);
+  const [unconfirmed, setUnconfirmed] = useState(false);
+  const [error, setError] = useState('');
+  const id = useId();
+  return <>
+    <Button onClick={() => { setBusy(mode === 'busy'); setUnconfirmed(mode === 'unconfirmed'); setError(''); setOpen(true); }}>Open editor</Button>
+    <Sheet open={open} onClose={() => setOpen(false)} title="Edit campaign" description="The list stays in view while you inspect this campaign."
+      modal={mode !== 'modeless'} dirty={mode === 'dirty' && draft !== 'Launch campaign'} busy={busy}
+      unconfirmed={unconfirmed ? 'The last save has not been confirmed. Check its status before editing or closing.' : undefined} error={error || undefined}
+      recovery={busy ? <Button onClick={() => setBusy(false)}>Finish simulated save</Button> : unconfirmed ? <Button onClick={() => setUnconfirmed(false)}>Check save status</Button> : undefined}
+      onSubmit={() => setError('Example validation error: the draft remains available.')} footer={<Button type="submit">Save campaign</Button>}>
+      <Field htmlFor={id} label="Campaign name"><Input id={id} name="campaign" value={draft} onChange={event => setDraft(event.target.value)} /></Field>
+    </Sheet>
+  </>;
+}
+
+function sheetCode(mode: SheetMode = 'default') {
+  return tsx(['Button', 'Field', 'Input', 'Sheet'], `<>
+  <Button onClick={() => { setBusy(${mode === 'busy'}); setUnconfirmed(${mode === 'unconfirmed'}); setError(''); setOpen(true); }}>Open editor</Button>
+  <Sheet open={open} onClose={() => setOpen(false)} title="Edit campaign"
+    description="The list stays in view while you inspect this campaign."
+    modal={${mode !== 'modeless'}} dirty={${mode === 'dirty' ? "draft !== 'Launch campaign'" : 'false'}} busy={busy}
+    unconfirmed={unconfirmed ? 'The last save has not been confirmed. Check its status before editing or closing.' : undefined}
+    error={error || undefined}
+    recovery={busy ? <Button onClick={() => setBusy(false)}>Finish simulated save</Button> : unconfirmed ? <Button onClick={() => setUnconfirmed(false)}>Check save status</Button> : undefined}
+    onSubmit={() => setError('Example validation error: the draft remains available.')}
+    footer={<Button type="submit">Save campaign</Button>}
+  >
+    <Field htmlFor={id} label="Campaign name"><Input id={id} name="campaign" value={draft} onChange={event => setDraft(event.target.value)} /></Field>
+  </Sheet>
+</>`, "const [open, setOpen] = useState(false);\nconst [draft, setDraft] = useState('Launch campaign');\nconst [busy, setBusy] = useState(false);\nconst [unconfirmed, setUnconfirmed] = useState(false);\nconst [error, setError] = useState('');\nconst id = useId();", ['useState', 'useId']);
 }
 
 const regionOptions = [
@@ -318,10 +357,11 @@ export const primitiveEntries: ComponentEntry[] = [
     ],
   },
   {
-    name: 'Dialog', category: 'Feedback', description: 'A controlled native modal dialog with a title, optional description and footer.',
+    name: 'Dialog', category: 'Feedback', description: 'A controlled native dialog with a title, optional description and footer.',
     usage: 'Open from an explicit launcher. The application owns drafts, submit handling and pending state. Use ConfirmDialog for its built-in typed confirmation and async confirmation flow.',
     props: [
-      { name: 'open', type: 'boolean', required: true, description: 'Desired native modal state. Open dialogs enter the browser top layer.' },
+      { name: 'open', type: 'boolean', required: true, description: 'Desired native dialog state. Modal dialogs enter the browser top layer.' },
+      { name: 'modal / actions', type: 'boolean / ReactNode', description: 'Modal defaults to true. False keeps the background interactive. Optional header actions sit outside the title and form. Native dialog style accepts React CSSProperties.' },
       { name: 'onOpenChange', type: '(open: boolean) => void', required: true, description: 'Close request callback from close button, Escape, backdrop or native close. Update app state.' },
       { name: 'title', type: 'ReactNode', required: true, description: 'Visible h2 associated as the dialog’s accessible name.' },
       { name: 'description', type: 'ReactNode', description: 'Supporting paragraph associated through aria-describedby.' },
@@ -341,6 +381,33 @@ export const primitiveEntries: ComponentEntry[] = [
     states: [
       { name: 'Closed → open → closed', description: 'Use the launcher to see a real modal, then Done, Escape, backdrop or the close button to close it. Focus returns to the launcher.', preview: <DialogPreview />, code: dialogCode() },
       { name: 'Pending close disabled', description: 'Open a simulated pending state. Close button, Escape and backdrop are blocked until Finish simulated save restores them. No request or data mutation is made.', preview: <DialogPreview pending />, code: dialogCode(true) },
+    ],
+  },
+  {
+    name: 'Sheet', category: 'Feedback', description: 'An inline-end inspection or editing panel built on the shared native Dialog.',
+    usage: 'Open from a row or an explicit launcher. The app owns open state, drafts, save results and recovery. Keep the panel mounted and open while a save is pending or unconfirmed; handle domain errors in the submit callback and render them through error. It never closes automatically after submission.',
+    props: [
+      { name: 'open / onClose', type: 'boolean / (() => void)', required: true, description: 'Controlled visibility and guarded dismissal request. Parent state changes can still close or unmount the panel.' },
+      { name: 'title / description', type: 'ReactNode / ReactNode', description: 'Required visible title supplies the accessible dialog name; optional description supplies supporting context.' },
+      { name: 'children / footer / actions', type: 'ReactNode', description: 'Labelled editor content, optional footer and header controls. Header controls sit outside the form.' },
+      { name: 'width', type: "'sm' | 'md' | 'lg'", defaultValue: "'md'", description: '400, 560 or 720px on desktop. Below 600px the sheet fills the viewport.' },
+      { name: 'modal', type: 'boolean', defaultValue: 'true', description: 'Native modal focus containment by default. False permits editing the background; Escape closes only when focus is inside the sheet. The panel sits above sticky content and below shell popovers.' },
+      { name: 'topInset', type: "CSSProperties['insetBlockStart']", defaultValue: '0', description: 'Nonmodal panels only: offset below the actual app header boundary, for example a measured height or a CSS length/token. Keep global navigation reachable. Modal placement stays full height.' },
+      { name: 'busy', type: 'boolean', defaultValue: 'false', description: 'App-owned save pending state: locks editing, submission and every user/native close path.' },
+      { name: 'unconfirmed', type: 'ReactNode', description: 'Content other than null, undefined or false explains an unknown save outcome and locks editing, submission and dismissal until the app resolves it.' },
+      { name: 'error / recovery', type: 'ReactNode', description: 'App-owned error stays in the panel. Recovery controls remain enabled in the header outside disabled editor and pending form fieldsets.' },
+      { name: 'onSubmit', type: '(data: FormData, event) => void | Promise<void>', description: 'Uses Dialog single-flight submission with the exact submitter. The app handles failures and sets visible error/unconfirmed state; resolution does not dismiss the sheet.' },
+      { name: 'dirty / discardMessage / onBeforeClose / closeDisabled / restoreFocus', type: 'DialogProps', description: 'Inherits the maintained Dialog discard prompt, close veto, explicit lock and focus restoration contracts. Dirty prompts cannot discard while busy or unconfirmed.' },
+    ], nativeProps: 'Inherits Dialog props except size and onOpenChange. No provider, persistence, request classification or cost behavior.',
+    tokens: ['--t98-font', '--t98-surface', '--t98-text', '--t98-muted', '--t98-border', '--t98-overlay'],
+    accessibility: ['Native named dialog; modal mode contains focus and closing restores the launcher or explicit restoreFocus target.', 'Header and footer stay visible while the body scrolls. Actions retain 44px targets at narrow widths.', 'Closing a dirty draft asks before discarding. Supply an available recovery action when saving or confirmation blocks dismissal.'],
+    related: ['Dialog', 'Field', 'Button', 'Alert'], example: sheetCode(),
+    states: [
+      { name: 'Inspect and edit', description: 'Open the panel, edit the draft and submit to see an app-owned error without dismissal.', preview: <SheetPreview />, code: sheetCode() },
+      { name: 'Unsaved draft', description: 'Change the campaign name, then close to inspect the discard guard.', preview: <SheetPreview mode="dirty" />, code: sheetCode('dirty') },
+      { name: 'Pending save', description: 'Editor and dismissal stay locked until the header recovery action ends this simulation.', preview: <SheetPreview mode="busy" />, code: sheetCode('busy') },
+      { name: 'Unconfirmed save', description: 'Keep the exact draft while the app checks the last save outcome.', preview: <SheetPreview mode="unconfirmed" />, code: sheetCode('unconfirmed') },
+      { name: 'Nonmodal panel', description: 'The background stays interactive and keyboard focus can leave the panel.', preview: <SheetPreview mode="modeless" />, code: sheetCode('modeless') },
     ],
   },
   {

@@ -2,7 +2,7 @@
 
 import {
   Children, cloneElement, forwardRef, isValidElement, useEffect, useId, useRef, useState,
-  type ButtonHTMLAttributes, type ComponentType, type FormEvent, type MouseEvent, type HTMLAttributes, type InputHTMLAttributes,
+  type ButtonHTMLAttributes, type ComponentType, type CSSProperties, type FormEvent, type MouseEvent, type HTMLAttributes, type InputHTMLAttributes,
   type OptgroupHTMLAttributes, type OptionHTMLAttributes, type ReactElement, type ReactNode, type SelectHTMLAttributes,
   type SVGProps, type TextareaHTMLAttributes,
 } from 'react';
@@ -273,7 +273,11 @@ export function Tabs({ items, value, onValueChange, label = 'Sections', classNam
   </div>{items.map((item, index) => (keepMounted || active === item.value) && <div key={item.value} role="tabpanel" id={`${id}-panel-${index}`} aria-labelledby={`${id}-tab-${index}`} hidden={active !== item.value} tabIndex={0} className="t98-tab-panel">{item.content}</div>)}</div>;
 }
 
-export interface DialogProps { open: boolean; onOpenChange: (open: boolean) => void; title: ReactNode; description?: ReactNode; children: ReactNode; footer?: ReactNode; className?: string; closeDisabled?: boolean;
+export interface DialogProps { open: boolean; onOpenChange: (open: boolean) => void; title: ReactNode; description?: ReactNode; children: ReactNode; footer?: ReactNode; className?: string; style?: CSSProperties; closeDisabled?: boolean;
+  /** Native modal dialog by default; false permits interaction with the background. */
+  modal?: boolean;
+  /** Header controls beside the close button, outside the title and form fieldsets. */
+  actions?: ReactNode;
   /** Called before Escape, backdrop and close-button closes; return false to keep the dialog open (for example to show a discard prompt). */
   onBeforeClose?: (reason: DialogCloseReason) => boolean | void;
   /** Short context above the title, for example the record being edited. Sentence case, not a label. */
@@ -290,54 +294,104 @@ export interface DialogProps { open: boolean; onOpenChange: (open: boolean) => v
   restoreFocus?: () => HTMLElement | null | undefined }
 export type DialogCloseReason = 'escape' | 'backdrop' | 'close-button';
 /* Behaviour follows the WAI-ARIA APG Modal Dialog pattern and react-aria's useOverlay close interception (Apache-2.0); no code is copied. */
-export function Dialog({ open, onOpenChange, title, description, children, footer, className, closeDisabled = false, onBeforeClose, eyebrow, onSubmit, restoreFocus, dirty = false, discardMessage = 'Your changes have not been saved.', size = 'default' }: DialogProps) {
+export function Dialog({ open, onOpenChange, title, description, children, footer, className, style, closeDisabled = false, modal = true, actions, onBeforeClose, eyebrow, onSubmit, restoreFocus, dirty = false, discardMessage = 'Your changes have not been saved.', size = 'default' }: DialogProps) {
   const id = useId();
   const ref = useRef<HTMLDialogElement>(null);
   const trigger = useRef<HTMLElement | null>(null);
+  const opened = useRef(false);
   const [submitting, setSubmitting] = useState(false);
   const submitLock = useRef(false);
   const [confirmingDiscard, setConfirmingDiscard] = useState(false);
   const keepEditing = useRef<HTMLButtonElement>(null);
+  const discardOrigin = useRef<HTMLElement | null>(null);
+  const returningFromDiscard = useRef(false);
   const locked = closeDisabled || submitting;
   useEffect(() => { if (!open) setConfirmingDiscard(false); }, [open]);
-  useEffect(() => { if (confirmingDiscard) keepEditing.current?.focus(); }, [confirmingDiscard]);
+  useEffect(() => {
+    if (confirmingDiscard) keepEditing.current?.focus();
+    else if (returningFromDiscard.current) {
+      returningFromDiscard.current = false;
+      const active = document.activeElement;
+      if (!active || active === document.body) focusEditor();
+    }
+  }, [confirmingDiscard]);
   useEffect(() => {
     const dialog = ref.current;
     if (!dialog) return;
-    if (open && !dialog.open) {
-      trigger.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-      dialog.showModal();
-    } else if (!open && dialog.open) dialog.close();
-  }, [open]);
-  useEffect(() => () => { trigger.current?.focus(); }, []);
+    if (open) {
+      if (!dialog.open) {
+        if (!opened.current) trigger.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+        opened.current = true;
+        showDialog(dialog);
+      } else if (dialog.matches(':modal') !== modal) {
+        const active = dialog.contains(document.activeElement) ? document.activeElement as HTMLElement : null;
+        dialog.close();
+        showDialog(dialog);
+        if (active?.isConnected && !active.matches(':disabled')) active.focus();
+      }
+    } else {
+      opened.current = false;
+      if (dialog.open) dialog.close();
+    }
+  }, [open, modal]);
+  useEffect(() => () => {
+    const active = document.activeElement;
+    if (!active || active === document.body || ref.current?.contains(active)) trigger.current?.focus();
+  }, []);
+  function showDialog(dialog: HTMLDialogElement) {
+    if (modal) dialog.showModal(); else dialog.show();
+  }
+  function focusEditor() {
+    const dialog = ref.current;
+    if (!dialog) return;
+    const candidates = [discardOrigin.current, ...dialog.querySelectorAll<HTMLElement>('.t98-dialog-body [autofocus], .t98-dialog-body input, .t98-dialog-body select, .t98-dialog-body textarea, .t98-dialog-body button, .t98-dialog-body a[href], .t98-dialog-body [tabindex]:not([tabindex="-1"]), .t98-dialog-header button')];
+    candidates.find(element => element?.isConnected && !element.matches(':disabled') && element.getClientRects().length > 0)?.focus();
+  }
+  function keepDraft() {
+    returningFromDiscard.current = true;
+    setConfirmingDiscard(false);
+  }
   function requestClose(reason: DialogCloseReason) {
     if (locked) return;
-    // While the discard prompt is open, Escape and the close button mean "keep editing", never a silent discard.
-    if (confirmingDiscard) { setConfirmingDiscard(false); return; }
+    // While the discard prompt is open, closing means keep editing, never discard.
+    if (confirmingDiscard) { keepDraft(); return; }
     if (onBeforeClose?.(reason) === false) {
-      const dialog = ref.current;
-      if (dialog && !dialog.contains(document.activeElement)) dialog.querySelector<HTMLElement>('[autofocus], input, select, textarea, button:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])')?.focus();
+      if (modal && ref.current && !ref.current.contains(document.activeElement)) focusEditor();
       return;
     }
-    if (dirty) { setConfirmingDiscard(true); return; }
+    if (dirty) {
+      const active = document.activeElement;
+      discardOrigin.current = active instanceof HTMLElement && ref.current?.querySelector('.t98-dialog-body')?.contains(active) ? active : null;
+      setConfirmingDiscard(true);
+      return;
+    }
     onOpenChange(false);
   }
-  return <dialog ref={ref} className={cx('t98-dialog', size === 'wide' && 't98-dialog--wide', className)} aria-labelledby={`${id}-title`} aria-describedby={description ? `${id}-description` : undefined} onCancel={event => { event.preventDefault(); requestClose('escape'); }} onClose={() => {
-    // Chrome's close watcher closes the dialog without a cancelable cancel event when Escape is pressed twice without
-    // other interaction. If the app still wants it open and guards closing, reopen it and ask the guard first.
+  const closeButton = <Button variant="ghost" aria-label="Close dialog" disabled={locked} className="t98-icon-button" onClick={() => requestClose('close-button')} icon={<Icon name="x" />} />;
+  return <dialog ref={ref} style={style} className={cx('t98-dialog', size === 'wide' && 't98-dialog--wide', className)} aria-modal={modal} aria-labelledby={`${id}-title`} aria-describedby={description ? `${id}-description` : undefined} onKeyDown={event => {
+    if (!modal && event.key === 'Escape' && !event.defaultPrevented) { event.preventDefault(); event.stopPropagation(); requestClose('escape'); }
+  }} onCancel={event => { event.preventDefault(); requestClose('escape'); }} onClose={() => {
     const dialog = ref.current;
-    if (open && (onBeforeClose || dirty) && dialog && !locked) {
-      dialog.showModal();
-      requestClose('escape');
+    // close() queues an event: a mode switch may already have reopened this element.
+    if (dialog?.open) return;
+    if (open && dialog && (locked || onBeforeClose || dirty || confirmingDiscard)) {
+      showDialog(dialog);
+      if (!locked) requestClose('escape');
       return;
     }
-    if (open) onOpenChange(false); (restoreFocus?.() ?? trigger.current)?.focus(); trigger.current = null;
-  }} onClick={event => { if (!closeDisabled && event.target === event.currentTarget) { const bounds = event.currentTarget.getBoundingClientRect(); if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) requestClose('backdrop'); } }}>
-    <div className="t98-dialog-header"><div>{eyebrow != null && <p className="t98-dialog-eyebrow">{eyebrow}</p>}<h2 id={`${id}-title`} className="t98-dialog-title">{title}</h2>{description && <p id={`${id}-description`} className="t98-dialog-description">{description}</p>}</div><Button variant="ghost" aria-label="Close dialog" disabled={locked} className="t98-icon-button" onClick={() => requestClose('close-button')} icon={<Icon name="x" />} /></div>
+    if (open) onOpenChange(false);
+    const active = document.activeElement;
+    const destination = restoreFocus?.();
+    if (destination) destination.focus();
+    else if (!active || active === document.body || dialog?.contains(active)) trigger.current?.focus();
+    trigger.current = null;
+    opened.current = false;
+  }} onClick={event => { if (!locked && event.target === event.currentTarget) { const bounds = event.currentTarget.getBoundingClientRect(); if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) requestClose('backdrop'); } }}>
+    <div className="t98-dialog-header"><div>{eyebrow != null && <p className="t98-dialog-eyebrow">{eyebrow}</p>}<h2 id={`${id}-title`} className="t98-dialog-title">{title}</h2>{description && <p id={`${id}-description`} className="t98-dialog-description">{description}</p>}</div>{actions != null ? <div className="t98-dialog-header-actions">{actions}{closeButton}</div> : closeButton}</div>
     {confirmingDiscard && <div className="t98-dialog-discard" role="alertdialog" aria-labelledby={`${id}-discard`} aria-describedby={`${id}-discard-message`}>
       <p className="t98-dialog-discard-title" id={`${id}-discard`}>Discard unsaved changes?</p>
       <p className="t98-dialog-discard-message" id={`${id}-discard-message`}>{discardMessage}</p>
-      <div className="t98-form-actions"><Button variant="danger" onClick={() => { setConfirmingDiscard(false); onOpenChange(false); }}>Discard changes</Button><Button ref={keepEditing} variant="secondary" onClick={() => setConfirmingDiscard(false)}>Keep editing</Button></div>
+      <div className="t98-form-actions"><Button variant="danger" disabled={locked} onClick={() => { if (locked) return; setConfirmingDiscard(false); onOpenChange(false); }}>Discard changes</Button><Button ref={keepEditing} variant="secondary" onClick={keepDraft}>Keep editing</Button></div>
     </div>}
     {onSubmit ? <form className="t98-dialog-form" aria-busy={submitting || undefined} onSubmit={event => {
       event.preventDefault();
