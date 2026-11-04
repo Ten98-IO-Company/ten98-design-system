@@ -24,6 +24,88 @@ async function doubleText(page: Page) {
 }
 const overflow = (page: Page) => page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
 
+for (const width of [1440, 320, 360]) {
+  test.describe(`legacy field at ${width}px`, () => {
+    test.use({ viewport: { width, height: 1000 }, hasTouch: width < 400, actionTimeout: 5000 });
+    test('keeps choice controls compact and text controls full width', async ({ page }, info) => {
+      const theme = info.project.name === 'narrow-dark' ? 'dark' : 'light';
+      const errors: string[] = [];
+      const externalRequests: string[] = [];
+      let requests = 0;
+      page.on('pageerror', error => errors.push(error.message));
+      page.on('request', request => {
+        requests++;
+        if (new URL(request.url()).origin !== new URL(info.project.use.baseURL!).origin) externalRequests.push(request.url());
+      });
+      await page.goto(`/tests/controls.html?theme=${theme}`);
+      const field = page.locator('#legacy-controls');
+      const capture = field.getByRole('checkbox', { name: 'Capture tags', exact: true });
+      await expect(capture).toBeVisible();
+      const geometry = await field.locator('input[type=checkbox],input[type=radio]').evaluateAll(inputs => inputs.map(input => {
+        const style = getComputedStyle(input), rect = input.getBoundingClientRect();
+        const label = input.closest('label')!, labelRect = label.getBoundingClientRect();
+        return { width: rect.width, height: rect.height, padding: style.padding, labelHeight: labelRect.height, labelWidth: labelRect.width };
+      }));
+      await info.attach('choice-geometry', { body: JSON.stringify({ width, theme, geometry }), contentType: 'application/json' });
+      await mkdir(evidence, { recursive: true });
+      await field.screenshot({ path: resolve(evidence, `legacy-field-${theme}-${width}.png`) });
+      for (const control of geometry) {
+        expect.soft(control.width).toBeLessThanOrEqual(16);
+        expect.soft(control.height).toBeLessThanOrEqual(16);
+        expect.soft(control.padding).toBe('0px');
+        expect.soft(control.labelHeight).toBeGreaterThanOrEqual(44);
+        expect.soft(control.labelWidth).toBeGreaterThanOrEqual(44);
+      }
+      const label = capture.locator('..');
+      const text = await label.locator('span').boundingBox(), box = await capture.boundingBox();
+      expect.soft(text!.width).toBeGreaterThan(65);
+      expect.soft(Math.abs(text!.y + text!.height / 2 - box!.y - box!.height / 2)).toBeLessThan(2);
+      for (const name of ['Project name', 'Window', 'Notes', 'Sample rate']) {
+        const control = field.getByLabel(name, { exact: true });
+        const dimensions = await control.evaluate(element => {
+          const rect = element.getBoundingClientRect(), parent = element.parentElement!.getBoundingClientRect();
+          return { width: rect.width, parentWidth: parent.width, height: rect.height, padding: getComputedStyle(element).padding };
+        });
+        expect.soft(Math.abs(dimensions.width - dimensions.parentWidth)).toBeLessThanOrEqual(1);
+        expect.soft(dimensions.height).toBeGreaterThanOrEqual(width < 400 ? 44 : 36);
+        expect.soft(dimensions.padding).toBe('8px 12px');
+      }
+      await page.keyboard.press('Tab');
+      await capture.focus();
+      await expect(capture).toBeFocused();
+      expect(await capture.evaluate(element => getComputedStyle(element).outlineStyle)).toBe('solid');
+      await page.keyboard.press('Space');
+      await expect(capture).toBeChecked();
+      await label.click();
+      await expect(capture).not.toBeChecked();
+      await capture.focus();
+      await page.keyboard.press('Tab');
+      await expect(field.getByRole('radio', { name: 'All events', exact: true })).toBeFocused();
+      await page.keyboard.press('ArrowDown');
+      await expect(field.getByRole('radio', { name: 'Limited events', exact: true })).toBeChecked();
+      await expect(field.getByRole('checkbox', { name: 'Disabled capture', exact: true })).toBeDisabled();
+      await expect(field.getByRole('radio', { name: 'Unavailable mode', exact: true })).toBeDisabled();
+      await expect(field.getByRole('checkbox', { name: 'Disabled native capture', exact: true })).toBeDisabled();
+      const native = field.getByRole('checkbox', { name: 'Native capture', exact: true });
+      await native.focus();
+      expect(await native.evaluate(element => getComputedStyle(element).outlineStyle)).not.toBe('none');
+      await native.press('Space');
+      await expect(native).toBeChecked();
+      await field.getByRole('radio', { name: 'Native mode', exact: true }).check();
+      await field.evaluate(element => { (element as HTMLFieldSetElement).disabled = true; });
+      await expect(capture).toBeDisabled();
+      await expect(native).toBeDisabled();
+      expect(await capture.evaluate(element => element.getBoundingClientRect().height)).toBe(15);
+      expect(await overflow(page)).toBeLessThanOrEqual(1);
+      expect(errors).toEqual([]);
+      expect(externalRequests).toEqual([]);
+      // The built fixture loads one HTML document, ten JS chunks and two stylesheets.
+      expect(requests).toBeLessThanOrEqual(13);
+      await info.attach('request-count', { body: String(requests), contentType: 'text/plain' });
+    });
+  });
+}
+
 for (const theme of ['light', 'dark'] as const) {
   test(`controls compose, reflow and stay keyboard operable in ${theme}`, async ({ page }, info) => {
     const width = info.project.name === 'narrow-dark' ? 320 : 1440;
