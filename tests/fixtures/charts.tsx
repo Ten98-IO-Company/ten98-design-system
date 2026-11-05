@@ -20,6 +20,15 @@ const daily = (values: (number | null)[]) => values.map((y, x) => ({ x, xLabel: 
 const dailyViews: ChartSeries = { id: 'pageViews', label: 'Page views', points: daily([0, 12, 8]) };
 const dailyEvents: ChartSeries = { id: 'customEvents', label: 'Events', points: daily([null, 3, 2]).map((point, i) => i === 1 ? { ...point, state: 'partial' as const } : point) };
 const dailyPrevious: ChartSeries = { id: 'previous', label: 'Previous page views', role: 'comparison', points: daily([14, 10, 9]) };
+const statisticPoints = (values: (number | null)[]) => values.map((y, x) => ({ x, xLabel: `Day ${x + 1}${x === 2 ? ' (skipped local date)' : ''}`, y }));
+const statisticSeries: ChartSeries[] = [
+  { id: 'views', label: 'Page views', points: statisticPoints([3, 0, null, 2, null, 5]).map((point, index) => ({ ...point, state: index === 3 ? 'partial' : index === 5 ? 'unavailable' : 'observed' })) },
+  { id: 'events', label: 'Custom events', points: statisticPoints([6, 0, null, 1, 4, 2]) },
+];
+const signedStatisticSeries: ChartSeries[] = [
+  { id: 'a', label: 'A', points: statisticPoints([3, -4, null]) },
+  { id: 'b', label: 'B', points: statisticPoints([6, -2, null]) },
+];
 const dense: ChartSeries = { id: 'dense', label: 'Daily', points: Array.from({ length: 60 }, (_, index) => ({ x: index, xLabel: `Day number ${index + 1} of the campaign`, y: 10 + (index * 7) % 23 })) };
 const segments: ShareSegment[] = [{ id: 'a', label: 'Opened', count: 30, tone: 1 }, { id: 'b', label: 'Clicked', count: 8, tone: 2 }, { id: 'c', label: 'Unopened', count: 12, tone: 3 }];
 
@@ -43,6 +52,9 @@ function Screen() {
     <TimeSeriesChart label="Embedded page views" summary="Page views include a day with zero." kind="line" fit="compress" bare height={144} series={[dailyViews]} />
     <TimeSeriesChart label="Daily event comparison" summary="Events have one unavailable day and one partial day; the previous period stays separate." kind="line" fit="compress" height={320} series={[dailyViews, dailyEvents, dailyPrevious]} onInspect={() => setDailyInspections(count => count + 1)} />
     <Text id="daily-inspections">Daily inspections: {dailyInspections}</Text>
+    <TimeSeriesChart label="Stacked daily statistics" summary="Explicit app summary stays visible beside accurate computed statistics." kind="stacked-bars" series={statisticSeries} />
+    <TimeSeriesChart label="Signed stack statistics" summary="Positive and negative observations remain separate stacks." kind="stacked-bars" series={signedStatisticSeries} />
+    <TimeSeriesChart label="Grouped daily statistics" summary="Individual series retain their observed values." kind="grouped-bars" series={statisticSeries} />
     <BarList label="Spend by channel" items={[
       { id: 'search', label: 'Search', value: 90, valueText: 'AED 90', share: 0.9, secondary: { label: 'Remaining', valueText: 'AED 10', share: 0.1 }, onSelect: () => setChosen('search'), selected: chosen === 'search' },
       { id: 'social', label: 'Social', value: 40, valueText: 'AED 40', share: 0.4, onSelect: () => setChosen('social'), selected: chosen === 'social' },

@@ -241,15 +241,17 @@ export function TimeSeriesChart({ label, height = HEIGHT, bare = false, context,
   const cells = series.map(item => item.points.length ? Array.from({ length: count }, (_, index) => valueOf(item, index)) : []);
   const stack = stacked ? stackSigned(cells.map(row => row.map(cell => cell.value))) : [];
   const bounds: number[] = [];
+  const unavailableColumns = new Set<number>();
   cells.forEach((row, s) => row.forEach((cell, i) => {
-    if (cell.value === null) return;
+    if (cell.value === null) { unavailableColumns.add(i); return; }
     if (stacked) { const range = stack[s][i]; if (range) bounds.push(range[0], range[1]); } else bounds.push(cell.value);
   }));
-  const unavailableCount = cells.reduce((sum, row) => sum + row.filter(cell => cell.value === null).length, 0);
+  const unavailableCount = unavailableColumns.size;
   const [lowest, highest] = extent(bounds) ?? [null, null];
-  const observed = cells.flatMap(row => row.map(cell => cell.value).filter((value): value is number => value !== null));
-  const observedRange = extent(observed);
-  const stats = `${count} points, minimum ${observedRange ? formatY(observedRange[0]) : 'unavailable'}, maximum ${observedRange ? formatY(observedRange[1]) : 'unavailable'}, ${unavailableCount} unavailable`;
+  const rangeStats = stacked
+    ? `known stacked extent ${lowest === null || highest === null ? 'unavailable' : `${formatY(lowest)} to ${formatY(highest)}`}`
+    : `series-value minimum ${lowest === null ? 'unavailable' : formatY(lowest)}, maximum ${highest === null ? 'unavailable' : formatY(highest)}`;
+  const stats = `${count} ${count === 1 ? 'point' : 'points'}, ${rangeStats}, ${unavailableCount} ${unavailableCount === 1 ? 'point' : 'points'} with unavailable values`;
 
   const wantsZero = isBars || kind === 'area';
   let domain: [number, number] = [0, 1];
@@ -343,8 +345,6 @@ export function TimeSeriesChart({ label, height = HEIGHT, bare = false, context,
   const patterns = tonePatterns(uid);
 
   const layers: ReactNode[] = [];
-  const unavailableColumns = new Set<number>();
-  cells.forEach(row => row.forEach((cell, i) => { if (cell.value === null) unavailableColumns.add(i); }));
   const columns = [...unavailableColumns].map(index => {
     const names = series.filter((_, s) => cells[s]?.[index]?.value === null).map(item => item.label).join(', ');
     const cx0 = centre(index) ?? 0;

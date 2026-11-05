@@ -25,6 +25,65 @@ async function doubleText(page: Page) {
 const overflow = (page: Page) => page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
 const readoutOf = (plot: ReturnType<Page['locator']>) => plot.locator('xpath=ancestor::figure[1]').getByRole('status');
 
+test('computed statistics describe signed stacks and unavailable positions without replacing app summaries', async ({ page }, info) => {
+  const requests: string[] = [];
+  const errors: string[] = [];
+  page.on('request', request => requests.push(request.url()));
+  page.on('pageerror', error => errors.push(error.message));
+  const dark = info.project.name === 'narrow-dark';
+  try {
+    await page.goto(`/tests/charts.html?theme=${dark ? 'dark' : 'light'}&dir=${dark ? 'rtl' : 'ltr'}`);
+    const plot = page.getByRole('group', { name: /Stacked daily statistics plot/ });
+    const figure = plot.locator('xpath=ancestor::figure[1]');
+    await expect(figure.locator('.t98-chart-stats')).toHaveText('6 points, known stacked extent 0 to 9, 3 points with unavailable values');
+    await expect(figure.locator('.t98-chart-summary')).toHaveText('Explicit app summary stays visible beside accurate computed statistics.');
+    await expect(figure.locator('g.t98-chart-unavailable')).toHaveCount(3);
+    await expect(figure.locator('.t98-chart-partial-mark').first()).toBeVisible();
+    const signed = page.getByRole('group', { name: /Signed stack statistics plot/ }).locator('xpath=ancestor::figure[1]');
+    await expect(signed.locator('.t98-chart-stats')).toHaveText('3 points, known stacked extent -6 to 9, 1 point with unavailable values');
+    const grouped = page.getByRole('group', { name: /Grouped daily statistics plot/ }).locator('xpath=ancestor::figure[1]');
+    await expect(grouped.locator('.t98-chart-stats')).toHaveText('6 points, series-value minimum 0, maximum 6, 3 points with unavailable values');
+    for (const node of [plot, figure.getByRole('img', { name: 'Stacked daily statistics', exact: true })]) {
+      const descriptions = await node.evaluate(element => (element.getAttribute('aria-describedby') ?? '').split(' ').map(id => document.getElementById(id)?.className));
+      expect(descriptions).toContain('t98-chart-summary');
+      expect(descriptions).toContain('t98-chart-stats');
+      expect(descriptions).not.toContain(undefined);
+    }
+    await plot.focus();
+    await expect(readoutOf(plot)).toHaveText('Day 1 · Page views: 3');
+    await page.keyboard.press('ArrowDown');
+    await expect(readoutOf(plot)).toHaveText('Day 1 · Custom events: 6');
+    await page.keyboard.press('ArrowRight');
+    await expect(readoutOf(plot)).toHaveText('Day 2 · Custom events: 0');
+    await page.keyboard.press('ArrowRight');
+    await expect(readoutOf(plot)).toHaveText('Day 3 (skipped local date) · Custom events: unavailable');
+    await page.keyboard.press('ArrowRight');
+    await page.keyboard.press('ArrowUp');
+    await expect(readoutOf(plot)).toHaveText('Day 4 · Page views: 2 (partial)');
+    await figure.getByText('View data table', { exact: true }).click();
+    const table = figure.getByRole('table');
+    await expect(table.getByRole('rowheader')).toHaveCount(6);
+    await expect(table.getByRole('cell', { name: '0', exact: true })).toHaveCount(2);
+    await expect(table.getByRole('cell', { name: 'Unavailable', exact: true })).toHaveCount(4);
+    await expect(table.getByRole('cell', { name: '2 (partial)', exact: true })).toHaveCount(1);
+    await page.keyboard.press('Tab');
+    await page.setViewportSize({ width: 320, height: 1000 });
+    const restore = await doubleText(page);
+    expect(await overflow(page)).toBeLessThanOrEqual(1);
+    const bounds = await figure.locator('.t98-chart-stats').boundingBox();
+    expect(bounds!.width).toBeGreaterThan(200);
+    expect(bounds!.x).toBeGreaterThanOrEqual(-1);
+    expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(321);
+    await figure.screenshot({ path: info.outputPath('computed-statistics-320-text200.png') });
+    await restore();
+    expect(errors).toEqual([]);
+    expect(requests.every(url => new URL(url).origin === new URL(info.project.use.baseURL!).origin)).toBe(true);
+    expect(requests.length).toBeLessThanOrEqual(25);
+  } finally {
+    await info.attach('request-count', { body: String(requests.length), contentType: 'text/plain' });
+  }
+});
+
 for (const theme of ['light', 'dark'] as const) {
   test(`charts stay inspectable by keyboard and inside the page in ${theme}`, async ({ page }, info) => {
     const width = info.project.name === 'narrow-dark' ? 320 : 1440;
@@ -43,7 +102,7 @@ for (const theme of ['light', 'dark'] as const) {
     await expect(visits.locator('.t98-chart-unavailable-text')).toHaveText('Unavailable');
     await expect(visits.locator('.t98-chart-partial-mark').first()).toBeVisible();
     expect(await visits.locator('rect.t98-chart-bar').evaluateAll(rects => rects.filter(rect => Number(rect.getAttribute('height')) <= 0).length)).toBe(0);
-    await expect(visits).toContainText('8 points, minimum -4, maximum 30, 1 unavailable');
+    await expect(visits).toContainText('8 points, series-value minimum -4, maximum 30, 1 point with unavailable values');
 
     // Keyboard: roving point, series switch and a polite announcement.
     const plot = screen.getByRole('group', { name: /Visits and sign-ups plot/ });

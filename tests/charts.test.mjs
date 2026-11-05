@@ -12,6 +12,44 @@ const point = (x, y, state) => ({ x, xLabel: `Day ${x}`, y, ...(state ? { state 
 const series = [{ id: 'a', label: 'Visits', points: [point(1, 4), point(2, null), point(3, 6, 'partial'), point(4, 0)] }];
 const chart = (kind, extra = {}) => render(h(TimeSeriesChart, { label: 'Visits', summary: 'Visits dipped on day 2.', kind, series, ...extra }));
 
+test('stack statistics describe known signed extent and distinct unavailable x positions', () => {
+  const makeSeries = rows => rows.map((values, index) => ({ id: String(index), label: `Series ${index}`, points: values.map((y, x) => point(x, y)) }));
+  for (const [name, supplied, expectedExtent, unavailable] of [
+    ['positive and zero', makeSeries([[3, 0], [6, 0]]), '0 to 9', 0],
+    ['one skipped date', makeSeries([[3, null], [6, null]]), '0 to 9', 1],
+    ['signed, not net', makeSeries([[3, -4, null], [6, -2, null]]), '-6 to 9', 1],
+    ['all unavailable', makeSeries([[null], [null]]), 'unavailable', 1],
+    ['zero is observed', makeSeries([[0], [0]]), '0 to 0', 0],
+    ['unequal lengths', makeSeries([[3, 5, 2], [6]]), '0 to 9', 2],
+    ['nonfinite cells', makeSeries([[3, NaN], [6, Infinity]]), '0 to 9', 1],
+    ['series unavailable', [{ ...makeSeries([[100, 100]])[0], unavailable: true }, { id: 'known', label: 'Known', points: [point(0, 3), point(1, 0)] }], '0 to 3', 2],
+  ]) {
+    const html = chart('stacked-bars', { series: supplied });
+    assert.ok(html.includes(`known stacked extent ${expectedExtent}`), name);
+    assert.ok(html.includes(`${unavailable} ${unavailable === 1 ? 'point' : 'points'} with unavailable values`), name);
+    assert.equal([...html.matchAll(/<g class="t98-chart-unavailable">/g)].length, unavailable, name);
+    assert.doesNotMatch(html, /NaN|Infinity/, name);
+  }
+  const partial = chart('stacked-bars', { series: [{ id: 'a', label: 'A', points: [point(0, 3, 'partial')] }, { id: 'b', label: 'B', points: [point(0, 6)] }] });
+  assert.match(partial, /known stacked extent 0 to 9/);
+  assert.match(partial, /3 \(partial\)/);
+  assert.match(partial, /t98-chart-partial-mark/);
+  assert.match(chart('stacked-bars', { series: makeSeries([[3], [6]]), formatY: value => `n${value}` }), /known stacked extent n0 to n9/);
+});
+
+test('nonstacked statistics retain individual values and count missing positions once', () => {
+  const supplied = [
+    { id: 'a', label: 'A', points: [point(0, 3), point(1, -4, 'partial'), point(2, null)] },
+    { id: 'b', label: 'B', points: [point(0, 6), point(1, 0), point(2, null)] },
+  ];
+  for (const kind of ['bars', 'grouped-bars', 'line', 'area']) {
+    const html = chart(kind, { series: supplied });
+    assert.match(html, /3 points, series-value minimum -4, maximum 6, 1 point with unavailable values/);
+    assert.match(html, /-4 \(partial\)/);
+    assert.doesNotMatch(html, /known stacked extent/);
+  }
+});
+
 test('a null point renders an unavailable mark and never a zero-height rectangle', () => {
   for (const kind of ['bars', 'grouped-bars', 'stacked-bars', 'line', 'area']) {
     const html = chart(kind);
@@ -39,7 +77,7 @@ test('every point appears in the data table and the summary is referenced by the
   assert.match(html, /<th scope="col">Source<\/th>/);
   const id = html.match(/<svg[^>]*aria-describedby="([^" ]+)/)[1];
   assert.match(html, new RegExp(`<p id="${id}"[^>]*>Visits dipped on day 2\.</p>`));
-  assert.match(html, /4 points, minimum 0, maximum 6, 1 unavailable/);
+  assert.match(html, /4 points, series-value minimum 0, maximum 6, 1 point with unavailable values/);
   assert.match(html, /<details class="t98-chart-data">/);
   assert.match(html, /role="region" aria-label="Visits data table"/);
 });
