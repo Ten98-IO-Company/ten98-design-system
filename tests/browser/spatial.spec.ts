@@ -181,6 +181,23 @@ for (const width of [1440, 375]) {
   });
 }
 
+test('a rich calendar entry stacks its parts on one line each at phone width', async ({ page }) => {
+  // The 2026-10-25 entry carries time, network, label and status. On a phone the
+  // parts must each sit on their own row, not one cramped inline row.
+  await page.setViewportSize({ width: 375, height: 900 });
+  await page.goto('/tests/spatial.html');
+  const cell = page.locator('td[data-date="2026-10-25"]');
+  const entry = cell.locator('.t98-calendar-entry');
+  await expect(entry).toBeVisible();
+  await expect(cell.getByText('Instagram')).toBeVisible();
+  await expect(cell.getByText('Scheduled')).toBeVisible();
+  const stacked = await entry.evaluate(element => getComputedStyle(element).flexDirection === 'column');
+  expect(stacked, 'the entry stacks its parts at phone width').toBe(true);
+  // Each part is its own row: the network label is not clipped, and the entry fits the day.
+  const fit = await entry.evaluate(element => element.scrollWidth - element.clientWidth);
+  expect(fit, 'no part overflows the entry').toBeLessThanOrEqual(1);
+});
+
 test('the replay skip toggle is a 44px target, including at 320px and doubled text', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 900 });
   await page.goto('/tests/spatial.html');
