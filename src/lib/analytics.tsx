@@ -22,10 +22,13 @@ export interface FunnelStep {
   /** Already calculated and formatted by the app. Omit when no rate is supplied. */
   conversion?: string | null;
   conversionReason?: string;
+  /** App-normalized comparison on [0, 1]; its basis belongs in context. Never inferred from count. */
+  barRatio?: number | null;
   detail?: ReactNode;
 }
 export interface FunnelBreakdownProps extends AnalyticsContextProps {
   countLabel?: string;
+  variant?: 'list' | 'bars';
   steps: readonly FunnelStep[];
   selectedId?: string;
   onSelect?: (id: string) => void;
@@ -33,8 +36,8 @@ export interface FunnelBreakdownProps extends AnalyticsContextProps {
 }
 
 /** Ordered presentation only; identity, windows, denominators and all math belong to the app. */
-export function FunnelBreakdown({ label, context, countLabel = 'Count', steps, selectedId, onSelect, disabled, notice, loading, emptyMessage = 'No funnel steps supplied.', className }: FunnelBreakdownProps) {
-  return <section className={cx('t98-funnel-breakdown', className)} aria-label={label} aria-busy={loading || undefined}>
+export function FunnelBreakdown({ label, context, countLabel = 'Count', variant = 'list', steps, selectedId, onSelect, disabled, notice, loading, emptyMessage = 'No funnel steps supplied.', className }: FunnelBreakdownProps) {
+  return <section className={cx('t98-funnel-breakdown', variant === 'bars' && 't98-funnel-breakdown--bars', className)} aria-label={label} aria-busy={loading || undefined}>
     <h3 className="t98-funnel-title">{label}</h3>
     <div className="t98-funnel-context">{context}</div>
     {notice != null && <div className="t98-funnel-notice">{notice}</div>}
@@ -42,6 +45,9 @@ export function FunnelBreakdown({ label, context, countLabel = 'Count', steps, s
       <div className="t98-funnel-step-heading">{onSelect ? <Button className="t98-funnel-select" variant="ghost" size="sm" disabled={disabled} aria-pressed={step.id === selectedId} onClick={() => onSelect(step.id)}>{step.label}</Button> : <span className="t98-funnel-label">{step.label}</span>}
         {step.id === selectedId && <span className="t98-funnel-selected">Selected</span>}
       </div>
+      {variant === 'bars' && (typeof step.barRatio === 'number' && Number.isFinite(step.barRatio) && step.barRatio >= 0 && step.barRatio <= 1
+        ? <svg className="t98-funnel-bar" viewBox="0 0 100 8" preserveAspectRatio="none" aria-hidden="true"><rect className="t98-funnel-bar-track" width="100" height="8" /><rect className="t98-funnel-bar-fill" width={step.barRatio * 100} height="8" /></svg>
+        : <p className="t98-funnel-bar-unavailable">Comparison unavailable.</p>)}
       <p className="t98-funnel-count">{countLabel}: <span>{step.count === null ? 'Unavailable' : step.count}</span></p>
       {step.count === null && !step.reason && <p className="t98-funnel-reason">No count observation available.</p>}
       {step.reason && <p className="t98-funnel-reason">{step.reason}</p>}
