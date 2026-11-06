@@ -7,6 +7,26 @@ import { FunnelBreakdown, RetentionTable, JourneyPath, RankComparison } from '..
 const render = (component, props) => renderToStaticMarkup(h(component, props));
 const context = 'example.test · 1–18 October 2026 · UTC · unique users';
 
+test('funnel bars use only supplied normalized ratios and preserve independent counts', () => {
+  const steps = [1, .5, 0, null, undefined, NaN, Infinity, -.1, 1.1].map((barRatio, index) => ({
+    id: String(index), label: `Step ${index}`, count: index === 3 ? 0 : index === 2 ? null : 'formatted count', barRatio,
+  }));
+  const html = render(FunnelBreakdown, { label: 'Bars', context, variant: 'bars', steps });
+  assert.match(html, /t98-funnel-breakdown--bars/);
+  assert.deepEqual([...html.matchAll(/class="t98-funnel-bar-fill" width="([^"]+)"/g)].map(match => Number(match[1])), [100, 50, 0]);
+  assert.equal([...html.matchAll(/Comparison unavailable/g)].length, 6);
+  assert.match(html, /Count: <span>0<\/span>/);
+  assert.match(html, /Count: <span>Unavailable<\/span>/);
+  assert.match(html, /formatted count/);
+  assert.doesNotMatch(html, /NaN|Infinity|role="progressbar"/);
+});
+
+test('funnel list remains the default and ratios do not alter its markup', () => {
+  const props = { label: 'Legacy', context, steps: [{ id: 'a', label: 'A', count: 0 }] };
+  assert.equal(render(FunnelBreakdown, props), render(FunnelBreakdown, { ...props, variant: 'list', steps: [{ ...props.steps[0], barRatio: .75 }] }));
+  assert.doesNotMatch(render(FunnelBreakdown, props), /--bars|<svg|Comparison unavailable/);
+});
+
 test('funnel keeps supplied zero, missing counts and independent conversion text distinct', () => {
   const props = { label: 'Purchase funnel', context, selectedId: 'complete', steps: [
     { id: 'enter', label: 'Entrants', count: 10 },
