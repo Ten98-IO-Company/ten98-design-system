@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Button } from '../lib/primitives.js';
 import {
   FunnelBreakdown, RetentionTable, JourneyPath, RankComparison,
   type FunnelBreakdownProps, type RetentionTableProps, type JourneyPathProps, type RankComparisonProps,
@@ -60,6 +61,41 @@ function funnelCode(mode: DemoMode = 'ready') {
   const setup = `const props: FunnelBreakdownProps = ${JSON.stringify(funnelFixture(mode), null, 2)};`;
   return mode === 'readonly' ? tsx(['FunnelBreakdown', 'type FunnelBreakdownProps'], '<FunnelBreakdown {...props} />', setup)
     : tsx(['FunnelBreakdown', 'type FunnelBreakdownProps'], '<FunnelBreakdown {...props} selectedId={selectedId} onSelect={setSelectedId} />', `${setup}\nconst [selectedId, setSelectedId] = useState<string | undefined>(props.selectedId);`, ['useState']);
+}
+
+type FunnelBarsMode = 'positive' | 'availability' | 'loading';
+function funnelBarsFixture(mode: FunnelBarsMode): FunnelBreakdownProps {
+  return {
+    label: mode === 'availability' ? 'Funnel comparison availability' : mode === 'loading' ? 'Loading funnel comparison' : 'Three-step funnel · synthetic observations',
+    variant: 'bars', countLabel: 'Visitors',
+    context: 'Synthetic observations · UTC · normalized ratios supplied by the app relative to landing entrants. Counts and conversion text are independent inputs.',
+    loading: mode === 'loading', disabled: mode === 'loading',
+    steps: mode === 'availability' ? [
+      { id: 'zero', label: 'Measured zero', count: 0, conversion: '0% of entrants', barRatio: 0 },
+      { id: 'unknown', label: 'Zero count with unavailable comparison', count: 0, conversion: null, barRatio: null },
+      { id: 'invalid', label: 'Unavailable count and invalid ratio · ObservationIdentifierWithoutWordBreaksForNarrowLayout', count: null, barRatio: 1.2 },
+    ] : [
+      { id: 'landing', label: 'Landing page', count: 3, conversion: '100% of entrants', barRatio: 1 },
+      { id: 'checkout', label: 'Checkout', count: 2, conversion: '66.7% of entrants', barRatio: 2 / 3 },
+      { id: 'purchase', label: 'Purchase', count: 1, conversion: '33.3% of entrants', barRatio: 1 / 3 },
+    ],
+  };
+}
+function FunnelBarsDemo({ mode }: { mode: FunnelBarsMode }) {
+  const props = funnelBarsFixture(mode);
+  const [selectedId, setSelectedId] = useState<string>();
+  const [activity, setActivity] = useState('');
+  if (mode === 'availability') return <FunnelBreakdown {...props} />;
+  return <FunnelBreakdown {...props} selectedId={selectedId} onSelect={setSelectedId}
+    notice={activity ? <p role="status">{activity}</p> : undefined}
+    steps={props.steps.map((step, index) => ({ ...step, label: `${index + 1}. ${step.label}`, detail: <Button variant="secondary" size="sm" disabled={mode === 'loading' || step.id === 'purchase'} onClick={() => setActivity(`Matching activity: ${step.label}`)}>View matching activity for {step.label}</Button> }))} />;
+}
+function funnelBarsCode(mode: FunnelBarsMode) {
+  const setup = `const props: FunnelBreakdownProps = ${JSON.stringify(funnelBarsFixture(mode), null, 2)};`;
+  if (mode === 'availability') return tsx(['FunnelBreakdown', 'type FunnelBreakdownProps'], '<FunnelBreakdown {...props} />', setup);
+  return tsx(['FunnelBreakdown', 'Button', 'type FunnelBreakdownProps'], `<FunnelBreakdown {...props} selectedId={selectedId} onSelect={setSelectedId}
+  notice={activity ? <p role="status">{activity}</p> : undefined}
+  steps={props.steps.map((step, index) => ({ ...step, label: \`\${index + 1}. \${step.label}\`, detail: <Button variant="secondary" size="sm" disabled={props.loading || step.id === 'purchase'} onClick={() => setActivity(\`Matching activity: \${step.label}\`)}>View matching activity for {step.label}</Button> }))} />`, `${setup}\nconst [selectedId, setSelectedId] = useState<string>();\nconst [activity, setActivity] = useState('');`, ['useState']);
 }
 
 function retentionFixture(mode: DemoMode): RetentionTableProps {
@@ -140,10 +176,10 @@ export const analyticsEntries: ComponentEntry[] = [
   {
     name: 'FunnelBreakdown', category: 'Data display', description: 'Ordered funnel steps with independent app supplied counts, conversion text, reasons and controlled selection.',
     usage: 'Use for Discover D4 results after the app defines identity, order, window and denominator. Supply already formatted counts and rates independently. The component performs no count/rate math and does not build or run a funnel query. Keep the applied scope and observation context visible while refreshing.',
-    props: [...contextProps, prop('countLabel', 'string', 'App-supplied counting-unit label, such as Estimated visitors. Defaults to Count.'), prop('steps', 'readonly FunnelStep[]', 'Stable id, label, count:string | number | null; optional count reason, conversion:string | null, conversionReason and detail:ReactNode. Null means unavailable; omitted conversion is not rendered.', true), ...selectionProps],
+    props: [...contextProps, prop('countLabel', 'string', 'App-supplied counting-unit label, such as Estimated visitors. Defaults to Count.'), prop('variant', "'list' | 'bars'", 'Defaults to list. Bars use compact rows and independent app-supplied barRatio values; explain their basis in context.'), prop('steps', 'readonly FunnelStep[]', 'Stable id, label, count:string | number | null; optional count reason, conversion:string | null, conversionReason, barRatio:number | null and detail:ReactNode. barRatio is normalized on [0,1]; missing/invalid comparisons remain unavailable. Null count means unavailable; omitted conversion is not rendered.', true), ...selectionProps],
     tokens: [...surfaceTokens, ...selectionTokens],
-    accessibility: ['A labelled section and ordered list retain the supplied step order. Count/rate labels and unavailable reasons remain visible as text.', 'Selection uses native buttons with aria-pressed, Tab, Enter and Space. Without onSelect the labels are read-only; selectedId never falls back to the first step.', 'Details are visible without hover. App owns any navigation, focus transfer and condition editing.', 'Step headings and detail text wrap on narrow screens. Rates have no bar width or color-only meaning.'], related: ['ComparisonMetric', 'AppliedFilters', 'JourneyPath', 'Alert'],
-    example: funnelCode(), states: modes.map(mode => ({ name: stateNames[mode], description: notices[mode] ?? (mode === 'zero' ? 'A supplied completion count of zero and supplied 0% remain distinct from unavailable data.' : mode === 'selected' ? 'The app controls the selected step; native buttons request a new id.' : mode === 'readonly' ? 'Omitting onSelect removes interactive selection buttons.' : 'Synthetic app inputs; selection changes only local presentation state.'), preview: <FunnelDemo mode={mode} />, code: funnelCode(mode) })),
+    accessibility: ['A labelled section and ordered list retain the supplied step order. Count/rate labels and unavailable reasons remain visible as text.', 'Selection uses native buttons with aria-pressed, Tab, Enter and Space. Without onSelect the labels are read-only; selectedId never falls back to the first step.', 'Details are visible without hover. App owns any navigation, focus transfer and condition editing.', 'Step headings and details wrap. Optional bars are decorative comparisons beside visible app-supplied values; unavailable comparisons are explicit text, never measured zero.'], related: ['ComparisonMetric', 'AppliedFilters', 'JourneyPath', 'Alert'],
+    example: funnelCode(), states: [...modes.map(mode => ({ name: stateNames[mode], description: notices[mode] ?? (mode === 'zero' ? 'A supplied completion count of zero and supplied 0% remain distinct from unavailable data.' : mode === 'selected' ? 'The app controls the selected step; native buttons request a new id.' : mode === 'readonly' ? 'Omitting onSelect removes interactive selection buttons.' : 'Synthetic app inputs; selection changes only local presentation state.'), preview: <FunnelDemo mode={mode} />, code: funnelCode(mode) })), ...(['positive', 'availability', 'loading'] as const).map(mode => ({ name: `Compact bars: ${mode}`, description: 'Synthetic app-supplied ratios and counts. Selection and matching-activity feedback are local examples; no query runs.', preview: <FunnelBarsDemo mode={mode} />, code: funnelBarsCode(mode) }))],
   },
   {
     name: 'RetentionTable', category: 'Data display', description: 'Native cohort table with explicitly observed, future and unavailable cells; measured zero remains zero.',
