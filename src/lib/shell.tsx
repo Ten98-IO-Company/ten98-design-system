@@ -126,37 +126,33 @@ export interface SectionNavProps {
 export function SectionNav({ label, items, linkComponent: LinkComponent, onSelect, wrap = false }: SectionNavProps) {
   const listRef = useRef<HTMLUListElement>(null);
   const [overflow, setOverflow] = useState('');
-  const currentId = items.find(item => item.current && !item.hidden)?.id;
+  const currentId = items.find(item => item.current && !item.hidden && !item.disabled)?.id;
   // In one scrolling row, mark which edges hide sections so CSS can fade them: a visible cue that more tabs exist.
   useEffect(() => {
     const list = listRef.current;
     if (!list || wrap) { setOverflow(''); return; }
+    const reveal = () => {
+      const current = list.querySelector<HTMLElement>('[aria-current="page"]');
+      if (!current) return;
+      const row = list.getBoundingClientRect(), box = current.getBoundingClientRect();
+      if (box.right > row.right) list.scrollBy({ left: box.right - row.right + 16 });
+      else if (box.left < row.left) list.scrollBy({ left: box.left - row.left - 16 });
+    };
     const measure = () => {
       const offset = Math.abs(list.scrollLeft);
       const start = offset > 1, end = list.scrollWidth - list.clientWidth - offset > 1;
       setOverflow([start && 'start', end && 'end'].filter(Boolean).join(' '));
     };
-    measure();
+    const resize = () => { reveal(); measure(); };
+    resize();
     list.addEventListener('scroll', measure, { passive: true });
-    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure);
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(resize);
     observer?.observe(list);
-    return () => { list.removeEventListener('scroll', measure); observer?.disconnect(); };
-  }, [wrap, items.length]);
-  // Bring the current section into the row's view without scrolling the page; again once web fonts load, because a font
-  // swap changes the tab widths after the first layout.
-  useEffect(() => {
-    const reveal = () => {
-      const list = listRef.current, current = list?.querySelector<HTMLElement>('[aria-current="page"]');
-      if (!list || !current || wrap) return;
-      const row = list.getBoundingClientRect(), box = current.getBoundingClientRect();
-      if (box.right > row.right) list.scrollBy({ left: box.right - row.right + 16 });
-      else if (box.left < row.left) list.scrollBy({ left: box.left - row.left - 16 });
-    };
-    reveal();
+    // Font loading can change link widths without resizing the list itself.
     let live = true;
-    void document.fonts?.ready.then(() => { if (live) reveal(); });
-    return () => { live = false; };
-  }, [currentId, wrap]);
+    void document.fonts?.ready.then(() => { if (live) resize(); });
+    return () => { live = false; list.removeEventListener('scroll', measure); observer?.disconnect(); };
+  }, [currentId, wrap, items.length]);
   return <nav aria-label={label} className="t98-section-nav">
     <ul ref={listRef} className={cx('t98-section-nav__list', wrap && 't98-section-nav__list--wrap')} data-overflow={overflow || undefined}>
       {items.filter(item => !item.hidden).map(item => {

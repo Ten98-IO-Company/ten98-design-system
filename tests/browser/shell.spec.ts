@@ -4,7 +4,7 @@ import { expect, test, type Page } from '@playwright/test';
 const evidence = '.qa/shell';
 
 test.beforeEach(async ({ page }, info) => {
-  if (info.title.startsWith('app ') || info.title.startsWith('SectionNav wrap:')) return;
+  if (info.title.startsWith('app ') || info.title.startsWith('SectionNav wrap:') || info.title.startsWith('SectionNav grid:')) return;
   await page.goto(`/tests/shell.html?theme=${info.project.name === 'narrow-dark' ? 'dark' : 'light'}`);
   await expect(page.getByRole('navigation', { name: 'Discover' })).toBeVisible();
 });
@@ -14,6 +14,79 @@ async function expectNoOverflow(page: Page) {
     clipped: [...document.querySelectorAll<HTMLElement>('.t98-sidebar-nav, .t98-switcher, .t98-search-field')].filter(element => element.scrollWidth > element.clientWidth + 1).length }));
   expect(overflow.document).toBeLessThanOrEqual(overflow.viewport + 1);
   expect(overflow.clipped).toBe(0);
+}
+
+for (const direction of ['ltr', 'rtl'] as const) {
+  test(`SectionNav grid: scrolling stays contained and reveals async selection and resize in ${direction}`, async ({ page }, info) => {
+    const requests: string[] = [];
+    const measurements: unknown[] = [];
+    page.on('request', request => requests.push(request.url()));
+    const open = async (query = '') => {
+      await page.goto(`/tests/shell.html?view=sections-scroll&theme=${direction === 'rtl' ? 'dark' : 'light'}${query}`);
+      await page.locator('html').evaluate((element, dir) => element.setAttribute('dir', dir), direction);
+    };
+    const geometry = async (phase: string) => {
+      const value = await page.getByRole('navigation', { name: 'API model reports' }).evaluate(nav => {
+        const list = nav.querySelector('ul')!, current = nav.querySelector('[aria-current="page"]');
+        const row = list.getBoundingClientRect(), selected = current?.getBoundingClientRect();
+        return { viewport: innerWidth, documentWidth: document.documentElement.scrollWidth, pageX: scrollX, pageY: scrollY,
+          nav: nav.getBoundingClientRect().toJSON(), row: row.toJSON(), clientWidth: list.clientWidth, scrollWidth: list.scrollWidth,
+          selectedVisible: Boolean(selected && selected.left >= row.left - 1 && selected.right <= row.right + 1),
+          rows: new Set([...list.children].map(item => Math.round(item.getBoundingClientRect().top))).size };
+      });
+      measurements.push({ phase, ...value });
+      return value;
+    };
+    try {
+      await page.setViewportSize({ width: 320, height: 900 });
+      await open();
+      const initial = await geometry('implicit grid at320');
+      expect.soft(initial.documentWidth, 'navigation must not widen the page').toBeLessThanOrEqual(320);
+      expect.soft(initial.row.width, 'scrolling row fits its padded parent').toBeLessThanOrEqual(288);
+      expect.soft(initial.rows).toBe(1);
+      expect.soft(initial.row.height).toBeLessThanOrEqual(46);
+      expect.soft(initial.scrollWidth).toBeGreaterThan(initial.clientWidth);
+      const links = page.getByRole('navigation', { name: 'API model reports' }).getByRole('link');
+      await links.first().focus();
+      for (let index = 0; index < 5; index++) {
+        if (index) await page.keyboard.press('Tab');
+        await expect(links.nth(index)).toBeFocused();
+        await page.keyboard.press('Enter');
+        await expect(links.nth(index)).toHaveAttribute('aria-current', 'page');
+      }
+      await page.screenshot({ path: info.outputPath(`navigation-${direction}-320.png`) });
+      // A bounded parent isolates reveal behavior from the separate intrinsic-size failure above.
+      await open('&bounded=1&pending=1&section=recommendations');
+      await page.evaluate(async () => { await document.fonts.ready; });
+      await expect(page.locator('[aria-disabled="true"]')).toHaveText(/Recommendations/);
+      await expect(page.locator('[aria-current="page"]')).toHaveCount(0);
+      await page.getByRole('button', { name: 'Load selected report', exact: true }).click();
+      await expect(page.locator('[aria-current="page"]')).toHaveCount(0);
+      await page.getByRole('button', { name: 'Complete report load', exact: true }).click();
+      await expect(links.last()).toHaveAttribute('aria-current', 'page');
+      await expect.soft.poll(async () => (await geometry('async current enabled')).selectedVisible, { timeout: 1000 }).toBe(true);
+      await expect(links.last()).not.toBeFocused();
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await open('&bounded=1&section=recommendations');
+      await page.evaluate(async () => { await document.fonts.ready; });
+      await expect.poll(async () => (await geometry('wide selected')).selectedVisible).toBe(true);
+      await page.setViewportSize({ width: 320, height: 900 });
+      await expect.soft.poll(async () => (await geometry('resize selected')).selectedVisible, { timeout: 1000 }).toBe(true);
+      const resized = await geometry('final');
+      expect.soft(resized.documentWidth).toBeLessThanOrEqual(320);
+      expect.soft(resized.pageX).toBe(0);
+      expect.soft(resized.pageY).toBe(0);
+      const list = page.getByRole('navigation', { name: 'API model reports' }).getByRole('list');
+      await expect(list).toHaveAttribute('data-overflow', 'start');
+      await list.evaluate(element => element.scrollTo({ left: 0 }));
+      await expect(list).toHaveAttribute('data-overflow', 'end');
+      expect((await geometry('manual scroll stays at start')).selectedVisible).toBe(false);
+      expect(requests.filter(url => !url.startsWith('http://127.0.0.1:5196/'))).toEqual([]);
+      expect(requests.filter(url => new URL(url).pathname.startsWith('/api/'))).toEqual([]);
+    } finally {
+      await info.attach('section-nav-measurements', { body: JSON.stringify({ direction, requests, requestCount: requests.length, measurements }), contentType: 'application/json' });
+    }
+  });
 }
 
 test('renders without overflow and saves screenshots', async ({ page }, info) => {

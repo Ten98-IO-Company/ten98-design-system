@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Button, AccountMenu, AppShell, AppTopbar, Banner, Card, Grid, Heading, Link, SearchField, SectionNav, SidebarFooter, SidebarNav, SidebarStatus, Stack, Text, WorkspaceProjectSwitcher, type NavLinkComponent, type SidebarNavGroup } from '@ten98/ui';
 import '@ten98/ui/app-tokens.css';
@@ -102,6 +102,29 @@ function SectionsWrap() {
   </main>;
 }
 
+function SectionsScroll() {
+  const [current, setCurrent] = useState(params.get('section') ?? 'answer');
+  const [enabled, setEnabled] = useState(params.get('pending') !== '1');
+  const [loading, setLoading] = useState(false);
+  const finish = useRef<(() => void) | null>(null);
+  const labels = [
+    ['answer', 'Answer analysis'], ['compare', 'Compare periods'], ['citations', 'Analyze citations'],
+    ['specialized', 'Specialized citation reports'], ['recommendations', 'Recommendations'],
+  ] as const;
+  return <main aria-label="Scrolling section content" style={{ display: 'grid', gap: 12, inlineSize: '100%', maxInlineSize: 1200, marginInline: 'auto', minWidth: 0, boxSizing: 'border-box', paddingInline: 16, gridTemplateColumns: params.has('bounded') ? 'minmax(0, 1fr)' : undefined }}>
+    <SectionNav label="API model reports" items={labels.map(([id, label]) => ({ id, label, href: `#${id}`, current: current === id,
+      disabled: id === 'recommendations' && !enabled, disabledReason: 'Load the selected report first.' }))}
+      onSelect={(item, event) => { event.preventDefault(); setCurrent(item.id); }} />
+    <Button disabled={enabled || loading} onClick={() => {
+      setLoading(true);
+      void new Promise<void>(resolve => { finish.current = resolve; }).then(() => { setEnabled(true); setLoading(false); finish.current = null; });
+    }}>Load selected report</Button>
+    <Button disabled={!loading} onClick={() => finish.current?.()}>Complete report load</Button>
+    <Text as="p" role="status" aria-label="Selected report">{current}</Text>
+    <div style={{ blockSize: 1200 }}>Report content</div>
+  </main>;
+}
+
 function Switchers() {
   const [workspace, setWorkspace] = useState('acme');
   const [project, setProject] = useState<string | null>('launch');
@@ -180,4 +203,4 @@ function AppFixture() {
 
 const fixtureRoot = document.getElementById('shell-fixture');
 if (!fixtureRoot) throw new Error('Shell fixture root is missing.');
-createRoot(fixtureRoot).render(params.get('view') === 'app' ? <AppFixture /> : params.get('view') === 'sections-wrap' ? <SectionsWrap /> : <Fixture />);
+createRoot(fixtureRoot).render(params.get('view') === 'app' ? <AppFixture /> : params.get('view') === 'sections-wrap' ? <SectionsWrap /> : params.get('view') === 'sections-scroll' ? <SectionsScroll /> : <Fixture />);
