@@ -4,7 +4,7 @@ import { expect, test, type Page } from '@playwright/test';
 const evidence = '.qa/shell';
 
 test.beforeEach(async ({ page }, info) => {
-  if (info.title.startsWith('app ') || info.title.startsWith('SectionNav wrap:') || info.title.startsWith('SectionNav grid:')) return;
+  if (info.title.startsWith('app ') || info.title.startsWith('SectionNav wrap:') || info.title.startsWith('SectionNav grid:') || info.title.startsWith('SectionNav disabled hints:')) return;
   await page.goto(`/tests/shell.html?theme=${info.project.name === 'narrow-dark' ? 'dark' : 'light'}`);
   await expect(page.getByRole('navigation', { name: 'Discover' })).toBeVisible();
 });
@@ -15,6 +15,78 @@ async function expectNoOverflow(page: Page) {
   expect(overflow.document).toBeLessThanOrEqual(overflow.viewport + 1);
   expect(overflow.clipped).toBe(0);
 }
+
+test('SectionNav disabled hints: unavailable descriptions stay contained before enabling and after selected reload', async ({ page }, info) => {
+  const measurements: unknown[] = [];
+  const requests: string[] = [];
+  page.on('request', request => requests.push(request.url()));
+  await page.setViewportSize({ width: 320, height: 900 });
+  const nav = page.getByRole('navigation', { name: 'API model reports' });
+  const list = nav.getByRole('list');
+  const inspect = async (phase: string, expectedHints: number) => {
+    await expect(nav.locator('.t98-visually-hidden')).toHaveCount(expectedHints);
+    const geometry = await nav.evaluate(element => {
+      const row = element.querySelector('ul')!, selected = element.querySelector('[aria-current="page"]');
+      const bounds = row.getBoundingClientRect(), current = selected?.getBoundingClientRect();
+      return { documentWidth: document.documentElement.scrollWidth, pageX: scrollX, pageY: scrollY,
+        row: bounds.toJSON(), selectedVisible: Boolean(current && current.left >= bounds.left - 1 && current.right <= bounds.right + 1),
+        hints: [...element.querySelectorAll<HTMLElement>('.t98-visually-hidden')].map(hint => ({
+          text: hint.textContent, offsetParent: hint.offsetParent?.className,
+          display: getComputedStyle(hint).display, visibility: getComputedStyle(hint).visibility,
+          ariaHidden: hint.getAttribute('aria-hidden'), rect: hint.getBoundingClientRect().toJSON(),
+        })) };
+    });
+    measurements.push({ phase, ...geometry });
+    expect.soft(geometry.documentWidth, `${phase}: hidden hints must not widen the page`).toBeLessThanOrEqual(320);
+    expect.soft(geometry.row.width).toBeLessThanOrEqual(288);
+    for (const hint of geometry.hints) {
+      expect.soft(hint.offsetParent, `${phase}: every hint stays inside its scrolling entry`).toBe('t98-section-nav__entry');
+      expect(hint.text).toBe(', Load the selected report first.');
+      expect(hint.display).not.toBe('none');
+      expect(hint.visibility).toBe('visible');
+      expect(hint.ariaHidden).toBeNull();
+    }
+    const snapshot = await nav.ariaSnapshot();
+    expect(snapshot.match(/Load the selected report first\./g)).toHaveLength(expectedHints);
+    return geometry;
+  };
+  try {
+    for (const direction of ['ltr', 'rtl']) {
+      await page.goto(`/tests/shell.html?view=sections-scroll&unavailable=1&pending=1&dir=${direction}&theme=${direction === 'rtl' ? 'dark' : 'light'}`);
+      await page.evaluate(async () => { await document.fonts.ready; });
+      await inspect(`${direction}: before async enable`, 4);
+      await page.getByRole('button', { name: 'Load selected report', exact: true }).click();
+      await page.getByRole('button', { name: 'Complete report load', exact: true }).click();
+      await expect(nav.locator('[aria-disabled="true"]')).toHaveCount(3);
+      const answer = nav.getByRole('link', { name: 'Answer analysis', exact: true });
+      const recommendations = nav.getByRole('link', { name: 'Recommendations', exact: true });
+      await answer.focus();
+      await page.keyboard.press('Tab');
+      await expect(recommendations).toBeFocused();
+      await recommendations.press('Enter');
+      await expect(recommendations).toHaveAttribute('aria-current', 'page');
+      // Establish the selected fixture URL so the reload starts on Recommendations.
+      await page.evaluate(() => {
+        const url = new URL(location.href);
+        url.searchParams.set('section', 'recommendations');
+        url.searchParams.delete('pending');
+        history.replaceState(null, '', url);
+      });
+      await page.reload();
+      await page.evaluate(async () => { await document.fonts.ready; });
+      await expect(recommendations).toHaveAttribute('aria-current', 'page');
+      expect.soft((await inspect(`${direction}: Recommendations reload`, 3)).selectedVisible).toBe(true);
+      await page.screenshot({ path: info.outputPath(`disabled-hints-${direction}.png`) });
+      await list.evaluate(element => element.scrollTo({ left: 0 }));
+      expect.soft((await inspect(`${direction}: manual scroll`, 3)).selectedVisible).toBe(false);
+      expect.soft(await page.evaluate(() => scrollX)).toBe(0);
+    }
+    expect(requests.filter(url => !url.startsWith('http://127.0.0.1:5196/'))).toEqual([]);
+    expect(requests.filter(url => new URL(url).pathname.startsWith('/api/'))).toEqual([]);
+  } finally {
+    await info.attach('disabled-hint-measurements', { body: JSON.stringify({ requests, measurements }), contentType: 'application/json' });
+  }
+});
 
 for (const direction of ['ltr', 'rtl'] as const) {
   test(`SectionNav grid: scrolling stays contained and reveals async selection and resize in ${direction}`, async ({ page }, info) => {
