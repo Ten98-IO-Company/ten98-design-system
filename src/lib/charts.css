@@ -27,7 +27,6 @@
 .t98-chart-pattern-dot { fill: var(--t98-surface); opacity: .7; }
 .t98-chart-hatch-line { stroke: var(--t98-muted); stroke-width: 2; }
 .t98-chart-unavailable-column { stroke: var(--t98-muted); stroke-width: 1; stroke-dasharray: 4 3; fill-opacity: .8; }
-.t98-chart-unavailable-text { fill: var(--t98-text); font: 500 12px/1 var(--t98-font); paint-order: stroke; stroke: var(--t98-surface); stroke-width: 4px; }
 .t98-chart-active line { stroke: var(--t98-muted); stroke-width: 1; }
 .t98-chart-active circle { fill: none; stroke: var(--t98-text); stroke-width: 2.5; }
 .t98-chart-readout { margin: 0; min-block-size: 1.5em; font-weight: 600; overflow-wrap: anywhere; }
@@ -87,7 +86,7 @@ a.t98-bar-list-name { color: var(--t98-accent); }
   .t98-chart-line, .t98-chart-marker, .t98-chart-key-line, .t98-chart-partial-mark { stroke: CanvasText !important; }
   .t98-chart-marker { fill: Canvas; }
   .t98-chart-hatch-line, .t98-chart-unavailable-column, .t98-chart-baseline { stroke: CanvasText; }
-  .t98-chart-unavailable-text, .t98-chart-axis-text { fill: CanvasText; }
+  .t98-chart-axis-text { fill: CanvasText; }
   .t98-chart-grid line { stroke: GrayText; }
   .t98-chart-fill-1, .t98-chart-fill-2, .t98-chart-fill-3, .t98-chart-fill-4, .t98-chart-fill-5 { forced-color-adjust: none; background-color: Canvas; fill: Canvas; border-color: CanvasText; background-image: repeating-linear-gradient(45deg, CanvasText 0 2px, Canvas 2px 6px); }
   .t98-chart-fill-1 { background-image: none; }
