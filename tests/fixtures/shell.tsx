@@ -6,6 +6,7 @@ import '@ten98/ui/app.css';
 import '@ten98/ui/product.css';
 
 const params = new URLSearchParams(location.search);
+if (params.has('dir')) document.documentElement.dir = params.get('dir') === 'rtl' ? 'rtl' : 'ltr';
 document.documentElement.dataset.theme = params.get('theme') || 'light';
 
 /* Stands in for a router link: `href` is a route key, resolved here to a hash URL. */
@@ -111,9 +112,10 @@ function SectionsScroll() {
     ['answer', 'Answer analysis'], ['compare', 'Compare periods'], ['citations', 'Analyze citations'],
     ['specialized', 'Specialized citation reports'], ['recommendations', 'Recommendations'],
   ] as const;
+  const unavailable = params.has('unavailable');
   return <main aria-label="Scrolling section content" style={{ display: 'grid', gap: 12, inlineSize: '100%', maxInlineSize: 1200, marginInline: 'auto', minWidth: 0, boxSizing: 'border-box', paddingInline: 16, gridTemplateColumns: params.has('bounded') ? 'minmax(0, 1fr)' : undefined }}>
     <SectionNav label="API model reports" items={labels.map(([id, label]) => ({ id, label, href: `#${id}`, current: current === id,
-      disabled: id === 'recommendations' && !enabled, disabledReason: 'Load the selected report first.' }))}
+      disabled: (id === 'recommendations' && !enabled) || (unavailable && ['compare', 'citations', 'specialized'].includes(id)), disabledReason: 'Load the selected report first.' }))}
       onSelect={(item, event) => { event.preventDefault(); setCurrent(item.id); }} />
     <Button disabled={enabled || loading} onClick={() => {
       setLoading(true);
