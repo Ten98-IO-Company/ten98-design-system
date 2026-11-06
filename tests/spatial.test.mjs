@@ -130,10 +130,24 @@ test('an approximate map says so, and overlapping estimates never show a mapped 
   assert.doesNotMatch(html, /999 sessions/);
 });
 
+test('no-data map markers use SVG paint while observed zero retains its palette step', () => {
+  for (const rows of [map.rows, new Map([...map.rows, ['CC', { value: null, valueText: 'Unavailable' }]])]) {
+    const html = capture(render(CountryMap, { ...map, rows, selectedCode: 'CC' }));
+    const missing = html.match(/<path[^>]*data-code="CC"[^>]*>/)?.[0];
+    const zero = html.match(/<path[^>]*data-code="BB"[^>]*>/)?.[0];
+    assert.match(missing, /t98-map-shape--nodata/);
+    assert.match(missing, /t98-map-shape--selected/);
+    assert.match(missing, /fill="url\(#[^)]+-nodata\)"/);
+    assert.match(zero, /t98-map-shape--step-0/);
+    assert.doesNotMatch(zero, /t98-map-shape--nodata|data-nodata|fill="url/);
+  }
+  assert.doesNotMatch(styles, /\.t98-map-shape--nodata\s*\{/);
+});
+
 test('every t98 class emitted by the spatial components is styled', () => {
   for (const html of emitted) for (const name of new Set([...html.matchAll(/class="([^"]+)"/g)].flatMap(match => match[1].split(' '))))
-    // ReplayControls and Button classes belong to their own components and tests.
-    if (/^t98-(map|heatmap|calendar|replay-viewer|replay-frame)/.test(name)) assert.ok(styles.includes(`.${name}`), `${name} is styled`);
+    // The no-data marker gets per-instance SVG paint; ReplayControls and Button own their styles.
+    if (name !== 't98-map-shape--nodata' && /^t98-(map|heatmap|calendar|replay-viewer|replay-frame)/.test(name)) assert.ok(styles.includes(`.${name}`), `${name} is styled`);
 });
 
 test('heatmap click points carry a hover title with their label and count', () => {

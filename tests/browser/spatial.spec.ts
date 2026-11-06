@@ -25,6 +25,56 @@ async function doubleText(page: Page) {
 const overflow = (page: Page) => page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
 const activeDate = (page: Page) => page.evaluate(() => (document.activeElement as HTMLElement | null)?.closest('[data-date]')?.getAttribute('data-date'));
 
+test('map no-data paint resolves its SVG hatch for missing and null rows', async ({ page }, info) => {
+  const dark = info.project.name === 'narrow-dark';
+  const measurements: unknown[] = [];
+  await page.goto(`/tests/spatial.html?theme=${dark ? 'dark' : 'light'}`);
+  const map = page.locator('section[aria-label="Sessions by country"]');
+  const inspect = async (phase: string) => {
+    const paint = await map.locator('path[data-nodata="true"]').evaluateAll(paths => paths.map(path => {
+      const id = path.getAttribute('fill')?.match(/#([^)]*)/)?.[1];
+      const pattern = id ? document.getElementById(id) : null;
+      return { code: path.getAttribute('data-code'), fill: getComputedStyle(path).fill, id,
+        patternInSameSvg: Boolean(pattern && pattern.closest('svg') === path.closest('svg')),
+        patternLine: pattern?.querySelector('path') ? getComputedStyle(pattern.querySelector('path')!).stroke : null };
+    }));
+    measurements.push({ phase, paint });
+    expect(paint.map(item => item.code)).toEqual(['CC', 'DD']);
+    for (const item of paint) {
+      expect(item.patternInSameSvg).toBe(true);
+      expect.soft(item.fill, `${phase}: ${item.code} must use its SVG pattern`).toMatch(/^url\(/);
+      expect.soft(item.fill).toContain(`#${item.id}`);
+      expect(item.patternLine).not.toBe('none');
+    }
+  };
+  try {
+    for (const width of [1440, 320]) {
+      await page.setViewportSize({ width, height: 1000 });
+      await page.emulateMedia({ forcedColors: 'none' });
+      await inspect(`${width}: normal`);
+      await map.screenshot({ path: info.outputPath(`map-nodata-${width}.png`) });
+      await map.locator('path[data-code="CC"]').hover();
+      await expect(map.getByRole('status')).toContainText('Gamma sample (no row): no Sessions data');
+      await inspect(`${width}: hover`);
+      await map.locator('path[data-code="AA"]').focus();
+      await page.keyboard.press('ArrowRight');
+      await expect(map.locator('path[data-code="BB"]')).toBeFocused();
+      expect(await map.locator('path[data-code="BB"]').evaluate(path => getComputedStyle(path).fill)).not.toMatch(/^url\(/);
+      await page.keyboard.press('End');
+      await expect(map.locator('path[data-code="DD"]')).toBeFocused();
+      await expect(map.getByRole('status')).toContainText('Delta sample: Sessions Unavailable');
+      await inspect(`${width}: keyboard`);
+      await expect(map.getByRole('row', { name: /^Gamma sample/ })).toContainText('No data');
+      await expect(map.getByRole('row', { name: /^Delta sample/ })).toContainText('Unavailable');
+      await page.emulateMedia({ forcedColors: 'active' });
+      await inspect(`${width}: forced colors`);
+      await map.screenshot({ path: info.outputPath(`map-nodata-${width}-forced.png`) });
+    }
+  } finally {
+    await info.attach('map-paint-measurements', { body: JSON.stringify(measurements), contentType: 'application/json' });
+  }
+});
+
 for (const theme of ['light', 'dark'] as const) {
   test(`maps, heatmaps, replay and calendar are operable and reflow in ${theme}`, async ({ page }, info) => {
     const width = info.project.name === 'narrow-dark' ? 320 : 1440;

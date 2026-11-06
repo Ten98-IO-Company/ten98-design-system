@@ -20,7 +20,6 @@
 .t98-map-shape--step-2, .t98-map-swatch--step-2 { fill: color-mix(in srgb, var(--t98-accent) 52%, var(--t98-surface)); background: color-mix(in srgb, var(--t98-accent) 52%, var(--t98-surface)); }
 .t98-map-shape--step-3, .t98-map-swatch--step-3 { fill: color-mix(in srgb, var(--t98-accent) 74%, var(--t98-surface)); background: color-mix(in srgb, var(--t98-accent) 74%, var(--t98-surface)); }
 .t98-map-shape--step-4, .t98-map-swatch--step-4 { fill: var(--t98-accent); background: var(--t98-accent); }
-.t98-map-shape--nodata { fill: var(--t98-subtle); }
 .t98-map-pattern-base { fill: var(--t98-surface); }
 .t98-map-pattern-line { stroke: var(--t98-muted); stroke-width: 1; fill: none; }
 .t98-map-legend { display: flex; flex-wrap: wrap; align-items: center; gap: var(--t98-space-2) var(--t98-space-4); color: var(--t98-muted); }
@@ -116,7 +115,6 @@ button.t98-calendar-entry, .t98-calendar-create { cursor: pointer; }
   .t98-map-shape--step-2, .t98-map-swatch--step-2 { fill: color-mix(in srgb, Highlight 55%, Canvas); background: color-mix(in srgb, Highlight 55%, Canvas); }
   .t98-map-shape--step-3, .t98-map-swatch--step-3 { fill: color-mix(in srgb, Highlight 75%, Canvas); background: color-mix(in srgb, Highlight 75%, Canvas); }
   .t98-map-shape--step-4, .t98-map-swatch--step-4 { fill: Highlight; background: Highlight; }
-  .t98-map-shape--nodata { fill: Canvas; }
   .t98-map-pattern-base { fill: Canvas; }
   .t98-map-pattern-line { stroke: CanvasText; }
   .t98-map-shape:focus-visible, .t98-map-shape--selected { stroke: Highlight; stroke-width: 4; }
