@@ -289,7 +289,8 @@ export function TimeSeriesChart({ label, height = HEIGHT, bare = false, context,
   const baseline = Math.min(Math.max(0, domain[0]), domain[1]);
   const gridTicks = ticks(domain[0], domain[1], 5);
   const hasPartial = cells.some(row => row.some(cell => cell.state === 'partial'));
-  const hasUnavailable = unavailableCount > 0;
+  const unavailableSeries = cells.map(row => count > 0 && row.every(cell => cell.value === null));
+  const allUnavailable = count > 0 && unavailableSeries.every(Boolean);
 
   const describe = (s: number, i: number) => {
     const cell = cells[s]?.[i];
@@ -345,13 +346,12 @@ export function TimeSeriesChart({ label, height = HEIGHT, bare = false, context,
   const patterns = tonePatterns(uid);
 
   const layers: ReactNode[] = [];
-  const columns = [...unavailableColumns].map(index => {
-    const names = series.filter((_, s) => cells[s]?.[index]?.value === null).map(item => item.label).join(', ');
+  // A wholly unavailable series is summarized once in the legend; plot hatches identify gaps in otherwise known series.
+  const columns = [...unavailableColumns].filter(index => cells.some((row, s) => !unavailableSeries[s] && row[index]?.value === null)).map(index => {
+    const names = series.filter((_, s) => !unavailableSeries[s] && cells[s]?.[index]?.value === null).map(item => item.label).join(', ');
     const cx0 = centre(index) ?? 0;
-    const mid = (plotTop + plotBottom) / 2;
     return <g key={`u${index}`} className="t98-chart-unavailable">
       <rect x={cx0 - bandwidth / 2} y={plotTop} width={bandwidth} height={plotBottom - plotTop} fill={`url(#${uid}-hatch)`} className="t98-chart-unavailable-column"><title>{`${xLabelAt(index)} · ${names}: unavailable`}</title></rect>
-      <text transform={`rotate(-90 ${cx0} ${mid})`} x={cx0} y={mid} textAnchor="middle" dominantBaseline="central" className="t98-chart-unavailable-text">Unavailable</text>
     </g>;
   });
 
@@ -409,11 +409,11 @@ export function TimeSeriesChart({ label, height = HEIGHT, bare = false, context,
   const activeY = highlighted && activeCell && activeCell.value !== null
     ? stacked ? yAt(stack[highlighted.series][highlighted.index]![1]) : yAt(activeCell.value) : null;
 
-  const showSeriesLegend = series.length > 1 || series.some(item => item.role === 'comparison' || item.unavailable);
-  const legend = (showSeriesLegend || hasPartial || hasUnavailable) && <ul className="t98-chart-legend" aria-label="Series">
-    {showSeriesLegend && series.map((item, s) => <li key={item.id}><SwatchKey series={item} index={s} /><span>{item.label}{item.role === 'comparison' ? ' (comparison, outlined)' : ''}{item.unavailable ? ' — unavailable' : ''}</span></li>)}
+  const showSeriesLegend = series.length > 1 || series.some(item => item.role === 'comparison' || item.unavailable) || unavailableSeries.some(Boolean);
+  const legend = (showSeriesLegend || hasPartial || columns.length > 0) && <ul className="t98-chart-legend" aria-label="Series">
+    {showSeriesLegend && series.map((item, s) => <li key={item.id}><SwatchKey series={item} index={s} /><span>{item.label}{item.role === 'comparison' ? ' (comparison, outlined)' : ''}{unavailableSeries[s] ? ` — unavailable for all ${count} ${count === 1 ? 'point' : 'points'}` : ''}</span></li>)}
     {hasPartial && <li><svg className="t98-chart-key" width="30" height="14" viewBox="0 0 30 14" aria-hidden="true" focusable="false"><circle className="t98-chart-partial-mark" cx="15" cy="7" r="5" /></svg><span>Dashed ring: partial data</span></li>}
-    {hasUnavailable && <li><svg className="t98-chart-key" width="30" height="14" viewBox="0 0 30 14" aria-hidden="true" focusable="false"><rect className="t98-chart-unavailable-column" x="8" y="1" width="14" height="12" fill={`url(#${uid}-hatch)`} /></svg><span>Hatched: unavailable, not zero</span></li>}
+    {columns.length > 0 && <li><svg className="t98-chart-key" width="30" height="14" viewBox="0 0 30 14" aria-hidden="true" focusable="false"><rect className="t98-chart-unavailable-column" x="8" y="1" width="14" height="12" fill={`url(#${uid}-hatch)`} /></svg><span>Hatched: unavailable, not zero</span></li>}
   </ul>;
 
   const table = () => <table className="t98-table t98-chart-table">
@@ -433,6 +433,7 @@ export function TimeSeriesChart({ label, height = HEIGHT, bare = false, context,
   return <ChartFrame label={label} bare={bare} context={context} summary={summary} summaryId={summaryId} statsId={statsId} stats={stats} notice={notice} loading={loading}
     empty={count === 0} emptyMessage={emptyMessage} legend={legend} tableLabel={`${label} data table`} table={table} rows={count}>
     <div className="t98-chart-plot" onPointerLeave={() => setTooltipIndex(null)}>
+    {allUnavailable && <p className="t98-chart-empty t98-chart-empty--unavailable" role="note">All series are unavailable for this period.</p>}
     <div ref={scrollRef} className="t98-chart-scroll" dir="ltr" tabIndex={0} role="group" aria-label={`${label} plot. Arrow keys move between points and series.`}
       aria-describedby={`${summaryId} ${statsId}${showTooltip ? ` ${tooltipId}` : ''}`} onKeyDown={onKeyDown} onFocus={() => { if (!active && count) inspect({ index: 0, series: 0 }); }} onBlur={() => { setActive(null); setTooltipIndex(null); }}>
       <svg className="t98-chart-svg" width={width} height={chartHeight} viewBox={`0 0 ${width} ${chartHeight}`} role="img" aria-label={label} aria-describedby={`${summaryId} ${statsId}`} onPointerMove={onPointerMove}>
@@ -442,11 +443,11 @@ export function TimeSeriesChart({ label, height = HEIGHT, bare = false, context,
             <line x1="0" y1="0" x2="0" y2="8" className="t98-chart-hatch-line" />
           </pattern>
         </defs>
-        {gridTicks.map(tick => <g key={tick} className="t98-chart-grid">
+        {!allUnavailable && gridTicks.map(tick => <g key={tick} className="t98-chart-grid">
           <line x1={plotLeft} x2={plotRight} y1={yAt(tick)} y2={yAt(tick)} />
           <text x={plotLeft - 8} y={yAt(tick)} textAnchor="end" dominantBaseline="central" className="t98-chart-axis-text">{formatY(tick)}</text>
         </g>)}
-        {domain[0] <= 0 && domain[1] >= 0 && <g><line className="t98-chart-baseline" x1={plotLeft} x2={plotRight} y1={yAt(0)} y2={yAt(0)} />
+        {!allUnavailable && domain[0] <= 0 && domain[1] >= 0 && <g><line className="t98-chart-baseline" x1={plotLeft} x2={plotRight} y1={yAt(0)} y2={yAt(0)} />
           {baselineLabel && <text x={plotRight} y={yAt(0) - 4} textAnchor="end" className="t98-chart-axis-text">{baselineLabel}</text>}</g>}
         {columns}
         {planTicks(Array.from({ length: count }, (_, i) => {

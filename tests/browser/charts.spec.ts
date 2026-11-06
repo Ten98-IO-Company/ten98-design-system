@@ -97,9 +97,10 @@ for (const theme of ['light', 'dark'] as const) {
     await expect(screen.getByRole('heading', { level: 1, name: 'Charts' })).toBeVisible();
     expect(await overflow(page), 'no page overflow').toBeLessThanOrEqual(1);
 
-    // Unavailable is hatched text, never a zero bar; the partial point carries a ring.
+    // Missing observations retain a visible hatch and legend; the partial point carries a ring.
     const visits = screen.locator('figure', { hasText: 'Weekly visits' }).first();
-    await expect(visits.locator('.t98-chart-unavailable-text')).toHaveText('Unavailable');
+    await expect(visits.locator('g.t98-chart-unavailable rect')).toBeVisible();
+    await expect(visits.getByRole('list', { name: 'Series' }).getByText('Hatched: unavailable, not zero', { exact: true })).toBeVisible();
     await expect(visits.locator('.t98-chart-partial-mark').first()).toBeVisible();
     expect(await visits.locator('rect.t98-chart-bar').evaluateAll(rects => rects.filter(rect => Number(rect.getAttribute('height')) <= 0).length)).toBe(0);
     await expect(visits).toContainText('8 points, series-value minimum -4, maximum 30, 1 point with unavailable values');
@@ -383,4 +384,94 @@ test('analytics controls chart tooltip reports every series on hover and focus, 
       await expect(tooltip).toHaveCount(0);
     }
   }
+});
+
+test('dense missing data distinguishes thirty-one measured zeros, missing series and isolated gaps without plot-label clutter', async ({ page }, info) => {
+  const dark = info.project.name === 'narrow-dark';
+  const requests: string[] = [], errors: string[] = [];
+  page.on('request', request => requests.push(request.url()));
+  page.on('pageerror', error => errors.push(error.message));
+  await page.goto(`/tests/charts.html?view=dense-missing&theme=${dark ? 'dark' : 'light'}&dir=${dark ? 'rtl' : 'ltr'}`);
+  await page.evaluate(() => document.fonts.ready.then(() => undefined));
+  const chart = (label: string) => {
+    const figure = page.locator('figure', { has: page.getByRole('img', { name: label, exact: true }) });
+    return { figure, plot: figure.getByRole('group', { name: new RegExp(`${label} plot`) }), tooltip: figure.getByRole('tooltip') };
+  };
+  const zero = chart('Zero page views with unavailable visitors');
+  const mixed = chart('Mixed visitor availability');
+  const missing = chart('Wholly unavailable period');
+  const firstMinute = 'November 6, 2026, 12:00:00 UTC', lastMinute = 'November 6, 2026, 12:30:00 UTC';
+  for (const current of [zero, mixed, missing]) {
+    await expect(current.plot).toHaveAttribute('tabindex', '0');
+    await expect(current.figure.locator('svg text[transform*="rotate"]')).toHaveCount(0);
+  }
+  await expect(zero.figure.locator('rect.t98-chart-bar')).toHaveCount(31);
+  await expect(zero.figure.locator('g.t98-chart-unavailable')).toHaveCount(0);
+  await expect(zero.figure.getByRole('list', { name: 'Series' })).toContainText(/Estimated visitors.* — unavailable for all 31 points/);
+  await expect(mixed.figure.locator('g.t98-chart-unavailable')).toHaveCount(3);
+  await expect(mixed.figure.locator('.t98-chart-unavailable-column').first()).toBeVisible();
+  await expect(mixed.figure.getByRole('list', { name: 'Series' })).not.toContainText('unavailable for all 31 points');
+  await expect(missing.figure.locator('rect.t98-chart-bar')).toHaveCount(0);
+  await expect(missing.figure.locator('g.t98-chart-unavailable')).toHaveCount(0);
+  await expect(missing.figure.getByText('All series are unavailable for this period.', { exact: true })).toBeVisible();
+
+  for (const [current, firstValue, lastValue] of [[zero, 'unavailable', 'unavailable'], [mixed, '1', '3'], [missing, 'unavailable', 'unavailable']] as const) {
+    await page.getByRole('heading', { name: 'Dense missing data', exact: true }).click();
+    await current.plot.focus();
+    await page.keyboard.press('Home');
+    await expect(readoutOf(current.plot)).toHaveText(`${firstMinute} · Page views: ${current === missing ? 'unavailable' : '0'}`);
+    await expect(current.tooltip).toContainText(firstMinute);
+    await expect(current.tooltip).toContainText(`Page views: ${current === missing ? 'unavailable' : '0'}`);
+    await expect(current.tooltip).toContainText(`Estimated visitors (comparison): ${firstValue}`);
+    await page.keyboard.press('ArrowDown');
+    await expect(readoutOf(current.plot)).toContainText(`${firstMinute} · Estimated visitors: ${firstValue}`);
+    await page.keyboard.press('End');
+    await expect(readoutOf(current.plot)).toContainText(`${lastMinute} · Estimated visitors: ${lastValue}`);
+    await expect(current.tooltip).toContainText(lastMinute);
+    await page.keyboard.press('Escape');
+    await expect(current.tooltip).toHaveCount(0);
+    await current.figure.getByText('View data table', { exact: true }).click();
+    const table = current.figure.getByRole('table');
+    await expect(table.getByRole('rowheader')).toHaveCount(31);
+    await expect(table.getByRole('cell', { name: '0', exact: true })).toHaveCount(current === missing ? 0 : 31);
+    await expect(table.getByRole('cell', { name: 'Unavailable', exact: true })).toHaveCount(current === zero ? 31 : current === mixed ? 3 : 62);
+    await expect(table.getByRole('rowheader', { name: firstMinute, exact: true })).toHaveCount(1);
+    await expect(table.getByRole('rowheader', { name: lastMinute, exact: true })).toHaveCount(1);
+    await current.figure.getByText('View data table', { exact: true }).click();
+  }
+
+  for (const width of [1280, 320]) {
+    await page.setViewportSize({ width, height: 1000 });
+    for (const doubled of [false, true]) {
+      const legend = zero.figure.getByRole('list', { name: 'Series' });
+      const originalFont = await legend.evaluate(node => parseFloat(getComputedStyle(node).fontSize));
+      const restore = doubled ? await doubleText(page) : undefined;
+      if (doubled) expect(await legend.evaluate(node => parseFloat(getComputedStyle(node).fontSize))).toBeCloseTo(originalFont * 2, 1);
+      for (const current of [zero, mixed, missing]) {
+        await expect.poll(() => current.plot.evaluate(node => node.scrollWidth - node.clientWidth)).toBeLessThanOrEqual(1);
+        await expect.poll(() => current.plot.evaluate(node => Math.abs(node.querySelector('svg')!.getBoundingClientRect().width - node.clientWidth))).toBeLessThanOrEqual(1);
+        await expect(current.figure.locator('svg text[transform*="rotate"]')).toHaveCount(0);
+        const clipped = await current.figure.getByRole('list', { name: 'Series' }).evaluate(list => {
+          const bounds = list.closest('figure')!.getBoundingClientRect();
+          const walker = document.createTreeWalker(list, NodeFilter.SHOW_TEXT), failures: string[] = [];
+          for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+            const range = document.createRange(); range.selectNodeContents(node);
+            if ([...range.getClientRects()].some(rect => rect.left < bounds.left - 1 || rect.right > bounds.right + 1)) failures.push(node.textContent ?? '');
+          }
+          return failures;
+        });
+        expect(clipped, `${width}px legend at ${doubled ? 'doubled' : 'normal'} text`).toEqual([]);
+      }
+      await expect(missing.figure.getByText('All series are unavailable for this period.', { exact: true })).toBeVisible();
+      expect(await overflow(page)).toBeLessThanOrEqual(1);
+      if (width === 320 && !doubled) await missing.figure.screenshot({ path: info.outputPath('all-unavailable-320.png') });
+      await zero.figure.screenshot({ path: info.outputPath(`dense-missing-${width}-${doubled ? 'text-200' : 'normal'}.png`) });
+      await restore?.();
+    }
+  }
+  expect(errors).toEqual([]);
+  expect(requests.every(url => new URL(url).origin === new URL(info.project.use.baseURL!).origin)).toBe(true);
+  expect(requests.filter(url => new URL(url).pathname.startsWith('/api/'))).toEqual([]);
+  expect(requests.length).toBeLessThanOrEqual(25);
+  await info.attach('request-count', { body: String(requests.length), contentType: 'text/plain' });
 });

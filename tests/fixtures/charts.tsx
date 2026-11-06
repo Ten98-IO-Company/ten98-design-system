@@ -66,4 +66,20 @@ function Screen() {
   </Stack>;
 }
 
-createRoot(document.getElementById('charts-fixture')!).render(<Screen />);
+const minuteLabels = Array.from({ length: 31 }, (_, index) => `November 6, 2026, 12:${String(index).padStart(2, '0')}:00 UTC`);
+const minutePoints = (values: (number | null)[]) => values.map((y, x) => ({ x, xLabel: minuteLabels[x], y }));
+const zeroViews: ChartSeries = { id: 'pageViews', label: 'Page views', points: minutePoints(Array.from({ length: 31 }, () => 0)) };
+const missingViews: ChartSeries = { id: 'pageViews', label: 'Page views', points: minutePoints(Array.from({ length: 31 }, () => null)) };
+const missingVisitors: ChartSeries = { id: 'visitors', label: 'Estimated visitors', role: 'comparison', points: minutePoints(Array.from({ length: 31 }, () => null)) };
+const mixedVisitors: ChartSeries = { id: 'visitors', label: 'Estimated visitors', role: 'comparison', points: minutePoints(Array.from({ length: 31 }, (_, index) => [5, 13, 25].includes(index) ? null : index % 7 + 1)) };
+
+function MissingDensityScreen() {
+  return <Stack as="main" gap={6} id="dense-missing-charts">
+    <Heading level={1}>Dense missing data</Heading>
+    <TimeSeriesChart label="Zero page views with unavailable visitors" summary="Thirty-one synthetic minutes contain measured zero page views and no supplied visitor observations." kind="grouped-bars" fit="compress" bare series={[zeroViews, missingVisitors]} />
+    <TimeSeriesChart label="Mixed visitor availability" summary="Thirty-one synthetic minutes retain three missing visitor observations among measured values." kind="grouped-bars" fit="compress" bare series={[zeroViews, mixedVisitors]} />
+    <TimeSeriesChart label="Wholly unavailable period" summary="Neither series has supplied observations for these thirty-one synthetic minutes." kind="grouped-bars" fit="compress" bare series={[missingViews, missingVisitors]} />
+  </Stack>;
+}
+
+createRoot(document.getElementById('charts-fixture')!).render(params.get('view') === 'dense-missing' ? <MissingDensityScreen /> : <Screen />);

@@ -14,20 +14,20 @@ const chart = (kind, extra = {}) => render(h(TimeSeriesChart, { label: 'Visits',
 
 test('stack statistics describe known signed extent and distinct unavailable x positions', () => {
   const makeSeries = rows => rows.map((values, index) => ({ id: String(index), label: `Series ${index}`, points: values.map((y, x) => point(x, y)) }));
-  for (const [name, supplied, expectedExtent, unavailable] of [
-    ['positive and zero', makeSeries([[3, 0], [6, 0]]), '0 to 9', 0],
-    ['one skipped date', makeSeries([[3, null], [6, null]]), '0 to 9', 1],
-    ['signed, not net', makeSeries([[3, -4, null], [6, -2, null]]), '-6 to 9', 1],
-    ['all unavailable', makeSeries([[null], [null]]), 'unavailable', 1],
-    ['zero is observed', makeSeries([[0], [0]]), '0 to 0', 0],
-    ['unequal lengths', makeSeries([[3, 5, 2], [6]]), '0 to 9', 2],
-    ['nonfinite cells', makeSeries([[3, NaN], [6, Infinity]]), '0 to 9', 1],
-    ['series unavailable', [{ ...makeSeries([[100, 100]])[0], unavailable: true }, { id: 'known', label: 'Known', points: [point(0, 3), point(1, 0)] }], '0 to 3', 2],
+  for (const [name, supplied, expectedExtent, unavailable, unavailableCells] of [
+    ['positive and zero', makeSeries([[3, 0], [6, 0]]), '0 to 9', 0, 0],
+    ['one skipped date', makeSeries([[3, null], [6, null]]), '0 to 9', 1, 2],
+    ['signed, not net', makeSeries([[3, -4, null], [6, -2, null]]), '-6 to 9', 1, 2],
+    ['all unavailable', makeSeries([[null], [null]]), 'unavailable', 1, 2],
+    ['zero is observed', makeSeries([[0], [0]]), '0 to 0', 0, 0],
+    ['unequal lengths', makeSeries([[3, 5, 2], [6]]), '0 to 9', 2, 2],
+    ['nonfinite cells', makeSeries([[3, NaN], [6, Infinity]]), '0 to 9', 1, 2],
+    ['series unavailable', [{ ...makeSeries([[100, 100]])[0], unavailable: true }, { id: 'known', label: 'Known', points: [point(0, 3), point(1, 0)] }], '0 to 3', 2, 2],
   ]) {
     const html = chart('stacked-bars', { series: supplied });
     assert.ok(html.includes(`known stacked extent ${expectedExtent}`), name);
     assert.ok(html.includes(`${unavailable} ${unavailable === 1 ? 'point' : 'points'} with unavailable values`), name);
-    assert.equal([...html.matchAll(/<g class="t98-chart-unavailable">/g)].length, unavailable, name);
+    assert.equal([...html.matchAll(/<td[^>]*>Unavailable<\/td>/g)].length, unavailableCells, name);
     assert.doesNotMatch(html, /NaN|Infinity/, name);
   }
   const partial = chart('stacked-bars', { series: [{ id: 'a', label: 'A', points: [point(0, 3, 'partial')] }, { id: 'b', label: 'B', points: [point(0, 6)] }] });
@@ -58,7 +58,36 @@ test('a null point renders an unavailable mark and never a zero-height rectangle
     assert.doesNotMatch(html, /<rect[^>]*class="t98-chart-bar[^"]*"[^>]*height="0"/, kind);
     assert.doesNotMatch(html, /NaN|Infinity/, kind);
   }
-  assert.match(chart('bars', { series: [{ ...series[0], unavailable: true }] }), /t98-chart-unavailable-column/);
+  assert.match(chart('bars', { series: [{ ...series[0], unavailable: true }] }), /Visits — unavailable for all 4 points/);
+});
+
+test('dense wholly unavailable series are summarized once while observed zero and every table value remain', () => {
+  const supplied = [
+    { id: 'views', label: 'Recorded pageviews', points: Array.from({ length: 31 }, (_, x) => point(x, 0)) },
+    { id: 'visitors', label: 'Estimated visitors', role: 'comparison', points: Array.from({ length: 31 }, (_, x) => point(x, null)) },
+  ];
+  const html = chart('grouped-bars', { series: supplied, fit: 'compress', bare: true, yDomain: [0, 1] });
+  assert.match(html, /Estimated visitors \(comparison, outlined\) — unavailable for all 31 points/);
+  assert.doesNotMatch(html, /class="t98-chart-unavailable"|t98-chart-unavailable-text/);
+  assert.equal([...html.matchAll(/class="t98-chart-bar"/g)].length, 31);
+  assert.equal([...html.matchAll(/<td[^>]*>0<\/td>/g)].length, 31);
+  assert.equal([...html.matchAll(/<td[^>]*>Unavailable<\/td>/g)].length, 31);
+  assert.match(html, /31 points, series-value minimum 0, maximum 0, 31 points with unavailable values/);
+  const gaps = chart('grouped-bars');
+  assert.match(gaps, /<g class="t98-chart-unavailable">/);
+  assert.match(gaps, /Hatched: unavailable, not zero/);
+  assert.doesNotMatch(gaps, /t98-chart-unavailable-text/);
+});
+
+test('all-unavailable charts state that condition without drawing data or hiding point inspection and tables', () => {
+  const supplied = ['A', 'B'].map(label => ({ id: label, label, points: Array.from({ length: 31 }, (_, x) => point(x, null)) }));
+  const html = chart('grouped-bars', { series: supplied, fit: 'compress', bare: true });
+  assert.match(html, /role="note">All series are unavailable for this period\./);
+  assert.doesNotMatch(html, /class="t98-chart-bar|class="t98-chart-unavailable"|class="t98-chart-grid"|class="t98-chart-baseline"/);
+  assert.equal([...html.matchAll(/<td[^>]*>Unavailable<\/td>/g)].length, 62);
+  assert.match(html, /31 points, series-value minimum unavailable, maximum unavailable, 31 points with unavailable values/);
+  assert.match(html, /Arrow keys move between points and series/);
+  assert.match(html, /role="region" aria-label="Visits data table"/);
 });
 
 test('a real zero stays a visible mark and a partial point is marked', () => {
