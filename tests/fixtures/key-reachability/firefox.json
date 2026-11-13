@@ -1,0 +1,169 @@
+{
+  "F1": {
+    "reached": true,
+    "cancelable": true,
+    "registryRan": true,
+    "effectsUnhandled": [],
+    "effectsCancelled": []
+  },
+  "F2": {
+    "reached": true,
+    "cancelable": true,
+    "registryRan": true,
+    "effectsUnhandled": [],
+    "effectsCancelled": []
+  },
+  "F3": {
+    "reached": true,
+    "cancelable": true,
+    "registryRan": true,
+    "effectsUnhandled": [],
+    "effectsCancelled": []
+  },
+  "F4": {
+    "reached": true,
+    "cancelable": true,
+    "registryRan": true,
+    "effectsUnhandled": [],
+    "effectsCancelled": []
+  },
+  "F5": {
+    "reached": true,
+    "cancelable": true,
+    "registryRan": true,
+    "effectsUnhandled": [],
+    "effectsCancelled": []
+  },
+  "F6": {
+    "reached": true,
+    "cancelable": true,
+    "registryRan": true,
+    "effectsUnhandled": [],
+    "effectsCancelled": []
+  },
+  "F7": {
+    "reached": true,
+    "cancelable": true,
+    "registryRan": true,
+    "effectsUnhandled": [],
+    "effectsCancelled": []
+  },
+  "F8": {
+    "reached": true,
+    "cancelable": true,
+    "registryRan": true,
+    "effectsUnhandled": [],
+    "effectsCancelled": []
+  },
+  "F9": {
+    "reached": true,
+    "cancelable": true,
+    "registryRan": true,
+    "effectsUnhandled": [],
+    "effectsCancelled": []
+  },
+  "F10": {
+    "reached": true,
+    "cancelable": true,
+    "registryRan": true,
+    "effectsUnhandled": [],
+    "effectsCancelled": []
+  },
+  "F12": {
+    "reached": true,
+    "cancelable": true,
+    "registryRan": true,
+    "effectsUnhandled": [],
+    "effectsCancelled": []
+  },
+  "Enter": {
+    "reached": true,
+    "cancelable": true,
+    "registryRan": true,
+    "effectsUnhandled": [
+      "submit"
+    ],
+    "effectsCancelled": []
+  },
+  "Escape": {
+    "reached": true,
+    "cancelable": true,
+    "registryRan": true,
+    "effectsUnhandled": [],
+    "effectsCancelled": []
+  },
+  "Ctrl+A": {
+    "reached": true,
+    "cancelable": true,
+    "registryRan": true,
+    "effectsUnhandled": [
+      "select-all"
+    ],
+    "effectsCancelled": []
+  },
+  "Ctrl+Enter": {
+    "reached": true,
+    "cancelable": true,
+    "registryRan": true,
+    "effectsUnhandled": [
+      "submit"
+    ],
+    "effectsCancelled": []
+  },
+  "Ctrl+S": {
+    "reached": true,
+    "cancelable": true,
+    "registryRan": true,
+    "effectsUnhandled": [],
+    "effectsCancelled": []
+  },
+  "Ctrl+P": {
+    "reached": true,
+    "cancelable": true,
+    "registryRan": true,
+    "effectsUnhandled": [],
+    "effectsCancelled": []
+  },
+  "Alt+C": {
+    "reached": true,
+    "cancelable": true,
+    "registryRan": true,
+    "effectsUnhandled": [],
+    "effectsCancelled": []
+  },
+  "Alt+D": {
+    "reached": true,
+    "cancelable": true,
+    "registryRan": true,
+    "effectsUnhandled": [],
+    "effectsCancelled": []
+  },
+  "Alt+E": {
+    "reached": true,
+    "cancelable": true,
+    "registryRan": true,
+    "effectsUnhandled": [],
+    "effectsCancelled": []
+  },
+  "Alt+F": {
+    "reached": true,
+    "cancelable": true,
+    "registryRan": true,
+    "effectsUnhandled": [],
+    "effectsCancelled": []
+  },
+  "Alt+G": {
+    "reached": true,
+    "cancelable": true,
+    "registryRan": true,
+    "effectsUnhandled": [],
+    "effectsCancelled": []
+  },
+  "Ctrl+K": {
+    "reached": true,
+    "cancelable": true,
+    "registryRan": true,
+    "effectsUnhandled": [],
+    "effectsCancelled": []
+  }
+}
