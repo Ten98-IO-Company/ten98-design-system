@@ -11,6 +11,8 @@ import type { ComboboxAsyncProps, ComboboxOption } from './controls.js';
  * DOM focus stays on the input; the highlighted option is exposed with aria-activedescendant.
  * Deviations from the example: filtering matches anywhere in the label (case-insensitive) rather than as a prefix,
  * ArrowUp moves to the previous option and wraps, and Enter on an open list with no highlighted option only closes it.
+ * With autoHighlight (grid cells) the first match is highlighted as the user types, as in the APG "automatic selection"
+ * variant, and Tab also picks it.
  * Async loading (onInputChange, filter=false, loading) follows react-aria useComboBox (Apache-2.0); multiple selection
  * follows Downshift useMultipleSelection (MIT): picks keep the list open, Backspace in an empty input removes the last pick,
  * and aria-selected marks picked options in an aria-multiselectable listbox. Behaviour only; no code is copied. */
@@ -36,6 +38,12 @@ export interface ComboboxControlProps extends ComboboxAsyncProps {
   emptyMessage: string;
   /** Multiple selection: picked values, shown as selected options; the list stays open after a pick. */
   picked?: ReadonlySet<string>;
+  /** Highlight the first match while typing, so Enter or Tab picks it. */
+  autoHighlight?: boolean;
+  /** Match typed text against option descriptions (for example a code) as well as labels. */
+  matchDescription?: boolean;
+  /** The typed text was dropped: the list closed without a pick, so the input shows `text` again. */
+  onQueryReset?: () => void;
   /** Backspace in an empty input (multiple selection). */
   onRemoveLast?: () => void;
   /** Announced in place of the result count, for example after a pick; the owner clears it when the user types. */
@@ -51,7 +59,7 @@ export interface ComboboxControlProps extends ComboboxAsyncProps {
   /** Rendered after the input, such as hidden form inputs. */
   children?: ReactNode;
 }
-export function ComboboxControl({ id, options, text, onType, onPick, onClear, onLeave, label, placeholder, required, disabled, emptyMessage, picked, onRemoveLast, notice, inputRef, inputValue, onInputValueChange, blockReason, before, children, onInputChange, filter = true, loading = false, loadError, ...described }: ComboboxControlProps) {
+export function ComboboxControl({ id, options, text, onType, onPick, onClear, onLeave, label, placeholder, required, disabled, emptyMessage, picked, onRemoveLast, autoHighlight = false, matchDescription = false, onQueryReset, notice, inputRef, inputValue, onInputValueChange, blockReason, before, children, onInputChange, filter = true, loading = false, loadError, ...described }: ComboboxControlProps) {
   const generated = useId();
   const listId = `${generated}-list`;
   const optionId = (index: number) => `${generated}-option-${index}`;
@@ -65,7 +73,7 @@ export function ComboboxControl({ id, options, text, onType, onPick, onClear, on
   const query = inputValue !== undefined ? (inputValue === '' ? null : inputValue) : ownQuery;
   const list = useRef<HTMLUListElement>(null);
   const needle = filter ? query?.toLowerCase() : undefined;
-  const shown = needle ? options.filter(option => option.label.toLowerCase().includes(needle)) : options;
+  const shown = needle ? options.filter(option => option.label.toLowerCase().includes(needle) || (matchDescription && option.description?.toLowerCase().includes(needle))) : options;
   const count = shown.length;
   const activeOption = open && active >= 0 && active < count ? active : -1;
 
@@ -77,7 +85,7 @@ export function ComboboxControl({ id, options, text, onType, onPick, onClear, on
     if (inputValue !== undefined) { if (typed !== null) onInputValueChange?.(typed); return; }
     setQuery(typed); onInputChange?.(typed ?? '');
   }
-  function close() { setOpen(false); setActive(-1); if (query !== null) type(null); }
+  function close() { setOpen(false); setActive(-1); if (query !== null && inputValue === undefined) { type(null); onQueryReset?.(); } }
   const reasonFor = (option: ComboboxOption) => option.disabled ? option.disabledReason ?? 'Unavailable' : blockReason?.(option);
   function accept(option: ComboboxOption) {
     if (reasonFor(option) !== undefined) return;
@@ -110,6 +118,7 @@ export function ComboboxControl({ id, options, text, onType, onPick, onClear, on
         if (onRemoveLast && event.currentTarget.value === '') onRemoveLast();
         return;
       case 'Tab':
+        if (autoHighlight && activeOption >= 0 && !event.shiftKey) { event.preventDefault(); accept(shown[activeOption]); return; }
         close();
         return;
     }
@@ -120,7 +129,7 @@ export function ComboboxControl({ id, options, text, onType, onPick, onClear, on
     {before}
     <Input id={id} ref={inputRef} {...described} role="combobox" aria-autocomplete="list" aria-expanded={open} aria-controls={listId} aria-activedescendant={activeOption >= 0 ? optionId(activeOption) : undefined}
       value={query ?? text} placeholder={placeholder} required={required} disabled={disabled} autoComplete="off" spellCheck={false}
-      onChange={event => { onType(event.target.value); type(event.target.value); setActive(-1); setOpen(true); }}
+      onChange={event => { onType(event.target.value); type(event.target.value); setActive(autoHighlight ? 0 : -1); setOpen(true); }}
       onKeyDown={onKeyDown}
       onBlur={() => { close(); onLeave(); }} />
     {children}

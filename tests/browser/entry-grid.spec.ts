@@ -21,8 +21,8 @@ test('three journal lines are entered by keyboard alone, with a created account,
   await page.keyboard.press('Enter');
   await expect(editor(page, 'Date', 1)).toBeFocused();
   await page.keyboard.press('Enter');
+  // The first match is highlighted; ArrowDown would move on to "Create “Ca”".
   await page.keyboard.type('Ca');
-  await page.keyboard.press('ArrowDown');
   await page.keyboard.press('Enter');
   await expect(editor(page, 'Side', 1)).toBeFocused();
   await page.keyboard.press('Enter');
@@ -50,7 +50,6 @@ test('three journal lines are entered by keyboard alone, with a created account,
   await page.keyboard.press('Tab');
   await page.keyboard.type('Petty cash');
   await expect(page.getByRole('option', { name: 'Create “Petty cash”' })).toBeVisible();
-  await page.keyboard.press('ArrowDown');
   await page.keyboard.press('Enter');
   await expect(editor(page, 'Side', 2)).toBeFocused();
   expect(await page.evaluate(() => window.log)).toEqual(['create:Petty cash']);
@@ -65,7 +64,6 @@ test('three journal lines are entered by keyboard alone, with a created account,
   await expect(editor(page, 'Date', 3)).toBeFocused();
   await page.keyboard.press('Enter');
   await page.keyboard.type('Ba');
-  await page.keyboard.press('ArrowDown');
   await page.keyboard.press('Enter');
   await page.keyboard.press('c');
   await page.keyboard.press('Enter');
@@ -138,4 +136,187 @@ test('arrow keys follow the reading direction in right-to-left pages and amounts
   await expect(cell(page, 1, 'Amount')).toHaveText('300.00');
   expect(await cell(page, 1, 'Amount').locator('.t98-entry-grid__value').evaluate(node => getComputedStyle(node).direction)).toBe('ltr');
   expect(await overflow(page)).toBeLessThanOrEqual(1);
+});
+
+const enterGrid = async (page: Page, query = '') => {
+  await page.goto(`/tests/entry-grid.html${query}`);
+  await page.getByRole('textbox', { name: 'Reference' }).focus();
+  await page.keyboard.press('Tab');
+};
+const log = (page: Page) => page.evaluate(() => window.log);
+const amounts = async (page: Page) => (await rows(page)).map((row: Record<string, string>) => row.amount);
+// Every text the status region shows, to tell a repeated announcement from one left in place.
+const recordStatus = (page: Page) => page.evaluate(() => {
+  const region = document.querySelector('.t98-entry-grid + [role=status]')!;
+  const seen: string[] = [];
+  new MutationObserver(() => seen.push(region.textContent ?? '')).observe(region, { childList: true, characterData: true, subtree: true });
+  (window as unknown as { statusSeen: string[] }).statusSeen = seen;
+});
+const statusSeen = (page: Page) => page.evaluate(() => (window as unknown as { statusSeen: string[] }).statusSeen);
+// Fills line 1 as Cash, Debit, 5.00 and ends on the appended line 2's Date editor.
+const fillFirstLine = async (page: Page) => {
+  for (const key of ['Enter', 'Enter', 'C', 'a', 'Enter', 'Enter', '5', 'Enter', 'Enter', 'Enter']) await page.keyboard.press(key);
+  await expect(editor(page, 'Date', 2)).toBeFocused();
+};
+
+test('app commands commit the typed text first; invalid text blocks them, and Escape clears its error', async ({ page }) => {
+  await enterGrid(page);
+  await recordStatus(page);
+  await page.keyboard.press('Enter');
+  await page.keyboard.press('Enter');
+  // The first match is highlighted as you type, so Enter picks it without an arrow key.
+  await page.keyboard.type('Ca');
+  await page.keyboard.press('Enter');
+  await expect(editor(page, 'Side', 1)).toBeFocused();
+  await page.keyboard.press('Enter');
+  await page.keyboard.type('500');
+  await page.keyboard.press('Control+s');
+  expect(await log(page)).toEqual(['save:500.00']);
+  await expect(editor(page, 'Amount', 1)).toBeFocused();
+  expect((await rows(page))[0]).toMatchObject({ account: 'cash', amount: '500.00' });
+
+  await page.keyboard.press('Control+a');
+  await page.keyboard.type('5.555');
+  await page.keyboard.press('Control+s');
+  await expect(cell(page, 1, 'Amount')).toContainText('Use up to 2 decimal places.');
+  expect(await log(page), 'invalid text is not saved').toEqual(['save:500.00']);
+  await expect(editor(page, 'Amount', 1)).toBeFocused();
+  await expect(editor(page, 'Amount', 1)).toHaveValue('5.555');
+  await expect(page.locator('.t98-entry-grid + [role=status]')).toHaveText('Amount, row 1: Use up to 2 decimal places.');
+  // The same error again is announced again: the region is emptied before the message returns.
+  await page.keyboard.press('Enter');
+  const message = 'Amount, row 1: Use up to 2 decimal places.';
+  await expect.poll(async () => (await statusSeen(page)).join('|')).toContain(`${message}||${message}`);
+
+  await page.keyboard.press('Escape');
+  await expect(cell(page, 1, 'Amount')).toBeFocused();
+  await expect(cell(page, 1, 'Amount')).not.toHaveAttribute('aria-invalid');
+  await expect(editor(page, 'Amount', 1)).toHaveValue('500.00');
+
+  // Opening the panel commits too.
+  await page.keyboard.press('Enter');
+  await page.keyboard.press('Control+a');
+  await page.keyboard.type('600');
+  await page.keyboard.press('Alt+l');
+  await expect(page.getByRole('dialog', { name: 'Allocate line 1' })).toBeVisible();
+  expect(await amounts(page)).toEqual(['600.00']);
+});
+
+test('lookups: a code matches, Tab picks the highlighted option, and closing the list drops partial text', async ({ page }) => {
+  await enterGrid(page);
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('Enter');
+  await page.keyboard.type('Ca');
+  await page.keyboard.press('Escape');
+  await expect(editor(page, 'Account', 1)).toHaveValue('');
+  // Nothing is left behind the empty input: Enter reports the empty required cell, not a stale "Ca".
+  await page.keyboard.press('Enter');
+  await expect(cell(page, 1, 'Account')).toContainText('Required.');
+  await expect(cell(page, 1, 'Account')).not.toContainText('Choose from the list.');
+  await page.keyboard.type('51');
+  await expect(page.getByRole('option', { name: /Rent expense/ })).toHaveAttribute('aria-selected', 'true');
+  await page.keyboard.press('Enter');
+  await expect(editor(page, 'Side', 1)).toBeFocused();
+  await expect(cell(page, 1, 'Account')).toHaveText('Rent expense');
+  await page.keyboard.press('Shift+Tab');
+  await page.keyboard.type('Ba');
+  await page.keyboard.press('Tab');
+  await expect(editor(page, 'Side', 1)).toBeFocused();
+  await expect(cell(page, 1, 'Account')).toHaveText('Bank');
+});
+
+test('Tab and Shift+Tab pass through an empty appended row; only Enter stops at a required cell', async ({ page }) => {
+  await enterGrid(page);
+  const grid = page.getByRole('grid', { name: 'Journal lines' });
+  await fillFirstLine(page);
+  await page.keyboard.press('Tab');
+  await page.keyboard.press('Tab');
+  await expect(editor(page, 'Side', 2)).toBeFocused();
+  await page.keyboard.press('Shift+Tab');
+  await page.keyboard.press('Shift+Tab');
+  await page.keyboard.press('Shift+Tab');
+  await expect(editor(page, 'Memo', 1)).toBeFocused();
+  await expect(grid.locator('[aria-invalid=true]')).toHaveCount(0);
+  await page.keyboard.press('Tab');
+  await page.keyboard.press('Tab');
+  await page.keyboard.press('Enter');
+  await expect(editor(page, 'Account', 2)).toBeFocused();
+  await expect(cell(page, 2, 'Account')).toContainText('Required.');
+});
+
+test('focus stays in the grid when the only row is removed or the app replaces the rows', async ({ page }) => {
+  await enterGrid(page, '?create=0');
+  await page.keyboard.press('Control+Delete');
+  await expect(page.getByRole('gridcell', { name: 'No rows.' })).toBeFocused();
+  await page.keyboard.press('Shift+Tab');
+  await page.keyboard.press('Tab');
+  await expect(page.getByRole('gridcell', { name: 'No rows.' })).toBeFocused();
+
+  await enterGrid(page);
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('Alt+r');
+  await expect(cell(page, 1, 'Account')).toBeFocused();
+  await page.keyboard.press('Enter');
+  await page.keyboard.press('Alt+r');
+  await expect(cell(page, 1, 'Account')).toBeFocused();
+});
+
+test('vertical arrows commit line cells, rows insert above and below, and AltGr or an IME starts editing', async ({ page }) => {
+  await enterGrid(page);
+  const status = page.locator('.t98-entry-grid + [role=status]');
+  await page.keyboard.press('Control+Enter');
+  await expect(editor(page, 'Date', 2)).toBeFocused();
+  await expect(status).toHaveText('Row 2 added.');
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('ArrowUp');
+  for (let i = 0; i < 3; i++) await page.keyboard.press('ArrowRight');
+  await page.keyboard.type('7');
+  await page.keyboard.press('ArrowDown');
+  await expect(editor(page, 'Amount', 2)).toBeFocused();
+  await page.keyboard.type('8');
+  await page.keyboard.press('ArrowUp');
+  await expect(editor(page, 'Amount', 1)).toBeFocused();
+  expect(await amounts(page)).toEqual(['7.00', '8.00']);
+
+  await page.keyboard.press('Control+Shift+Enter');
+  await expect(editor(page, 'Date', 1)).toBeFocused();
+  await expect(status).toHaveText('Row 1 added.');
+  expect(await amounts(page)).toEqual([undefined, '7.00', '8.00']);
+
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('End');
+  await page.keyboard.press('ArrowLeft');
+  await expect(cell(page, 1, 'Memo')).toBeFocused();
+  const press = (init: { key: string; code: string; ctrlKey?: boolean; altKey?: boolean; modifierAltGraph?: boolean }) => page.evaluate(init => document.activeElement!.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, cancelable: true, ...init })), init);
+  await press({ key: '€', code: 'KeyE', ctrlKey: true, altKey: true, modifierAltGraph: true });
+  await expect(editor(page, 'Memo', 1)).toBeFocused();
+  await page.keyboard.press('Escape');
+  await press({ key: 'Process', code: 'KeyA' });
+  await expect(editor(page, 'Memo', 1)).toBeFocused();
+});
+
+test('app errors are shown and announced like the grid’s own, and focusCell goes to them', async ({ page }) => {
+  await enterGrid(page);
+  const status = page.locator('.t98-entry-grid + [role=status]');
+  await fillFirstLine(page);
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('button', { name: 'Post voucher' })).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(cell(page, 2, 'Amount')).toBeFocused();
+  await expect(cell(page, 2, 'Amount')).toHaveAttribute('aria-invalid', 'true');
+  await expect(cell(page, 2, 'Amount')).toHaveAccessibleDescription('Debits and credits differ.');
+  await expect(status).toHaveText('Amount, row 2: Debits and credits differ.');
+});
+
+test('amounts are parsed by the app, with each row’s decimal places', async ({ page }) => {
+  await enterGrid(page, '?currency=KWD');
+  for (let i = 0; i < 3; i++) await page.keyboard.press('ArrowRight');
+  await page.keyboard.type('1.2345');
+  await page.keyboard.press('Enter');
+  await expect(cell(page, 1, 'Amount')).toContainText('Use up to 3 decimal places.');
+  await page.keyboard.press('Backspace');
+  await page.keyboard.press('Enter');
+  await expect(cell(page, 1, 'Amount')).toHaveText('1.234');
+  expect((await rows(page))[0]).toMatchObject({ currency: 'KWD', amount: '1.234' });
 });

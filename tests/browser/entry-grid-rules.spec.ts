@@ -33,6 +33,19 @@ test('amounts are decimal strings in and out, normalised without arithmetic', ()
   for (const text of ['-5', '1e3', '12.3.4', '.', 'abc']) assert.deepEqual(normalizeDecimal(text, 2, true), { error: 'number' }, text);
 });
 
+test('grouping separators are dropped only between groups of three digits, never guessed', () => {
+  assert.deepEqual(normalizeDecimal('1 234 567.5', 2, true), { value: '1234567.50' });
+  assert.deepEqual(normalizeDecimal('12 345', 2, true), { value: '12345.00' });
+  assert.deepEqual(normalizeDecimal('١٬٢٣٤٫٥', 2, true), { value: '1234.50' });
+  // A decimal comma, uneven groups and mixed separators are not silently turned into other numbers.
+  for (const text of ['12,50', '1,2,3', '1,23,456', '1,234 567', ',123', '1234,567', '1.234,5', '1,234.5,6']) assert.deepEqual(normalizeDecimal(text, 2, true), { error: 'number' }, text);
+});
+
+test('without a scale, decimals are kept as typed, with no padding', () => {
+  assert.deepEqual(normalizeDecimal('12.345', Infinity, true), { value: '12.345' });
+  assert.deepEqual(normalizeDecimal('7', Infinity, true), { value: '7' });
+});
+
 test('quantities keep only the places typed, up to their scale', () => {
   assert.deepEqual(normalizeDecimal('2.500', 3, false), { value: '2.5' });
   assert.deepEqual(normalizeDecimal('3', 3, false), { value: '3' });

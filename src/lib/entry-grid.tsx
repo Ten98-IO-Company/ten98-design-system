@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useId, useRef, useState, type FocusEvent, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, useState, type FocusEvent, type KeyboardEvent, type MouseEvent, type ReactNode, type Ref } from 'react';
 import { Dialog, cx } from './primitives.js';
 import { ComboboxControl } from './combobox-control.js';
 import type { ComboboxOption } from './controls.js';
@@ -9,22 +9,25 @@ import { ShortcutScope } from './shortcuts.js';
 /* A keyboard-first grid for transactional entry, following the WAI-ARIA APG grid pattern: one tab stop (roving
  * tabindex), arrows move between cells, and Enter, F2 or typing edits. While editing, Enter and Tab commit and advance to
  * the next editable cell and then the next row; Escape cancels the edit, and a second Escape is left to the app's own
- * command (for example "go back"). Values are strings: amounts and quantities are decimal strings in and out, and the grid
- * never does arithmetic. Totals are the app's, shown as footer values. Commands such as removing a row or opening a panel
- * are registered by the app through useEntryGrid and the shortcut registry, active only while focus is in the grid. */
+ * command (for example "go back"). Values are strings and the grid never does arithmetic: the app parses amounts (its
+ * money module knows each row's decimal places) and computes totals, shown as footer values. Commands such as removing
+ * or inserting a row are registered by the app through useEntryGrid and the shortcut registry, active only while focus is
+ * in the grid; app code outside the grid reaches the same API through apiRef. */
 
 export type EntryColumnType = 'text' | 'lookup' | 'amount' | 'quantity' | 'date' | 'side';
 export interface EntrySideOption { value: string; label: string }
 export interface EntryGridRow { key: string; values: Readonly<Record<string, string>> }
+/** The stored value for typed text, or a message saying why it is invalid. */
+export type EntryParseResult = { value: string } | { error: string };
 export interface EntryGridColumn {
   id: string;
   label: string;
   type: EntryColumnType;
-  /** An empty value is an error, and the row is not complete. */
+  /** An empty value is an error when Enter commits it, and the row is not complete. Tab and arrows move past it. */
   required?: boolean;
   /** Shown, never edited, and skipped by Enter and Tab. */
   readOnly?: boolean;
-  /** lookup: the choices; the cell's value is the option value. */
+  /** lookup: the choices; the cell's value is the option value. Typing matches the label or the description, for example a code. */
   options?: readonly ComboboxOption[];
   /**
    * lookup: offers "Create …" when the typed text matches no option. Return the new option's value to fill the cell and
@@ -33,9 +36,15 @@ export interface EntryGridColumn {
   onCreate?: (text: string, rowKey: string) => string | void | Promise<string | void>;
   /** side: the two choices, for example debit and credit. */
   sides?: readonly [EntrySideOption, EntrySideOption];
-  /** amount and quantity: most decimal places; amounts are padded to it. Defaults to 2 for amounts and 3 for quantities. */
+  /**
+   * text, amount, quantity and date: turns non-empty typed text into the stored value or an error, for example with the
+   * app's money module and the row's currency. Without it, quantities use normalizeDecimal with `scale`, and amounts
+   * accept any non-negative decimal.
+   */
+  parse?: (text: string, row: EntryGridRow) => EntryParseResult;
+  /** amount and quantity without parse: most decimal places. Quantities default to 3; amounts have no default and are padded to it when set. */
   scale?: number;
-  /** A message for an invalid, non-empty committed value. */
+  /** A message for an invalid, non-empty value, checked when this cell commits. Cross-cell and server rules go in the grid's errors. */
   validate?: (value: string, row: EntryGridRow) => string | undefined;
 }
 export interface EntryGridLabels {
@@ -47,12 +56,14 @@ export interface EntryGridLabels {
   create: (text: string) => string;
   rowAdded: (row: number) => string;
   rowRemoved: (row: number) => string;
+  /** The focusable cell shown when there are no rows. */
+  empty: string;
   /** Accessible name of a cell editor, for example "Amount, row 2". */
   cell: (column: string, row: number) => string;
 }
 const defaultLabels: EntryGridLabels = {
   required: 'Required.', number: 'Enter a number.', scale: scale => `Use up to ${scale} decimal places.`, notListed: 'Choose from the list.', noMatches: 'No matches',
-  create: text => `Create “${text}”`, rowAdded: row => `Row ${row} added.`, rowRemoved: row => `Row ${row} removed.`, cell: (column, row) => `${column}, row ${row}`,
+  create: text => `Create “${text}”`, rowAdded: row => `Row ${row} added.`, rowRemoved: row => `Row ${row} removed.`, empty: 'No rows.', cell: (column, row) => `${column}, row ${row}`,
 };
 export interface EntryGridPanel {
   title: (row: EntryGridRow) => ReactNode;
@@ -62,17 +73,21 @@ export interface EntryGridProps {
   /** Accessible name of the grid, also its shortcut context name. */
   label: string;
   columns: readonly EntryGridColumn[];
-  /** At least one row; use createRow to start from a blank one. */
+  /** The lines; use createRow to start from a blank one. Without rows the grid shows one focusable empty cell. */
   rows: readonly EntryGridRow[];
   onRowsChange: (rows: EntryGridRow[]) => void;
-  /** Lets Enter and Tab append a row after the last row is complete. */
+  /** Lets Enter and Tab append a row after the last row is complete, and insertRow add one. */
   createRow?: () => EntryGridRow;
+  /** App errors by row key and column id, such as server validation or cross-cell rules; shown and announced like the grid's own. */
+  errors?: Readonly<Record<string, Readonly<Record<string, string>>>>;
   /** App-computed values by column id, for example totals. Changes are announced. */
   footer?: Readonly<Record<string, string>>;
   footerLabel?: string;
   /** A sub-panel a row opens (for example allocations) through useEntryGrid().openPanel; focus returns to the originating cell. */
   panel?: EntryGridPanel;
   labels?: Partial<EntryGridLabels>;
+  /** The useEntryGrid API for app code outside the grid, such as a save button or a server response. */
+  apiRef?: Ref<EntryGridApi>;
   /** Command components that call useEntryGrid and useCommand. */
   children?: ReactNode;
 }
@@ -94,18 +109,26 @@ export function nextEntryCell(columns: readonly Pick<EntryGridColumn, 'readOnly'
 const DIGITS: Record<string, string> = Object.fromEntries([...'٠١٢٣٤٥٦٧٨٩', ...'۰۱۲۳۴۵۶۷۸۹'].map((digit, index) => [digit, String(index % 10)]));
 /**
  * Normalises typed decimal text without arithmetic: Arabic-Indic digits become ASCII, the Arabic decimal separator
- * becomes ".", grouping commas and spaces are dropped, leading and trailing zeros are trimmed, and `pad` fills the
- * fraction to `scale` places. Text that is not a non-negative decimal, or has more places than `scale`, is an error.
+ * becomes ".", grouping separators (comma, Arabic thousands separator or a space) are dropped when they split the whole
+ * part into groups of three, leading and trailing zeros are trimmed, and `pad` fills the fraction to `scale` places.
+ * Text that is not a non-negative decimal, or has more places than `scale` (Infinity for no limit), is an error.
  */
 export function normalizeDecimal(text: string, scale: number, pad: boolean): { value: string } | { error: 'number' | 'scale' } {
-  const cleaned = [...text.trim()].map(char => DIGITS[char] ?? (char === '٫' ? '.' : char)).join('').replace(/[,\s٬]/g, '');
+  const cleaned = [...text.trim()].map(char => DIGITS[char] ?? (char === '٫' ? '.' : char)).join('');
   if (cleaned === '') return { value: '' };
-  const match = /^(\d*)(?:\.(\d*))?$/.exec(cleaned);
-  if (!match || (match[1] === '' && !match[2])) return { error: 'number' };
-  const whole = match[1].replace(/^0+(?=\d)/, '') || '0';
-  const fraction = (match[2] ?? '').replace(/0+$/, '');
+  const [typedWhole, typedFraction = '', extra] = cleaned.split('.');
+  if (extra !== undefined || !/^\d*$/.test(typedFraction)) return { error: 'number' };
+  let digits = typedWhole;
+  if (!/^\d*$/.test(digits)) {
+    const grouped = /^\d{1,3}([,٬\s])\d{3}(?:\1\d{3})*$/.exec(digits);
+    if (!grouped) return { error: 'number' };
+    digits = digits.split(grouped[1]).join('');
+  }
+  if (digits === '' && typedFraction === '') return { error: 'number' };
+  const whole = digits.replace(/^0+(?=\d)/, '') || '0';
+  const fraction = typedFraction.replace(/0+$/, '');
   if (fraction.length > scale) return { error: 'scale' };
-  const shown = pad ? fraction.padEnd(scale, '0') : fraction;
+  const shown = pad && Number.isFinite(scale) ? fraction.padEnd(scale, '0') : fraction;
   return { value: shown ? `${whole}.${shown}` : whole };
 }
 
@@ -114,8 +137,18 @@ export interface EntryGridApi {
   activeRow?: string;
   /** Id of the active cell's column. */
   activeColumn?: string;
+  /**
+   * Commits the active cell's typed text; save and post commands call it first. Returns false, keeping the text, its
+   * error and focus, when the text is invalid. onRowsChange has already run when it returns true, so read the rows the
+   * app received there (for example from a ref), not from state captured before the call. Empty required cells pass.
+   */
+  commit: () => boolean;
   /** Removes a row (default: the active one); focus stays in the grid. */
   removeRow: (key?: string) => void;
+  /** Inserts createRow() above or below a row (default: the active one) and edits its first cell. Returns the new key. */
+  insertRow: (position: 'above' | 'below', key?: string) => string | undefined;
+  /** Focuses a cell (default column: the active one), for example an inserted row or a server error. False when it cannot. */
+  focusCell: (rowKey: string, columnId?: string) => boolean;
   /** Opens the grid's panel for a row (default: the active one). */
   openPanel: (key?: string) => void;
 }
@@ -129,35 +162,61 @@ export function useEntryGrid(): EntryGridApi {
 
 const CREATE = '\u0000create';
 const EDITOR = 'input:not([type=hidden]), select';
+// Focus moves before paint; useLayoutEffect is client-only, so server rendering uses useEffect.
+const useClientLayoutEffect = typeof document === 'undefined' ? useEffect : useLayoutEffect;
+const lineEditor = (type: EntryColumnType) => type === 'text' || type === 'amount' || type === 'quantity';
 
 /** A dense, keyboard-first entry grid of typed cells. The app owns the rows, options, totals and every command. */
-export function EntryGrid({ label, columns, rows, onRowsChange, createRow, footer, footerLabel = 'Total', panel, labels: custom, children }: EntryGridProps) {
+export function EntryGrid({ label, columns, rows, onRowsChange, createRow, errors, footer, footerLabel = 'Total', panel, labels: custom, apiRef, children }: EntryGridProps) {
   const labels = { ...defaultLabels, ...custom };
   const id = useId().replace(/:/g, '');
+  const emptyId = `${id}-empty`;
   const latest = useRef(rows);
   latest.current = rows;
   const firstEditable = Math.max(0, columns.findIndex(column => !column.readOnly));
   const [active, setActive] = useState<{ row: string; column: string }>();
-  const [draft, setDraft] = useState<string | null>(null);
+  // The typed text of the active cell; null when nothing is typed. The ref lets handlers in the same event see changes.
+  const [draft, setDraftState] = useState<string | null>(null);
+  const draftRef = useRef<string | null>(null);
+  const setDraft = (text: string | null) => { draftRef.current = text; setDraftState(text); };
   const [editing, setEditing] = useState(false);
-  const [errors, setErrors] = useState<Readonly<Record<string, string>>>({});
-  const [announcement, setAnnouncement] = useState('');
+  const [ownErrors, setOwnErrors] = useState<Readonly<Record<string, string>>>({});
   const [panelRow, setPanelRow] = useState<string>();
   const pendingFocus = useRef<'cell' | 'editor' | null>(null);
+  const box = useRef<HTMLDivElement>(null);
+  const lastIndex = useRef(0);
+  const focusLost = useRef(false);
 
   const found = rows.findIndex(row => row.key === active?.row);
-  const current: EntryCell = { row: found >= 0 ? found : 0, column: active ? Math.max(0, columns.findIndex(column => column.id === active.column)) : firstEditable };
+  const current: EntryCell = {
+    row: found >= 0 ? found : Math.max(0, Math.min(lastIndex.current, rows.length - 1)),
+    column: active ? Math.max(0, columns.findIndex(column => column.id === active.column)) : firstEditable,
+  };
+  // The active row is gone (removed or replaced by the app): note whether focus was in the grid before React removes it.
+  if (active && found < 0 && typeof document !== 'undefined' && box.current?.contains(document.activeElement)) focusLost.current = true;
   const errorKey = (row: string, column: string) => `${row}\u0000${column}`;
   const cellId = (cell: EntryCell) => `${id}-r${cell.row}-c${cell.column}`;
   const editorOf = (cell: EntryCell) => document.getElementById(cellId(cell))?.querySelector<HTMLInputElement | HTMLSelectElement>(EDITOR);
-  const announce = (column: EntryGridColumn, row: number, error: string) => setAnnouncement(`${labels.cell(column.label, row + 1)}: ${error}`);
-  const setError = (row: string, column: string, error: string | undefined) => setErrors(previous => {
+  const setOwnError = (row: string, column: string, error: string | undefined) => setOwnErrors(previous => {
     const key = errorKey(row, column);
     if (previous[key] === error) return previous;
     const next = { ...previous };
     if (error) next[key] = error; else delete next[key];
     return next;
   });
+
+  const status = useRef<HTMLSpanElement>(null);
+  const sayTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  /** Announces through the polite status region, cleared first so the same message said twice is announced again. */
+  function say(text: string) {
+    const node = status.current;
+    if (!node) return;
+    node.textContent = '';
+    clearTimeout(sayTimer.current);
+    sayTimer.current = setTimeout(() => { node.textContent = text; }, 100);
+  }
+  useEffect(() => () => clearTimeout(sayTimer.current), []);
+  const sayError = (column: EntryGridColumn, row: number, error: string) => say(`${labels.cell(column.label, row + 1)}: ${error}`);
 
   function moveTo(cell: EntryCell, focus: 'cell' | 'editor') {
     const row = latest.current[cell.row];
@@ -166,7 +225,18 @@ export function EntryGrid({ label, columns, rows, onRowsChange, createRow, foote
     setActive({ row: row.key, column: columns[cell.column].id });
     setDraft(null);
   }
-  useEffect(() => {
+  useClientLayoutEffect(() => {
+    if (active && found < 0) {
+      // Keep the position, and keep focus in the grid when it was there.
+      const row = rows[current.row];
+      setActive(row && { row: row.key, column: active.column });
+      setEditing(false);
+      setDraft(null);
+      if (focusLost.current) pendingFocus.current = 'cell';
+      focusLost.current = false;
+      return;
+    }
+    lastIndex.current = current.row;
     const focus = pendingFocus.current;
     if (!focus) return;
     pendingFocus.current = null;
@@ -174,43 +244,71 @@ export function EntryGrid({ label, columns, rows, onRowsChange, createRow, foote
     if (editor) {
       editor.focus();
       if (editor instanceof HTMLInputElement && editor.type !== 'date') editor.select();
-    } else document.getElementById(cellId(current))?.focus();
+    } else (document.getElementById(cellId(current)) ?? document.getElementById(emptyId))?.focus();
   });
 
   const footerText = footer ? columns.flatMap(column => footer[column.id] !== undefined ? [`${column.label} ${footer[column.id]}`] : []).join(', ') : '';
   const lastFooter = useRef(footerText);
   useEffect(() => {
-    if (footerText !== lastFooter.current && footerText) setAnnouncement(`${footerLabel}: ${footerText}`);
+    if (footerText !== lastFooter.current && footerText) say(`${footerLabel}: ${footerText}`);
     lastFooter.current = footerText;
   }, [footerText, footerLabel]);
+  // App errors are announced when they appear; each line is "row, column, message" then the spoken text.
+  const appErrors = errors ? rows.flatMap((row, r) => columns.flatMap(column => {
+    const message = errors[row.key]?.[column.id];
+    return message ? [`${errorKey(row.key, column.id)}\u0000${message}\u0001${labels.cell(column.label, r + 1)}: ${message}`] : [];
+  })).join('\n') : '';
+  const announcedErrors = useRef(new Set<string>());
+  useEffect(() => {
+    const lines = appErrors ? appErrors.split('\n').map(line => line.split('\u0001')) : [];
+    const fresh = lines.filter(([key]) => !announcedErrors.current.has(key)).map(([, text]) => text);
+    announcedErrors.current = new Set(lines.map(([key]) => key));
+    if (fresh.length) say(fresh.join(' '));
+  }, [appErrors]);
 
-  /** The committed form of a typed value, and its error. */
-  function check(column: EntryGridColumn, text: string, row: EntryGridRow): { value: string; error?: string } {
-    let value = text;
-    if (column.type === 'amount' || column.type === 'quantity') {
-      const scale = column.scale ?? (column.type === 'amount' ? 2 : 3);
-      const result = normalizeDecimal(text, scale, column.type === 'amount');
-      if ('error' in result) return { value: text, error: result.error === 'scale' ? labels.scale(scale) : labels.number };
-      value = result.value;
-    } else if (column.type === 'lookup' && text !== '') {
+  function defaultParse(column: EntryGridColumn, text: string): EntryParseResult {
+    if (column.type !== 'amount' && column.type !== 'quantity') return { value: text };
+    const scale = column.scale ?? (column.type === 'quantity' ? 3 : Infinity);
+    const result = normalizeDecimal(text, scale, column.type === 'amount');
+    return 'error' in result ? { error: result.error === 'scale' ? labels.scale(scale) : labels.number } : result;
+  }
+  /** The stored form of typed text, and its error. */
+  function check(column: EntryGridColumn, text: string, row: EntryGridRow, required: boolean): { value: string; error?: string } {
+    let value: string;
+    if (text.trim() === '') value = '';
+    else if (column.type === 'lookup') {
       const needle = text.trim().toLocaleLowerCase();
-      const option = column.options?.find(option => option.value === text || option.label.toLocaleLowerCase() === needle);
+      const option = column.options?.find(option => option.value === text || option.label.toLocaleLowerCase() === needle || option.description?.toLocaleLowerCase() === needle);
       if (!option) return { value: text, error: labels.notListed };
       value = option.value;
+    } else if (column.type === 'side') value = text;
+    else {
+      const parsed = column.parse ? column.parse(text, row) : defaultParse(column, text);
+      if ('error' in parsed) return { value: text, error: parsed.error };
+      value = parsed.value;
     }
-    if (value === '') return { value, error: column.required ? labels.required : undefined };
+    if (value === '') return { value, error: required && column.required ? labels.required : undefined };
     return { value, error: column.validate?.(value, { ...row, values: { ...row.values, [column.id]: value } }) };
   }
-  const problemIn = (row: EntryGridRow) => columns.findIndex(column => !column.readOnly && check(column, row.values[column.id] ?? '', row).error);
+  /** Why a stored value keeps its row from being complete. */
+  function problem(column: EntryGridColumn, row: EntryGridRow) {
+    const value = row.values[column.id] ?? '';
+    return value === '' ? (column.required ? labels.required : undefined) : column.validate?.(value, row);
+  }
+  const problemIn = (row: EntryGridRow) => columns.findIndex(column => !column.readOnly && problem(column, row));
 
-  /** Commits the active cell. An invalid value stays in the editor with its error, so nothing typed is lost. */
-  function commit(text: string | null = draft): boolean {
+  /**
+   * Commits the active cell. An invalid value stays in the editor with its error, so nothing typed is lost. Only Enter
+   * (`required`) stops at an empty required cell; Tab, arrows, blur and app commands move past it.
+   */
+  function commit(text: string | null = draftRef.current, required = false): boolean {
     const row = latest.current[current.row], column = columns[current.column];
-    if (!row || column.readOnly) return true;
-    const { value, error } = check(column, text ?? row.values[column.id] ?? '', row);
-    setError(row.key, column.id, error);
-    if (error) { announce(column, current.row, error); return false; }
-    if (value !== (row.values[column.id] ?? '')) {
+    if (!row || !column || column.readOnly || (text === null && !required)) return true;
+    const stored = row.values[column.id] ?? '';
+    const { value, error } = text === null ? { value: stored, error: problem(column, row) } : check(column, text, row, required);
+    setOwnError(row.key, column.id, error);
+    if (error) { sayError(column, current.row, error); return false; }
+    if (value !== stored) {
       const all = [...latest.current];
       all[current.row] = { ...row, values: { ...row.values, [column.id]: value } };
       latest.current = all;
@@ -221,29 +319,29 @@ export function EntryGrid({ label, columns, rows, onRowsChange, createRow, foote
   }
 
   /** Commits and moves. Returns false when focus should leave the grid (Tab past either end). */
-  function advance(direction: 1 | -1, key: 'Enter' | 'Tab', text: string | null = draft): boolean {
-    if (!commit(text)) return true;
+  function advance(direction: 1 | -1, key: 'Enter' | 'Tab', text: string | null = draftRef.current): boolean {
+    if (!commit(text, key === 'Enter')) return true;
     const all = latest.current;
     const next = nextEntryCell(columns, all.length, current, direction);
     if (next) { moveTo(next, 'editor'); return true; }
     if (direction === 1) {
       const row = all[current.row];
-      const problem = problemIn(row);
-      if (problem < 0 && createRow) {
+      const blocked = problemIn(row);
+      if (blocked < 0 && createRow) {
         const added = [...all, createRow()];
         latest.current = added;
         onRowsChange(added);
-        setAnnouncement(labels.rowAdded(added.length));
+        say(labels.rowAdded(added.length));
         moveTo({ row: added.length - 1, column: firstEditable }, 'editor');
         return true;
       }
-      if (problem >= 0 && key === 'Enter') {
+      if (blocked >= 0 && key === 'Enter') {
         // An incomplete last row: Enter goes to its first problem rather than past it.
-        const column = columns[problem];
-        const error = check(column, row.values[column.id] ?? '', row).error!;
-        setError(row.key, column.id, error);
-        announce(column, current.row, error);
-        moveTo({ row: current.row, column: problem }, 'editor');
+        const column = columns[blocked];
+        const error = problem(column, row)!;
+        setOwnError(row.key, column.id, error);
+        sayError(column, current.row, error);
+        moveTo({ row: current.row, column: blocked }, 'editor');
         return true;
       }
       if (key === 'Enter') return true;
@@ -253,6 +351,8 @@ export function EntryGrid({ label, columns, rows, onRowsChange, createRow, foote
   }
 
   function cancel() {
+    const row = latest.current[current.row];
+    if (row) setOwnError(row.key, columns[current.column].id, undefined);
     setDraft(null);
     setEditing(false);
     pendingFocus.current = 'cell';
@@ -262,19 +362,44 @@ export function EntryGrid({ label, columns, rows, onRowsChange, createRow, foote
   function removeRow(key = latest.current[current.row]?.key) {
     const index = latest.current.findIndex(row => row.key === key);
     if (index < 0) return;
+    // Typed text in another row is committed first; in the removed row it goes with the row.
+    if (index === current.row) setDraft(null); else if (!commit()) return;
     let next = latest.current.filter(row => row.key !== key);
     if (!next.length && createRow) next = [createRow()];
     latest.current = next;
     onRowsChange(next);
-    setErrors(previous => Object.fromEntries(Object.entries(previous).filter(([entry]) => !entry.startsWith(`${key}\u0000`))));
-    setAnnouncement(labels.rowRemoved(index + 1));
+    setOwnErrors(previous => Object.fromEntries(Object.entries(previous).filter(([entry]) => !entry.startsWith(`${key}\u0000`))));
+    say(labels.rowRemoved(index + 1));
     setEditing(false);
-    if (next.length) moveTo({ row: Math.min(index, next.length - 1), column: current.column }, 'cell');
+    const stay = index === current.row ? Math.min(index, next.length - 1) : current.row - (index < current.row ? 1 : 0);
+    if (next.length) moveTo({ row: stay, column: current.column }, 'cell');
+    else { pendingFocus.current = 'cell'; setActive(undefined); }
+  }
+  function insertRow(position: 'above' | 'below', key = latest.current[current.row]?.key) {
+    const index = latest.current.findIndex(row => row.key === key);
+    if (!createRow || (index < 0 && latest.current.length) || !commit()) return undefined;
+    const at = index < 0 ? 0 : index + (position === 'below' ? 1 : 0);
+    const row = createRow();
+    const next = [...latest.current];
+    next.splice(at, 0, row);
+    latest.current = next;
+    onRowsChange(next);
+    say(labels.rowAdded(at + 1));
+    moveTo({ row: at, column: firstEditable }, 'editor');
+    return row.key;
+  }
+  function focusCell(rowKey: string, columnId = columns[current.column]?.id) {
+    const row = latest.current.findIndex(entry => entry.key === rowKey), column = columns.findIndex(entry => entry.id === columnId);
+    if (row < 0 || column < 0 || !commit()) return false;
+    setEditing(false);
+    moveTo({ row, column }, 'cell');
+    return true;
   }
   const api: EntryGridApi = {
-    activeRow: rows[current.row]?.key, activeColumn: columns[current.column]?.id, removeRow,
-    openPanel: key => { if (panel) { if (editing) commit(); setPanelRow(key ?? rows[current.row]?.key); } },
+    activeRow: rows[current.row]?.key, activeColumn: columns[current.column]?.id, commit: () => commit(), removeRow, insertRow, focusCell,
+    openPanel: key => { if (panel && commit()) setPanelRow(key ?? latest.current[current.row]?.key); },
   };
+  useImperativeHandle(apiRef, () => api);
 
   function onKeyDownCapture(event: KeyboardEvent<HTMLTableSectionElement>) {
     // Escape in a lookup whose list is closed cancels the edit instead of clearing the text.
@@ -286,25 +411,42 @@ export function EntryGrid({ label, columns, rows, onRowsChange, createRow, foote
     }
   }
   function onKeyDown(event: KeyboardEvent<HTMLTableSectionElement>) {
-    if (event.defaultPrevented || event.nativeEvent.isComposing || event.altKey || event.metaKey) return;
+    if (event.defaultPrevented || event.nativeEvent.isComposing) return;
     const target = event.target as HTMLElement;
+    const column = columns[current.column];
     if (editing) {
-      if (event.ctrlKey) return;
+      if (event.ctrlKey || event.altKey || event.metaKey) return;
       if (event.key === 'Enter') { event.preventDefault(); advance(1, 'Enter'); }
       else if (event.key === 'Tab') { if (advance(event.shiftKey ? -1 : 1, 'Tab')) event.preventDefault(); }
       else if (event.key === 'Escape') { event.preventDefault(); cancel(); }
-      else if (event.key === 'Backspace' && target instanceof HTMLInputElement && target.type !== 'date' && target.value === '') {
-        // Backspace in an empty cell goes back to the previous one.
+      else if ((event.key === 'ArrowUp' || event.key === 'ArrowDown') && !event.shiftKey && column && lineEditor(column.type)) {
+        // Single-line cells have no use for vertical arrows: they commit and edit the same column in the next row.
+        const row = current.row + (event.key === 'ArrowDown' ? 1 : -1);
+        if (row < 0 || row >= latest.current.length) return;
+        event.preventDefault();
+        if (commit()) moveTo({ row, column: current.column }, 'editor');
+      } else if (event.key === 'Backspace' && target instanceof HTMLInputElement && target.type !== 'date' && target.value === '') {
+        // Backspace in an empty cell clears it and goes back to the previous one.
         const previous = nextEntryCell(columns, latest.current.length, current, -1);
         if (!previous) return;
         event.preventDefault();
-        const row = latest.current[current.row], column = columns[current.column];
-        if ((row.values[column.id] ?? '') !== '') commit('');
-        else setError(row.key, column.id, undefined);
-        moveTo(previous, 'editor');
+        if (commit('')) moveTo(previous, 'editor');
       }
       return;
     }
+    // Typing starts editing: focusing the editor during keydown lets the browser put the character there, over the
+    // selected value. That includes AltGr characters (reported with Ctrl and Alt) and the key that starts an IME composition.
+    const altGraph = event.ctrlKey && event.altKey && event.nativeEvent.getModifierState?.('AltGraph') === true;
+    const typing = event.key === 'Process' || event.keyCode === 229 || ([...event.key].length === 1 && !event.metaKey && ((!event.ctrlKey && !event.altKey) || altGraph));
+    if (typing) {
+      if (column && !column.readOnly) {
+        const editor = editorOf(current);
+        editor?.focus();
+        if (editor instanceof HTMLInputElement && editor.type !== 'date') editor.select();
+      }
+      return;
+    }
+    if (event.altKey || event.metaKey) return;
     const rtl = getComputedStyle(event.currentTarget).direction === 'rtl';
     const last = { row: rows.length - 1, column: columns.length - 1 };
     const moves: Record<string, EntryCell> = {
@@ -319,14 +461,8 @@ export function EntryGrid({ label, columns, rows, onRowsChange, createRow, foote
     };
     const move = moves[event.key];
     if (move && (!event.ctrlKey || event.key === 'Home' || event.key === 'End')) { event.preventDefault(); moveTo(move, 'cell'); return; }
-    if (event.ctrlKey || columns[current.column].readOnly) return;
-    if (event.key === 'Enter' || event.key === 'F2') { event.preventDefault(); moveTo(current, 'editor'); return; }
-    // Typing starts editing: focusing the editor during keydown lets the browser put the character there, over the selected value.
-    if ([...event.key].length === 1) {
-      const editor = editorOf(current);
-      editor?.focus();
-      if (editor instanceof HTMLInputElement && editor.type !== 'date') editor.select();
-    }
+    if (event.ctrlKey || !column || column.readOnly) return;
+    if (event.key === 'Enter' || event.key === 'F2') { event.preventDefault(); moveTo(current, 'editor'); }
   }
 
   function onCellFocus(event: FocusEvent<HTMLTableCellElement>, cell: EntryCell) {
@@ -359,11 +495,12 @@ export function EntryGrid({ label, columns, rows, onRowsChange, createRow, foote
       </select>;
     }
     if (column.type === 'lookup') {
-      const typed = (draft ?? '').trim();
+      const typed = (draft ?? '').trim(), needle = typed.toLocaleLowerCase();
       const options = [...(column.options ?? [])];
-      if (column.onCreate && typed && !options.some(option => option.label.toLocaleLowerCase() === typed.toLocaleLowerCase())) options.push({ value: CREATE, label: labels.create(typed) });
+      if (column.onCreate && typed && !options.some(option => option.label.toLocaleLowerCase() === needle || option.description?.toLocaleLowerCase() === needle)) options.push({ value: CREATE, label: labels.create(typed) });
+      // The first match is highlighted, so Enter or Tab picks it; closing the list without a pick drops the typed text.
       return <ComboboxControl {...common} options={options} text={display(column, row.values[column.id] ?? '')} label={column.label} emptyMessage={labels.noMatches}
-        onType={setDraft} onClear={() => setDraft('')} onLeave={() => {}}
+        autoHighlight matchDescription onType={setDraft} onQueryReset={() => setDraft(null)} onClear={() => setDraft('')} onLeave={() => {}}
         onPick={async option => {
           if (option.value !== CREATE) { advance(1, 'Enter', option.value); return; }
           const created = await column.onCreate?.(typed, row.key);
@@ -374,7 +511,7 @@ export function EntryGrid({ label, columns, rows, onRowsChange, createRow, foote
           all[index] = { ...all[index], values: { ...all[index].values, [column.id]: created } };
           latest.current = all;
           onRowsChange(all);
-          setError(row.key, column.id, undefined);
+          setOwnError(row.key, column.id, undefined);
           const next = nextEntryCell(columns, all.length, { row: index, column: cell.column }, 1);
           if (next) moveTo(next, 'editor');
         }} />;
@@ -391,11 +528,12 @@ export function EntryGrid({ label, columns, rows, onRowsChange, createRow, foote
   useEffect(() => {
     if (panelOpen) document.getElementById(`${id}-panel`)?.querySelector<HTMLElement>('input:not([type=hidden]), select, textarea, button, [tabindex]:not([tabindex="-1"])')?.focus();
   }, [panelOpen, id]);
+  const bodyRows = Math.max(rows.length, 1);
   return <EntryGridContext.Provider value={api}>
     <ShortcutScope name={label} activation="focus">
       {children}
-      <div className="t98-entry-grid">
-        <table role="grid" aria-label={label} aria-rowcount={rows.length + 1 + (footer ? 1 : 0)} className="t98-entry-grid__table">
+      <div ref={box} className="t98-entry-grid">
+        <table role="grid" aria-label={label} aria-rowcount={bodyRows + 1 + (footer ? 1 : 0)} className="t98-entry-grid__table">
           <thead>
             <tr role="row" aria-rowindex={1}>
               {columns.map(column => <th key={column.id} role="columnheader" scope="col" className={`t98-entry-grid__head t98-entry-grid--${column.type}`}>
@@ -408,7 +546,7 @@ export function EntryGrid({ label, columns, rows, onRowsChange, createRow, foote
               {columns.map((column, c) => {
                 const cell = { row: r, column: c };
                 const isActive = r === current.row && c === current.column;
-                const error = errors[errorKey(row.key, column.id)];
+                const error = ownErrors[errorKey(row.key, column.id)] ?? errors?.[row.key]?.[column.id];
                 const errorId = error ? `${cellId(cell)}-error` : undefined;
                 return <td key={column.id} id={cellId(cell)} role="gridcell" tabIndex={isActive && !editing ? 0 : -1}
                   aria-readonly={column.readOnly || undefined} aria-required={column.required || undefined} aria-invalid={error ? true : undefined} aria-describedby={errorId}
@@ -419,9 +557,13 @@ export function EntryGrid({ label, columns, rows, onRowsChange, createRow, foote
                 </td>;
               })}
             </tr>)}
+            {/* Without rows, one cell keeps the grid's tab stop, so focus is never lost and insert commands still run. */}
+            {!rows.length && <tr role="row" aria-rowindex={2}>
+              <td id={emptyId} role="gridcell" tabIndex={0} colSpan={columns.length} className="t98-entry-grid__cell t98-entry-grid__empty">{labels.empty}</td>
+            </tr>}
           </tbody>
           {footer && <tfoot>
-            <tr role="row" aria-rowindex={rows.length + 2}>
+            <tr role="row" aria-rowindex={bodyRows + 2}>
               {columns.map((column, c) => <td key={column.id} role="gridcell" aria-readonly="true" className={`t98-entry-grid__total t98-entry-grid--${column.type}`}>
                 {footer[column.id] ?? (c === 0 ? footerLabel : '')}
               </td>)}
@@ -429,7 +571,8 @@ export function EntryGrid({ label, columns, rows, onRowsChange, createRow, foote
           </tfoot>}
         </table>
       </div>
-      <span role="status" className="t98-visually-hidden">{announcement}</span>
+      {/* Written by say(), not by React, so a repeated message can be cleared and announced again. */}
+      <span ref={status} role="status" className="t98-visually-hidden" />
     </ShortcutScope>
     {panel && <ShortcutScope name={`${label} panel`} modal>
       <Dialog open={panelEntry !== undefined} onOpenChange={open => { if (!open) closePanel(); }} title={panelEntry ? panel.title(panelEntry) : ''}
