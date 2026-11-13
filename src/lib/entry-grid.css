@@ -1,0 +1,73 @@
+/* EntryGrid: dense typed cells that follow the density tokens. Narrow screens scroll the grid sideways inside its own box. */
+.t98-entry-grid {
+  overflow-x: auto;
+  border: 1px solid var(--t98-border);
+  border-radius: var(--t98-radius);
+  background: var(--t98-surface);
+  color: var(--t98-text);
+  font: 400 var(--t98-text-sm) / var(--t98-leading-normal) var(--t98-font);
+}
+/* An open lookup list needs room below the last row, because the scroll box clips it. */
+.t98-entry-grid:has(.t98-combobox-popup:not([hidden])) { padding-block-end: 17rem; }
+.t98-entry-grid__table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.t98-entry-grid__head {
+  padding: var(--t98-space-2) var(--t98-cell-padding);
+  border-block-end: 1px solid var(--t98-border);
+  color: var(--t98-muted);
+  font-size: var(--t98-text-xs);
+  font-weight: var(--t98-weight-medium);
+  text-align: start;
+  white-space: nowrap;
+}
+.t98-entry-grid__required { color: var(--t98-danger); }
+.t98-entry-grid__cell,
+.t98-entry-grid__total {
+  min-inline-size: 8rem;
+  height: var(--t98-control-height);
+  padding: 0 var(--t98-cell-padding);
+  border-block-end: 1px solid var(--t98-border);
+  vertical-align: top;
+}
+.t98-entry-grid__cell { cursor: text; }
+.t98-entry-grid__cell[aria-readonly='true'] { cursor: default; color: var(--t98-muted); }
+.t98-entry-grid__cell--active { background: var(--t98-accent-soft); }
+.t98-entry-grid__cell:focus-visible { outline: var(--t98-focus-width) solid var(--t98-focus); outline-offset: calc(-1 * var(--t98-focus-width)); }
+.t98-entry-grid__cell[aria-invalid='true'] { box-shadow: inset 0 -2px 0 var(--t98-danger); }
+.t98-entry-grid__value { display: block; min-block-size: var(--t98-control-height); line-height: var(--t98-control-height); overflow-wrap: anywhere; }
+.t98-entry-grid__total { border-block-end: 0; font-weight: var(--t98-weight-semibold); line-height: var(--t98-control-height); }
+.t98-entry-grid__error { display: block; padding-block-end: var(--t98-space-1); color: var(--t98-danger); font-size: var(--t98-text-xs); white-space: normal; }
+
+/* Editors fill the cell; the cell, not the editor, draws the box. */
+.t98-entry-grid__editor,
+.t98-entry-grid .t98-input {
+  box-sizing: border-box;
+  inline-size: 100%;
+  min-inline-size: 0;
+  height: var(--t98-control-height);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+.t98-entry-grid__editor:focus-visible,
+.t98-entry-grid .t98-input:focus-visible { outline: var(--t98-focus-width) solid var(--t98-focus); outline-offset: 0; }
+.t98-entry-grid .t98-combobox-popup { min-inline-size: 16rem; }
+
+/* Numbers align to the end and read left to right in right-to-left pages. */
+.t98-entry-grid--amount,
+.t98-entry-grid--quantity { min-inline-size: 7rem; text-align: end; }
+.t98-entry-grid--amount .t98-entry-grid__value,
+.t98-entry-grid--quantity .t98-entry-grid__value,
+.t98-entry-grid--amount .t98-entry-grid__editor,
+.t98-entry-grid--quantity .t98-entry-grid__editor { direction: ltr; text-align: end; unicode-bidi: plaintext; }
+.t98-entry-grid--lookup { min-inline-size: 12rem; }
+.t98-entry-grid--date { min-inline-size: 9rem; }
+.t98-entry-grid--side { min-inline-size: 6rem; }
+
+@media (forced-colors: active) {
+  .t98-entry-grid__cell--active { outline: 1px solid Highlight; outline-offset: -1px; }
+  .t98-entry-grid__cell[aria-invalid='true'] { box-shadow: none; border-block-end: 2px solid Mark; }
+}
