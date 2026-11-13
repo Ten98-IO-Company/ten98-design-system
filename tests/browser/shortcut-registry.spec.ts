@@ -27,6 +27,12 @@ test('chords parse to one canonical form, with Mod following the platform', () =
   assert.equal(parseChord('Hyper+S'), undefined);
   assert.equal(parseChord('Ctrl+'), undefined);
   assert.equal(parseChord('F25'), undefined);
+  // Shifted characters arrive as themselves, so these chords could never match an event.
+  assert.equal(parseChord('Shift+/'), undefined);
+  assert.equal(parseChord('Ctrl+Shift+/'), undefined);
+  assert.equal(parseChord('Shift+1'), undefined);
+  assert.equal(parseChord('Ctrl+Shift+1'), 'Ctrl+Shift+1');
+  assert.equal(parseChord('?'), '?');
 });
 
 test('keyboard events resolve to chords by key, falling back to the physical key under modifiers', () => {
@@ -43,6 +49,10 @@ test('keyboard events resolve to chords by key, falling back to the physical key
   assert.equal(chordFromEvent(press(' ', { code: 'Space' })), 'Space');
   assert.equal(chordFromEvent(press('Esc')), 'Escape');
   assert.equal(chordFromEvent(press('Control', { ctrlKey: true })), undefined);
+  assert.equal(chordFromEvent(press('!', { code: 'Digit1', ctrlKey: true, shiftKey: true })), 'Ctrl+Shift+1');
+  assert.equal(chordFromEvent(press('ö', { code: 'Quote', ctrlKey: true })), parseChord('Ctrl+ö'));
+  // Autofill picks send keydown without a key.
+  assert.equal(chordFromEvent({ ctrlKey: false, altKey: false, shiftKey: false, metaKey: false } as unknown as ChordEvent), undefined);
 });
 
 test('IME composition and AltGr characters never produce a command chord', () => {
@@ -54,14 +64,15 @@ test('IME composition and AltGr characters never produce a command chord', () =>
   // A real Ctrl+Alt chord is still a chord, and AltGr with a named key drops the implied Ctrl+Alt.
   assert.equal(chordFromEvent(press('s', { code: 'KeyS', ctrlKey: true, altKey: true })), 'Ctrl+Alt+S');
   assert.equal(chordFromEvent(press('F2', { ctrlKey: true, altKey: true, ...altGraph })), 'F2');
+  assert.equal(chordFromEvent(press('Dead', { code: 'Digit3', ctrlKey: true, altKey: true, ...altGraph })), undefined);
 });
 
 test('the innermost active scope that binds a chord wins, and a disabled command still claims it', () => {
   const commands = [command('app.help', '', ['F1']), command('screen.save', 'screen', ['Ctrl+S']), command('grid.save', 'grid', ['Ctrl+S']), command('app.save', '', ['Ctrl+S'])];
   const scopes = [{ id: 'grid', focus: true }, { id: 'screen', focus: false }, app];
-  assert.equal(resolveShortcut({ chord: 'Ctrl+S', scopes, commands, target: 'other' })?.id, 'grid.save');
-  assert.equal(resolveShortcut({ chord: 'Ctrl+S', scopes: scopes.slice(1), commands, target: 'other' })?.id, 'screen.save');
-  assert.equal(resolveShortcut({ chord: 'F1', scopes, commands, target: 'other' })?.id, 'app.help');
+  assert.equal(resolveShortcut({ chord: 'Ctrl+S', scopes, commands, target: 'other' })?.command.id, 'grid.save');
+  assert.equal(resolveShortcut({ chord: 'Ctrl+S', scopes: scopes.slice(1), commands, target: 'other' })?.command.id, 'screen.save');
+  assert.equal(resolveShortcut({ chord: 'F1', scopes, commands, target: 'other' })?.command.id, 'app.help');
   const disabled = commands.map(entry => entry.id === 'grid.save' ? { ...entry, enabled: false } : entry);
   assert.equal(resolveShortcut({ chord: 'Ctrl+S', scopes, commands: disabled, target: 'other' }), undefined);
   // A dialog scope chain has no outer scopes: nothing outside it runs.
@@ -69,10 +80,20 @@ test('the innermost active scope that binds a chord wins, and a disabled command
   assert.equal(resolveShortcut({ chord: 'F9', scopes, commands, target: 'other' }), undefined);
 });
 
-test('held keys repeat only commands that ask for it', () => {
+test('held keys repeat only commands that ask for it, and others stay claimed so the browser action does not run', () => {
   const commands = [command('save', '', ['Ctrl+S']), command('next', '', ['F8'], { repeat: true })];
-  assert.equal(resolveShortcut({ chord: 'Ctrl+S', scopes: [app], commands, target: 'other', repeat: true }), undefined);
-  assert.equal(resolveShortcut({ chord: 'F8', scopes: [app], commands, target: 'other', repeat: true })?.id, 'next');
+  assert.deepEqual(resolveShortcut({ chord: 'Ctrl+S', scopes: [app], commands, target: 'other', repeat: true }), { command: commands[0], run: false });
+  assert.deepEqual(resolveShortcut({ chord: 'F8', scopes: [app], commands, target: 'other', repeat: true }), { command: commands[1], run: true });
+  assert.deepEqual(resolveShortcut({ chord: 'Ctrl+S', scopes: [app], commands, target: 'other' }), { command: commands[0], run: true });
+});
+
+test('a scope prefers its enabled command, and Tab is never a command', () => {
+  const commands = [command('draft', 'screen', ['Ctrl+S'], { enabled: false }), command('save', 'screen', ['Ctrl+S']), command('next', '', ['Tab', 'Shift+Tab', 'Ctrl+Tab'])];
+  const scopes = [{ id: 'screen', focus: false }, app];
+  assert.equal(resolveShortcut({ chord: 'Ctrl+S', scopes, commands, target: 'other' })?.command.id, 'save');
+  assert.equal(resolveShortcut({ chord: 'Tab', scopes, commands, target: 'other' }), undefined);
+  assert.equal(resolveShortcut({ chord: 'Shift+Tab', scopes, commands, target: 'other' }), undefined);
+  assert.equal(resolveShortcut({ chord: 'Ctrl+Tab', scopes, commands, target: 'other' })?.command.id, 'next');
 });
 
 test('typing and native keys stay with the focused field unless the command opts in', () => {
@@ -81,7 +102,7 @@ test('typing and native keys stay with the focused field unless the command opts
     command('grid.find', 'grid', ['/']), command('grid.advance', 'grid', ['Enter']), command('grid.up', 'grid', ['ArrowUp']),
     command('grid.save', 'grid', ['Ctrl+S']), command('grid.note', 'grid', ['Shift+N'], { allowInTextInput: true }),
   ];
-  const run = (chord: string, target: ShortcutTarget, scopes = [grid, app]) => resolveShortcut({ chord, scopes, commands, target })?.id;
+  const run = (chord: string, target: ShortcutTarget, scopes = [grid, app]) => resolveShortcut({ chord, scopes, commands, target })?.command.id;
   assert.equal(run('/', 'text'), undefined);
   assert.equal(run('/', 'other'), 'grid.find');
   assert.equal(run('Shift+N', 'text'), 'grid.note');

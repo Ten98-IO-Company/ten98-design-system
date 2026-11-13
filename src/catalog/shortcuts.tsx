@@ -90,7 +90,7 @@ export const shortcutEntries: ComponentEntry[] = [
   },
   {
     name: 'ShortcutScope', category: 'Navigation', description: 'A nested shortcut context such as a screen, an entry grid or an open list.',
-    usage: 'Commands registered by descendants belong to the nearest scope. mounted scopes (screens) are active while rendered; focus scopes (an entry grid, an open list) only while focus is inside; the innermost wins. Focus inside a dialog or popover runs only scopes inside it; wrap a Dialog or Popover in a modal scope so its commands work wherever focus is in it. Renders a display: contents wrapper, so it adds no box.',
+    usage: 'Commands registered by descendants belong to the nearest scope. mounted scopes (screens) are active while rendered; focus scopes (an entry grid, an open list) only while focus is inside; the innermost wins. Focus inside a dialog or popover runs only scopes inside it; wrap a Dialog or Popover in a modal scope so its commands work wherever focus is in it. Renders a div with display: contents, so it adds no box; place it where a div is valid (around a table or list, not inside one).',
     props: [
       prop('name', 'string', 'Context name for help lists and development warnings.', true),
       prop('activation', "'mounted' | 'focus'", 'When the scope is active.', false, "'mounted'"),
@@ -98,7 +98,7 @@ export const shortcutEntries: ComponentEntry[] = [
       prop('children', 'ReactNode', 'The scoped content.', true),
     ],
     tokens: [],
-    accessibility: ['Adds no element to the accessibility tree and leaves the tab order and visible focus untouched.', 'Escape in a dialog keeps its native close unless the dialog’s own scope binds Escape.'],
+    accessibility: ['Adds no element to the accessibility tree and leaves the tab order and visible focus untouched.', 'Escape in a modal Dialog keeps its native close unless the dialog’s own scope binds Escape; a non-modal Dialog always handles Escape itself.'],
     related: ['ShortcutProvider', 'Dialog', 'Popover'], example: scopeCode,
     states: [{ name: 'Dialog scope', description: 'A modal scope around a Dialog gives Ctrl+Enter to the dialog only while it is open and focused.', preview: <Text tone="muted">Open the shortcuts fixture to try a modal scope; a preview here would open a modal dialog.</Text>, code: scopeCode }],
   },

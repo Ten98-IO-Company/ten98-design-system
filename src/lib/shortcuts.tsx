@@ -50,6 +50,9 @@ export function parseChord(chord: KeyChord, platform: ShortcutPlatform = 'other'
     if (!mod) return undefined;
     mods.add(mod === 'Mod' ? (platform === 'apple' ? 'Meta' : 'Ctrl') : mod);
   }
+  // Shifted characters arrive as themselves ("?" rather than "Shift+/"), so these chords could never match.
+  const commandModifier = mods.has('Ctrl') || mods.has('Alt') || mods.has('Meta');
+  if (mods.has('Shift') && key.length === 1 && (!/^[A-Z0-9]$/.test(key) || (!commandModifier && /^\d$/.test(key)))) return undefined;
   return join(mods, key);
 }
 
@@ -73,7 +76,8 @@ export interface ChordEvent {
  * on Arabic layouts and with the Apple Option key.
  */
 export function chordFromEvent(event: ChordEvent, platform: ShortcutPlatform = 'other'): KeyChord | undefined {
-  if (event.isComposing || event.keyCode === 229 || MODIFIER_KEYS.has(event.key)) return undefined;
+  // Autofill and some virtual keyboards send keydown without a key.
+  if (typeof event.key !== 'string' || event.isComposing || event.keyCode === 229 || MODIFIER_KEYS.has(event.key)) return undefined;
   let { ctrlKey: ctrl, altKey: alt } = event;
   const altGraph = platform !== 'apple' && ctrl && alt && event.getModifierState?.('AltGraph') === true;
   const commandModifier = ctrl || alt || event.metaKey;
@@ -83,9 +87,9 @@ export function chordFromEvent(event: ChordEvent, platform: ShortcutPlatform = '
     key = /^[a-z0-9]$/i.test(event.key) ? event.key.toUpperCase() : undefined;
     if (!key && commandModifier) key = physical(event.code);
     // Other printable characters already include Shift ("?" rather than "Shift+/").
-    if (!key) return join(new Set([ctrl && 'Ctrl', alt && 'Alt', event.metaKey && 'Meta'].filter(Boolean) as string[]), event.key);
+    if (!key) return join(new Set([ctrl && 'Ctrl', alt && 'Alt', event.metaKey && 'Meta'].filter(Boolean) as string[]), event.key.toUpperCase());
   } else if (event.key === 'Dead' || event.key === 'Unidentified') {
-    key = commandModifier ? physical(event.code) : undefined;
+    key = commandModifier && !altGraph ? physical(event.code) : undefined;
   } else key = canonicalKey(event.key);
   if (!key) return undefined;
   if (altGraph) ctrl = alt = false;
@@ -205,28 +209,37 @@ export interface ShortcutResolveInput {
   repeat?: boolean;
 }
 
+export interface ShortcutMatch {
+  command: ResolvedCommand;
+  /** False for a held key repeating a command that does not repeat: cancel the key without running the command again. */
+  run: boolean;
+}
 /**
- * The command a chord runs, or undefined. The innermost scope that binds the chord wins; a disabled command there
- * still claims it, so an outer command never runs in its place. Keys the focused element uses itself (typing,
+ * The command a chord runs, or undefined. The innermost scope that binds the chord wins and prefers an enabled command;
+ * when every command there is disabled the scope still claims the chord, so an outer command never runs in its place. Keys the focused element uses itself (typing,
  * caret and list movement, Enter in a textarea, Enter and Space on buttons) stay with it unless the command opts in
  * with allowInTextInput (never on buttons and other controls), and chords that only type characters run only in a
  * focus-activated scope that contains focus (WCAG 2.1.4).
  */
-export function resolveShortcut({ chord, scopes, commands, target, repeat = false }: ShortcutResolveInput): ResolvedCommand | undefined {
+export function resolveShortcut({ chord, scopes, commands, target, repeat = false }: ShortcutResolveInput): ShortcutMatch | undefined {
   const [mods, key] = splitChord(chord);
+  const unmodified = mods.every(mod => mod === 'Shift');
+  // Tab and Shift+Tab always move focus, so no keymap can trap the keyboard.
+  if (key === 'Tab' && unmodified) return undefined;
   const printable = isPrintableChord(chord);
-  const native = mods.every(mod => mod === 'Shift') && (printable || NAVIGATION_KEYS.has(key));
+  const native = unmodified && (printable || NAVIGATION_KEYS.has(key));
   for (const scope of scopes) {
-    const command = commands.find(candidate => candidate.scope === scope.id && candidate.chords.includes(chord));
-    if (!command) continue;
-    if (!command.enabled || (repeat && !command.repeat)) return undefined;
+    const bound = commands.filter(candidate => candidate.scope === scope.id && candidate.chords.includes(chord));
+    if (!bound.length) continue;
+    const command = bound.find(candidate => candidate.enabled);
+    if (!command) return undefined;
     if (printable && !scope.focus) return undefined;
     if (native) {
       // Buttons, links, checkboxes and selects keep Enter, Space and arrows; text fields keep typing and caret keys, single-line ones not Enter.
       if (target === 'control' && NAVIGATION_KEYS.has(key)) return undefined;
       if (!command.allowInTextInput && (target === 'multiline' || (target === 'text' && key !== 'Enter'))) return undefined;
     }
-    return command;
+    return { command, run: !repeat || command.repeat === true };
   }
   return undefined;
 }
@@ -257,7 +270,11 @@ function detectPlatform(): ShortcutPlatform {
   const nav = globalThis.navigator as (Navigator & { userAgentData?: { platform?: string } }) | undefined;
   return /mac|iphone|ipad|ipod/i.test(nav?.userAgentData?.platform || nav?.platform || '') ? 'apple' : 'other';
 }
-const isDevelopment = () => (globalThis as { process?: { env?: { NODE_ENV?: string } } }).process?.env?.NODE_ENV !== 'production';
+declare const process: { env: { NODE_ENV?: string } };
+/* Written as process.env.NODE_ENV so bundlers replace it; without a bundler there is no process and no warnings. */
+function isDevelopment() {
+  try { return process.env.NODE_ENV !== 'production'; } catch { return false; }
+}
 
 export interface CommandOptions {
   /** Stable id that keymaps bind, for example "voucher.save". */
@@ -315,6 +332,9 @@ class ShortcutStore {
   private listeners = new Set<() => void>();
   private snapshot: ShortcutCommand[] = [];
   private dirty = true;
+  private index: ResolvedCommand[] | undefined;
+  private bound = new Set<string>();
+  private conflictCheck = false;
   private warned = new Set<string>();
   subscribe = (listener: () => void) => { this.listeners.add(listener); return () => { this.listeners.delete(listener); }; };
   getSnapshot = () => {
@@ -329,8 +349,13 @@ class ShortcutStore {
   };
   changed() {
     this.dirty = true;
+    this.index = undefined;
     for (const listener of this.listeners) listener();
-    if (isDevelopment()) this.reportConflicts();
+    // One scan after a burst of registrations, not one per command.
+    if (isDevelopment() && !this.conflictCheck) {
+      this.conflictCheck = true;
+      queueMicrotask(() => { this.conflictCheck = false; this.reportConflicts(); });
+    }
   }
   chordsFor(record: CommandRecord): KeyChord[] {
     const chords = this.keymap[record.id] ?? record.defaults;
@@ -341,7 +366,11 @@ class ShortcutStore {
     });
   }
   resolved(): ResolvedCommand[] {
-    return [...this.commands.values()].map(record => ({ id: record.uid, scope: record.scope, chords: this.chordsFor(record), enabled: record.enabled !== false, allowInTextInput: record.allowInTextInput, repeat: record.repeat }));
+    if (!this.index) {
+      this.index = [...this.commands.values()].map(record => ({ id: record.uid, scope: record.scope, chords: this.chordsFor(record), enabled: record.enabled !== false, allowInTextInput: record.allowInTextInput, repeat: record.repeat }));
+      this.bound = new Set(this.index.flatMap(command => command.chords));
+    }
+    return this.index;
   }
   private reportConflicts() {
     for (const conflict of findChordConflicts(this.resolved())) {
@@ -370,8 +399,9 @@ class ShortcutStore {
         return path;
       }
     }
+    // Focus left on the page behind an open modal dialog (for example after clicking its text) still belongs to the dialog.
     const modal = document.querySelector('dialog:modal');
-    if (modal && !(target && modal.contains(target))) return [];
+    if (modal && !(target && modal.contains(target))) return this.activeScopes(modal);
     // Mounted scopes stay active wherever focus is, deeper ones first, except inside dialogs, popovers and hidden content.
     const mounted = [...document.querySelectorAll(`[${SCOPE_ATTRIBUTE}]`)].flatMap(element => {
       const id = element.getAttribute(SCOPE_ATTRIBUTE)!;
@@ -387,12 +417,16 @@ class ShortcutStore {
     if (event.defaultPrevented) return;
     const chord = chordFromEvent(event, this.platform);
     if (!chord) return;
-    const target = event.target instanceof Element ? event.target : document.activeElement;
-    const match = resolveShortcut({ chord, scopes: this.activeScopes(target), commands: this.resolved(), target: targetKind(target), repeat: event.repeat });
-    const record = match && this.commands.get(match.id);
+    const commands = this.resolved();
+    if (!this.bound.has(chord)) return;
+    // The innermost element, also inside shadow roots, decides what the key does natively.
+    const origin = event.composedPath()[0];
+    const target = origin instanceof Element ? origin : event.target instanceof Element ? event.target : document.activeElement;
+    const match = resolveShortcut({ chord, scopes: this.activeScopes(target), commands, target: targetKind(target), repeat: event.repeat });
+    const record = match && this.commands.get(match.command.id);
     if (!record) return;
     event.preventDefault();
-    record.run();
+    if (match.run) record.run();
   };
 }
 
@@ -472,8 +506,9 @@ export function useCommand({ id, label, group, run, enabled = true, keys, allowI
     if (!store) return;
     store.commands.set(uid, { uid, id, label, group, scope, enabled, allowInTextInput, repeat, run: () => handler.current(), defaults: defaults ? defaults.split('\n') : [] });
     store.changed();
-    return () => { store.commands.delete(uid); store.changed(); };
   }, [store, uid, id, label, group, scope, enabled, allowInTextInput, repeat, defaults]);
+  // Updating in place (above) keeps registration order, which decides the winner of a reported conflict.
+  useEffect(() => () => { if (store?.commands.delete(uid)) store.changed(); }, [store, uid]);
 }
 
 const noCommands: ShortcutCommand[] = [];
