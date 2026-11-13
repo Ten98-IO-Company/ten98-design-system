@@ -166,6 +166,22 @@ test('user overrides replace or unbind keymap chords', () => {
   assert.deepEqual(mergeKeymaps(undefined, classic)['voucher.save'], ['Ctrl+A']);
 });
 
+test('keymap entries can differ by platform, and merging resolves them for one platform', () => {
+  const classic = { 'voucher.print': { default: 'Alt+P', apple: 'Ctrl+Shift+P' }, 'voucher.copy': 'Alt+C', 'voucher.find': { apple: 'Meta+F' } } as const;
+  assert.deepEqual(mergeKeymaps('other', classic), { 'voucher.print': ['Alt+P'], 'voucher.copy': ['Alt+C'] });
+  assert.deepEqual(mergeKeymaps('apple', classic), { 'voucher.print': ['Ctrl+Shift+P'], 'voucher.copy': ['Alt+C'], 'voucher.find': ['Meta+F'] });
+  // Without a platform, entries resolve as on "other" platforms.
+  assert.deepEqual(mergeKeymaps(classic), mergeKeymaps('other', classic));
+  // A plain override replaces both platforms; a per-platform one replaces only its platform; an empty list unbinds.
+  const overrides = { 'voucher.print': 'F9', 'voucher.copy': { apple: ['Ctrl+C', 'Ctrl+Alt+C'] }, 'voucher.find': { apple: [] } };
+  assert.deepEqual(mergeKeymaps('other', classic, overrides), { 'voucher.print': ['F9'], 'voucher.copy': ['Alt+C'] });
+  assert.deepEqual(mergeKeymaps('apple', classic, overrides), { 'voucher.print': ['F9'], 'voucher.copy': ['Ctrl+C', 'Ctrl+Alt+C'], 'voucher.find': [] });
+  // Reserved-chord checks look at the chords each platform actually gets.
+  const keymap = { 'voucher.new': { default: 'Ctrl+N', apple: 'Ctrl+Shift+N' } };
+  assert.deepEqual(findReservedChords(keymap).map(entry => entry.chord), ['Ctrl+N']);
+  assert.deepEqual(findReservedChords(keymap, 'apple'), []);
+});
+
 test('conflicts are chords bound to more than one enabled command in one scope', () => {
   const conflicts = findChordConflicts([
     command('a', 'screen', ['F2']), command('b', 'screen', ['F2', 'F3']), command('c', 'grid', ['F2']), command('d', 'screen', ['F3'], { enabled: false }),

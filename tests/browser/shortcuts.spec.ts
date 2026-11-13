@@ -115,3 +115,18 @@ test('a hot letter that opts in matches its key position on an Arabic layout, on
   expect(await arabicN('button:has-text("Entry button")')).toBe(true);
   expect(await ran(page)).toEqual([]);
 });
+
+test('a keymap entry can give each platform its own chord, and hints show the one that runs', async ({ page }) => {
+  for (const [platform, hint, runs, other] of [['other', ['Alt', 'P'], 'Alt+p', 'Control+Shift+p'], ['apple', ['⌃', '⇧', 'P'], 'Control+Shift+p', 'Alt+p']] as const) {
+    await page.goto(`/tests/shortcuts.html?platform=${platform === 'apple' ? 'apple' : ''}`);
+    const print = page.locator('#print-hint');
+    await expect(print.locator('.t98-key-hint__key')).toHaveText([...hint]);
+    await expect(page.locator('[data-command="voucher.print"]')).toHaveText(`Print voucher · Voucher · ${platform === 'apple' ? 'Ctrl+Shift+P' : 'Alt+P'}`);
+    await page.keyboard.press(other);
+    await page.keyboard.press(runs);
+    expect(await ran(page), platform).toEqual(['voucher.print']);
+    // Command defaults can differ by platform too: web-safe does not bind print, so its keys apply.
+    await page.getByRole('button', { name: 'Web-safe' }).click();
+    await expect(print.locator('.t98-key-hint__key')).toHaveText([platform === 'apple' ? 'F9' : 'F8']);
+  }
+});

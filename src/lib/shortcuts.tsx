@@ -9,9 +9,16 @@ import { cx } from './primitives.js';
 
 /** A key chord such as "Ctrl+S", "Mod+Enter", "F2" or "Alt+C". "Mod" is Command on Apple platforms and Ctrl elsewhere. */
 export type KeyChord = string;
-/** Command id → one or more chords. An empty list unbinds the command. */
-export type Keymap = Readonly<Record<string, KeyChord | readonly KeyChord[]>>;
 export type ShortcutPlatform = 'apple' | 'other';
+/**
+ * Chords that differ by platform, for example { default: 'Alt+P', apple: 'Ctrl+Shift+P' }, because Option+letter types
+ * characters on Apple platforms. A platform without its own entry uses `default`; with neither, the entry does not bind it.
+ */
+export type PlatformChords = { readonly [platform in ShortcutPlatform | 'default']?: KeyChord | readonly KeyChord[] };
+/** One chord, a list of chords, or chords by platform. An empty list unbinds. */
+export type KeymapEntry = KeyChord | readonly KeyChord[] | PlatformChords;
+/** Command id → its chords. */
+export type Keymap = Readonly<Record<string, KeymapEntry>>;
 
 const MODIFIERS = ['Ctrl', 'Alt', 'Shift', 'Meta'] as const;
 const MODIFIER_ALIASES: Record<string, (typeof MODIFIERS)[number] | 'Mod'> = {
@@ -122,10 +129,27 @@ export function isPrintableChord(chord: KeyChord) {
   return mods.every(mod => mod === 'Shift') && (key.length === 1 || key === 'Space');
 }
 
-/** Merges keymaps left to right: a later map replaces a command's chords, and an empty list unbinds it. */
-export function mergeKeymaps(...maps: readonly (Keymap | undefined)[]): Record<string, readonly KeyChord[]> {
+const isChordList = (entry: KeymapEntry): entry is readonly KeyChord[] => Array.isArray(entry);
+/** The chords an entry gives a platform, or undefined when it has none there. */
+function entryChords(entry: KeymapEntry, platform: ShortcutPlatform): readonly KeyChord[] | undefined {
+  if (typeof entry === 'string' || isChordList(entry)) return typeof entry === 'string' ? [entry] : entry;
+  const chords = entry[platform] ?? entry.default;
+  return typeof chords === 'string' ? [chords] : chords;
+}
+/**
+ * Merges keymaps left to right for a platform (default "other"; the provider passes the detected one): a later map
+ * replaces a command's chords, an empty list unbinds it, and an entry with no chords for the platform leaves it as it was.
+ */
+export function mergeKeymaps(...maps: readonly (Keymap | undefined)[]): Record<string, readonly KeyChord[]>;
+export function mergeKeymaps(platform: ShortcutPlatform, ...maps: readonly (Keymap | undefined)[]): Record<string, readonly KeyChord[]>;
+export function mergeKeymaps(...args: readonly (ShortcutPlatform | Keymap | undefined)[]): Record<string, readonly KeyChord[]> {
+  const platform = typeof args[0] === 'string' ? args[0] : 'other';
+  const maps = (typeof args[0] === 'string' ? args.slice(1) : args) as readonly (Keymap | undefined)[];
   const merged: Record<string, readonly KeyChord[]> = {};
-  for (const map of maps) for (const [id, chords] of Object.entries(map ?? {})) merged[id] = typeof chords === 'string' ? [chords] : chords;
+  for (const map of maps) for (const [id, entry] of Object.entries(map ?? {})) {
+    const chords = entryChords(entry, platform);
+    if (chords) merged[id] = chords;
+  }
   return merged;
 }
 
@@ -180,7 +204,7 @@ export function reservedChord(chord: KeyChord, platform: ShortcutPlatform = 'oth
 }
 /** Every chord in a keymap that browsers reserve or use themselves. */
 export function findReservedChords(keymap: Keymap, platform: ShortcutPlatform = 'other') {
-  return Object.entries(mergeKeymaps(keymap)).flatMap(([command, chords]) => chords.flatMap(chord => {
+  return Object.entries(mergeKeymaps(platform, keymap)).flatMap(([command, chords]) => chords.flatMap(chord => {
     const found = reservedChord(chord, platform);
     return found ? [{ command, chord, ...found }] : [];
   }));
@@ -309,8 +333,8 @@ export interface CommandOptions {
   run: () => void;
   /** A disabled command still claims its chord in its scope, but does nothing. Defaults to true. */
   enabled?: boolean;
-  /** Chords used when the active keymap does not bind this id. */
-  keys?: KeyChord | readonly KeyChord[];
+  /** Chords used when the active keymap does not bind this id, optionally by platform. */
+  keys?: KeymapEntry;
   /** Run while the user types in a text field even though the chord types or edits text there (Enter in a textarea, a letter, arrows, Escape). */
   allowInTextInput?: boolean;
   /**
@@ -335,7 +359,7 @@ export interface ShortcutCommand {
 }
 
 interface ScopeRecord { name: string; activation: 'mounted' | 'focus' }
-interface CommandRecord extends Omit<CommandOptions, 'keys'> { uid: string; scope: string; defaults: readonly KeyChord[] }
+interface CommandRecord extends Omit<CommandOptions, 'keys'> { uid: string; scope: string; defaults: KeymapEntry }
 
 const SCOPE_ATTRIBUTE = 'data-t98-shortcut-scope';
 // Focus inside one of these limits commands to the scopes inside it.
@@ -391,7 +415,7 @@ class ShortcutStore {
     }
   }
   chordsFor(record: CommandRecord): KeyChord[] {
-    const chords = this.keymap[record.id] ?? record.defaults;
+    const chords = this.keymap[record.id] ?? entryChords(record.defaults, this.platform) ?? [];
     return chords.flatMap(chord => {
       const canonical = parseChord(chord, this.platform);
       if (!canonical && isDevelopment()) this.warnOnce(`chord:${chord}`, `@ten98/ui shortcuts: "${chord}" for ${record.id} is not a valid key chord.`);
@@ -483,12 +507,12 @@ export interface ShortcutProviderProps {
 export function ShortcutProvider({ keymaps = {}, keymap, overrides, platform, children }: ShortcutProviderProps) {
   const base = keymaps[keymap ?? Object.keys(keymaps)[0]];
   // Children register their commands before this provider's effects run, so the first keymap is set up front.
-  const [store] = useState(() => Object.assign(new ShortcutStore(), { keymap: mergeKeymaps(base, overrides), platform: platform ?? 'other' }));
+  const [store] = useState(() => Object.assign(new ShortcutStore(), { keymap: mergeKeymaps(platform ?? 'other', base, overrides), platform: platform ?? 'other' }));
   const [detected, setDetected] = useState<ShortcutPlatform>('other');
   useEffect(() => { if (!platform) setDetected(detectPlatform()); }, [platform]);
   const active = platform ?? detected;
   useEffect(() => {
-    store.keymap = mergeKeymaps(base, overrides);
+    store.keymap = mergeKeymaps(active, base, overrides);
     store.platform = active;
     store.changed();
   }, [store, base, overrides, active]);
@@ -536,10 +560,11 @@ export function useCommand({ id, label, group, run, enabled = true, keys, allowI
   const uid = useId();
   const handler = useRef(run);
   useEffect(() => { handler.current = run; });
-  const defaults = typeof keys === 'string' ? keys : (keys ?? []).join('\n');
+  // A string, so inline arrays and objects do not re-register the command on every render.
+  const defaults = JSON.stringify(keys ?? []);
   useEffect(() => {
     if (!store) return;
-    store.commands.set(uid, { uid, id, label, group, scope, enabled, allowInTextInput, repeat, matchPhysicalKey, run: () => handler.current(), defaults: defaults ? defaults.split('\n') : [] });
+    store.commands.set(uid, { uid, id, label, group, scope, enabled, allowInTextInput, repeat, matchPhysicalKey, run: () => handler.current(), defaults: JSON.parse(defaults) as KeymapEntry });
     store.changed();
   }, [store, uid, id, label, group, scope, enabled, allowInTextInput, repeat, matchPhysicalKey, defaults]);
   // Updating in place (above) keeps registration order, which decides the winner of a reported conflict.
