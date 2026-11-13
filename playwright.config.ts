@@ -18,6 +18,9 @@ export default defineConfig({
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 1000 } } },
     { name: 'narrow-dark', use: { ...devices['Desktop Chrome'], viewport: { width: 320, height: 850 }, colorScheme: 'dark' } },
+    // Key reachability is engine-specific; the rest of the suite runs on Chromium.
+    { name: 'firefox', testMatch: /key-reachability\.spec\.ts/, use: { ...devices['Desktop Firefox'] } },
+    { name: 'webkit', testMatch: /key-reachability\.spec\.ts/, use: { ...devices['Desktop Safari'] } },
   ],
   webServer: {
     command: 'node scripts/serve-browser.mjs',

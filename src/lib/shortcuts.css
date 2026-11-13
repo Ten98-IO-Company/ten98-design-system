@@ -1,0 +1,24 @@
+/* Key hints read left to right in every direction, as the keys are printed. */
+.t98-key-hint {
+  display: inline-flex;
+  direction: ltr;
+  unicode-bidi: isolate;
+  font: inherit;
+  white-space: nowrap;
+}
+.t98-key-hint__keys { display: inline-flex; gap: var(--t98-space-1); }
+.t98-key-hint__key {
+  min-width: 1.5em;
+  padding: 0 var(--t98-space-1);
+  border: 1px solid var(--t98-border);
+  border-radius: var(--t98-radius-sm);
+  color: var(--t98-muted);
+  background: var(--t98-subtle);
+  font-family: var(--t98-mono);
+  font-size: var(--t98-text-xs);
+  line-height: var(--t98-leading-relaxed);
+  text-align: center;
+}
+@media (forced-colors: active) {
+  .t98-key-hint__key { border-color: ButtonText; }
+}
