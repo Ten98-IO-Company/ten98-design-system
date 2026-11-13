@@ -12,16 +12,16 @@ document.documentElement.dataset.theme = params.get('theme') || 'light';
 if (params.get('dir') === 'rtl') document.documentElement.dir = 'rtl';
 
 const keymaps: Record<string, Keymap> = {
-  classic: { 'app.help': 'F1', 'voucher.payment': 'F5', 'voucher.receipt': 'F6', 'voucher.save': 'Ctrl+A', 'voucher.close': 'Escape', 'entry.next': 'Enter', 'entry.find': '/', 'dialog.confirm': 'Ctrl+Enter', 'voucher.copy': 'Alt+C', 'voucher.new': 'Ctrl+N' },
-  'web-safe': { 'app.help': 'Shift+F1', 'voucher.payment': 'Alt+F5', 'voucher.receipt': 'Alt+F6', 'voucher.save': 'Ctrl+Enter', 'voucher.close': 'Escape', 'entry.next': 'Enter', 'entry.find': '/', 'dialog.confirm': 'Ctrl+Enter', 'voucher.copy': 'Alt+C', 'voucher.new': 'Alt+N' },
+  classic: { 'app.help': 'F1', 'voucher.payment': 'F5', 'voucher.receipt': 'F6', 'voucher.save': 'Ctrl+A', 'voucher.close': 'Escape', 'entry.next': 'Enter', 'entry.find': '/', 'dialog.confirm': 'Ctrl+Enter', 'voucher.copy': 'Alt+C', 'voucher.new': 'Ctrl+N', 'menu.new': 'N' },
+  'web-safe': { 'app.help': 'Shift+F1', 'voucher.payment': 'Alt+F5', 'voucher.receipt': 'Alt+F6', 'voucher.save': 'Ctrl+Enter', 'voucher.close': 'Escape', 'entry.next': 'Enter', 'entry.find': '/', 'dialog.confirm': 'Ctrl+Enter', 'voucher.copy': 'Alt+C', 'voucher.new': 'Alt+N', 'menu.new': 'N' },
 };
 
 declare global { interface Window { ran: string[] } }
 window.ran = [];
 const log = (id: string) => () => { window.ran.push(id); };
 
-function Command({ id, label, enabled, allowInTextInput }: { id: string; label: string; enabled?: boolean; allowInTextInput?: boolean }) {
-  useCommand({ id, label, group: 'Voucher', run: log(id), enabled, allowInTextInput });
+function Command({ id, label, enabled, allowInTextInput, matchPhysicalKey }: { id: string; label: string; enabled?: boolean; allowInTextInput?: boolean; matchPhysicalKey?: boolean }) {
+  useCommand({ id, label, group: 'Voucher', run: log(id), enabled, allowInTextInput, matchPhysicalKey });
   return null;
 }
 function SaveButton() {
@@ -68,6 +68,11 @@ function Screen() {
           <Field label="Narration"><Input name="narration" /></Field>
           <Combobox label="City" options={['Dubai', 'Doha', 'Riyadh']} value={city} onValueChange={setCity} />
           <Button variant="secondary" onClick={log('entry.button')}>Entry button</Button>
+        </ShortcutScope>
+        {/* A menu's hot letter names a key position, so it also works on layouts that type another script there. */}
+        <ShortcutScope name="Actions" activation="focus">
+          <Command id="menu.new" label="New entry" matchPhysicalKey />
+          <Button variant="secondary" onClick={log('menu.button')}>New entry <KeyHint command="menu.new" /></Button>
         </ShortcutScope>
       </ShortcutScope>
       <Field label="Outside"><Input name="outside" /></Field>

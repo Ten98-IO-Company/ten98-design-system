@@ -98,6 +98,18 @@ export function chordFromEvent(event: ChordEvent, platform: ShortcutPlatform = '
 function physical(code = '') {
   return /^Key[A-Z]$/.test(code) ? code.slice(3) : /^Digit\d$/.test(code) ? code.slice(5) : undefined;
 }
+/**
+ * The chord for the key's position (event.code) when an unmodified letter or digit key types a character that is not
+ * a Latin letter or digit, for example on an Arabic layout; otherwise undefined. Only commands with matchPhysicalKey use it.
+ */
+export function physicalChordFromEvent(event: ChordEvent): KeyChord | undefined {
+  if (typeof event.key !== 'string' || event.isComposing || event.keyCode === 229 || event.ctrlKey || event.altKey || event.metaKey) return undefined;
+  if ([...event.key].length !== 1 || event.key === ' ' || /^[a-z0-9]$/i.test(event.key)) return undefined;
+  const key = physical(event.code);
+  // Shift with a digit types a symbol, never a digit chord.
+  if (!key || (event.shiftKey && /^\d$/.test(key))) return undefined;
+  return event.shiftKey ? `Shift+${key}` : key;
+}
 
 /** Splits a canonical chord into its modifiers and key ("Ctrl++" → ["Ctrl"], "+"). */
 function splitChord(chord: KeyChord): [string[], string] {
@@ -183,6 +195,8 @@ export interface ResolvedCommand {
   enabled: boolean;
   allowInTextInput?: boolean;
   repeat?: boolean;
+  /** Unmodified letter and digit chords also match the physicalChord (key position) of the event. */
+  matchPhysicalKey?: boolean;
 }
 
 /** Lists chords bound to more than one enabled command in the same scope. */
@@ -206,6 +220,10 @@ export interface ShortcutResolveInput {
   scopes: readonly { id: string; focus: boolean }[];
   commands: readonly ResolvedCommand[];
   target: ShortcutTarget;
+  /** The focused control is a select or owns an open popup (an expanded list or menu): Escape stays with it. */
+  popupOpen?: boolean;
+  /** The chord for the key's position, from physicalChordFromEvent, matched by commands with matchPhysicalKey. */
+  physicalChord?: KeyChord;
   repeat?: boolean;
 }
 
@@ -217,26 +235,31 @@ export interface ShortcutMatch {
 /**
  * The command a chord runs, or undefined. The innermost scope that binds the chord wins and prefers an enabled command;
  * when every command there is disabled the scope still claims the chord, so an outer command never runs in its place. Keys the focused element uses itself (typing,
- * caret and list movement, Enter in a textarea, Enter and Space on buttons) stay with it unless the command opts in
- * with allowInTextInput (never on buttons and other controls), and chords that only type characters run only in a
- * focus-activated scope that contains focus (WCAG 2.1.4).
+ * caret and list movement, Escape, Enter in a textarea, Enter and Space on buttons) stay with it unless the command
+ * opts in with allowInTextInput (never on buttons and other controls), Escape stays with a select or an open popup, and
+ * chords that only type characters run only in a focus-activated scope that contains focus (WCAG 2.1.4). Commands with
+ * matchPhysicalKey also match the physical chord of an unmodified letter or digit; a scope prefers the typed chord.
  */
-export function resolveShortcut({ chord, scopes, commands, target, repeat = false }: ShortcutResolveInput): ShortcutMatch | undefined {
+export function resolveShortcut({ chord, scopes, commands, target, popupOpen = false, physicalChord, repeat = false }: ShortcutResolveInput): ShortcutMatch | undefined {
   const [mods, key] = splitChord(chord);
   const unmodified = mods.every(mod => mod === 'Shift');
   // Tab and Shift+Tab always move focus, so no keymap can trap the keyboard.
   if (key === 'Tab' && unmodified) return undefined;
   const printable = isPrintableChord(chord);
-  const native = unmodified && (printable || NAVIGATION_KEYS.has(key));
+  const native = unmodified && (printable || NAVIGATION_KEYS.has(key) || key === 'Escape');
+  const position = printable && physicalChord && isPrintableChord(physicalChord) ? physicalChord : undefined;
   for (const scope of scopes) {
-    const bound = commands.filter(candidate => candidate.scope === scope.id && candidate.chords.includes(chord));
+    const inScope = commands.filter(candidate => candidate.scope === scope.id);
+    const typed = inScope.filter(candidate => candidate.chords.includes(chord));
+    const bound = typed.length || !position ? typed : inScope.filter(candidate => candidate.matchPhysicalKey && candidate.chords.includes(position));
     if (!bound.length) continue;
     const command = bound.find(candidate => candidate.enabled);
     if (!command) return undefined;
     if (printable && !scope.focus) return undefined;
     if (native) {
-      // Buttons, links, checkboxes and selects keep Enter, Space and arrows; text fields keep typing and caret keys, single-line ones not Enter.
+      // Buttons, links, checkboxes and selects keep Enter, Space and arrows; text fields keep typing, caret keys and Escape, single-line ones not Enter.
       if (target === 'control' && NAVIGATION_KEYS.has(key)) return undefined;
+      if (key === 'Escape' && popupOpen) return undefined;
       if (!command.allowInTextInput && (target === 'multiline' || (target === 'text' && key !== 'Enter'))) return undefined;
     }
     return { command, run: !repeat || command.repeat === true };
@@ -288,8 +311,13 @@ export interface CommandOptions {
   enabled?: boolean;
   /** Chords used when the active keymap does not bind this id. */
   keys?: KeyChord | readonly KeyChord[];
-  /** Run while the user types in a text field even though the chord types or edits text there (Enter in a textarea, a letter, arrows). */
+  /** Run while the user types in a text field even though the chord types or edits text there (Enter in a textarea, a letter, arrows, Escape). */
   allowInTextInput?: boolean;
+  /**
+   * Unmodified letter and digit chords also match the key in that position on layouts where it types another script
+   * (event.code), for hot letters in a focus-scoped menu or list. Printable chords still run only in a focused scope.
+   */
+  matchPhysicalKey?: boolean;
   /** Run again while the key is held. Defaults to false. */
   repeat?: boolean;
 }
@@ -315,6 +343,10 @@ const MODAL_ATTRIBUTE = 'data-t98-shortcut-modal';
 const BARRIERS = `dialog, [popover], [role="dialog"], [role="alertdialog"], [${MODAL_ATTRIBUTE}]`;
 const TEXT_TYPES = new Set(['', 'text', 'search', 'email', 'url', 'tel', 'password', 'number', 'date', 'datetime-local', 'month', 'time', 'week']);
 
+/** A select, or a control that owns an open popup, closes it with Escape itself. */
+function ownsOpenPopup(element: Element | null) {
+  return !!element && (element instanceof HTMLSelectElement || (element.getAttribute('aria-expanded') === 'true' && (element.getAttribute('role') === 'combobox' || (element.getAttribute('aria-haspopup') ?? 'false') !== 'false')));
+}
 function targetKind(element: Element | null): ShortcutTarget {
   if (!element) return 'other';
   if (element instanceof HTMLTextAreaElement || (element as HTMLElement).isContentEditable) return 'multiline';
@@ -334,6 +366,7 @@ class ShortcutStore {
   private dirty = true;
   private index: ResolvedCommand[] | undefined;
   private bound = new Set<string>();
+  private boundPhysical = new Set<string>();
   private conflictCheck = false;
   private warned = new Set<string>();
   subscribe = (listener: () => void) => { this.listeners.add(listener); return () => { this.listeners.delete(listener); }; };
@@ -367,8 +400,9 @@ class ShortcutStore {
   }
   resolved(): ResolvedCommand[] {
     if (!this.index) {
-      this.index = [...this.commands.values()].map(record => ({ id: record.uid, scope: record.scope, chords: this.chordsFor(record), enabled: record.enabled !== false, allowInTextInput: record.allowInTextInput, repeat: record.repeat }));
+      this.index = [...this.commands.values()].map(record => ({ id: record.uid, scope: record.scope, chords: this.chordsFor(record), enabled: record.enabled !== false, allowInTextInput: record.allowInTextInput, repeat: record.repeat, matchPhysicalKey: record.matchPhysicalKey }));
       this.bound = new Set(this.index.flatMap(command => command.chords));
+      this.boundPhysical = new Set(this.index.flatMap(command => command.matchPhysicalKey ? command.chords : []));
     }
     return this.index;
   }
@@ -418,11 +452,12 @@ class ShortcutStore {
     const chord = chordFromEvent(event, this.platform);
     if (!chord) return;
     const commands = this.resolved();
-    if (!this.bound.has(chord)) return;
+    const physicalChord = physicalChordFromEvent(event);
+    if (!this.bound.has(chord) && !(physicalChord && this.boundPhysical.has(physicalChord))) return;
     // The innermost element, also inside shadow roots, decides what the key does natively.
     const origin = event.composedPath()[0];
     const target = origin instanceof Element ? origin : event.target instanceof Element ? event.target : document.activeElement;
-    const match = resolveShortcut({ chord, scopes: this.activeScopes(target), commands, target: targetKind(target), repeat: event.repeat });
+    const match = resolveShortcut({ chord, scopes: this.activeScopes(target), commands, target: targetKind(target), popupOpen: ownsOpenPopup(target), physicalChord, repeat: event.repeat });
     const record = match && this.commands.get(match.command.id);
     if (!record) return;
     event.preventDefault();
@@ -495,7 +530,7 @@ export function ShortcutScope({ name, activation = 'mounted', modal = false, chi
 }
 
 /** Registers a command in the nearest ShortcutScope (or the application scope) while the component is mounted. Does nothing outside a ShortcutProvider. */
-export function useCommand({ id, label, group, run, enabled = true, keys, allowInTextInput = false, repeat = false }: CommandOptions) {
+export function useCommand({ id, label, group, run, enabled = true, keys, allowInTextInput = false, repeat = false, matchPhysicalKey = false }: CommandOptions) {
   const store = useContext(StoreContext);
   const scope = useContext(ScopeContext);
   const uid = useId();
@@ -504,9 +539,9 @@ export function useCommand({ id, label, group, run, enabled = true, keys, allowI
   const defaults = typeof keys === 'string' ? keys : (keys ?? []).join('\n');
   useEffect(() => {
     if (!store) return;
-    store.commands.set(uid, { uid, id, label, group, scope, enabled, allowInTextInput, repeat, run: () => handler.current(), defaults: defaults ? defaults.split('\n') : [] });
+    store.commands.set(uid, { uid, id, label, group, scope, enabled, allowInTextInput, repeat, matchPhysicalKey, run: () => handler.current(), defaults: defaults ? defaults.split('\n') : [] });
     store.changed();
-  }, [store, uid, id, label, group, scope, enabled, allowInTextInput, repeat, defaults]);
+  }, [store, uid, id, label, group, scope, enabled, allowInTextInput, repeat, matchPhysicalKey, defaults]);
   // Updating in place (above) keeps registration order, which decides the winner of a reported conflict.
   useEffect(() => () => { if (store?.commands.delete(uid)) store.changed(); }, [store, uid]);
 }

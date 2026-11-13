@@ -40,6 +40,14 @@ test('commands resolve by scope, keymap and override, and leave typing and widge
   await page.keyboard.press('Enter');
   expect(await ran(page)).toEqual(['entry.next']);
 
+  // Escape stays with text fields, so a global Escape command never discards typing.
+  await narration.focus();
+  await page.keyboard.press('Escape');
+  await city.focus();
+  await page.keyboard.press('Escape');
+  expect(await ran(page)).toEqual([]);
+  await expect(narration).toHaveValue('a/b');
+
   // A disabled inner command claims its chord: the outer Save does not run in its place.
   await page.getByRole('button', { name: 'Disable save' }).click();
   await narration.focus();
@@ -88,4 +96,22 @@ test('key hints use Apple symbols, read left to right in RTL and stay inside nar
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)).toBe(true);
   await page.keyboard.press('F1');
   expect(await ran(page)).toEqual(['app.help']);
+});
+
+test('a hot letter that opts in matches its key position on an Arabic layout, only inside its focused scope', async ({ page }) => {
+  await page.goto('/tests/shortcuts.html');
+  const button = page.getByRole('button', { name: /^New entry/ });
+  await expect(button.locator('.t98-key-hint__key')).toHaveText(['N']);
+  // The Arabic layout types "ى" on the key in the N position.
+  const arabicN = (selector: string) => page.locator(selector).evaluate(element => element.dispatchEvent(new KeyboardEvent('keydown', { key: 'ى', code: 'KeyN', bubbles: true, cancelable: true })));
+  await button.focus();
+  expect(await arabicN('button:has-text("New entry")'), 'the key is cancelled when the command runs').toBe(false);
+  await page.keyboard.press('n');
+  expect(await ran(page)).toEqual(['menu.new', 'menu.new']);
+  // Elsewhere the key types: outside the focused menu scope nothing runs and nothing is cancelled.
+  await page.getByRole('textbox', { name: 'Narration' }).focus();
+  expect(await arabicN('input[name=narration]')).toBe(true);
+  await page.getByRole('button', { name: 'Entry button' }).focus();
+  expect(await arabicN('button:has-text("Entry button")')).toBe(true);
+  expect(await ran(page)).toEqual([]);
 });
