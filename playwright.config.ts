@@ -7,7 +7,8 @@ export default defineConfig({
   retries: 0,
   workers: 2,
   timeout: 60_000,
-  globalTimeout: 15 * 60_000,
+  // The whole suite runs on one CI worker in about 12 to 15 minutes; this leaves room for a slower runner.
+  globalTimeout: 25 * 60_000,
   expect: { timeout: 5_000 },
   reporter: [['list'], ['html', { open: 'never' }]],
   use: {
