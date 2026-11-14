@@ -171,7 +171,7 @@ test('suggestion queue catalogue contract and all state examples render without 
   page.on('pageerror', error => errors.push(error.message));
   const prefix = info.project.name === 'narrow-dark' ? '/?theme=dark' : '/';
   await page.goto(`${prefix}#components`);
-  await expect(page.locator('.reference-component-card')).toHaveCount(173);
+  await expect(page.locator('.reference-component-card')).toHaveCount(174);
   const href = await page.locator('.reference-component-card').filter({ has: page.getByRole('heading', { name: 'SuggestionQueue', exact: true }) }).getAttribute('href');
   expect(href).toBeTruthy();
   await page.goto(`${prefix}${href}?tab=states`);
