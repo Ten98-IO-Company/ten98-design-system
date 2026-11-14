@@ -29,9 +29,10 @@ test('a virtualized statement renders only the rows in view and keeps keyboard, 
   expect(Number(await focusedIndex(page))).toBe(afterPage - 1);
   await page.keyboard.press('Home');
   await expect.poll(() => focusedIndex(page)).toBe('2');
-  // Rendered rows carry consecutive positions; one rendered row is the tab stop.
-  const indexes = await bodyRows(page, 'Statement').evaluateAll(nodes => nodes.map(node => Number(node.getAttribute('aria-rowindex'))));
-  expect(indexes).toEqual(indexes.map((_, offset) => indexes[0] + offset));
+  // Once the scroll that brought row 2 into view has arrived, the window is back at the top: consecutive positions from
+  // row 2. (Until then the focused row is rendered on its own ahead of the old window, by design.)
+  const rendered = () => bodyRows(page, 'Statement').evaluateAll(nodes => nodes.map(node => Number(node.getAttribute('aria-rowindex'))));
+  await expect.poll(async () => { const indexes = await rendered(); return indexes[0] === 2 && indexes.every((index, offset) => index === 2 + offset); }).toBe(true);
   await expect(statement.locator('tbody tr[tabindex="0"]')).toHaveCount(1);
 
   await page.getByRole('button', { name: 'Find s2500' }).click();
