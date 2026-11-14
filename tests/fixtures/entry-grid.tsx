@@ -17,9 +17,10 @@ const voucher = params.get('voucher') === '1';
 // Double entry prefills the balancing line; ?prefill=0 appends blank lines, as single entry and invoices do.
 const prefill = params.get('prefill') !== '0';
 
-declare global { interface Window { log: string[]; commits: string[]; grid: { current: EntryGridApi | null } } }
+declare global { interface Window { log: string[]; commits: string[]; committedRows: string[]; grid: { current: EntryGridApi | null } } }
 window.log = [];
 window.commits = [];
+window.committedRows = [];
 let next = 1;
 const blank = (): EntryGridRow => ({ key: `row-${next++}`, values: { side: 'debit', ...(currency && { currency }) } });
 // The app's money module: it parses by each row's currency exponent, and totals decimal strings as integer minor units.
@@ -44,7 +45,12 @@ function GridCommands({ onReplace }: { onReplace: () => void }) {
 function ScreenCommands({ onBack, onSave, onAccept }: { onBack: () => void; onSave: () => void; onAccept: () => void }) {
   useCommand({ id: 'voucher.back', label: 'Back', run: onBack });
   useCommand({ id: 'voucher.save', label: 'Save', run: onSave });
-  useCommand({ id: 'voucher.lookup', label: 'Look up', run: () => window.log.push('f2'), enabled: voucher });
+  // F2 in an account cell opens its list again, on the stored value.
+  useCommand({ id: 'voucher.lookup', label: 'Look up', enabled: voucher, run: () => {
+    window.log.push('f2');
+    const grid = window.grid.current;
+    if (grid?.activeRow && grid.activeColumn === 'account') grid.focusCell(grid.activeRow, 'account', { open: true });
+  } });
   useCommand({ id: 'voucher.accept', label: 'Accept', run: onAccept, enabled: voucher });
   return null;
 }
@@ -90,6 +96,8 @@ function Screen() {
   function end({ rows: lines, row, column, editing }: EntryEndContext) {
     const index = lines.findIndex(entry => entry.key === row), line = lines[index];
     const gap = sumOf(lines, 'debit') - sumOf(lines, 'credit');
+    // A memo of "stop" ends entry without moving focus: the grid keeps it on the cell.
+    if (column === 'memo' && line?.values.memo === 'stop') { window.log.push('stop'); return true; }
     if (line && !line.values.account && !line.values.amount && lines.length > 1) {
       if (gap === 0n) { narration.current?.focus(); window.log.push('end'); return true; }
       if (!editing) return `Debits and credits differ by ${money(gap < 0n ? -gap : gap)}.`;
@@ -105,7 +113,10 @@ function Screen() {
     if (!voucher || gap <= 0n) return line;
     return { ...line, values: { ...line.values, side: 'credit', ...(prefill && { account: 'bank', amount: money(gap) }) } };
   };
-  const accept = () => { if (grid.current?.commit()) window.log.push('accept'); };
+  const accept = () => {
+    const highlighted = grid.current?.highlighted()?.value;
+    if (grid.current?.commit()) window.log.push(highlighted ? `accept:${highlighted}` : 'accept');
+  };
   const save = () => { if (grid.current?.commit()) window.log.push(`save:${saved.current.map(row => row.values.amount ?? '').join(',')}`); };
   function post() {
     if (!grid.current?.commit()) return;
@@ -138,7 +149,11 @@ function Screen() {
           {...(voucher && {
             onEnd: end, announce: setStatusLine, editKey: null, openListOnAppend: true,
             escapeMode: params.get('escape') === 'clear' ? 'clear' as const : 'restore' as const,
-            onCellCommit: ({ column, previous, value, changed }) => { window.commits.push(`${column}:${previous}>${value}${changed ? '' : ' unchanged'}`); },
+            onCellCommit: ({ rows: lines, row, column, previous, value, changed }) => {
+              window.commits.push(`${column}:${previous}>${value}${changed ? '' : ' unchanged'}`);
+              // The event's rows already hold the value; the app's state does not yet.
+              window.committedRows.push(`${lines.length}:${lines.find(line => line.key === row)?.values[column] ?? ''}`);
+            },
           })}
           panel={{ title: row => `Allocate line ${row.values.line}`, render: (row, close) => <Stack gap={3}>
             <Field label="Cost centre"><Input defaultValue={allocations[row.key] ?? ''} onChange={event => setAllocations(all => ({ ...all, [row.key]: event.target.value }))} /></Field>

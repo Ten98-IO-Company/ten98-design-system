@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode, type Ref } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode, type Ref } from 'react';
 import { Icon, Input } from './primitives.js';
 import type { ComboboxAsyncProps, ComboboxOption } from './controls.js';
 
@@ -52,6 +52,8 @@ export interface ComboboxControlProps extends ComboboxAsyncProps {
   openValue?: string;
   /** Enter with Ctrl, Alt or Meta is left to the page's commands instead of picking (an entry grid cell). */
   passModifiedEnter?: boolean;
+  /** The option the open list highlights, or undefined; reported when it changes and when the control unmounts. */
+  onActiveChange?: (option: ComboboxOption | undefined) => void;
   /** Match typed text against option descriptions (for example a code) as well as labels. */
   matchDescription?: boolean;
   /** The typed text was dropped: the list closed without a pick, so the input shows `text` again. */
@@ -83,7 +85,9 @@ export function matchOptions<T extends ComboboxOption>(options: readonly T[], ne
   return [...matching.filter(starts), ...matching.filter(option => !starts(option))];
 }
 
-export function ComboboxControl({ id, options, text, onType, onPick, onClear, onLeave, label, placeholder, required, disabled, emptyMessage, picked, onRemoveLast, autoHighlight = false, rankPrefix = false, keepFocusOnTabPick = false, passUnpickedEnter = false, openRequest = 0, openValue, passModifiedEnter = false, matchDescription = false, onQueryReset, notice, inputRef, inputValue, onInputValueChange, blockReason, before, children, onInputChange, filter = true, loading = false, loadError, ...described }: ComboboxControlProps) {
+const useClientLayoutEffect = typeof document === 'undefined' ? useEffect : useLayoutEffect;
+
+export function ComboboxControl({ id, options, text, onType, onPick, onClear, onLeave, label, placeholder, required, disabled, emptyMessage, picked, onRemoveLast, autoHighlight = false, rankPrefix = false, keepFocusOnTabPick = false, passUnpickedEnter = false, openRequest = 0, openValue, passModifiedEnter = false, onActiveChange, matchDescription = false, onQueryReset, notice, inputRef, inputValue, onInputValueChange, blockReason, before, children, onInputChange, filter = true, loading = false, loadError, ...described }: ComboboxControlProps) {
   const generated = useId();
   const listId = `${generated}-list`;
   const optionId = (index: number) => `${generated}-option-${index}`;
@@ -105,13 +109,27 @@ export function ComboboxControl({ id, options, text, onType, onPick, onClear, on
     if (activeOption >= 0) list.current?.children[activeOption]?.scrollIntoView({ block: 'nearest' });
   }, [activeOption]);
   // Read when a request opens the list, not on every change of options or value.
-  const opening = useRef({ options, openValue });
-  opening.current = { options, openValue };
-  useEffect(() => {
+  const opening = useRef({ options, openValue, query, reset: () => {} });
+  opening.current = { options, openValue, query, reset: () => { type(null); onQueryReset?.(); } };
+  // Before paint, so a key pressed right after the request already finds the list open.
+  useClientLayoutEffect(() => {
     if (!openRequest) return;
+    // The list opens unfiltered: typed text is dropped, so the highlight indexes the list that is shown.
+    if (opening.current.query !== null && inputValue === undefined) opening.current.reset();
     setOpen(true);
     setActive(opening.current.options.findIndex(option => option.value === opening.current.openValue));
   }, [openRequest]);
+  // The owner learns which option Enter would pick, for example to commit it from an app command.
+  const highlighted = activeOption >= 0 ? shown[activeOption] : undefined;
+  const reportActive = useRef(onActiveChange);
+  reportActive.current = onActiveChange;
+  const reported = useRef<string | undefined>(undefined);
+  useClientLayoutEffect(() => {
+    if (reported.current === highlighted?.value) return;
+    reported.current = highlighted?.value;
+    reportActive.current?.(highlighted);
+  });
+  useClientLayoutEffect(() => () => reportActive.current?.(undefined), []);
 
   function type(typed: string | null) {
     if (inputValue !== undefined) { if (typed !== null) onInputValueChange?.(typed); return; }

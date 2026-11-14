@@ -101,12 +101,12 @@ test('in an open lookup, Ctrl+Enter, Ctrl+A and F2 reach the app’s commands, w
   expect((await rows(page)).map((row: Record<string, string>) => row.account)).toEqual(['bank', undefined]);
   await page.keyboard.type('ca');
   await page.keyboard.press('Control+a');
-  expect(await log(page)).toEqual(['accept']);
+  expect(await log(page)).toEqual(['accept:cash']);
   expect((await rows(page))[1].account).toBe('cash');
   // F2 while editing goes to the app's command too.
   await page.keyboard.type('r');
   await page.keyboard.press('F2');
-  expect(await log(page)).toEqual(['accept', 'f2']);
+  expect(await log(page)).toEqual(['accept:cash', 'f2']);
 });
 
 test('the clear Escape mode empties the cell being edited, and Escape on a focused cell is the app’s', async ({ page }) => {
@@ -278,4 +278,102 @@ test('footer amounts keep left-to-right order on right-to-left pages', async ({ 
     return [box(0, 6), box(9, 13)];
   });
   expect(debit).toBeLessThan(credit);
+});
+
+test('commit stores the option the list highlights, also after arrowing and for text with a leading space; with none, it reports', async ({ page }) => {
+  await enterGrid(page);
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('Enter');
+  await page.keyboard.type('ca');
+  await page.keyboard.press('ArrowDown');
+  await expect(options(page).nth(1)).toHaveAttribute('aria-selected', 'true');
+  // The app's accept command reads the highlighted option and commits exactly that one.
+  await page.keyboard.press('Control+a');
+  expect(await log(page)).toEqual(['accept:capital']);
+  expect((await rows(page))[0].account).toBe('capital');
+  // The list filters on the text as typed, leading space included, and commit takes what it shows.
+  await editor(page, 'Account', 1).fill(' ca');
+  await expect(options(page).first()).toHaveText('Petty cash1005');
+  await page.keyboard.press('Control+a');
+  expect((await rows(page))[0].account).toBe('petty-cash');
+  // Only "Create …" is highlighted: the text names no option, so it is reported and nothing is stored.
+  await editor(page, 'Account', 1).fill('zz');
+  await expect(options(page)).toHaveText(['Create “zz”']);
+  await page.keyboard.press('Control+a');
+  await expect(cell(page, 1, 'Account')).toContainText('Choose from the list.');
+  expect((await rows(page))[0].account).toBe('petty-cash');
+  expect(await log(page)).toEqual(['accept:capital', 'accept:petty-cash']);
+});
+
+test('reopening the list from an app command commits the highlighted option, then shows the whole list on it', async ({ page }) => {
+  await enterGrid(page);
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('Enter');
+  await page.keyboard.type('cash');
+  await page.keyboard.press('Enter');
+  await page.keyboard.press('Shift+Tab');
+  await expect(editor(page, 'Account', 1)).toHaveValue('Cash');
+  await page.keyboard.type('ba');
+  // F2 is the app's command: it calls focusCell(row, 'account', { open: true }) on the cell being edited. focusCell
+  // commits first (the highlighted Bank), then the list opens unfiltered, on that value, with no typed text left.
+  await page.keyboard.press('F2');
+  await expect(editor(page, 'Account', 1)).toHaveValue('Bank');
+  await expect(options(page)).toHaveText(['Cash1000', 'Bank1010', 'Show all accounts']);
+  await expect(page.getByRole('option', { name: 'Bank' })).toHaveAttribute('aria-selected', 'true');
+  await expect(editor(page, 'Account', 1)).toHaveAttribute('aria-activedescendant', /.+/);
+  await page.keyboard.press('Enter');
+  await expect(editor(page, 'Side', 1)).toBeFocused();
+  expect((await rows(page))[0].account).toBe('bank');
+});
+
+test('a list opened for an appended line is open before the next key, so Escape closes it instead of clearing the cell', async ({ page }) => {
+  await enterGrid(page, '?voucher=1&escape=clear');
+  await page.keyboard.press('Enter');
+  await page.keyboard.press('Enter');
+  await page.keyboard.type('cash');
+  await page.keyboard.press('Enter');
+  await page.keyboard.press('Enter');
+  await page.keyboard.type('100');
+  await page.keyboard.press('Enter');
+  await page.keyboard.press('Enter');
+  // Enter appends the line; Escape follows one microtask later, before any other task (a fast typist's next key).
+  await editor(page, 'Memo', 1).evaluate(async input => {
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+    await Promise.resolve();
+    document.activeElement?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+  });
+  await expect(editor(page, 'Account', 2)).toBeFocused();
+  expect((await rows(page))[1].account).toBe('bank');
+});
+
+test('onEnd returning true without moving focus leaves it on the cell and appends nothing', async ({ page }) => {
+  await enterGrid(page);
+  for (let i = 0; i < 5; i++) await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('Enter');
+  await page.keyboard.type('stop');
+  await page.keyboard.press('Enter');
+  await expect(cell(page, 1, 'Memo')).toBeFocused();
+  expect(await log(page)).toEqual(['stop']);
+  expect(await rows(page)).toEqual([{ side: 'debit', memo: 'stop' }]);
+});
+
+test('creating an option reports the commit, with the committed rows', async ({ page }) => {
+  await enterGrid(page);
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('Enter');
+  await page.keyboard.type('Zed');
+  await expect(page.getByRole('option', { name: 'Create “Zed”' })).toBeVisible();
+  await page.keyboard.press('Enter');
+  await expect(editor(page, 'Side', 1)).toBeFocused();
+  expect(await page.evaluate(() => window.commits)).toEqual(['account:>zed']);
+  expect(await page.evaluate(() => window.committedRows)).toEqual(['1:zed']);
+});
+
+test('side letters are left alone while an input method is composing', async ({ page }) => {
+  await enterGrid(page);
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('ArrowRight');
+  await cell(page, 1, 'Side').evaluate(node => node.dispatchEvent(new KeyboardEvent('keydown', { key: 't', isComposing: true, bubbles: true, cancelable: true })));
+  await expect(cell(page, 1, 'Side')).toBeFocused();
+  await expect(editor(page, 'Side', 1)).toHaveValue('debit');
 });
