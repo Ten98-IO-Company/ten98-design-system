@@ -387,3 +387,38 @@ test('the Enter that ends an IME composition (keyCode 229) does not commit or ad
   await page.keyboard.press('Enter');
   await expect(editor(page, 'Side', 1)).toBeFocused();
 });
+
+test('a key pressed right after an advance reaches the next cell: select, text, lookup and a created option', async ({ page }) => {
+  await enterGrid(page);
+  await page.keyboard.press('Enter');
+  await page.keyboard.press('Enter');
+  // No waits between keys, as a fast typist: each one lands in the cell the previous key moved to.
+  await page.keyboard.type('Ba');
+  await page.keyboard.press('Enter');
+  await page.keyboard.press('c');
+  await page.keyboard.press('Enter');
+  await page.keyboard.type('25');
+  await page.keyboard.press('Enter');
+  await page.keyboard.press('Enter');
+  await page.keyboard.type('Fee');
+  await page.keyboard.press('Enter');
+  await page.keyboard.press('Tab');
+  await page.keyboard.type('Petty cash');
+  await expect(page.getByRole('option', { name: 'Create “Petty cash”' })).toBeVisible();
+  // Creating an option moves focus within the key press, before any other task could deliver the next key.
+  const focused = await editor(page, 'Account', 2).evaluate(async input => {
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+    await Promise.resolve();
+    await Promise.resolve();
+    return document.activeElement?.getAttribute('aria-label');
+  });
+  expect(focused).toBe('Side, row 2');
+  await page.keyboard.press('c');
+  await page.keyboard.press('Enter');
+  await page.keyboard.type('7');
+  await page.keyboard.press('Enter');
+  expect((await rows(page)).slice(0, 2)).toEqual([
+    { side: 'credit', account: 'bank', amount: '25.00', memo: 'Fee' },
+    { side: 'credit', account: 'petty-cash', amount: '7.00' },
+  ]);
+});

@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, useState, type FocusEvent, type KeyboardEvent, type MouseEvent, type ReactNode, type Ref } from 'react';
+import { flushSync } from 'react-dom';
 import { Dialog, cx } from './primitives.js';
 import { ComboboxControl } from './combobox-control.js';
 import type { ComboboxOption } from './controls.js';
@@ -32,6 +33,8 @@ export interface EntryGridColumn {
   /**
    * lookup: offers "Create …" when the typed text matches no option. Return the new option's value to fill the cell and
    * advance (the app adds the option), or nothing to stay in the cell, for example while the app opens its own form.
+   * A value returned directly advances within the key press, so the next key reaches the next cell; while a returned
+   * promise is pending, focus stays in the lookup.
    */
   onCreate?: (text: string, rowKey: string) => string | void | Promise<string | void>;
   /** side: the two choices, for example debit and credit. */
@@ -540,19 +543,25 @@ export function EntryGrid({ label, columns, rows, onRowsChange, createRow, error
           setOwnError(row.key, column.id, labels.notListed);
           sayError(column, cell.row, labels.notListed);
         }}
-        onPick={async option => {
+        onPick={option => {
           if (option.value !== CREATE) { advance(1, 'Enter', option.value); return; }
-          const created = await column.onCreate?.(typed, row.key);
-          if (typeof created !== 'string' || !created) return;
-          const all = [...latest.current];
-          const index = all.findIndex(entry => entry.key === row.key);
-          if (index < 0) return;
-          all[index] = { ...all[index], values: { ...all[index].values, [column.id]: created } };
-          latest.current = all;
-          onRowsChange(all);
-          setOwnError(row.key, column.id, undefined);
-          const next = nextEntryCell(columns, all.length, { row: index, column: cell.column }, 1);
-          if (next) moveTo(next, 'editor');
+          const fill = (created: string | void) => {
+            if (typeof created !== 'string' || !created) return;
+            const all = [...latest.current];
+            const index = all.findIndex(entry => entry.key === row.key);
+            if (index < 0) return;
+            all[index] = { ...all[index], values: { ...all[index].values, [column.id]: created } };
+            latest.current = all;
+            onRowsChange(all);
+            setOwnError(row.key, column.id, undefined);
+            const next = nextEntryCell(columns, all.length, { row: index, column: cell.column }, 1);
+            if (next) moveTo(next, 'editor');
+          };
+          const created = column.onCreate?.(typed, row.key);
+          // Awaiting a plain value would move focus in a later task, so a key typed in between would reach the lookup.
+          // A promise's result is rendered at once for the same reason.
+          if (created instanceof Promise) void created.then(value => flushSync(() => fill(value)));
+          else fill(created);
         }} />;
     }
     const numeric = column.type === 'amount' || column.type === 'quantity';
