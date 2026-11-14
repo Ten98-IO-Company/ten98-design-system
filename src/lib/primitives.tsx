@@ -4,7 +4,7 @@ import {
   Children, cloneElement, forwardRef, isValidElement, useEffect, useId, useRef, useState,
   type ButtonHTMLAttributes, type ComponentType, type CSSProperties, type FormEvent, type MouseEvent, type HTMLAttributes, type InputHTMLAttributes,
   type OptgroupHTMLAttributes, type OptionHTMLAttributes, type ReactElement, type ReactNode, type SelectHTMLAttributes,
-  type SVGProps, type TextareaHTMLAttributes,
+  type RefObject, type SVGProps, type TextareaHTMLAttributes,
 } from 'react';
 
 export function cx(...values: (string | false | null | undefined)[]) {
@@ -291,10 +291,18 @@ export interface DialogProps { open: boolean; onOpenChange: (open: boolean) => v
   /** `wide` fits editors such as a post composer (up to 880px). */
   size?: 'default' | 'wide';
   /** Where focus goes on close, for example a control that replaced the one that opened the dialog. Falls back to the element focused when it opened. */
-  restoreFocus?: () => HTMLElement | null | undefined }
+  restoreFocus?: () => HTMLElement | null | undefined;
+  /**
+   * Where focus starts when the dialog opens. first-field: the first field in the body. primary: the footer's primary
+   * (or danger) button, so Enter accepts. close: the close button. A ref focuses that element. Disabled or missing
+   * targets fall back to the browser's choice, the first focusable element (the close button), which is also the default.
+   */
+  initialFocus?: DialogInitialFocus }
+export type DialogInitialFocus = 'first-field' | 'primary' | 'close' | RefObject<HTMLElement | null>;
+const DIALOG_FIELDS = '.t98-dialog-body input:not([type=hidden]), .t98-dialog-body select, .t98-dialog-body textarea';
 export type DialogCloseReason = 'escape' | 'backdrop' | 'close-button';
 /* Behaviour follows the WAI-ARIA APG Modal Dialog pattern and react-aria's useOverlay close interception (Apache-2.0); no code is copied. */
-export function Dialog({ open, onOpenChange, title, description, children, footer, className, style, closeDisabled = false, modal = true, actions, onBeforeClose, eyebrow, onSubmit, restoreFocus, dirty = false, discardMessage = 'Your changes have not been saved.', size = 'default' }: DialogProps) {
+export function Dialog({ open, onOpenChange, title, description, children, footer, className, style, closeDisabled = false, modal = true, actions, onBeforeClose, eyebrow, onSubmit, restoreFocus, initialFocus, dirty = false, discardMessage = 'Your changes have not been saved.', size = 'default' }: DialogProps) {
   const id = useId();
   const ref = useRef<HTMLDialogElement>(null);
   const trigger = useRef<HTMLElement | null>(null);
@@ -323,6 +331,7 @@ export function Dialog({ open, onOpenChange, title, description, children, foote
         if (!opened.current) trigger.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
         opened.current = true;
         showDialog(dialog);
+        focusInitial(dialog);
       } else if (dialog.matches(':modal') !== modal) {
         const active = dialog.contains(document.activeElement) ? document.activeElement as HTMLElement : null;
         dialog.close();
@@ -340,6 +349,15 @@ export function Dialog({ open, onOpenChange, title, description, children, foote
   }, []);
   function showDialog(dialog: HTMLDialogElement) {
     if (modal) dialog.showModal(); else dialog.show();
+  }
+  function focusInitial(dialog: HTMLDialogElement) {
+    if (!initialFocus) return;
+    const usable = (element: HTMLElement | null | undefined): element is HTMLElement => !!element && element.isConnected && !element.matches(':disabled') && element.getClientRects().length > 0;
+    const target = typeof initialFocus === 'object' ? initialFocus.current
+      : initialFocus === 'first-field' ? [...dialog.querySelectorAll<HTMLElement>(DIALOG_FIELDS)].find(usable)
+      : initialFocus === 'primary' ? dialog.querySelector<HTMLElement>('.t98-dialog-footer .t98-button--primary, .t98-dialog-footer .t98-button--danger')
+      : dialog.querySelector<HTMLElement>('.t98-dialog-header [aria-label="Close dialog"]');
+    if (usable(target)) target.focus();
   }
   function focusEditor() {
     const dialog = ref.current;

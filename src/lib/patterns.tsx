@@ -1,6 +1,6 @@
 'use client';
 
-import { Children, Fragment, useCallback, useEffect, useId, useMemo, useRef, useState, type HTMLAttributes, type KeyboardEvent, type MouseEvent, type ReactNode, type RefObject, type SyntheticEvent } from 'react';
+import { Children, Fragment, useCallback, useEffect, useId, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type HTMLAttributes, type KeyboardEvent, type MouseEvent, type ReactNode, type Ref, type RefObject, type SyntheticEvent } from 'react';
 import { Badge, Button, Icon, Input, cx } from './primitives.js';
 import { Pager, StatusLine } from './controls.js';
 import { extent, linearScale, segments } from './chart-scale.js';
@@ -140,18 +140,77 @@ interface DataTableBaseProps<T> {
   density?: 'comfortable' | 'compact';
   /** `stack` shows each row as label/value pairs below 600px; table semantics are kept. */
   responsive?: 'scroll' | 'stack';
+  /** Rows PageUp and PageDown move focus in an activatable table. Defaults to the rows in view when virtualized, else 10. */
+  pageStep?: number;
+  /** Arrow or Page keys moved past the last ('next') or first ('previous') row, for example to load a server page and then focusRow. */
+  onPageEdge?: (direction: 'next' | 'previous') => void;
+  /** focusRow for app code and commands: no querying of table rows. */
+  apiRef?: Ref<DataTableApi>;
+  /**
+   * Renders only the rows in view, for thousands of one-line rows, in a scroll box with a sticky header (24rem tall).
+   * Keyboard movement, the accessible row count and position, and print stay complete. Rows must share one height: it
+   * has no effect with rowDetail, wrapping columns or responsive="stack", and rows of different heights turn it off
+   * (with a development warning). Print renders every row up to printRowLimit.
+   */
+  virtualize?: boolean;
+  /**
+   * A virtualized table with more rows than this prints a notice to use the app's export instead of its rows, because
+   * rendering tens of thousands of rows blocks the page for seconds (about 8 s for 50,000) and can fail. Default 5,000.
+   * Only virtualized tables are limited: a table without virtualize prints every row it renders.
+   */
+  printRowLimit?: number;
+  /** The printed notice when printRowLimit is exceeded, for example translated or naming the app's export. */
+  printLimitNotice?: (rows: number, limit: number) => ReactNode;
 }
+const PRINT_ROW_LIMIT = 5000;
+const printLimitText = (rows: number, limit: number) =>
+  `This table has ${rows.toLocaleString()} rows, more than the ${limit.toLocaleString()} that print from the page. Use the export to print it in full.`;
 export type DataTableProps<T> = DataTableBaseProps<T> & TableName;
+export interface DataTableApi {
+  /** Focuses an activatable table's row by key, turning to its page or scrolling it into view. False when no shown row has the key. */
+  focusRow: (key: string) => boolean;
+}
+// Focus and measurements must land before paint; server rendering has no layout.
+const useClientLayoutEffect = typeof document === 'undefined' ? useEffect : useLayoutEffect;
+declare const process: { env: { NODE_ENV?: string } };
+/* Written as process.env.NODE_ENV so bundlers replace it; without a bundler there is no process and no warning. */
+function warnInDevelopment(message: string) {
+  try { if (process.env.NODE_ENV !== 'production') console.warn(message); } catch { /* no bundler */ }
+}
+const OVERSCAN = 8;
 
 const isMissing = (value: unknown) => value == null || (typeof value === 'number' && Number.isNaN(value));
+// Printing: print media (also when emulated) or the browser's beforeprint..afterprint window. React renders the
+// store change before the print layout, because the microtask after the event handler runs first.
+let printWindow = false;
+function subscribePrinting(onChange: () => void) {
+  const media = window.matchMedia?.('print');
+  const before = () => { printWindow = true; onChange(); };
+  const after = () => { printWindow = false; onChange(); };
+  window.addEventListener('beforeprint', before);
+  window.addEventListener('afterprint', after);
+  media?.addEventListener?.('change', onChange);
+  return () => {
+    window.removeEventListener('beforeprint', before);
+    window.removeEventListener('afterprint', after);
+    media?.removeEventListener?.('change', onChange);
+  };
+}
+const isPrinting = () => printWindow || window.matchMedia?.('print').matches === true;
+/** True while the page prints, so a paged table can print all its rows. */
+function usePrinting() {
+  return useSyncExternalStore(subscribePrinting, isPrinting, () => false);
+}
 // Clicks on these inside a row belong to the control, never to row activation.
 const interactiveTarget = 'a[href],button,input,select,textarea,label,summary,[role="button"],[role="link"],[contenteditable="true"]';
+
+const ROW_PAGE = 10;
 
 export function DataTable<T>({
   columns, rows, rowKey, caption, captionHidden = true, ariaLabel, searchable = true, sortable = true, pagination = true,
   searchPlaceholder = 'Search records…', pageSize = 5, selectable = false, selectionLabel, selectionDisabled = false, selectedKeys: selectedKeysProp, onSelectionChange, activeKey, onRowActivate, rowDetail, expandedKeys: expandedKeysProp, onExpandedChange, emptyTitle = 'No records found', emptyDescription, emptyState,
   sort: sortProp, onSortChange, sortDisabled = false, sortLabel, page: pageProp, onPageChange, search: searchProp, onSearchChange, rowActions, rowActionsLabel = 'Actions',
-  loading = false, unavailable, stickyHeader = false, footerCells, density = 'comfortable', responsive = 'scroll',
+  loading = false, unavailable, stickyHeader = false, footerCells, density = 'comfortable', responsive = 'scroll', pageStep, onPageEdge, apiRef, virtualize = false, printRowLimit = PRINT_ROW_LIMIT, printLimitNotice = printLimitText,
 }: DataTableProps<T>) {
   const [localQuery, setQuery] = useState('');
   const [localSort, setSort] = useState<TableSort>();
@@ -160,6 +219,11 @@ export function DataTable<T>({
   const [localExpanded, setLocalExpanded] = useState<string[]>([]);
   const [focusKey, setFocusKey] = useState<string>();
   const rowRefs = useRef(new Map<string, HTMLTableRowElement>());
+  const pendingFocus = useRef<string>(undefined);
+  const scrollBox = useRef<HTMLDivElement>(null);
+  const head = useRef<HTMLTableSectionElement>(null);
+  const [view, setView] = useState({ top: 0, height: 0, head: 0, row: 0 });
+  const [uneven, setUneven] = useState(false);
   const selectAll = useRef<HTMLInputElement>(null);
   const searchId = useId();
   const name = caption ?? ariaLabel;
@@ -182,7 +246,9 @@ export function DataTable<T>({
   const serverTotal = pageProp?.index === undefined ? undefined : pageProp.total;
   const serverSize = pageProp?.index === undefined ? 0 : pageProp.size;
   const offset = paged ? (currentPage - 1) * size : (serverIndex ?? 0) * serverSize;
-  const visible = paged ? filtered.slice(offset, offset + size) : filtered;
+  // A print holds every row the table has, not just the page on screen; server pages print as supplied.
+  const printing = usePrinting();
+  const visible = paged && !printing ? filtered.slice(offset, offset + size) : filtered;
   const keys = new Set(rows.map(rowKey));
   const controlledSelection = selectedKeysProp !== undefined;
   const selectedKeys = controlledSelection ? [...selectedKeysProp] : controlledPage ? selected : selected.filter(key => keys.has(key));
@@ -196,8 +262,56 @@ export function DataTable<T>({
   const detailBase = useId();
   const expandedSet = new Set(expandedKeysProp ?? localExpanded);
   const activatable = onRowActivate !== undefined;
-  // One roving tab stop: the last focused row, else the active row, else the first.
-  const tabKey = [focusKey, activeKey].find(key => key !== undefined && visibleKeys.includes(key)) ?? visibleKeys[0];
+  // Windowing: only the rows in the scroll box (plus a margin) are rendered, between spacer rows of the same height.
+  const windowed = virtualize && !printing && !uneven && !rowDetail && !stack && !shown.some(column => column.wrap);
+  const rowHeight = view.row || 40;
+  const first = windowed ? Math.max(0, Math.floor(Math.max(0, view.top - view.head) / rowHeight) - OVERSCAN) : 0;
+  const end = windowed ? Math.min(visible.length, first + Math.ceil((view.height || 600) / rowHeight) + OVERSCAN * 2) : visible.length;
+  // The focused row stays rendered outside the window, so scrolling it away never drops focus to the page.
+  const focusedIndex = windowed && focusKey !== undefined ? visibleKeys.indexOf(focusKey) : -1;
+  // Too many rows to print from the page: the print shows a notice instead (printRowLimit).
+  const printTooLarge = virtualize && printing && visible.length > printRowLimit;
+  const renderedIndexes = printTooLarge ? [] : windowed
+    ? [...(focusedIndex >= 0 && focusedIndex < first ? [focusedIndex] : []), ...Array.from({ length: end - first }, (_, offset) => first + offset), ...(focusedIndex >= end ? [focusedIndex] : [])]
+    : visible.map((_, index) => index);
+  const renderedKeys = renderedIndexes.map(index => visibleKeys[index]);
+  // One roving tab stop: the last focused row, else the active row, else the first rendered.
+  const tabKey = [focusKey, activeKey].find(key => key !== undefined && renderedKeys.includes(key)) ?? renderedKeys[0];
+  const step = pageStep !== undefined && pageStep >= 1 ? Math.floor(pageStep) : windowed && view.row ? Math.max(1, Math.floor((view.height - view.head) / view.row)) : ROW_PAGE;
+  const spacer = (rows: number, key: string) => rows > 0 && <tr key={key} className="t98-table-spacer" aria-hidden="true"><td colSpan={columnCount} style={{ blockSize: rows * rowHeight }} /></tr>;
+  // The scroll position comes only from scroll events; layout reads only sizes, which settle after one pass.
+  const readScroll = () => {
+    const box = scrollBox.current;
+    if (box) setView(current => current.top === box.scrollTop ? current : { ...current, top: box.scrollTop });
+  };
+  useClientLayoutEffect(() => {
+    const box = scrollBox.current;
+    if (windowed && box) {
+      // Exact heights: rounded ones drift the spacers by a pixel every few rows. They are measured on screen, so CSS zoom
+      // or a transform on an ancestor is divided out to match the box's own scrollTop and clientHeight.
+      const scale = box.offsetHeight ? box.getBoundingClientRect().height / box.offsetHeight : 1;
+      const heights = [...box.querySelectorAll<HTMLElement>('tbody > tr:not(.t98-table-spacer):not(.t98-table-skeleton-row)')].map(row => row.getBoundingClientRect().height / (scale || 1));
+      if (heights.length > 1 && Math.max(...heights) - Math.min(...heights) > 1) {
+        warnInDevelopment(`@ten98/ui DataTable "${name}": virtualize needs rows of one height; rows differ, so every row is rendered.`);
+        setUneven(true);
+      } else {
+        // Sizes settle: the row height is the tallest rendered row (collapsed borders make the first one half a pixel
+        // shorter in WebKit), and a change under a pixel is ignored, so moving the window never re-measures in a loop.
+        const size = { height: box.clientHeight, head: head.current?.offsetHeight ?? 0, row: heights.length ? Math.max(...heights) : view.row };
+        const moved = (from: number, to: number) => Math.abs(from - to) >= 1;
+        if (moved(size.height, view.height) || moved(size.head, view.head) || (size.row && (!view.row || moved(size.row, view.row)))) setView(current => ({ ...current, ...size }));
+      }
+    }
+    const key = pendingFocus.current;
+    const node = key === undefined ? undefined : rowRefs.current.get(key);
+    if (node) { pendingFocus.current = undefined; reveal(node); }
+  });
+  /** Focuses a row; in a windowed table it scrolls just into view below the sticky header (scroll padding). */
+  function reveal(node: HTMLTableRowElement) {
+    node.focus({ preventScroll: windowed });
+    // The window follows at once rather than on the next scroll event, so Home or End move both together.
+    if (windowed) { node.scrollIntoView({ block: 'nearest' }); readScroll(); }
+  }
   const alignOf = (column: DataColumn<T>) => column.align ?? (column.numeric ? 'end' : 'start');
   const cellClass = (column: DataColumn<T>) => cx(
     alignOf(column) !== 'start' && `t98-table-cell--${alignOf(column)}`, column.numeric && 't98-table-cell--numeric',
@@ -253,6 +367,28 @@ export function DataTable<T>({
     onRowActivate?.(row, rowKey(row));
   }
 
+  /** Focuses a shown row by index. A windowed table renders it (as the focused row) first, then scrolls it into view. */
+  function focusIndex(index: number) {
+    const key = visibleKeys[index];
+    if (key === undefined) return;
+    setFocusKey(key);
+    const node = rowRefs.current.get(key);
+    if (node) reveal(node); else pendingFocus.current = key;
+  }
+  function focusRow(key: string) {
+    if (!activatable) return false;
+    const index = visibleKeys.indexOf(key);
+    if (index >= 0) { focusIndex(index); return true; }
+    // A locally paged table turns to the row's page first.
+    const position = paged ? filtered.findIndex(row => rowKey(row) === key) : -1;
+    if (position < 0) return false;
+    setPage(Math.floor(position / size) + 1);
+    setFocusKey(key);
+    pendingFocus.current = key;
+    return true;
+  }
+  useImperativeHandle(apiRef, () => ({ focusRow }));
+
   function onRowKeyDown(event: KeyboardEvent<HTMLTableRowElement>, row: T, index: number) {
     if (event.target !== event.currentTarget || event.altKey || event.ctrlKey || event.metaKey) return;
     if (event.key === 'Enter' || event.key === ' ') {
@@ -261,11 +397,20 @@ export function DataTable<T>({
       return;
     }
     const last = visibleKeys.length - 1;
+    const forward = event.key === 'ArrowDown' || event.key === 'PageDown', backward = event.key === 'ArrowUp' || event.key === 'PageUp';
+    if (onPageEdge && ((forward && index === last) || (backward && index === 0))) {
+      event.preventDefault();
+      // One request per key press: not for a held key, nor while the app is loading.
+      if (!event.repeat && !loading) onPageEdge(forward ? 'next' : 'previous');
+      return;
+    }
+    // PageUp and PageDown move by a step (APG grid: an author-chosen number), stopping at the first and last row shown.
     const target = event.key === 'ArrowDown' ? Math.min(index + 1, last) : event.key === 'ArrowUp' ? Math.max(index - 1, 0)
+      : event.key === 'PageDown' ? Math.min(index + step, last) : event.key === 'PageUp' ? Math.max(index - step, 0)
       : event.key === 'Home' ? 0 : event.key === 'End' ? last : undefined;
     if (target === undefined) return;
     event.preventDefault();
-    rowRefs.current.get(visibleKeys[target])?.focus();
+    focusIndex(target);
   }
 
   function changeQuery(value: string) {
@@ -289,7 +434,7 @@ export function DataTable<T>({
   // Counts and pages describe settled data; while loading or unavailable they would state a total the app does not have.
   const settled = pagination && !hasUnavailable && !loading;
 
-  return <div className={cx('t98-data-table', stickyHeader && 't98-data-table--sticky', density === 'compact' && 't98-data-table--compact', stack && 't98-data-table--stack')} aria-busy={loading || undefined}>
+  return <div className={cx('t98-data-table', (stickyHeader || windowed) && 't98-data-table--sticky', density === 'compact' && 't98-data-table--compact', stack && 't98-data-table--stack')} aria-busy={loading || undefined}>
     {(searchable || pagination) && <div className="t98-table-toolbar">
       {searchable && <div className="t98-table-search">
         <label htmlFor={searchId} className="t98-visually-hidden">Search {name}</label>
@@ -302,10 +447,12 @@ export function DataTable<T>({
       </span>}
     </div>}
     {loading && <div className="t98-table-status"><StatusLine busy>Loading records…</StatusLine></div>}
-    <div className={cx('t98-table-scroll', stickyHeader && 't98-table-scroll--sticky')} tabIndex={0} role="region" aria-label={`${name} table`}>
-      <table className="t98-table" role={role('table')} aria-label={caption === undefined ? ariaLabel : undefined} aria-busy={loading || undefined}>
+    <div ref={scrollBox} className={cx('t98-table-scroll', (stickyHeader || windowed) && 't98-table-scroll--sticky')} tabIndex={0} role="region" aria-label={`${name} table`}
+      onScroll={windowed ? readScroll : undefined} style={windowed ? { overflowAnchor: 'none', scrollPaddingBlockStart: view.head } : undefined}>
+      <table className="t98-table" role={role('table')} aria-label={caption === undefined ? ariaLabel : undefined} aria-busy={loading || undefined}
+        aria-rowcount={windowed ? count + 1 + (footerCells ? 1 : 0) : undefined}>
         {caption !== undefined && <caption className={captionHidden ? 't98-visually-hidden' : 't98-table-caption'}>{caption}</caption>}
-        <thead role={role('rowgroup')}><tr role={role('row')}>
+        <thead ref={head} role={role('rowgroup')}><tr role={role('row')} aria-rowindex={windowed ? 1 : undefined}>
           {selectable && <th className="t98-table-check" scope="col" role={role('columnheader')}>
             <label className="t98-table-checkbox-target"><input ref={selectAll} type="checkbox" checked={allChecked} disabled={selectionDisabled || visible.length === 0}
               aria-label="Select all rows on this page" onChange={togglePage} /></label>
@@ -324,11 +471,16 @@ export function DataTable<T>({
           {rowActions && <th scope="col" className="t98-table-actions" role={role('columnheader')}><span className="t98-visually-hidden">{rowActionsLabel}</span></th>}
         </tr></thead>
         <tbody role={role('rowgroup')}>
-          {!hasUnavailable && visible.map((row, index) => {
+          {printTooLarge && !hasUnavailable && <tr className="t98-table-print-limit"><td colSpan={columnCount}>
+            {printLimitNotice(visible.length, printRowLimit)}
+          </td></tr>}
+          {!hasUnavailable && renderedIndexes.map((index, position) => {
+            const row = visible[index];
             const key = rowKey(row);
+            const gap = windowed ? index - (position ? renderedIndexes[position - 1] + 1 : 0) : 0;
             const expanded = rowDetail !== undefined && expandedSet.has(key);
             const detailId = `${detailBase}-detail-${offset + index}`;
-            return <Fragment key={key}><tr role={role('row')} data-selected={selectedSet.has(key) || undefined}
+            return <Fragment key={key}>{spacer(gap, 'gap')}<tr role={role('row')} aria-rowindex={windowed ? offset + index + 2 : undefined} data-selected={selectedSet.has(key) || undefined}
               // aria-current rather than aria-selected: aria-selected is not supported on a row of a native table and would blur with checkbox selection.
               aria-current={activeKey === key ? 'true' : undefined} className={activatable ? 't98-table-row--interactive' : undefined}
               ref={activatable ? node => { if (node) rowRefs.current.set(key, node); else rowRefs.current.delete(key); } : undefined}
@@ -365,6 +517,7 @@ export function DataTable<T>({
           {expanded && <tr id={detailId} className="t98-table-detail" role={role('row')}><td colSpan={columnCount} role={role('cell')}>{rowDetail(row)}</td></tr>}
           </Fragment>;
           })}
+          {windowed && !hasUnavailable && spacer(visible.length - 1 - (renderedIndexes.at(-1) ?? -1), 'end')}
           {/* A first load keeps the loaded table's height: decorative rows, announced only through aria-busy and the status line. */}
           {loading && !hasUnavailable && visible.length === 0 && [0, 1, 2].map(index => <tr key={index} aria-hidden="true" className="t98-table-skeleton-row">
             {Array.from({ length: columnCount }, (_, cell) => <td key={cell}><span className="t98-skeleton" /></td>)}
@@ -375,7 +528,7 @@ export function DataTable<T>({
               icon="search" action={query ? <Button variant="secondary" size="sm" onClick={() => changeQuery('')}>Clear search</Button> : undefined} />}
           </td></tr>}
         </tbody>
-        {footerCells && <tfoot role={role('rowgroup')}><tr role={role('row')}>
+        {footerCells && <tfoot role={role('rowgroup')}><tr role={role('row')} aria-rowindex={windowed ? count + 2 : undefined}>
           {selectable && <td className="t98-table-check" role={role('cell')} />}
           {rowDetail && <td className="t98-table-expand" role={role('cell')} />}
           {columns.flatMap((column, index) => column.hidden ? [] : [column.rowHeader
@@ -472,6 +625,16 @@ export function PageHeader({ eyebrow, title, description, actions }: { eyebrow?:
     {eyebrow && <p className="t98-eyebrow">{eyebrow}</p>}
     <h1>{title}</h1>{description != null && description !== '' && <p className="t98-page-description">{description}</p>}
   </div>{actions && <div className="t98-page-actions">{actions}</div>}</header>;
+}
+
+export interface PrintRegionProps {
+  /** only: a browser print shows just this region (for example one report on a dashboard). never: it is left out of prints. */
+  print?: 'only' | 'never';
+  children: ReactNode;
+}
+/** Marks what a browser print includes. It adds no box on screen. */
+export function PrintRegion({ print = 'only', children }: PrintRegionProps) {
+  return <div data-print={print} style={{ display: 'contents' }}>{children}</div>;
 }
 
 export function EmptyState({ title, description, icon = 'inbox', action }: { title: string; description?: ReactNode; icon?: string; action?: ReactNode }) {
