@@ -306,7 +306,8 @@ export interface ComboboxProps extends ComboboxAsyncProps {
   emptyMessage?: string;
   /**
    * The first match is highlighted as the user types (announced through aria-activedescendant), so Enter or Tab picks
-   * it, as in an entry grid's lookup cell. Off by default: Enter then only closes the list and typed text stays as typed.
+   * it, as in an entry grid's lookup cell; emptied text highlights nothing. Off by default: Enter then only closes the
+   * list and typed text stays as typed.
    */
   autoHighlight?: boolean;
 }

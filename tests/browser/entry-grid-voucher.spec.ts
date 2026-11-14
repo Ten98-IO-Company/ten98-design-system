@@ -377,3 +377,64 @@ test('side letters are left alone while an input method is composing', async ({ 
   await expect(cell(page, 1, 'Side')).toBeFocused();
   await expect(editor(page, 'Side', 1)).toHaveValue('debit');
 });
+
+test('emptying a stored account stores an empty value on Shift+Tab, a click elsewhere and an app commit; Enter says it is required', async ({ page }) => {
+  await enterGrid(page);
+  const account = editor(page, 'Account', 1);
+  const pickCash = async () => {
+    await page.keyboard.type('cash');
+    await page.keyboard.press('Enter');
+    await expect(editor(page, 'Side', 1)).toBeFocused();
+    expect((await rows(page))[0].account).toBe('cash');
+    await page.keyboard.press('Shift+Tab');
+    await expect(account).toHaveValue('Cash');
+    // The text is selected on entry: Backspace empties it.
+    await page.keyboard.press('Backspace');
+    await expect(account).toHaveValue('');
+  };
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('Enter');
+  await pickCash();
+  // Leaving by Shift+Tab.
+  await page.keyboard.press('Shift+Tab');
+  await expect(editor(page, 'Date', 1)).toBeFocused();
+  expect((await rows(page))[0].account).toBe('');
+  // Leaving by a click on another cell.
+  await page.keyboard.press('Tab');
+  await pickCash();
+  await cell(page, 1, 'Memo').click();
+  expect((await rows(page))[0].account).toBe('');
+  // The app's accept command commits it.
+  await cell(page, 1, 'Account').click();
+  await pickCash();
+  await page.keyboard.press('Control+a');
+  expect((await rows(page))[0].account).toBe('');
+  // Enter on the emptied, required account stays and says so; Tab moves on with it empty.
+  await page.keyboard.press('Enter');
+  await expect(account).toBeFocused();
+  await expect(cell(page, 1, 'Account')).toContainText('Required.');
+  await page.keyboard.press('Tab');
+  await expect(editor(page, 'Side', 1)).toBeFocused();
+  expect((await rows(page))[0].account).toBe('');
+});
+
+test('a picked option is stored by its value, even when that value is another option’s code', async ({ page }) => {
+  await enterGrid(page, '?voucher=1&codes=1');
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('Enter');
+  // Suspense's value is 1010, which is Bank's code: picking Suspense stores Suspense.
+  await page.keyboard.type('susp');
+  await expect(options(page).first()).toHaveText('Suspense9999');
+  await page.keyboard.press('Enter');
+  expect((await rows(page))[0].account).toBe('1010');
+  await expect(cell(page, 1, 'Account')).toHaveText('Suspense');
+  // Typing 1010 names Bank by its code: leaving the cell stores Bank, as does the app's commit.
+  await page.keyboard.press('Shift+Tab');
+  await page.keyboard.type('1010');
+  await cell(page, 1, 'Memo').click();
+  expect((await rows(page))[0].account).toBe('bank');
+  await cell(page, 1, 'Account').click();
+  await page.keyboard.type('1010');
+  await page.keyboard.press('Control+a');
+  expect((await rows(page))[0].account).toBe('bank');
+});

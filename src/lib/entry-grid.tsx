@@ -37,6 +37,8 @@ export interface EntryGridColumn {
    * lookup: the choices; the cell's value is the option value. Typing matches the label or the description, for example a
    * code, and options that start with the typed text come first. A function gives each row its own list, for example by
    * the line's side; it is called on every render, so return the same array for the same inputs (memoise by those inputs).
+   * Replace an array to change it, never mutate it in place: labels are cached per array. Emptied text highlights
+   * nothing: Tab, leaving and commit() store an empty value, and Enter does too, or shows "Required." on a required cell.
    */
   options?: EntryOptions;
   /**
@@ -246,7 +248,7 @@ export interface EntryGridApi {
    * error and focus, when the text is invalid. onRowsChange has already run when it returns true, so read the rows the
    * app received there (for example from a ref), not from state captured before the call. Empty required cells pass.
    * Typed lookup text stores the option its open list highlights; with none highlighted, text that names no option
-   * exactly is invalid ("Choose from the list.").
+   * exactly is invalid ("Choose from the list."). Emptied lookup text stores an empty value.
    */
   commit: () => boolean;
   /** Removes a row (default: the active one); focus stays in the grid. */
@@ -432,12 +434,14 @@ export function EntryGrid({ label, columns, rows, onRowsChange, createRow, error
     return 'error' in result ? { error: result.error === 'scale' ? labels.scale(scale) : labels.number } : result;
   }
   /** The stored form of typed text, and its error. */
-  function check(column: EntryGridColumn, text: string, row: EntryGridRow, required: boolean): { value: string; error?: string } {
+  function check(column: EntryGridColumn, text: string, row: EntryGridRow, required: boolean, byValue: boolean): { value: string; error?: string } {
     let value: string;
     if (text.trim() === '') value = '';
     else if (column.type === 'lookup') {
-      const needle = text.trim().toLocaleLowerCase();
-      const option = searchOf(column, row).find(option => option.value === text || option.label.toLocaleLowerCase() === needle || option.description?.toLocaleLowerCase() === needle);
+      const needle = text.trim().toLocaleLowerCase(), list = searchOf(column, row);
+      // A picked option comes as its value; typed text names a label or code, and only then a value.
+      const option = byValue ? list.find(option => option.value === text)
+        : list.find(option => option.label.toLocaleLowerCase() === needle || option.description?.toLocaleLowerCase() === needle) ?? list.find(option => option.value === text);
       if (!option) return { value: text, error: labels.notListed };
       value = option.value;
     } else if (column.type === 'side') value = text;
@@ -460,14 +464,17 @@ export function EntryGrid({ label, columns, rows, onRowsChange, createRow, error
    * Commits the active cell. An invalid value stays in the editor with its error, so nothing typed is lost. Only Enter
    * (`required`) stops at an empty required cell; Tab, arrows, blur and app commands move past it.
    */
-  function commit(text: string | null = draftRef.current, required = false, notify = true): boolean {
+  /**
+   * `source` says what text is: typed text, an option's value (a pick), or the typed text an app command commits, which
+   * for a lookup means the option its open list highlights (as Enter would pick). Empty text is never a pick.
+   */
+  function commit(text: string | null = draftRef.current, required = false, notify = true, source: 'typed' | 'value' | 'command' = 'typed'): boolean {
     const row = latest.current[current.row], column = columns[current.column];
     if (!row || !column || isReadOnly(column, row) || (text === null && !required)) return true;
     const stored = row.values[column.id] ?? '';
-    // Typed lookup text commits the option its list highlights, exactly what Enter would pick; with none, it is checked as typed.
-    const lit = highlightedOption();
-    if (lit && column.type === 'lookup' && text !== null && text === draftRef.current) text = lit.value;
-    const { value, error } = text === null ? { value: stored, error: problem(column, row) } : check(column, text, row, required);
+    // An app command commits the option the lookup's list highlights for typed text; empty text stays empty.
+    const lit = source === 'command' && column.type === 'lookup' && text?.trim() ? highlightedOption() : undefined;
+    const { value, error } = text === null ? { value: stored, error: problem(column, row) } : check(column, lit ? lit.value : text, row, required, !!lit || source === 'value');
     setOwnError(row.key, column.id, error);
     if (error) { sayError(column, current.row, error); return false; }
     if (value !== stored) {
@@ -480,6 +487,9 @@ export function EntryGrid({ label, columns, rows, onRowsChange, createRow, error
     if (notify) onCellCommit?.({ rows: latest.current, row: row.key, column: column.id, previous: stored, value, changed: value !== stored });
     return true;
   }
+
+  /** Commits for an app command (save, insert, focus another cell): a lookup's typed text takes its highlighted option. */
+  const commitForCommand = () => commit(draftRef.current, false, true, 'command');
 
   /** Asks onEnd whether Enter on the last row ends the list; true when the app took the key. */
   function endList(editing: boolean): boolean {
@@ -505,16 +515,16 @@ export function EntryGrid({ label, columns, rows, onRowsChange, createRow, error
   }
 
   /** Commits and moves. Returns false when focus should leave the grid (Tab past either end). */
-  function advance(direction: 1 | -1, key: 'Enter' | 'Tab', text: string | null = draftRef.current): boolean {
+  function advance(direction: 1 | -1, key: 'Enter' | 'Tab', text: string | null = draftRef.current, source: 'typed' | 'value' = 'typed'): boolean {
     let notify = true;
     if (key === 'Enter' && onEnd && current.row === latest.current.length - 1) {
       // The value commits first (an empty required cell too), so the app decides on the rows as they now are.
-      if (!commit(text)) return true;
+      if (!commit(text, false, true, source)) return true;
       notify = text === null;
       if (endList(true)) return true;
       text = null;
     }
-    if (!commit(text, key === 'Enter', notify)) return true;
+    if (!commit(text, key === 'Enter', notify, source)) return true;
     const all = latest.current;
     const next = nextEntryCell(columns, all.length, current, direction, all);
     if (next) { moveTo(next, 'editor'); return true; }
@@ -563,7 +573,7 @@ export function EntryGrid({ label, columns, rows, onRowsChange, createRow, error
     const index = latest.current.findIndex(row => row.key === key);
     if (index < 0) return;
     // Typed text in another row is committed first; in the removed row it goes with the row.
-    if (index === current.row) setDraft(null); else if (!commit()) return;
+    if (index === current.row) setDraft(null); else if (!commitForCommand()) return;
     let next = latest.current.filter(row => row.key !== key);
     if (!next.length && createRow) next = [newRow(next)];
     latest.current = next;
@@ -577,7 +587,7 @@ export function EntryGrid({ label, columns, rows, onRowsChange, createRow, error
   }
   function insertRow(position: 'above' | 'below', key = latest.current[current.row]?.key) {
     const index = latest.current.findIndex(row => row.key === key);
-    if (!createRow || (index < 0 && latest.current.length) || !commit()) return undefined;
+    if (!createRow || (index < 0 && latest.current.length) || !commitForCommand()) return undefined;
     const at = index < 0 ? 0 : index + (position === 'below' ? 1 : 0);
     const row = newRow(latest.current);
     const next = [...latest.current];
@@ -590,7 +600,7 @@ export function EntryGrid({ label, columns, rows, onRowsChange, createRow, error
   }
   function focusCell(rowKey: string, columnId = columns[current.column]?.id, { edit = false, open = false }: EntryFocusOptions = {}) {
     const row = latest.current.findIndex(entry => entry.key === rowKey), column = columns.findIndex(entry => entry.id === columnId);
-    if (row < 0 || column < 0 || !commit()) return false;
+    if (row < 0 || column < 0 || !commitForCommand()) return false;
     const editable = !isReadOnly(columns[column], latest.current[row]);
     setEditing(false);
     moveTo({ row, column }, (edit || open) && editable ? 'editor' : 'cell');
@@ -598,8 +608,8 @@ export function EntryGrid({ label, columns, rows, onRowsChange, createRow, error
     return true;
   }
   const api: EntryGridApi = {
-    activeRow: rows[current.row]?.key, activeColumn: columns[current.column]?.id, commit: () => commit(), removeRow, insertRow, focusCell, highlighted: highlightedOption,
-    openPanel: key => { if (panel && commit()) setPanelRow(key ?? latest.current[current.row]?.key); },
+    activeRow: rows[current.row]?.key, activeColumn: columns[current.column]?.id, commit: commitForCommand, removeRow, insertRow, focusCell, highlighted: highlightedOption,
+    openPanel: key => { if (panel && commitForCommand()) setPanelRow(key ?? latest.current[current.row]?.key); },
   };
   useImperativeHandle(apiRef, () => api);
 
@@ -741,14 +751,14 @@ export function EntryGrid({ label, columns, rows, onRowsChange, createRow, error
           if (text === null) return;
           const needle = text.trim().toLocaleLowerCase();
           const matches = needle ? searchOf(column, row).filter(option => option.label.toLocaleLowerCase() === needle || option.description?.toLocaleLowerCase() === needle) : [];
-          if (!needle || matches.length === 1) { commit(matches[0]?.value ?? ''); return; }
+          if (!needle || matches.length === 1) { commit(matches[0]?.value ?? '', false, true, 'value'); return; }
           setDraft(null);
           setOwnError(row.key, column.id, labels.notListed);
           sayError(column, cell.row, labels.notListed);
         }}
         onPick={option => {
           if (option.value === SHOW_ALL) { setShowAll(true); setOpenFor({ row: row.key, column: column.id, request: ++openRequests.current }); return; }
-          if (option.value !== CREATE) { advance(1, 'Enter', option.value); return; }
+          if (option.value !== CREATE) { advance(1, 'Enter', option.value, 'value'); return; }
           const fill = (created: string | void) => {
             if (typeof created !== 'string' || !created) return;
             const all = [...latest.current];

@@ -38,13 +38,13 @@ export interface ComboboxControlProps extends ComboboxAsyncProps {
   emptyMessage: string;
   /** Multiple selection: picked values, shown as selected options; the list stays open after a pick. */
   picked?: ReadonlySet<string>;
-  /** Highlight the first match while typing, so Enter or Tab picks it. */
+  /** Highlight the first match while typing, so Enter or Tab picks it; emptied text highlights nothing. */
   autoHighlight?: boolean;
   /** Options whose label (or description, with matchDescription) starts with the typed text come before other matches. */
   rankPrefix?: boolean;
   /** Tab that picks the highlighted option keeps focus, because the owner moves it (an entry grid cell). */
   keepFocusOnTabPick?: boolean;
-  /** Enter on the unfiltered list with no highlighted option closes it and is left to the owner, which may advance (an entry grid cell). */
+  /** Enter on an unfiltered or emptied list with no highlighted option closes it and is left to the owner, which may advance (an entry grid cell). */
   passUnpickedEnter?: boolean;
   /** Opens the list, unfiltered, whenever it changes to a new non-zero number (an entry grid cell entered with its list shown). */
   openRequest?: number;
@@ -161,7 +161,8 @@ export function ComboboxControl({ id, options, text, onType, onPick, onClear, on
       case 'Enter':
         if (passModifiedEnter && (event.ctrlKey || event.altKey || event.metaKey)) return;
         if (!open) return;
-        if (activeOption < 0 && passUnpickedEnter && query === null) { close(); return; }
+        // Nothing highlighted on an unfiltered or emptied list: the owner handles Enter with the text as it is.
+        if (activeOption < 0 && passUnpickedEnter && !query?.trim()) { setOpen(false); setActive(-1); return; }
         event.preventDefault();
         if (activeOption >= 0) accept(shown[activeOption]); else close();
         return;
@@ -190,7 +191,7 @@ export function ComboboxControl({ id, options, text, onType, onPick, onClear, on
     {before}
     <Input id={id} ref={inputRef} {...described} role="combobox" aria-autocomplete="list" aria-expanded={open} aria-controls={listId} aria-activedescendant={activeOption >= 0 ? optionId(activeOption) : undefined}
       value={query ?? text} placeholder={placeholder} required={required} disabled={disabled} autoComplete="off" spellCheck={false}
-      onChange={event => { onType(event.target.value); type(event.target.value); setActive(autoHighlight ? 0 : -1); setOpen(true); }}
+      onChange={event => { onType(event.target.value); type(event.target.value); setActive(autoHighlight && event.target.value.trim() ? 0 : -1); setOpen(true); }}
       onKeyDown={onKeyDown}
       onBlur={() => { onLeave(); close(); }} />
     {children}

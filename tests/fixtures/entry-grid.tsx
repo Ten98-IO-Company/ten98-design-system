@@ -60,6 +60,8 @@ function Screen() {
     ...(voucher ? [{ value: 'petty-cash', label: 'Petty cash', description: '1005' }] : []),
     { value: 'cash', label: 'Cash', description: '1000' }, { value: 'bank', label: 'Bank', description: '1010' }, { value: 'rent', label: 'Rent expense', description: '5100' },
     ...(voucher ? [{ value: 'capital', label: 'Capital', description: '3000' }] : []),
+    // ?codes=1: an account whose value is another account's code.
+    ...(params.get('codes') === '1' ? [{ value: '1010', label: 'Suspense', description: '9999' }] : []),
   ]);
   // A credit line cannot use an expense account: each row's list depends on its side, memoised so it keeps its identity.
   const creditAccounts = useMemo(() => accounts.filter(account => account.value !== 'rent'), [accounts]);
