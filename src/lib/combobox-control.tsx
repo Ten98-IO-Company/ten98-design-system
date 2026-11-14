@@ -48,6 +48,10 @@ export interface ComboboxControlProps extends ComboboxAsyncProps {
   passUnpickedEnter?: boolean;
   /** Opens the list, unfiltered, whenever it changes to a new non-zero number (an entry grid cell entered with its list shown). */
   openRequest?: number;
+  /** The option highlighted when openRequest opens the list, usually the stored value, so Enter keeps it. */
+  openValue?: string;
+  /** Enter with Ctrl, Alt or Meta is left to the page's commands instead of picking (an entry grid cell). */
+  passModifiedEnter?: boolean;
   /** Match typed text against option descriptions (for example a code) as well as labels. */
   matchDescription?: boolean;
   /** The typed text was dropped: the list closed without a pick, so the input shows `text` again. */
@@ -79,7 +83,7 @@ export function matchOptions<T extends ComboboxOption>(options: readonly T[], ne
   return [...matching.filter(starts), ...matching.filter(option => !starts(option))];
 }
 
-export function ComboboxControl({ id, options, text, onType, onPick, onClear, onLeave, label, placeholder, required, disabled, emptyMessage, picked, onRemoveLast, autoHighlight = false, rankPrefix = false, keepFocusOnTabPick = false, passUnpickedEnter = false, openRequest = 0, matchDescription = false, onQueryReset, notice, inputRef, inputValue, onInputValueChange, blockReason, before, children, onInputChange, filter = true, loading = false, loadError, ...described }: ComboboxControlProps) {
+export function ComboboxControl({ id, options, text, onType, onPick, onClear, onLeave, label, placeholder, required, disabled, emptyMessage, picked, onRemoveLast, autoHighlight = false, rankPrefix = false, keepFocusOnTabPick = false, passUnpickedEnter = false, openRequest = 0, openValue, passModifiedEnter = false, matchDescription = false, onQueryReset, notice, inputRef, inputValue, onInputValueChange, blockReason, before, children, onInputChange, filter = true, loading = false, loadError, ...described }: ComboboxControlProps) {
   const generated = useId();
   const listId = `${generated}-list`;
   const optionId = (index: number) => `${generated}-option-${index}`;
@@ -100,7 +104,14 @@ export function ComboboxControl({ id, options, text, onType, onPick, onClear, on
   useEffect(() => {
     if (activeOption >= 0) list.current?.children[activeOption]?.scrollIntoView({ block: 'nearest' });
   }, [activeOption]);
-  useEffect(() => { if (openRequest) setOpen(true); }, [openRequest]);
+  // Read when a request opens the list, not on every change of options or value.
+  const opening = useRef({ options, openValue });
+  opening.current = { options, openValue };
+  useEffect(() => {
+    if (!openRequest) return;
+    setOpen(true);
+    setActive(opening.current.options.findIndex(option => option.value === opening.current.openValue));
+  }, [openRequest]);
 
   function type(typed: string | null) {
     if (inputValue !== undefined) { if (typed !== null) onInputValueChange?.(typed); return; }
@@ -130,6 +141,7 @@ export function ComboboxControl({ id, options, text, onType, onPick, onClear, on
         if (count) setActive(activeOption < 0 ? count - 1 : (activeOption - 1 + count) % count);
         return;
       case 'Enter':
+        if (passModifiedEnter && (event.ctrlKey || event.altKey || event.metaKey)) return;
         if (!open) return;
         if (activeOption < 0 && passUnpickedEnter && query === null) { close(); return; }
         event.preventDefault();

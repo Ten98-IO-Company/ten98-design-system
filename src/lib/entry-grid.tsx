@@ -108,11 +108,12 @@ export interface EntryGridProps {
   /** The useEntryGrid API for app code outside the grid, such as a save button or a server response. */
   apiRef?: Ref<EntryGridApi>;
   /**
-   * Lets Enter leave the grid from its last row, for example on the empty line a finished entry adds. Called when Enter
-   * commits a cell of the last row (an empty required cell too), before the grid advances, with the committed rows; the
-   * app decides whether that line counts as empty. Return true after moving focus past the grid (for example to the
-   * narration), a message to stay in the cell and announce it (for example an unbalanced entry), or nothing to advance
-   * as usual. The app removes the empty line if it wants. Tab is unaffected.
+   * Lets Enter end the list on its last row: on the amount that balances an entry (nothing is appended), or on a blank
+   * line. Called when Enter commits a cell of the last row (an empty required cell too), and when Enter is pressed on a
+   * focused cell of the last row that is not editing, before the grid advances or starts editing, with the committed
+   * rows; the app decides whether the entry is complete or the line blank. Return true after moving focus past the grid
+   * (for example to the narration) or to a cell with focusCell: the grid neither appends nor moves focus. Return a message
+   * to stay in the cell and announce it, or nothing to go on as usual. Tab is unaffected.
    */
   onEnd?: (context: EntryEndContext) => boolean | string | void;
   /**
@@ -125,6 +126,17 @@ export interface EntryGridProps {
   announce?: (message: string) => void;
   /** The key that starts editing a focused cell, besides Enter and typing; null leaves F2 to the app's commands. */
   editKey?: string | null;
+  /**
+   * When Enter or Tab appends a row (createRow) and its first editable cell is a lookup, that cell's list opens with its
+   * value highlighted, for example a line the app prefilled with the balancing account.
+   */
+  openListOnAppend?: boolean;
+  /**
+   * What Escape does while editing: 'restore' (default) puts back the stored value; 'clear' commits the cell as empty.
+   * Either way the cell stays focused, and Escape on a cell that is not editing is the app's. A lookup's open list
+   * closes on the first Escape.
+   */
+  escapeMode?: 'restore' | 'clear';
   /** Command components that call useEntryGrid and useCommand. */
   children?: ReactNode;
 }
@@ -137,6 +149,8 @@ export interface EntryEndContext {
   row: string;
   /** Id of that cell's column. */
   column: string;
+  /** Whether Enter committed an editor (true) or was pressed on a focused cell that was not editing (false). */
+  editing: boolean;
 }
 export interface EntryCommitEvent {
   row: string;
@@ -148,7 +162,7 @@ export interface EntryCommitEvent {
 export interface EntryFocusOptions {
   /** Open the cell's editor. */
   edit?: boolean;
-  /** lookup: also show its list, unfiltered. */
+  /** lookup: also edit and show its list, unfiltered, with the cell's value highlighted. */
   open?: boolean;
 }
 export interface EntryCell { row: number; column: number }
@@ -241,7 +255,7 @@ const useClientLayoutEffect = typeof document === 'undefined' ? useEffect : useL
 const lineEditor = (type: EntryColumnType) => type === 'text' || type === 'amount' || type === 'quantity';
 
 /** A dense, keyboard-first entry grid of typed cells. The app owns the rows, options, totals and every command. */
-export function EntryGrid({ label, columns, rows, onRowsChange, createRow, errors, footer, footerLabel = 'Total', panel, labels: custom, apiRef, onEnd, onCellCommit, announce, editKey = 'F2', children }: EntryGridProps) {
+export function EntryGrid({ label, columns, rows, onRowsChange, createRow, errors, footer, footerLabel = 'Total', panel, labels: custom, apiRef, onEnd, onCellCommit, announce, editKey = 'F2', openListOnAppend = false, escapeMode = 'restore', children }: EntryGridProps) {
   const labels = { ...defaultLabels, ...custom };
   const id = useId().replace(/:/g, '');
   const emptyId = `${id}-empty`;
@@ -253,6 +267,8 @@ export function EntryGrid({ label, columns, rows, onRowsChange, createRow, error
   // A lookup asked to show its list (focusCell with open), and whether its unfiltered list shows the full set.
   const [openFor, setOpenFor] = useState<{ row: string; column: string; request: number }>();
   const [showAll, setShowAll] = useState(false);
+  // Counts moves, so onEnd can tell whether the app moved focus within the grid itself.
+  const moves = useRef(0);
   const [active, setActive] = useState<{ row: string; column: string }>();
   // The typed text of the active cell; null when nothing is typed. The ref lets handlers in the same event see changes.
   const [draft, setDraftState] = useState<string | null>(null);
@@ -312,6 +328,7 @@ export function EntryGrid({ label, columns, rows, onRowsChange, createRow, error
   function moveTo(cell: EntryCell, focus: 'cell' | 'editor') {
     const row = latest.current[cell.row];
     if (!row) return;
+    moves.current++;
     pendingFocus.current = focus;
     setActive({ row: row.key, column: columns[cell.column].id });
     setOpenFor(undefined);
@@ -424,6 +441,29 @@ export function EntryGrid({ label, columns, rows, onRowsChange, createRow, error
     return true;
   }
 
+  /** Asks onEnd whether Enter on the last row ends the list; true when the app took the key. */
+  function endList(editing: boolean): boolean {
+    const all = latest.current, row = all[current.row], column = columns[current.column];
+    if (!onEnd || !row || !column || current.row !== all.length - 1) return false;
+    const before = moves.current;
+    const decision = onEnd({ rows: all, row: row.key, column: column.id, editing });
+    if (decision === true) {
+      setEditing(false);
+      // The app moved focus past the grid or to a cell (focusCell); only if it did neither does the cell keep it.
+      if (moves.current === before && box.current?.contains(document.activeElement)) moveTo(current, 'cell');
+      return true;
+    }
+    if (typeof decision === 'string' && decision) { say(decision); return true; }
+    return false;
+  }
+  /** Opens a lookup cell's list with its value highlighted; a value outside the default set shows the full set. */
+  function openList(row: EntryGridRow, column: number) {
+    const entry = columns[column], value = row.values[entry.id] ?? '';
+    if (entry.type !== 'lookup') return;
+    if (value && entry.allOptions && !optionsOf(entry, row).some(option => option.value === value)) setShowAll(true);
+    setOpenFor({ row: row.key, column: entry.id, request: Date.now() });
+  }
+
   /** Commits and moves. Returns false when focus should leave the grid (Tab past either end). */
   function advance(direction: 1 | -1, key: 'Enter' | 'Tab', text: string | null = draftRef.current): boolean {
     let notify = true;
@@ -431,15 +471,7 @@ export function EntryGrid({ label, columns, rows, onRowsChange, createRow, error
       // The value commits first (an empty required cell too), so the app decides on the rows as they now are.
       if (!commit(text)) return true;
       notify = text === null;
-      const all = latest.current, row = all[current.row], column = columns[current.column];
-      const decision = row && column ? onEnd({ rows: all, row: row.key, column: column.id }) : undefined;
-      if (decision === true) {
-        setEditing(false);
-        // The app moves focus past the grid; if it did not, the cell keeps it.
-        if (box.current?.contains(document.activeElement)) moveTo(current, 'cell');
-        return true;
-      }
-      if (typeof decision === 'string' && decision) { say(decision); return true; }
+      if (endList(true)) return true;
       text = null;
     }
     if (!commit(text, key === 'Enter', notify)) return true;
@@ -454,7 +486,9 @@ export function EntryGrid({ label, columns, rows, onRowsChange, createRow, error
         latest.current = added;
         onRowsChange(added);
         say(labels.rowAdded(added.length));
-        moveTo({ row: added.length - 1, column: firstIn(added.length - 1, added) }, 'editor');
+        const first = firstIn(added.length - 1, added);
+        moveTo({ row: added.length - 1, column: first }, 'editor');
+        if (openListOnAppend) openList(added[added.length - 1], first);
         return true;
       }
       if (blocked >= 0 && key === 'Enter') {
@@ -474,7 +508,11 @@ export function EntryGrid({ label, columns, rows, onRowsChange, createRow, error
 
   function cancel() {
     const row = latest.current[current.row];
-    if (row) setOwnError(row.key, columns[current.column].id, undefined);
+    if (escapeMode === 'clear') {
+      // Clear mode: the cell is committed as empty instead of getting its stored value back.
+      setDraft(null);
+      if (!commit('')) return;
+    } else if (row) setOwnError(row.key, columns[current.column].id, undefined);
     setDraft(null);
     setEditing(false);
     pendingFocus.current = 'cell';
@@ -515,8 +553,8 @@ export function EntryGrid({ label, columns, rows, onRowsChange, createRow, error
     if (row < 0 || column < 0 || !commit()) return false;
     const editable = !isReadOnly(columns[column], latest.current[row]);
     setEditing(false);
-    moveTo({ row, column }, edit && editable ? 'editor' : 'cell');
-    if (edit && open && editable && columns[column].type === 'lookup') setOpenFor({ row: rowKey, column: columns[column].id, request: Date.now() });
+    moveTo({ row, column }, (edit || open) && editable ? 'editor' : 'cell');
+    if (open && editable) openList(latest.current[row], column);
     return true;
   }
   const api: EntryGridApi = {
@@ -599,6 +637,7 @@ export function EntryGrid({ label, columns, rows, onRowsChange, createRow, error
     };
     const move = moves[event.key];
     if (move && (!event.ctrlKey || event.key === 'Home' || event.key === 'End')) { event.preventDefault(); moveTo(move, 'cell'); return; }
+    if (event.key === 'Enter' && !event.ctrlKey && endList(false)) { event.preventDefault(); return; }
     if (event.ctrlKey || !column || isReadOnly(column, row)) return;
     if (event.key === 'Enter' || (editKey !== null && event.key === editKey)) { event.preventDefault(); moveTo(current, 'editor'); }
   }
@@ -650,7 +689,7 @@ export function EntryGrid({ label, columns, rows, onRowsChange, createRow, error
       if (column.onCreate && typed && !options.some(option => option.label.toLocaleLowerCase() === needle || option.description?.toLocaleLowerCase() === needle)) options.push({ value: CREATE, label: labels.create(typed) });
       // The first match is highlighted, so Enter or Tab picks it; closing the list without a pick drops the typed text.
       return <ComboboxControl {...common} options={options} text={display(column, row.values[column.id] ?? '', row)} label={column.label} emptyMessage={labels.noMatches}
-        autoHighlight keepFocusOnTabPick passUnpickedEnter matchDescription rankPrefix onType={type}
+        autoHighlight keepFocusOnTabPick passUnpickedEnter passModifiedEnter matchDescription rankPrefix onType={type} openValue={row.values[column.id]}
         openRequest={openFor?.row === row.key && openFor.column === column.id ? openFor.request : 0} onQueryReset={() => setDraft(null)} onClear={() => setDraft('')}
         onLeave={() => {
           // Leaving by Tab or blur: text that names exactly one option commits it; other text is reported, not dropped silently.

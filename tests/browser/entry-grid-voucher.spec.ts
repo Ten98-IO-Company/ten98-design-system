@@ -15,7 +15,7 @@ async function enterGrid(page: Page, query = '?voucher=1') {
   await page.keyboard.press('Tab');
 }
 
-test('Enter leaves the grid from the empty last line of a balanced entry; unbalanced, it stays and says why', async ({ page }) => {
+test('Enter on the amount that balances leaves the grid without appending; unbalanced, the app’s prefilled line opens with its list', async ({ page }) => {
   await enterGrid(page);
   await page.keyboard.press('Enter');
   await page.keyboard.press('Enter');
@@ -26,34 +26,103 @@ test('Enter leaves the grid from the empty last line of a balanced entry; unbala
   await page.keyboard.press('Enter');
   await page.keyboard.press('Enter');
   await page.keyboard.press('Enter');
-  // A complete last row still appends the next one; createRow saw the rows and gave it the balancing side.
-  await expect(editor(page, 'Date', 2)).toBeFocused();
-  expect((await rows(page))[1].side).toBe('credit');
-  // Enter on the empty last line of an unbalanced entry stays, and the app's status line says why.
-  await page.keyboard.press('Enter');
-  await expect(editor(page, 'Date', 2)).toBeFocused();
-  await expect(statusLine(page)).toHaveText('Debits and credits differ by 100.00.');
-  await expect(gridStatus(page), 'the grid does not speak over the app').toHaveText('');
-  // Tab is unchanged: it moves on through the empty line.
-  await page.keyboard.press('Tab');
+  // Unbalanced: createRow saw the rows and prefilled the balancing line, whose account list is open on its value.
   await expect(editor(page, 'Account', 2)).toBeFocused();
-  await page.keyboard.type('bank');
+  expect((await rows(page))[1]).toEqual({ side: 'credit', account: 'bank', amount: '100.00' });
+  await expect(page.getByRole('option', { name: 'Bank' })).toHaveAttribute('aria-selected', 'true');
+  // The grid's messages (the added row, the totals) reach the app's status line, and its own region stays silent.
+  await expect(statusLine(page)).toHaveText('Debit / credit: Amount 100.00 / 100.00, Memo Balanced');
+  await page.waitForTimeout(300);
+  expect(await gridStatus(page).textContent(), 'the grid does not speak over the app').toBe('');
+  // Enter keeps the highlighted account; the prefilled amount follows.
+  await page.keyboard.press('Enter');
+  await page.keyboard.press('Enter');
+  await expect(editor(page, 'Amount', 2)).toHaveValue('100.00');
+  // Tab is unchanged: it moves on (a credit line's quantity is read-only) rather than leaving.
+  await page.keyboard.press('Tab');
+  await expect(editor(page, 'Memo', 2)).toBeFocused();
+  await page.keyboard.press('Shift+Tab');
+  await expect(editor(page, 'Amount', 2)).toBeFocused();
+  // Enter on the balancing amount leaves within the key press: the next key lands in the narration.
+  await page.keyboard.press('Enter');
+  await page.keyboard.type('x');
+  await expect(page.getByRole('textbox', { name: 'Narration' })).toHaveValue('x');
+  expect(await log(page)).toEqual(['end:balanced']);
+  expect(await rows(page)).toHaveLength(2);
+  // A blank last line ends the list too, from a cell that is not editing, without going to its missing cells.
+  await page.keyboard.press('Shift+Tab');
+  await page.keyboard.press('Control+Enter');
+  await expect(editor(page, 'Account', 3)).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(cell(page, 3, 'Account')).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('textbox', { name: 'Narration' })).toBeFocused();
+  expect(await log(page)).toEqual(['end:balanced', 'end']);
+  await expect(cell(page, 3, 'Account')).not.toContainText('Required.');
+});
+
+test('on a blank last line the app’s own focusCell wins over the grid, and a message keeps the cell', async ({ page }) => {
+  await enterGrid(page, '?voucher=1&prefill=0');
+  await page.keyboard.press('Enter');
+  await page.keyboard.press('Enter');
+  await page.keyboard.type('cash');
   await page.keyboard.press('Enter');
   await page.keyboard.press('Enter');
   await page.keyboard.type('100');
-  // The balancing amount does not leave: entry goes on (a credit line's quantity is read-only) and appends a line.
   await page.keyboard.press('Enter');
-  await expect(editor(page, 'Memo', 2)).toBeFocused();
   await page.keyboard.press('Enter');
-  await expect(editor(page, 'Date', 3)).toBeFocused();
-  // Enter on that empty line leaves: the app removes it and moves focus past the grid.
   await page.keyboard.press('Enter');
-  await expect(page.getByRole('textbox', { name: 'Narration' })).toBeFocused();
-  expect(await log(page)).toEqual(['end']);
-  expect(await rows(page)).toEqual([
-    { side: 'debit', account: 'cash', amount: '100.00' },
-    { side: 'credit', account: 'bank', amount: '100.00' },
-  ]);
+  // A blank line (single entry), its account list open; Enter there while unbalanced: the app sends focus to the amount.
+  await expect(editor(page, 'Account', 2)).toBeFocused();
+  await expect(options(page)).toHaveText(['Cash1000', 'Bank1010', 'Show all accounts']);
+  await page.keyboard.press('Enter');
+  await expect(editor(page, 'Amount', 1)).toBeFocused();
+  expect(await log(page)).toEqual(['fix:true']);
+  // From a cell that is not editing, the app answers with a message and the cell keeps focus.
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('ArrowLeft');
+  await page.keyboard.press('ArrowLeft');
+  await expect(cell(page, 2, 'Account')).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(cell(page, 2, 'Account')).toBeFocused();
+  await expect(statusLine(page)).toHaveText('Debits and credits differ by 100.00.');
+});
+
+test('in an open lookup, Ctrl+Enter, Ctrl+A and F2 reach the app’s commands, which commit the highlighted option', async ({ page }) => {
+  await enterGrid(page);
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('Enter');
+  await page.keyboard.type('ba');
+  await expect(options(page).first()).toHaveAttribute('aria-selected', 'true');
+  // Ctrl+Enter is the app's "insert line" here: it commits Bank first instead of the list picking it.
+  await page.keyboard.press('Control+Enter');
+  await expect(editor(page, 'Account', 2)).toBeFocused();
+  expect((await rows(page)).map((row: Record<string, string>) => row.account)).toEqual(['bank', undefined]);
+  await page.keyboard.type('ca');
+  await page.keyboard.press('Control+a');
+  expect(await log(page)).toEqual(['accept']);
+  expect((await rows(page))[1].account).toBe('cash');
+  // F2 while editing goes to the app's command too.
+  await page.keyboard.type('r');
+  await page.keyboard.press('F2');
+  expect(await log(page)).toEqual(['accept', 'f2']);
+});
+
+test('the clear Escape mode empties the cell being edited, and Escape on a focused cell is the app’s', async ({ page }) => {
+  await enterGrid(page, '?voucher=1&escape=clear');
+  for (let i = 0; i < 3; i++) await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('Enter');
+  await page.keyboard.type('50');
+  await page.keyboard.press('Tab');
+  await page.keyboard.press('Shift+Tab');
+  await expect(editor(page, 'Amount', 1)).toHaveValue('50.00');
+  await page.keyboard.press('Escape');
+  await expect(cell(page, 1, 'Amount')).toBeFocused();
+  expect((await rows(page))[0].amount).toBe('');
+  expect(await page.evaluate(() => window.commits)).toContain('amount:50.00>');
+  await page.keyboard.press('Escape');
+  expect(await log(page)).toEqual(['back']);
 });
 
 test('lookups rank options that start with the typed text first, and each row searches its own list', async ({ page }) => {
@@ -64,8 +133,9 @@ test('lookups rank options that start with the typed text first, and each row se
   await page.keyboard.type('ca');
   await expect(options(page)).toHaveText(['Cash1000', 'Capital3000', 'Petty cash1005', 'Create “ca”']);
   await expect(options(page).first()).toHaveAttribute('aria-selected', 'true');
-  // A debit line offers the expense account.
-  await page.keyboard.press('Control+a');
+  // A debit line offers the expense account. (Ctrl+A is the app's accept command here, so clear by Backspace.)
+  await page.keyboard.press('Backspace');
+  await page.keyboard.press('Backspace');
   await page.keyboard.type('rent');
   await expect(page.getByRole('option', { name: 'Rent expense' })).toBeVisible();
   await page.keyboard.press('Escape');
@@ -169,6 +239,16 @@ test('focusCell can open a lookup with its default list, which can switch to the
   expect((await rows(page))[0].account).toBe('capital');
   // A stored value from the full list keeps its label.
   await expect(cell(page, 1, 'Account')).toHaveText('Capital');
+  // Opened again, the editor keeps the value and the list (now the full set) highlights it; Enter keeps it.
+  await page.getByRole('textbox', { name: 'Reference' }).focus();
+  await page.keyboard.press('Enter');
+  await expect(editor(page, 'Account', 1)).toHaveValue('Capital');
+  await expect(page.getByRole('option', { name: 'Capital' })).toHaveAttribute('aria-selected', 'true');
+  await page.keyboard.press('Enter');
+  await expect(editor(page, 'Side', 1)).toBeFocused();
+  expect((await rows(page))[0].account).toBe('capital');
+  // focusCell says whether it found the cell.
+  expect(await page.evaluate(() => window.grid.current?.focusCell('missing', 'account', { open: true }))).toBe(false);
 });
 
 test('editKey null leaves F2 to the app’s command on a focused cell', async ({ page }) => {

@@ -14,8 +14,10 @@ const currency = params.get('currency');
 // ?voucher=1: the voucher screen's additions: Enter leaves from an empty last line, per-row and full account lists, side
 // letters, a commit log, a per-row read-only quantity, the app's status line, F2 for the app, and the next line's side.
 const voucher = params.get('voucher') === '1';
+// Double entry prefills the balancing line; ?prefill=0 appends blank lines, as single entry and invoices do.
+const prefill = params.get('prefill') !== '0';
 
-declare global { interface Window { log: string[]; commits: string[] } }
+declare global { interface Window { log: string[]; commits: string[]; grid: { current: EntryGridApi | null } } }
 window.log = [];
 window.commits = [];
 let next = 1;
@@ -39,10 +41,11 @@ function GridCommands({ onReplace }: { onReplace: () => void }) {
   useCommand({ id: 'entry.replace', label: 'Reload lines', run: onReplace });
   return null;
 }
-function ScreenCommands({ onBack, onSave }: { onBack: () => void; onSave: () => void }) {
+function ScreenCommands({ onBack, onSave, onAccept }: { onBack: () => void; onSave: () => void; onAccept: () => void }) {
   useCommand({ id: 'voucher.back', label: 'Back', run: onBack });
   useCommand({ id: 'voucher.save', label: 'Save', run: onSave });
   useCommand({ id: 'voucher.lookup', label: 'Look up', run: () => window.log.push('f2'), enabled: voucher });
+  useCommand({ id: 'voucher.accept', label: 'Accept', run: onAccept, enabled: voucher });
   return null;
 }
 
@@ -64,8 +67,10 @@ function Screen() {
   const [errors, setErrors] = useState<Record<string, Record<string, string>>>({});
   const [allocations, setAllocations] = useState<Record<string, string>>({});
   const grid = useRef<EntryGridApi>(null);
+  window.grid = grid;
   const columns: EntryGridColumn[] = [
-    { id: 'date', label: 'Date', type: 'date' },
+    // The voucher's date is entered on its first line only.
+    { id: 'date', label: 'Date', type: 'date', ...(voucher && { readOnly: (row: EntryGridRow) => row.key !== saved.current[0]?.key }) },
     { id: 'account', label: 'Account', type: 'lookup', required: true, options: voucher ? usual : accounts,
       ...(voucher && { allOptions: (row: EntryGridRow) => row.values.side === 'credit' ? creditAccounts : accounts, showAllLabel: 'Show all accounts' }),
       onCreate: text => { const value = text.toLowerCase().replace(/\s+/g, '-'); setAccounts(list => [...list, { value, label: text }]); window.log.push(`create:${text}`); return value; } },
@@ -80,22 +85,27 @@ function Screen() {
   const sumOf = (lines: readonly EntryGridRow[], side: string) => lines.filter(row => row.values.side === side).reduce((sum, row) => sum + hundredths(row.values.amount), 0n);
   const total = (side: string) => money(sumOf(rows, side));
   const difference = sumOf(rows, 'debit') - sumOf(rows, 'credit');
-  // Enter on the empty last line leaves the grid when the entry balances, and says why not when it does not.
-  function end({ rows: lines, row }: EntryEndContext) {
-    const line = lines.find(entry => entry.key === row);
-    if (!line || line.values.account || line.values.amount || lines.length < 2) return undefined;
+  // Enter ends the list on the amount that balances the entry (nothing is appended), and on a blank last line: the
+  // blank line stays, and the app ignores it. Unbalanced, a blank line sends the user back to the last amount.
+  function end({ rows: lines, row, column, editing }: EntryEndContext) {
+    const index = lines.findIndex(entry => entry.key === row), line = lines[index];
     const gap = sumOf(lines, 'debit') - sumOf(lines, 'credit');
-    if (gap !== 0n) return `Debits and credits differ by ${money(gap < 0n ? -gap : gap)}.`;
-    change(lines.filter(entry => entry.key !== row));
-    narration.current?.focus();
-    window.log.push('end');
-    return true;
+    if (line && !line.values.account && !line.values.amount && lines.length > 1) {
+      if (gap === 0n) { narration.current?.focus(); window.log.push('end'); return true; }
+      if (!editing) return `Debits and credits differ by ${money(gap < 0n ? -gap : gap)}.`;
+      window.log.push(`fix:${grid.current?.focusCell(lines[index - 1].key, 'amount', { edit: true })}`);
+      return true;
+    }
+    if (column === 'amount' && editing && gap === 0n && sumOf(lines, 'debit') > 0n) { narration.current?.focus(); window.log.push('end:balanced'); return true; }
+    return undefined;
   }
-  // The next line takes the side that balances the entry so far.
+  // The next line takes the side that balances the entry so far, and (double entry) its account and amount too.
   const nextLine = (lines: readonly EntryGridRow[]): EntryGridRow => {
-    const line = blank();
-    return voucher && sumOf(lines, 'debit') > sumOf(lines, 'credit') ? { ...line, values: { ...line.values, side: 'credit' } } : line;
+    const line = blank(), gap = sumOf(lines, 'debit') - sumOf(lines, 'credit');
+    if (!voucher || gap <= 0n) return line;
+    return { ...line, values: { ...line.values, side: 'credit', ...(prefill && { account: 'bank', amount: money(gap) }) } };
   };
+  const accept = () => { if (grid.current?.commit()) window.log.push('accept'); };
   const save = () => { if (grid.current?.commit()) window.log.push(`save:${saved.current.map(row => row.values.amount ?? '').join(',')}`); };
   function post() {
     if (!grid.current?.commit()) return;
@@ -110,10 +120,10 @@ function Screen() {
   const replace = () => change(saved.current.length ? saved.current.map(row => ({ ...row, key: `${row.key}-reloaded` })) : [blank()]);
   return <ShortcutProvider keymaps={{ classic: {
     'entry.remove-row': 'Ctrl+Delete', 'entry.insert-above': 'Ctrl+Shift+Enter', 'entry.insert-below': 'Ctrl+Enter', 'entry.allocate': 'Alt+L', 'entry.replace': 'Alt+R',
-    'voucher.back': 'Escape', 'voucher.save': 'Ctrl+S', ...(voucher && { 'voucher.lookup': 'F2' }),
+    'voucher.back': 'Escape', 'voucher.save': 'Ctrl+S', ...(voucher && { 'voucher.lookup': 'F2', 'voucher.accept': 'Ctrl+A' }),
   } }}>
     <ShortcutScope name="Voucher">
-      <ScreenCommands onBack={() => { window.log.push('back'); document.getElementById('post')?.focus(); }} onSave={save} />
+      <ScreenCommands onBack={() => { window.log.push('back'); document.getElementById('post')?.focus(); }} onSave={save} onAccept={accept} />
       <Stack as="main" gap={4}>
         <Heading level={1}>Journal entry</Heading>
         <Field label="Reference"><Input name="reference" onKeyDown={voucher ? event => {
@@ -126,7 +136,8 @@ function Screen() {
           onRowsChange={change} errors={errors}
           footer={{ amount: `${total('debit')} / ${total('credit')}`, ...(voucher && { memo: difference ? `Difference ${money(difference < 0n ? -difference : difference)}` : 'Balanced' }) }} footerLabel="Debit / credit"
           {...(voucher && {
-            onEnd: end, announce: setStatusLine, editKey: null,
+            onEnd: end, announce: setStatusLine, editKey: null, openListOnAppend: true,
+            escapeMode: params.get('escape') === 'clear' ? 'clear' as const : 'restore' as const,
             onCellCommit: ({ column, previous, value, changed }) => { window.commits.push(`${column}:${previous}>${value}${changed ? '' : ' unchanged'}`); },
           })}
           panel={{ title: row => `Allocate line ${row.values.line}`, render: (row, close) => <Stack gap={3}>
