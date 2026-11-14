@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
-import { Button, cx } from './primitives.js';
+import { Button, cx, type Tone } from './primitives.js';
 import { addDays, toIso, toTime } from './dates.js';
 
 /** Month grid only: the app owns schedules, creation rules and navigation. Keyboard model ported from the WAI-ARIA APG date-picker grid. */
@@ -11,6 +11,12 @@ export interface CalendarEntry {
   label: string;
   /** App-formatted time or range, shown before the label. */
   time?: string;
+  /** App-formatted network or source, shown between the time and the label. */
+  network?: string;
+  /** App-supplied status (for example a scheduled/review dot), shown after the label. */
+  status?: ReactNode;
+  /** Tone applied to `status`. */
+  tone?: Tone;
   /** Without a handler the entry is shown as plain text. */
   onSelect?: () => void;
 }
@@ -133,11 +139,13 @@ export function CalendarMonth({ month, weekStartsOn, locale, today, days, onPrev
             className={cx('t98-calendar-cell', outside && 't98-calendar-cell--outside', isToday && 't98-calendar-cell--today')}
             onFocus={() => setFocused(iso)}>
             <span className="t98-calendar-date" aria-hidden="true">{Number(iso.slice(8))}{isToday && <span className="t98-calendar-today-mark"> Today</span>}</span>
-            {entries.length > 0 && <ul className="t98-calendar-entries">{entries.map(entry => <li key={entry.id} className="t98-calendar-entry-item">
+            {entries.length > 0 && <ul className="t98-calendar-entries">{entries.map(entry => {
+              const parts = <>{entry.time && <span className="t98-calendar-entry-time">{entry.time}</span>}{entry.network && <span className="t98-calendar-entry-network">{entry.network}</span>}<span className="t98-calendar-entry-label">{entry.label}</span>{entry.status != null && <span className={`t98-calendar-entry-status t98-tone--${entry.tone ?? 'neutral'}`}>{entry.status}</span>}</>;
+              return <li key={entry.id} className="t98-calendar-entry-item">
               {entry.onSelect
-                ? <button type="button" className="t98-calendar-entry" tabIndex={isActive ? 0 : -1} onClick={entry.onSelect}>{entry.time && <span className="t98-calendar-entry-time">{entry.time}</span>}<span className="t98-calendar-entry-label">{entry.label}</span></button>
-                : <span className="t98-calendar-entry t98-calendar-entry--static">{entry.time && <span className="t98-calendar-entry-time">{entry.time}</span>}<span className="t98-calendar-entry-label">{entry.label}</span></span>}
-            </li>)}</ul>}
+                ? <button type="button" className="t98-calendar-entry" tabIndex={isActive ? 0 : -1} onClick={entry.onSelect}>{parts}</button>
+                : <span className="t98-calendar-entry t98-calendar-entry--static">{parts}</span>}</li>;
+            })}</ul>}
             {creating && !outside && (isCreatable?.(iso) ?? true) && <button type="button" className="t98-calendar-create" tabIndex={isActive ? 0 : -1} disabled={createDisabledReason != null || !onCreateDay}
               aria-label={`Create on ${fullDate.format(toTime(iso))}`} aria-describedby={createDisabledReason != null ? `${id}-reason` : undefined} onClick={() => onCreateDay?.(iso)}>Create</button>}
           </td>;

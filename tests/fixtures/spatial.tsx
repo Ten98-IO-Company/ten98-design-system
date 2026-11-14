@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { CalendarMonth, CountryMap, Heading, HeatmapPlane, HeatmapRankedList, ReplayViewer, Stack, Text, VisualEvidenceFrame } from '@ten98/ui';
+import { CalendarMonth, CountryMap, Heading, HeatmapPlane, HeatmapRankedList, ReplayViewer, Stack, Text, VisualEvidenceFrame, type CalendarEntry } from '@ten98/ui';
 import '@ten98/ui/app-tokens.css';
 import '@ten98/ui/app.css';
 import '@ten98/ui/product.css';
@@ -17,9 +17,10 @@ const points = [{ x: 480, y: 150, count: 12, label: 'Add to cart' }, { x: 200, y
 const bands = [{ from: 0, to: 180, share: 0.9, label: 'Top half' }, { from: 180, to: 360, share: null, label: 'Bottom half' }];
 // The probe image must stay blocked: replayed pages may not reach the network from the viewer's browser.
 const doc = '<!doctype html><body><p>Synthetic replay document with a deliberately long unbroken sentence to test wrapping inside the sandbox.</p><img alt="" src="/tests/replay-probe.png"></body>';
-const days = new Map([
+const days: Map<string, CalendarEntry[]> = new Map([
   ['2026-10-21', [{ id: 'launch', label: 'Launch the quarterly campaign post', time: '09:30', onSelect: () => {} }]],
   ['2026-10-23', [{ id: 'review', label: 'Review the draft announcement for the regional partner newsletter before Friday' }]],
+  ['2026-10-25', [{ id: 'post', label: 'Publish the spring studio drop', time: '14:00', network: 'Instagram', status: 'Scheduled', tone: 'info', onSelect: () => {} }]],
 ]);
 
 function Screen() {
