@@ -252,6 +252,10 @@ test('focus stays in the grid when the only row is removed or the app replaces t
   await page.keyboard.press('Tab');
   await expect(page.getByRole('gridcell', { name: 'No rows.' })).toBeFocused();
 
+  // Rows that arrive while focus is on the empty-state cell take focus over.
+  await page.keyboard.press('Alt+r');
+  await expect(cell(page, 1, 'Date')).toBeFocused();
+
   await enterGrid(page);
   await page.keyboard.press('ArrowRight');
   await page.keyboard.press('Alt+r');
@@ -319,4 +323,41 @@ test('amounts are parsed by the app, with each row’s decimal places', async ({
   await page.keyboard.press('Enter');
   await expect(cell(page, 1, 'Amount')).toHaveText('1.234');
   expect((await rows(page))[0]).toMatchObject({ currency: 'KWD', amount: '1.234' });
+});
+
+test('leaving a lookup commits text that names one option, and reports other text instead of dropping it', async ({ page }) => {
+  await enterGrid(page);
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('Enter');
+  await page.keyboard.type('Cash');
+  await page.getByRole('button', { name: 'Post voucher' }).click();
+  expect((await rows(page))[0]).toMatchObject({ account: 'cash' });
+
+  await cell(page, 1, 'Account').click();
+  await page.keyboard.press('Control+a');
+  await page.keyboard.type('1010');
+  await page.keyboard.press('Shift+Tab');
+  await expect(editor(page, 'Date', 1)).toBeFocused();
+  expect((await rows(page))[0]).toMatchObject({ account: 'bank' });
+
+  await page.keyboard.press('Tab');
+  await page.keyboard.press('Control+a');
+  await page.keyboard.type('Ca');
+  await page.keyboard.press('Shift+Tab');
+  await expect(cell(page, 1, 'Account')).toContainText('Choose from the list.');
+  await expect(cell(page, 1, 'Account')).toContainText('Bank');
+  expect((await rows(page))[0]).toMatchObject({ account: 'bank' });
+});
+
+test('clicking another cell drops invalid text together with its error', async ({ page }) => {
+  await enterGrid(page);
+  for (let i = 0; i < 3; i++) await page.keyboard.press('ArrowRight');
+  await page.keyboard.type('12.345');
+  await page.keyboard.press('Enter');
+  await expect(cell(page, 1, 'Amount')).toHaveAttribute('aria-invalid', 'true');
+  await cell(page, 1, 'Memo').click();
+  await expect(editor(page, 'Memo', 1)).toBeFocused();
+  await expect(cell(page, 1, 'Amount')).not.toHaveAttribute('aria-invalid');
+  await expect(cell(page, 1, 'Amount')).not.toContainText('Use up to 2 decimal places.');
+  expect((await rows(page))[0].amount).toBeUndefined();
 });

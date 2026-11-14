@@ -72,7 +72,8 @@ function Screen() {
     setErrors({ [last.key]: { amount: 'Debits and credits differ.' } });
     grid.current.focusCell(last.key, 'amount');
   }
-  const replace = () => change(saved.current.map(row => ({ ...row, key: `${row.key}-reloaded` })));
+  // Reloads the lines with new keys, or loads one when the grid is empty.
+  const replace = () => change(saved.current.length ? saved.current.map(row => ({ ...row, key: `${row.key}-reloaded` })) : [blank()]);
   return <ShortcutProvider keymaps={{ classic: {
     'entry.remove-row': 'Ctrl+Delete', 'entry.insert-above': 'Ctrl+Shift+Enter', 'entry.insert-below': 'Ctrl+Enter', 'entry.allocate': 'Alt+L', 'entry.replace': 'Alt+R',
     'voucher.back': 'Escape', 'voucher.save': 'Ctrl+S',

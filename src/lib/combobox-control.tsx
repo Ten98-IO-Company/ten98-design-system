@@ -119,6 +119,8 @@ export function ComboboxControl({ id, options, text, onType, onPick, onClear, on
         return;
       case 'Tab':
         if (autoHighlight && activeOption >= 0 && !event.shiftKey) { event.preventDefault(); accept(shown[activeOption]); return; }
+        // The owner sees the typed text before it is reset, as on blur.
+        onLeave();
         close();
         return;
     }
@@ -131,7 +133,7 @@ export function ComboboxControl({ id, options, text, onType, onPick, onClear, on
       value={query ?? text} placeholder={placeholder} required={required} disabled={disabled} autoComplete="off" spellCheck={false}
       onChange={event => { onType(event.target.value); type(event.target.value); setActive(autoHighlight ? 0 : -1); setOpen(true); }}
       onKeyDown={onKeyDown}
-      onBlur={() => { close(); onLeave(); }} />
+      onBlur={() => { onLeave(); close(); }} />
     {children}
     <div className="t98-combobox-popup" hidden={!open} aria-busy={loading || undefined}>
       <ul className="t98-combobox-list" id={listId} role="listbox" aria-label={typeof label === 'string' ? label : 'Options'} aria-multiselectable={multiple || undefined} ref={list} hidden={count === 0}>

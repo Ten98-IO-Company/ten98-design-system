@@ -179,6 +179,8 @@ export function EntryGrid({ label, columns, rows, onRowsChange, createRow, error
   const [draft, setDraftState] = useState<string | null>(null);
   const draftRef = useRef<string | null>(null);
   const setDraft = (text: string | null) => { draftRef.current = text; setDraftState(text); };
+  // The cell the typed text belongs to, so discarding it also clears that cell's error.
+  const draftCell = useRef<{ row: string; column: string }>(undefined);
   const [editing, setEditing] = useState(false);
   const [ownErrors, setOwnErrors] = useState<Readonly<Record<string, string>>>({});
   const [panelRow, setPanelRow] = useState<string>();
@@ -193,7 +195,7 @@ export function EntryGrid({ label, columns, rows, onRowsChange, createRow, error
     column: active ? Math.max(0, columns.findIndex(column => column.id === active.column)) : firstEditable,
   };
   // The active row is gone (removed or replaced by the app): note whether focus was in the grid before React removes it.
-  if (active && found < 0 && typeof document !== 'undefined' && box.current?.contains(document.activeElement)) focusLost.current = true;
+  if (typeof document !== 'undefined' && ((active && found < 0 && box.current?.contains(document.activeElement)) || (rows.length && document.activeElement?.id === emptyId))) focusLost.current = true;
   const errorKey = (row: string, column: string) => `${row}\u0000${column}`;
   const cellId = (cell: EntryCell) => `${id}-r${cell.row}-c${cell.column}`;
   const editorOf = (cell: EntryCell) => document.getElementById(cellId(cell))?.querySelector<HTMLInputElement | HTMLSelectElement>(EDITOR);
@@ -218,12 +220,21 @@ export function EntryGrid({ label, columns, rows, onRowsChange, createRow, error
   useEffect(() => () => clearTimeout(sayTimer.current), []);
   const sayError = (column: EntryGridColumn, row: number, error: string) => say(`${labels.cell(column.label, row + 1)}: ${error}`);
 
+  // A cell whose invalid text was dropped by focusing another cell; its error clears once focus is in the new editor.
+  const staleError = useRef<{ row: string; column: string }>(undefined);
+  /** Drops typed text that was never committed, with its error: the cell shows its stored value again. */
+  function discardDraft(keepError = false) {
+    const owner = draftRef.current !== null ? draftCell.current : staleError.current;
+    staleError.current = keepError ? owner : undefined;
+    if (owner && !keepError) setOwnError(owner.row, owner.column, undefined);
+    setDraft(null);
+  }
   function moveTo(cell: EntryCell, focus: 'cell' | 'editor') {
     const row = latest.current[cell.row];
     if (!row) return;
     pendingFocus.current = focus;
     setActive({ row: row.key, column: columns[cell.column].id });
-    setDraft(null);
+    discardDraft();
   }
   useClientLayoutEffect(() => {
     if (active && found < 0) {
@@ -236,6 +247,14 @@ export function EntryGrid({ label, columns, rows, onRowsChange, createRow, error
       focusLost.current = false;
       return;
     }
+    if (!active && focusLost.current && rows.length) {
+      // Rows arrived while focus was on the empty-state cell, which is gone: the first cell takes focus.
+      focusLost.current = false;
+      pendingFocus.current = 'cell';
+      setActive({ row: rows[0].key, column: columns[firstEditable].id });
+      return;
+    }
+    focusLost.current = false;
     lastIndex.current = current.row;
     const focus = pendingFocus.current;
     if (!focus) return;
@@ -467,8 +486,15 @@ export function EntryGrid({ label, columns, rows, onRowsChange, createRow, error
 
   function onCellFocus(event: FocusEvent<HTMLTableCellElement>, cell: EntryCell) {
     const row = rows[cell.row];
-    if (row && (row.key !== active?.row || columns[cell.column].id !== active?.column)) setActive({ row: row.key, column: columns[cell.column].id });
-    if (event.target !== event.currentTarget && !editing) { setEditing(true); setDraft(null); }
+    if (row && (row.key !== active?.row || columns[cell.column].id !== active?.column)) {
+      setActive({ row: row.key, column: columns[cell.column].id });
+      // Its error clears once focus is in the new editor: clearing it now resizes the row under a pressed pointer.
+      discardDraft(true);
+    }
+    if (event.target === event.currentTarget) return;
+    if (!editing) { setEditing(true); setDraft(null); }
+    // Focus has reached the new cell's editor, so the row can change size now.
+    if (staleError.current) discardDraft();
   }
   function onCellBlur(event: FocusEvent<HTMLTableCellElement>) {
     // Leaving the editor for its own cell (Escape) or within it keeps editing state as set; leaving the cell commits.
@@ -487,9 +513,10 @@ export function EntryGrid({ label, columns, rows, onRowsChange, createRow, error
   }
   function editor(column: EntryGridColumn, row: EntryGridRow, cell: EntryCell, describedBy?: string) {
     const value = draft ?? row.values[column.id] ?? '';
+    const type = (text: string) => { draftCell.current = { row: row.key, column: column.id }; setDraft(text); };
     const common = { 'aria-label': labels.cell(column.label, cell.row + 1), 'aria-describedby': describedBy, 'aria-invalid': describedBy ? true : undefined, tabIndex: -1 };
     if (column.type === 'side') {
-      return <select {...common} className="t98-entry-grid__editor" value={value} onChange={event => setDraft(event.target.value)}>
+      return <select {...common} className="t98-entry-grid__editor" value={value} onChange={event => type(event.target.value)}>
         {!value && <option value="" />}
         {column.sides?.map(side => <option key={side.value} value={side.value}>{side.label}</option>)}
       </select>;
@@ -500,7 +527,18 @@ export function EntryGrid({ label, columns, rows, onRowsChange, createRow, error
       if (column.onCreate && typed && !options.some(option => option.label.toLocaleLowerCase() === needle || option.description?.toLocaleLowerCase() === needle)) options.push({ value: CREATE, label: labels.create(typed) });
       // The first match is highlighted, so Enter or Tab picks it; closing the list without a pick drops the typed text.
       return <ComboboxControl {...common} options={options} text={display(column, row.values[column.id] ?? '')} label={column.label} emptyMessage={labels.noMatches}
-        autoHighlight matchDescription onType={setDraft} onQueryReset={() => setDraft(null)} onClear={() => setDraft('')} onLeave={() => {}}
+        autoHighlight matchDescription onType={type} onQueryReset={() => setDraft(null)} onClear={() => setDraft('')}
+        onLeave={() => {
+          // Leaving by Tab or blur: text that names exactly one option commits it; other text is reported, not dropped silently.
+          const text = draftRef.current;
+          if (text === null) return;
+          const needle = text.trim().toLocaleLowerCase();
+          const matches = needle ? (column.options ?? []).filter(option => option.label.toLocaleLowerCase() === needle || option.description?.toLocaleLowerCase() === needle) : [];
+          if (!needle || matches.length === 1) { commit(matches[0]?.value ?? ''); return; }
+          setDraft(null);
+          setOwnError(row.key, column.id, labels.notListed);
+          sayError(column, cell.row, labels.notListed);
+        }}
         onPick={async option => {
           if (option.value !== CREATE) { advance(1, 'Enter', option.value); return; }
           const created = await column.onCreate?.(typed, row.key);
@@ -518,7 +556,7 @@ export function EntryGrid({ label, columns, rows, onRowsChange, createRow, error
     }
     const numeric = column.type === 'amount' || column.type === 'quantity';
     return <input {...common} className="t98-entry-grid__editor" type={column.type === 'date' ? 'date' : 'text'} inputMode={numeric ? 'decimal' : undefined}
-      autoComplete="off" spellCheck={column.type === 'text' ? undefined : false} value={value} onChange={event => setDraft(event.target.value)} />;
+      autoComplete="off" spellCheck={column.type === 'text' ? undefined : false} value={value} onChange={event => type(event.target.value)} />;
   }
 
   const closePanel = () => setPanelRow(undefined);
