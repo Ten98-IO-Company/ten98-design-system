@@ -130,10 +130,17 @@ test('autoHighlight makes the first match active while typing, so Enter or Tab p
   await page.keyboard.press('Enter');
   await expect(page.locator('#hub')).toHaveText('DOH');
   await expect(hub).toHaveValue('Doha (DOH)');
+  // Enter while an IME is composing belongs to the input method, not to the list.
+  await page.keyboard.press('Control+a');
+  await page.keyboard.type('du');
+  await hub.evaluate(input => input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', isComposing: true, bubbles: true, cancelable: true })));
+  await expect(page.locator('#hub')).not.toHaveText('DXB');
   await page.keyboard.press('Control+a');
   await page.keyboard.type('ab');
+  // Tab picks the highlighted option and moves on, like Tab from any field.
   await page.keyboard.press('Tab');
   await expect(page.locator('#hub')).toHaveText('AUH');
+  await expect(hub).not.toBeFocused();
 
   // Off by default: typing highlights nothing, and Enter only closes the list.
   const airport = page.getByRole('combobox', { name: 'Airport' });

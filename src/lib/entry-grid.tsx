@@ -527,7 +527,7 @@ export function EntryGrid({ label, columns, rows, onRowsChange, createRow, error
       if (column.onCreate && typed && !options.some(option => option.label.toLocaleLowerCase() === needle || option.description?.toLocaleLowerCase() === needle)) options.push({ value: CREATE, label: labels.create(typed) });
       // The first match is highlighted, so Enter or Tab picks it; closing the list without a pick drops the typed text.
       return <ComboboxControl {...common} options={options} text={display(column, row.values[column.id] ?? '')} label={column.label} emptyMessage={labels.noMatches}
-        autoHighlight matchDescription onType={type} onQueryReset={() => setDraft(null)} onClear={() => setDraft('')}
+        autoHighlight keepFocusOnTabPick matchDescription onType={type} onQueryReset={() => setDraft(null)} onClear={() => setDraft('')}
         onLeave={() => {
           // Leaving by Tab or blur: text that names exactly one option commits it; other text is reported, not dropped silently.
           const text = draftRef.current;

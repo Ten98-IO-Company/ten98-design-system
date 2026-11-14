@@ -40,6 +40,8 @@ export interface ComboboxControlProps extends ComboboxAsyncProps {
   picked?: ReadonlySet<string>;
   /** Highlight the first match while typing, so Enter or Tab picks it. */
   autoHighlight?: boolean;
+  /** Tab that picks the highlighted option keeps focus, because the owner moves it (an entry grid cell). */
+  keepFocusOnTabPick?: boolean;
   /** Match typed text against option descriptions (for example a code) as well as labels. */
   matchDescription?: boolean;
   /** The typed text was dropped: the list closed without a pick, so the input shows `text` again. */
@@ -59,7 +61,7 @@ export interface ComboboxControlProps extends ComboboxAsyncProps {
   /** Rendered after the input, such as hidden form inputs. */
   children?: ReactNode;
 }
-export function ComboboxControl({ id, options, text, onType, onPick, onClear, onLeave, label, placeholder, required, disabled, emptyMessage, picked, onRemoveLast, autoHighlight = false, matchDescription = false, onQueryReset, notice, inputRef, inputValue, onInputValueChange, blockReason, before, children, onInputChange, filter = true, loading = false, loadError, ...described }: ComboboxControlProps) {
+export function ComboboxControl({ id, options, text, onType, onPick, onClear, onLeave, label, placeholder, required, disabled, emptyMessage, picked, onRemoveLast, autoHighlight = false, keepFocusOnTabPick = false, matchDescription = false, onQueryReset, notice, inputRef, inputValue, onInputValueChange, blockReason, before, children, onInputChange, filter = true, loading = false, loadError, ...described }: ComboboxControlProps) {
   const generated = useId();
   const listId = `${generated}-list`;
   const optionId = (index: number) => `${generated}-option-${index}`;
@@ -94,6 +96,8 @@ export function ComboboxControl({ id, options, text, onType, onPick, onClear, on
     else if (query) { type(null); setActive(-1); }
   }
   function onKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    // Keys during IME composition belong to the input method: Enter commits the composition, never an option.
+    if (event.nativeEvent.isComposing || event.keyCode === 229) return;
     switch (event.key) {
       case 'ArrowDown':
         event.preventDefault();
@@ -118,7 +122,12 @@ export function ComboboxControl({ id, options, text, onType, onPick, onClear, on
         if (onRemoveLast && event.currentTarget.value === '') onRemoveLast();
         return;
       case 'Tab':
-        if (autoHighlight && activeOption >= 0 && !event.shiftKey) { event.preventDefault(); accept(shown[activeOption]); return; }
+        if (autoHighlight && activeOption >= 0 && !event.shiftKey) {
+          // Tab picks the highlighted option and, unless the owner moves focus itself, still moves to the next field.
+          if (keepFocusOnTabPick) event.preventDefault();
+          accept(shown[activeOption]);
+          return;
+        }
         // The owner sees the typed text before it is reset, as on blur.
         onLeave();
         close();
