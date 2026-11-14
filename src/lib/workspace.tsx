@@ -185,6 +185,8 @@ export interface ConfirmRequest {
   danger?: boolean;
   /** Text the user must type to confirm, for example the resource name. */
   confirmationText?: string;
+  /** Which action takes focus when the dialog opens; see ConfirmDialog. */
+  initialFocus?: 'confirm' | 'cancel';
   /** A required checkbox label. */
   acknowledgement?: string;
 }
@@ -205,7 +207,7 @@ export function useConfirmDialog(defaults: Partial<ConfirmRequest> = {}): [(requ
   const confirm = useCallback((next: ConfirmRequest) => new Promise<boolean>(resolve => { settle(false); answer.current = resolve; setRequest(next); }), [settle]);
   const merged = request && { ...defaults, ...request };
   const dialog = merged && <ConfirmDialog open title={merged.title} description={merged.description} confirmLabel={merged.confirmLabel} cancelLabel={merged.cancelLabel}
-    danger={merged.danger} confirmationText={merged.confirmationText} acknowledgement={merged.acknowledgement}
+    danger={merged.danger} confirmationText={merged.confirmationText} acknowledgement={merged.acknowledgement} initialFocus={merged.initialFocus}
     onConfirm={() => settle(true)} onOpenChange={open => { if (!open) { settle(false); setRequest(null); } }} />;
   return [confirm, dialog];
 }
@@ -220,9 +222,15 @@ export interface ConfirmDialogProps {
   /** Label of the button that closes without confirming, for example "Keep editing". */
   cancelLabel?: string;
   restoreFocus?: DialogProps['restoreFocus'];
+  /**
+   * The action focused when the dialog opens, so Enter does what the caller chose. Defaults to cancel for a danger
+   * confirmation and to confirm otherwise. With confirm, a dialog that waits for typed text or the checkbox focuses that field.
+   */
+  initialFocus?: 'confirm' | 'cancel';
 }
 /** Blocks closing while a mutation is pending; rejected mutations stay open for retry. */
-export function ConfirmDialog({ open, onOpenChange, title, description, onConfirm, confirmLabel = 'Confirm', danger = false, confirmationText, children, acknowledgement, cancelLabel = 'Cancel', restoreFocus }: ConfirmDialogProps) {
+export function ConfirmDialog({ open, onOpenChange, title, description, onConfirm, confirmLabel = 'Confirm', danger = false, confirmationText, children, acknowledgement, cancelLabel = 'Cancel', restoreFocus, initialFocus = danger ? 'cancel' : 'confirm' }: ConfirmDialogProps) {
+  const cancelButton = useRef<HTMLButtonElement>(null);
   const id = useId(); const [input, setInput] = useState(''); const [acknowledged, setAcknowledged] = useState(false); const [pending, setPending] = useState(false); const [error, setError] = useState(''); const busy = useRef(false);
   useEffect(() => { if (open) { setInput(''); setAcknowledged(false); setError(''); } }, [open]);
   const blocked = (!!confirmationText && input !== confirmationText) || (!!acknowledgement && !acknowledged);
@@ -231,7 +239,8 @@ export function ConfirmDialog({ open, onOpenChange, title, description, onConfir
     busy.current = true; setPending(true); setError('');
     try { await onConfirm(); onOpenChange(false); } catch { setError('The action could not be completed. Try again.'); } finally { busy.current = false; setPending(false); }
   }
-  return <Dialog open={open} onOpenChange={next => { if (!busy.current) onOpenChange(next); }} closeDisabled={pending} restoreFocus={restoreFocus} title={title} description={description} footer={<><Button variant="secondary" disabled={pending} onClick={() => onOpenChange(false)}>{cancelLabel}</Button><Button variant={danger ? 'danger' : 'primary'} loading={pending} disabled={blocked} onClick={confirm}>{confirmLabel}</Button></>}>
+  const startFocus = initialFocus === 'cancel' ? cancelButton : confirmationText || acknowledgement ? 'first-field' : 'primary';
+  return <Dialog open={open} onOpenChange={next => { if (!busy.current) onOpenChange(next); }} closeDisabled={pending} restoreFocus={restoreFocus} initialFocus={startFocus} title={title} description={description} footer={<><Button ref={cancelButton} variant="secondary" disabled={pending} onClick={() => onOpenChange(false)}>{cancelLabel}</Button><Button variant={danger ? 'danger' : 'primary'} loading={pending} disabled={blocked} onClick={confirm}>{confirmLabel}</Button></>}>
     {children}
     {acknowledgement && <Checkbox label={acknowledgement} required checked={acknowledged} disabled={pending} onChange={event => setAcknowledged(event.target.checked)}/>}
     {confirmationText ? <Field label={`Type ${confirmationText} to confirm`} htmlFor={id}><Input value={input} autoComplete="off" disabled={pending} onChange={event => setInput(event.target.value)}/></Field> : !children && !acknowledgement && <p className="t98-confirm-hint">Review this action before continuing.</p>}
