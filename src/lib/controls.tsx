@@ -304,10 +304,15 @@ export interface ComboboxProps extends ComboboxAsyncProps {
   disabled?: boolean;
   /** Shown in the popup, and announced, when nothing matches the typed text. */
   emptyMessage?: string;
+  /**
+   * The first match is highlighted as the user types (announced through aria-activedescendant), so Enter or Tab picks
+   * it, as in an entry grid's lookup cell. Off by default: Enter then only closes the list and typed text stays as typed.
+   */
+  autoHighlight?: boolean;
 }
 
 /** An editable combobox with list autocomplete, optionally fed by app-fetched results. The message for a value outside the list is the caller's. */
-export function Combobox({ label, options, value, onValueChange, valueLabel, description, error, allowCustom = true, name, placeholder, required, disabled, emptyMessage = 'No matches', ...async }: ComboboxProps) {
+export function Combobox({ label, options, value, onValueChange, valueLabel, description, error, allowCustom = true, name, placeholder, required, disabled, emptyMessage = 'No matches', autoHighlight = false, ...async }: ComboboxProps) {
   const id = useId();
   const [left, setLeft] = useState(false);
   const normalized: ComboboxOption[] = options.map(option => typeof option === 'string' ? { value: option, label: option } : option);
@@ -317,7 +322,7 @@ export function Combobox({ label, options, value, onValueChange, valueLabel, des
   return <Field label={label} htmlFor={id} description={description} error={allowCustom || outside ? error : undefined} required={required}>
     <ComboboxControl {...async} options={normalized} text={normalized.find(option => option.value === value)?.label ?? valueLabel ?? value}
       onType={typed => onValueChange(normalized.find(option => option.label === typed && !option.disabled)?.value ?? typed)} onPick={option => onValueChange(option.value)} onClear={() => onValueChange('')}
-      onLeave={() => setLeft(true)} label={label} placeholder={placeholder} required={required} disabled={disabled} emptyMessage={emptyMessage}>
+      onLeave={() => setLeft(true)} label={label} placeholder={placeholder} required={required} disabled={disabled} emptyMessage={emptyMessage} autoHighlight={autoHighlight}>
       {/* A list-only field never posts text that is not one of its options. */}
       {name && <input type="hidden" name={name} value={allowCustom || listed ? value : ''} />}
     </ComboboxControl>

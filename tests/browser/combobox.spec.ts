@@ -118,3 +118,29 @@ test('MultiCombobox announces only committed picks, enforces its limit and keeps
   await list.getByRole('option', { name: /Riyadh/ }).click({ force: true });
   await expect(page.getByRole('list', { name: 'Selected Markets' }).getByRole('listitem')).toHaveCount(2);
 });
+
+test('autoHighlight makes the first match active while typing, so Enter or Tab picks it; without it Enter keeps the typed text', async ({ page }) => {
+  await page.goto('/tests/combobox.html');
+  const hub = page.getByRole('combobox', { name: 'Hub' });
+  await hub.focus();
+  await page.keyboard.type('do');
+  const doha = page.getByRole('option', { name: 'Doha (DOH)' });
+  await expect(doha).toHaveAttribute('aria-selected', 'true');
+  await expect(hub).toHaveAttribute('aria-activedescendant', (await doha.getAttribute('id'))!);
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#hub')).toHaveText('DOH');
+  await expect(hub).toHaveValue('Doha (DOH)');
+  await page.keyboard.press('Control+a');
+  await page.keyboard.type('ab');
+  await page.keyboard.press('Tab');
+  await expect(page.locator('#hub')).toHaveText('AUH');
+
+  // Off by default: typing highlights nothing, and Enter only closes the list.
+  const airport = page.getByRole('combobox', { name: 'Airport' });
+  await airport.focus();
+  await page.keyboard.type('Do');
+  await expect(page.getByRole('option', { name: 'Doha (DOH)' })).toHaveAttribute('aria-selected', 'false');
+  await expect(airport).not.toHaveAttribute('aria-activedescendant');
+  await page.keyboard.press('Enter');
+  await expect(airport).toHaveValue('Do');
+});
