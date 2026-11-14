@@ -99,8 +99,8 @@ for (const width of [1440, 320, 360]) {
       expect(await overflow(page)).toBeLessThanOrEqual(1);
       expect(errors).toEqual([]);
       expect(externalRequests).toEqual([]);
-      // The built fixture loads one HTML document, ten JS chunks and two stylesheets.
-      expect(requests).toBeLessThanOrEqual(13);
+      // The built fixture loads one HTML document, eleven JS chunks and two stylesheets.
+      expect(requests).toBeLessThanOrEqual(14);
       await info.attach('request-count', { body: String(requests), contentType: 'text/plain' });
     });
   });
