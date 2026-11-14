@@ -183,4 +183,8 @@ test('a virtualized table over its print limit prints a notice to use the export
   await expect(bodyRows(page, 'Balances')).toHaveCount(12);
   await page.emulateMedia({ media: 'screen' });
   await expect(statement.locator('tbody tr[aria-rowindex]').first()).toHaveAttribute('aria-rowindex', '2');
+  // The app can replace the notice, for example to translate it or name its export.
+  await page.goto('/tests/print.html?rows=6000&notice=1');
+  await page.emulateMedia({ media: 'print' });
+  await expect(statement.locator('tbody')).toHaveText('Statement of 6000 lines: export it, printing stops at 5000.');
 });

@@ -53,7 +53,8 @@ function Screen() {
       <Button onClick={() => balancesApi.current?.focusRow('a12')}>Find a12</Button>
       <Button onClick={() => statementApi.current?.focusRow('s2500')}>Find s2500</Button>
       <DataTable columns={columns} rows={statement} rowKey={entry => entry.id} caption="Statement" pagination={false} searchable={false} sortable={false} virtualize
-        apiRef={statementApi} onRowActivate={(_entry, key) => setOpened(key)} footerCells={['Total', '450150000']} />
+        apiRef={statementApi} onRowActivate={(_entry, key) => setOpened(key)} footerCells={['Total', '450150000']}
+        printLimitNotice={params.get('notice') ? (count, limit) => `Statement of ${count} lines: export it, printing stops at ${limit}.` : undefined} />
       <DataTable columns={unevenColumns} rows={statement.slice(0, 200).map(entry => ({ ...entry, id: entry.id.replace('s', 'u') }))} rowKey={entry => entry.id} caption="Uneven" pagination={false} searchable={false} sortable={false} virtualize />
       <DataTable columns={columns} rows={ledgerRows} rowKey={entry => entry.id} caption="Ledger" searchable={false} sortable={false} apiRef={ledgerApi}
         page={{ index: ledgerPage, size: 10, total: ledger.length }} onPageChange={change => setLedgerPage(change.index ?? 0)}

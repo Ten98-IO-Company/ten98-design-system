@@ -115,3 +115,23 @@ for (const rows of [5000, 50000]) for (const pause of [30, 0]) {
     expect(errors).toEqual([]);
   });
 }
+
+test('with CSS zoom on an ancestor, the rendered rows still fill a tall box', async ({ page }) => {
+  await page.goto('/tests/print.html');
+  const box = table(page, 'Statement').locator('xpath=..');
+  await box.evaluate(node => {
+    (node.parentElement as HTMLElement).style.zoom = '1.5';
+    node.style.maxBlockSize = node.style.blockSize = '48rem';
+  });
+  // Uncovered screen height at the top and bottom of the box, below the sticky header.
+  const gaps = () => box.evaluate(node => {
+    const frame = node.getBoundingClientRect(), head = node.querySelector('thead th')!.getBoundingClientRect();
+    const rows = [...node.querySelectorAll('tbody tr:not(.t98-table-spacer)')].map(row => row.getBoundingClientRect());
+    return [Math.max(0, Math.min(...rows.map(row => row.top)) - head.bottom), Math.max(0, frame.bottom - Math.max(...rows.map(row => row.bottom)))].map(Math.round);
+  });
+  for (const top of [0, 20_000, 60_000]) {
+    await box.evaluate((node, value) => { node.scrollTop = value; }, top);
+    // A pixel of rounding where the zoomed header meets the first row.
+    await expect.poll(async () => Math.max(...await gaps())).toBeLessThanOrEqual(2);
+  }
+});

@@ -156,10 +156,15 @@ interface DataTableBaseProps<T> {
   /**
    * A virtualized table with more rows than this prints a notice to use the app's export instead of its rows, because
    * rendering tens of thousands of rows blocks the page for seconds (about 8 s for 50,000) and can fail. Default 5,000.
+   * Only virtualized tables are limited: a table without virtualize prints every row it renders.
    */
   printRowLimit?: number;
+  /** The printed notice when printRowLimit is exceeded, for example translated or naming the app's export. */
+  printLimitNotice?: (rows: number, limit: number) => ReactNode;
 }
 const PRINT_ROW_LIMIT = 5000;
+const printLimitText = (rows: number, limit: number) =>
+  `This table has ${rows.toLocaleString()} rows, more than the ${limit.toLocaleString()} that print from the page. Use the export to print it in full.`;
 export type DataTableProps<T> = DataTableBaseProps<T> & TableName;
 export interface DataTableApi {
   /** Focuses an activatable table's row by key, turning to its page or scrolling it into view. False when no shown row has the key. */
@@ -205,7 +210,7 @@ export function DataTable<T>({
   columns, rows, rowKey, caption, captionHidden = true, ariaLabel, searchable = true, sortable = true, pagination = true,
   searchPlaceholder = 'Search records…', pageSize = 5, selectable = false, selectionLabel, selectionDisabled = false, selectedKeys: selectedKeysProp, onSelectionChange, activeKey, onRowActivate, rowDetail, expandedKeys: expandedKeysProp, onExpandedChange, emptyTitle = 'No records found', emptyDescription, emptyState,
   sort: sortProp, onSortChange, sortDisabled = false, sortLabel, page: pageProp, onPageChange, search: searchProp, onSearchChange, rowActions, rowActionsLabel = 'Actions',
-  loading = false, unavailable, stickyHeader = false, footerCells, density = 'comfortable', responsive = 'scroll', pageStep, onPageEdge, apiRef, virtualize = false, printRowLimit = PRINT_ROW_LIMIT,
+  loading = false, unavailable, stickyHeader = false, footerCells, density = 'comfortable', responsive = 'scroll', pageStep, onPageEdge, apiRef, virtualize = false, printRowLimit = PRINT_ROW_LIMIT, printLimitNotice = printLimitText,
 }: DataTableProps<T>) {
   const [localQuery, setQuery] = useState('');
   const [localSort, setSort] = useState<TableSort>();
@@ -282,8 +287,10 @@ export function DataTable<T>({
   useClientLayoutEffect(() => {
     const box = scrollBox.current;
     if (windowed && box) {
-      // Exact heights: rounded ones drift the spacers by a pixel every few rows.
-      const heights = [...box.querySelectorAll<HTMLElement>('tbody > tr:not(.t98-table-spacer):not(.t98-table-skeleton-row)')].map(row => row.getBoundingClientRect().height);
+      // Exact heights: rounded ones drift the spacers by a pixel every few rows. They are measured on screen, so CSS zoom
+      // or a transform on an ancestor is divided out to match the box's own scrollTop and clientHeight.
+      const scale = box.offsetHeight ? box.getBoundingClientRect().height / box.offsetHeight : 1;
+      const heights = [...box.querySelectorAll<HTMLElement>('tbody > tr:not(.t98-table-spacer):not(.t98-table-skeleton-row)')].map(row => row.getBoundingClientRect().height / (scale || 1));
       if (heights.length > 1 && Math.max(...heights) - Math.min(...heights) > 1) {
         warnInDevelopment(`@ten98/ui DataTable "${name}": virtualize needs rows of one height; rows differ, so every row is rendered.`);
         setUneven(true);
@@ -465,7 +472,7 @@ export function DataTable<T>({
         </tr></thead>
         <tbody role={role('rowgroup')}>
           {printTooLarge && !hasUnavailable && <tr className="t98-table-print-limit"><td colSpan={columnCount}>
-            {`This table has ${visible.length.toLocaleString()} rows, more than the ${printRowLimit.toLocaleString()} that print from the page. Use the export to print it in full.`}
+            {printLimitNotice(visible.length, printRowLimit)}
           </td></tr>}
           {!hasUnavailable && renderedIndexes.map((index, position) => {
             const row = visible[index];
