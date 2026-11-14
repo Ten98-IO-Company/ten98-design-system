@@ -5,7 +5,7 @@ import { createElement as h } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import {
   KeyHint, ShortcutProvider, ShortcutScope, chordFromEvent, findChordConflicts, findReservedChords, formatChord, isPrintableChord,
-  mergeKeymaps, parseChord, reservedChord, resolveShortcut, useCommand, type ChordEvent, type ResolvedCommand, type ShortcutTarget,
+  mergeKeymaps, parseChord, physicalChordFromEvent, reservedChord, resolveShortcut, useCommand, type ChordEvent, type ResolvedCommand, type ShortcutTarget,
 } from '../../src/lib/shortcuts.js';
 
 // Pure registry rules, without a page; the browser behaviour is in shortcuts.spec.ts.
@@ -120,11 +120,66 @@ test('typing and native keys stay with the focused field unless the command opts
   assert.equal(isPrintableChord('F2'), false);
 });
 
+test('Escape stays with text fields and open popups unless the command opts in', () => {
+  const commands = [command('screen.back', 'screen', ['Escape']), command('note.close', 'note', ['Escape'], { allowInTextInput: true })];
+  const screen = [{ id: 'screen', focus: false }, app];
+  const run = (target: ShortcutTarget, popupOpen = false, scopes = screen) => resolveShortcut({ chord: 'Escape', scopes, commands, target, popupOpen })?.command.id;
+  assert.equal(run('text'), undefined);
+  assert.equal(run('multiline'), undefined);
+  assert.equal(run('control', true), undefined);
+  assert.equal(run('other'), 'screen.back');
+  assert.equal(run('control'), 'screen.back');
+  assert.equal(resolveShortcut({ chord: 'Shift+Escape', scopes: screen, commands: [command('back', 'screen', ['Shift+Escape'])], target: 'text' }), undefined);
+  // An opted-in command runs from a field, but an open list or menu still closes first.
+  const note = [{ id: 'note', focus: true }, ...screen];
+  assert.equal(run('text', false, note), 'note.close');
+  assert.equal(run('text', true, note), undefined);
+  assert.equal(resolveShortcut({ chord: 'Ctrl+Escape', scopes: screen, commands: [command('menu', 'screen', ['Ctrl+Escape'])], target: 'text' })?.command.id, 'menu');
+});
+
+test('a command can match the key position of an unmodified letter or digit on another layout', () => {
+  assert.equal(physicalChordFromEvent(press('ى', { code: 'KeyN' })), 'N');
+  assert.equal(physicalChordFromEvent(press('آ', { code: 'KeyN', shiftKey: true })), 'Shift+N');
+  assert.equal(physicalChordFromEvent(press('٣', { code: 'Digit3' })), '3');
+  // Latin keys, modified keys, shifted digits, other keys and composition have no physical chord.
+  for (const event of [press('n', { code: 'KeyN' }), press('a', { code: 'KeyQ' }), press('ى', { code: 'KeyN', ctrlKey: true }), press('#', { code: 'Digit3', shiftKey: true }), press('ج', { code: 'BracketLeft' }), press('ى', { code: 'KeyN', isComposing: true }), press('Enter', { code: 'Enter' })]) assert.equal(physicalChordFromEvent(event), undefined, JSON.stringify(event));
+
+  const menu = { id: 'menu', focus: true };
+  const commands = [command('menu.new', 'menu', ['N'], { matchPhysicalKey: true }), command('menu.find', 'menu', ['F']), command('screen.next', 'screen', ['N'])];
+  const resolve = (chord: string, physicalChord: string | undefined, scopes = [menu, { id: 'screen', focus: false }, app], target: ShortcutTarget = 'control') => resolveShortcut({ chord, physicalChord, scopes, commands, target })?.command.id;
+  assert.equal(resolve('ى', 'N'), 'menu.new');
+  assert.equal(resolve('N', undefined), 'menu.new');
+  // Only commands that opt in match by position, and printable chords still need their focused scope (WCAG 2.1.4).
+  assert.equal(resolve('ب', 'F'), undefined);
+  assert.equal(resolve('ى', 'N', [{ id: 'menu', focus: false }, app]), undefined);
+  assert.equal(resolve('ى', 'N', [{ id: 'screen', focus: true }, app]), undefined);
+  assert.equal(resolve('ى', 'N', [menu, app], 'text'), undefined);
+  // A command bound to the typed character wins over a position match in the same scope.
+  const typed = [...commands, command('menu.arabic', 'menu', ['ى'])];
+  assert.equal(resolveShortcut({ chord: 'ى', physicalChord: 'N', scopes: [menu, app], commands: typed, target: 'control' })?.command.id, 'menu.arabic');
+});
+
 test('user overrides replace or unbind keymap chords', () => {
   const classic = { 'voucher.save': 'Ctrl+A', 'voucher.payment': ['F5'], 'voucher.receipt': 'F6' };
   const merged = mergeKeymaps(classic, { 'voucher.payment': ['Alt+F5', 'Ctrl+5'], 'voucher.receipt': [] });
   assert.deepEqual(merged, { 'voucher.save': ['Ctrl+A'], 'voucher.payment': ['Alt+F5', 'Ctrl+5'], 'voucher.receipt': [] });
   assert.deepEqual(mergeKeymaps(undefined, classic)['voucher.save'], ['Ctrl+A']);
+});
+
+test('keymap entries can differ by platform, and merging resolves them for one platform', () => {
+  const classic = { 'voucher.print': { default: 'Alt+P', apple: 'Ctrl+Shift+P' }, 'voucher.copy': 'Alt+C', 'voucher.find': { apple: 'Meta+F' } } as const;
+  assert.deepEqual(mergeKeymaps('other', classic), { 'voucher.print': ['Alt+P'], 'voucher.copy': ['Alt+C'] });
+  assert.deepEqual(mergeKeymaps('apple', classic), { 'voucher.print': ['Ctrl+Shift+P'], 'voucher.copy': ['Alt+C'], 'voucher.find': ['Meta+F'] });
+  // Without a platform, entries resolve as on "other" platforms.
+  assert.deepEqual(mergeKeymaps(classic), mergeKeymaps('other', classic));
+  // A plain override replaces both platforms; a per-platform one replaces only its platform; an empty list unbinds.
+  const overrides = { 'voucher.print': 'F9', 'voucher.copy': { apple: ['Ctrl+C', 'Ctrl+Alt+C'] }, 'voucher.find': { apple: [] } };
+  assert.deepEqual(mergeKeymaps('other', classic, overrides), { 'voucher.print': ['F9'], 'voucher.copy': ['Alt+C'] });
+  assert.deepEqual(mergeKeymaps('apple', classic, overrides), { 'voucher.print': ['F9'], 'voucher.copy': ['Ctrl+C', 'Ctrl+Alt+C'], 'voucher.find': [] });
+  // Reserved-chord checks look at the chords each platform actually gets.
+  const keymap = { 'voucher.new': { default: 'Ctrl+N', apple: 'Ctrl+Shift+N' } };
+  assert.deepEqual(findReservedChords(keymap).map(entry => entry.chord), ['Ctrl+N']);
+  assert.deepEqual(findReservedChords(keymap, 'apple'), []);
 });
 
 test('conflicts are chords bound to more than one enabled command in one scope', () => {
