@@ -13,6 +13,15 @@ const lines: Line[] = Array.from({ length: 25 }, (_, index) => line('a', index))
 const statement: Line[] = Array.from({ length: 3000 }, (_, index) => line('s', index));
 const ledger: Line[] = Array.from({ length: 30 }, (_, index) => line('p', index));
 const columns: DataColumn<Line>[] = [{ key: 'account', header: 'Account', rowHeader: true }, { key: 'balance', header: 'Balance', numeric: true }];
+// One taller row: virtualize cannot window rows of different heights, so it renders them all.
+const unevenColumns: DataColumn<Line>[] = [{ key: 'account', header: 'Account', rowHeader: true, render: entry => entry.id === 'u4' ? <Stack gap={1}><Text>{entry.account}</Text><Text>Second line</Text></Stack> : entry.account }, columns[1]];
+declare global { interface Window { edges: string[] } }
+window.edges = [];
+
+// A long sortable table alone on the page, for checking printed pages.
+function PrintedLedger() {
+  return <DataTable columns={columns} rows={statement.slice(0, 300)} rowKey={entry => entry.id} caption="Printed ledger" pagination={false} searchable={false} />;
+}
 
 function Screen() {
   const [opened, setOpened] = useState('');
@@ -43,10 +52,13 @@ function Screen() {
       <Button onClick={() => balancesApi.current?.focusRow('a12')}>Find a12</Button>
       <Button onClick={() => statementApi.current?.focusRow('s2500')}>Find s2500</Button>
       <DataTable columns={columns} rows={statement} rowKey={entry => entry.id} caption="Statement" pagination={false} searchable={false} sortable={false} virtualize
-        apiRef={statementApi} onRowActivate={(_entry, key) => setOpened(key)} />
+        apiRef={statementApi} onRowActivate={(_entry, key) => setOpened(key)} footerCells={['Total', '450150000']} />
+      <DataTable columns={unevenColumns} rows={statement.slice(0, 200).map(entry => ({ ...entry, id: entry.id.replace('s', 'u') }))} rowKey={entry => entry.id} caption="Uneven" pagination={false} searchable={false} sortable={false} virtualize />
       <DataTable columns={columns} rows={ledgerRows} rowKey={entry => entry.id} caption="Ledger" searchable={false} sortable={false} apiRef={ledgerApi}
         page={{ index: ledgerPage, size: 10, total: ledger.length }} onPageChange={change => setLedgerPage(change.index ?? 0)}
+        loading={params.get('ledgerLoading') === '1'}
         onPageEdge={direction => {
+          window.edges.push(direction);
           const next = ledgerPage + (direction === 'next' ? 1 : -1);
           if (next < 0 || next * 10 >= ledger.length) return;
           setLedgerPage(next);
@@ -57,4 +69,4 @@ function Screen() {
   </AppShell>;
 }
 
-createRoot(document.getElementById('print-fixture')!).render(<Screen />);
+createRoot(document.getElementById('print-fixture')!).render(params.get('pdf') ? <PrintedLedger /> : <Screen />);

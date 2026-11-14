@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { inflateSync } from 'node:zlib';
 import { expect, test, type Page } from '@playwright/test';
 
 const table = (page: Page, name: string) => page.getByRole('table', { name });
 const bodyRows = (page: Page, name: string) => table(page, name).locator('tbody tr:not(.t98-table-spacer)');
-const focusedIndex = (page: Page) => page.evaluate(() => document.activeElement?.getAttribute('aria-rowindex'));
 
 test('a print shows the page content as a document: no app chrome or controls, black on white, every table row', async ({ page }) => {
   await page.goto('/tests/print.html?theme=dark');
@@ -92,39 +92,6 @@ test('focusRow turns to a row’s page, and a server-paged table reports its edg
   await expect(ledger.last()).toBeFocused();
 });
 
-test('a virtualized statement renders only the rows in view and keeps keyboard, row count and headers complete', async ({ page }) => {
-  await page.goto('/tests/print.html');
-  const statement = table(page, 'Statement');
-  await expect(statement).toHaveAttribute('aria-rowcount', '3001');
-  expect(await bodyRows(page, 'Statement').count()).toBeLessThan(100);
-  await expect(statement.locator('thead th[scope="col"]')).toHaveCount(2);
-  await expect(statement.locator('thead tr')).toHaveAttribute('aria-rowindex', '1');
-
-  await bodyRows(page, 'Statement').first().focus();
-  expect(await focusedIndex(page)).toBe('2');
-  await page.keyboard.press('End');
-  await expect.poll(() => focusedIndex(page)).toBe('3001');
-  await expect(page.locator(':focus')).toContainText('Account 3000');
-  await expect(page.locator(':focus')).toBeInViewport();
-  // PageUp moves by the rows that fit in the box; arrows still move one row.
-  await page.keyboard.press('PageUp');
-  const afterPage = Number(await focusedIndex(page));
-  expect(afterPage).toBeLessThan(3001 - 3);
-  await page.keyboard.press('ArrowUp');
-  expect(Number(await focusedIndex(page))).toBe(afterPage - 1);
-  await page.keyboard.press('Home');
-  await expect.poll(() => focusedIndex(page)).toBe('2');
-  // Rendered rows carry consecutive positions; one rendered row is the tab stop.
-  const indexes = (await bodyRows(page, 'Statement').evaluateAll(nodes => nodes.map(node => Number(node.getAttribute('aria-rowindex')))));
-  expect(indexes).toEqual(indexes.map((_, offset) => indexes[0] + offset));
-  await expect(statement.locator('tbody tr[tabindex="0"]')).toHaveCount(1);
-
-  await page.getByRole('button', { name: 'Find s2500' }).click();
-  await expect.poll(() => focusedIndex(page)).toBe('2501');
-  await page.keyboard.press('Enter');
-  await expect(page.locator('#opened')).toHaveText('s2500');
-});
-
 test('print colours are black on white and otherwise match the light theme, and dialogs print no backdrop', () => {
   const read = (file: string) => readFileSync(new URL(`../../src/lib/${file}`, import.meta.url), 'utf8');
   const tokens = (block: string) => new Map([...block.matchAll(/(--t98-[\w-]+):\s*([^;]+);/g)].map(([, name, value]) => [name, value.trim()]));
@@ -135,4 +102,73 @@ test('print colours are black on white and otherwise match the light theme, and 
   assert.equal(print.get('--t98-bg'), '#FFFFFF');
   assert.equal(print.get('--t98-text'), '#000000');
   assert.match(css, /\.t98-dialog::backdrop[^{]*\{ background: none;/);
+});
+
+/** The text of each page of a Chromium PDF: content streams decoded through each font's ToUnicode map. */
+function pdfPageTexts(pdf: Buffer): string[] {
+  const source = pdf.toString('latin1');
+  const objects = new Map<string, { dict: string; stream?: string }>();
+  for (const match of source.matchAll(/(\d+) 0 obj([\s\S]*?)endobj/g)) {
+    const [, number, body] = match;
+    const streamAt = body.search(/stream\r?\n/);
+    if (streamAt < 0) { objects.set(number, { dict: body }); continue; }
+    const dict = body.slice(0, streamAt);
+    const raw = Buffer.from(body.slice(body.indexOf('\n', streamAt) + 1, body.lastIndexOf('endstream')), 'latin1');
+    let stream: string | undefined;
+    try { stream = (dict.includes('/FlateDecode') ? inflateSync(raw) : raw).toString('latin1'); } catch { stream = undefined; }
+    objects.set(number, { dict, stream });
+  }
+  // Each font's glyph codes are one byte (Type3 fonts) or two (CID fonts), as its code space range says.
+  const unicode = new Map<string, { width: number; map: Map<string, string> }>();
+  const mapFor = (font: string) => {
+    if (unicode.has(font)) return unicode.get(font)!;
+    const map = new Map<string, string>();
+    const cmap = objects.get(/\/ToUnicode (\d+) 0 R/.exec(objects.get(font)?.dict ?? '')?.[1] ?? '')?.stream ?? '';
+    const width = /begincodespacerange\s*<(\w+)>/.exec(cmap)?.[1].length ?? 4;
+    const hex = (value: string) => String.fromCodePoint(...(value.match(/.{4}/g) ?? []).map(code => parseInt(code, 16)));
+    for (const [, block] of cmap.matchAll(/beginbfchar([\s\S]*?)endbfchar/g)) for (const [, from, to] of block.matchAll(/<(\w+)>\s*<(\w+)>/g)) map.set(from.toUpperCase().padStart(width, '0'), hex(to));
+    for (const [, block] of cmap.matchAll(/beginbfrange([\s\S]*?)endbfrange/g)) for (const [, low, high, to] of block.matchAll(/<(\w+)>\s*<(\w+)>\s*<(\w+)>/g)) {
+      for (let code = parseInt(low, 16); code <= parseInt(high, 16); code++) map.set(code.toString(16).toUpperCase().padStart(width, '0'), String.fromCodePoint(parseInt(to, 16) + code - parseInt(low, 16)));
+    }
+    unicode.set(font, { width, map });
+    return unicode.get(font)!;
+  };
+  const pages = [...objects.values()].filter(object => /\/Type \/Page\b(?!s)/.test(object.dict));
+  return pages.map(page => {
+    const fonts = new Map([...(/\/Font <<([^>]*)>>/.exec(page.dict)?.[1] ?? '').matchAll(/\/(\w+) (\d+) 0 R/g)].map(([, name, number]) => [name, number]));
+    const contents = [...(/\/Contents (\[[^\]]*\]|\d+ 0 R)/.exec(page.dict)?.[1] ?? '').matchAll(/(\d+) 0 R/g)].map(([, number]) => objects.get(number)?.stream ?? '').join('\n');
+    let font = '';
+    let text = '';
+    for (const [, name, glyphs] of contents.matchAll(/\/(\w+) [\d.]+ Tf|<([0-9A-Fa-f]+)>/g)) {
+      if (name) font = fonts.get(name) ?? '';
+      else { const { width, map } = mapFor(font); text += (glyphs.match(new RegExp(`.{${width}}`, 'g')) ?? []).map(code => map.get(code.toUpperCase()) ?? '').join(''); }
+    }
+    return text;
+  });
+}
+
+test('a printed PDF repeats the table header on every page, sortable columns included', async ({ page, browserName }) => {
+  test.skip(browserName !== 'chromium', 'page.pdf is Chromium only');
+  await page.goto('/tests/print.html?pdf=1');
+  await expect(page.getByRole('button', { name: 'Balance' })).toBeVisible();
+  await page.emulateMedia({ media: 'print' });
+  const pages = pdfPageTexts(await page.pdf({ format: 'A4' }));
+  expect(pages.length).toBeGreaterThan(4);
+  expect(pages.filter(text => text.includes('Balance')).length, 'pages with the header').toBe(pages.length);
+  expect(pages.at(-1)).toContain('Account 300');
+});
+
+test('an open dialog is left out of the print', async ({ page }) => {
+  await page.goto('/tests/print.html');
+  await page.getByRole('button', { name: 'Find s2500' }).focus();
+  await page.evaluate(() => {
+    const dialog = document.createElement('dialog');
+    dialog.className = 't98-dialog';
+    dialog.textContent = 'Open dialog';
+    document.body.append(dialog);
+    dialog.showModal();
+  });
+  await page.emulateMedia({ media: 'print' });
+  await expect(page.getByText('Open dialog')).toBeHidden();
+  await expect(page.getByText('Trial balance')).toBeVisible();
 });

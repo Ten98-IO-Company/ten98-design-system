@@ -23,8 +23,10 @@
 
   /* A report toolbar prints only its applied-scope summary, not its controls or advanced filters. */
   .t98-report-toolbar > :not(:has(.t98-report-toolbar-summary)) { display: none !important; }
-  /* Dialogs leave no backdrop or shade over the printed page. */
+  /* An open dialog is fixed in the top layer and would print on every page: the page beneath prints instead, with no
+     backdrop, unless the dialog holds the print-only region. */
   .t98-dialog::backdrop, .modal::backdrop { background: none; backdrop-filter: none; }
+  dialog:not(:has([data-print='only'])) { display: none !important; }
 
   /* The main content takes the full page width. */
   .t98-app-shell { display: block; min-height: 0; background: var(--t98-bg); }
@@ -50,6 +52,7 @@
   .t98-table tfoot { display: table-footer-group; }
   .t98-table tr { break-inside: avoid; }
   .t98-data-table--sticky .t98-table thead th { position: static; }
-  .t98-sort-button { padding: 0; border: 0; background: none; color: inherit; font: inherit; }
+  /* Plain header text: a button inside a header cell stops Chromium repeating the header on each page. */
+  .t98-sort-button { display: contents; }
   .t98-sort-button svg { display: none; }
 }
