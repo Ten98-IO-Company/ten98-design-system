@@ -1,0 +1,46 @@
+/* Print: the page content as a document, without the app around it. Loaded last so it wins over screen layout.
+   Pages choose what prints with data-print (PrintRegion): "only" prints just that region, "never" leaves it out. */
+@media print {
+  /* Light colours on white whatever the theme; the values match the light theme in tokens.css (tests/browser/print.spec.ts). */
+  :root, [data-theme], .t98-theme {
+    color-scheme: light;
+    --t98-shadow: none; --t98-shadow-raised: none; --t98-shadow-popover: none; --t98-shadow-dialog: none; --t98-shadow-panel: none;
+    --t98-bg: #FFFFFF; --t98-surface: #FFFFFF; --t98-subtle: #F2F3F5;
+    --t98-text: #1C1D21; --t98-muted: #60646C; --t98-border: #E4E5E9; --t98-border-strong: #D3D5DA; --t98-control-border: #8B8D98;
+    --t98-accent: #5943CE; --t98-accent-hover: #4C37BE; --t98-accent-soft: #F0EEFC; --t98-on-accent: #FFFFFF;
+    --t98-success: #176B49; --t98-success-soft: #EAF5EF;
+    --t98-warning: #825208; --t98-warning-soft: #FFF5DC;
+    --t98-danger: #B42318; --t98-danger-soft: #FEEDEB;
+    --t98-info: #245AA8; --t98-info-soft: #EDF4FF; --t98-overlay: rgb(16 17 20 / 40%); --t98-surface-raised: #FFFFFF; --t98-placeholder: #6B6F78; --t98-accent-active: #3D2B9C; --t98-disabled-text: #60646C; --t98-disabled-surface: #F2F3F5; --t98-focus: #5943CE; --t98-chart-1: #5943CE; --t98-chart-2: #14796F; --t98-chart-3: #926008; --t98-chart-4: #9A417F; --t98-chart-5: #60646C; --t98-chart-grid: #EDEEF1; --t98-chart-axis: #C1C3CA; --t98-chart-accent-muted: #8C80E0;
+  }
+  html, body { margin: 0; background: var(--t98-bg); color: var(--t98-text); }
+
+  /* App chrome, navigation, toolbars, action bars, key hints and controls only work on screen. */
+  .t98-skip-link, .t98-shell-sidebar, .t98-shell-shade, .t98-shell-header, .t98-shell-banners, .t98-sidebar-nav, .t98-section-nav, .t98-switcher,
+  .t98-table-toolbar, .t98-table-pagination, .t98-pagination-controls, .t98-table-pager, .t98-pager, .t98-table-check, .t98-table-expand, .t98-table-actions,
+  .t98-page-actions, .t98-report-actions, .t98-report-toolbar, .t98-card-actions, .t98-form-actions, .t98-key-hint,
+  .t98-button, .t98-segmented, .t98-switch, [data-print='never'] { display: none !important; }
+
+  /* The main content takes the full page width. */
+  .t98-app-shell { display: block; min-height: 0; background: var(--t98-bg); }
+  .t98-shell-workspace, .t98-shell-main { inline-size: auto; max-inline-size: none; margin: 0; padding: 0; overflow: visible; }
+
+  /* "Print only this": everything that is neither the region, inside it, nor one of its ancestors is left out. */
+  body:has([data-print='only']) :not([data-print='only'], [data-print='only'] *, :has([data-print='only'])) { display: none !important; }
+
+  /* Page and report titles head the document. */
+  .t98-page-header { display: block; margin: 0 0 12pt; padding: 0 0 6pt; border-block-end: 1pt solid var(--t98-border-strong); break-after: avoid; }
+  .t98-page-header h1 { margin: 0; font-size: 18pt; }
+  .t98-page-description { margin: 4pt 0 0; }
+  .t98-report-root { border: 0; box-shadow: none; break-inside: auto; }
+  .t98-report-root .t98-card-title { font-size: 14pt; break-after: avoid; }
+
+  /* Tables print every row the table holds, repeat their header on each page and never split a row. */
+  .t98-table-scroll, .t98-data-table--sticky .t98-table-scroll--sticky { overflow: visible; max-block-size: none; }
+  .t98-table thead { display: table-header-group; }
+  .t98-table tfoot { display: table-footer-group; }
+  .t98-table tr { break-inside: avoid; }
+  .t98-data-table--sticky .t98-table thead th { position: static; }
+  .t98-sort-button { padding: 0; border: 0; background: none; color: inherit; font: inherit; }
+  .t98-sort-button svg { display: none; }
+}

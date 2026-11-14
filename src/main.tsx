@@ -29,6 +29,7 @@ import './lib/workspace-flows.css';
 import './lib/charts.css';
 import './lib/spatial.css';
 import './lib/shortcuts.css';
+import './lib/print.css';
 import './showcase.css';
 
 const groups: { label: string; items: { name: Page; icon: string }[] }[] = [

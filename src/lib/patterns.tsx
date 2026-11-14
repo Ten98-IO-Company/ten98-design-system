@@ -1,6 +1,6 @@
 'use client';
 
-import { Children, Fragment, useCallback, useEffect, useId, useMemo, useRef, useState, type HTMLAttributes, type KeyboardEvent, type MouseEvent, type ReactNode, type RefObject, type SyntheticEvent } from 'react';
+import { Children, Fragment, useCallback, useEffect, useId, useMemo, useRef, useState, useSyncExternalStore, type HTMLAttributes, type KeyboardEvent, type MouseEvent, type ReactNode, type RefObject, type SyntheticEvent } from 'react';
 import { Badge, Button, Icon, Input, cx } from './primitives.js';
 import { Pager, StatusLine } from './controls.js';
 import { extent, linearScale, segments } from './chart-scale.js';
@@ -144,8 +144,31 @@ interface DataTableBaseProps<T> {
 export type DataTableProps<T> = DataTableBaseProps<T> & TableName;
 
 const isMissing = (value: unknown) => value == null || (typeof value === 'number' && Number.isNaN(value));
+// Printing: print media (also when emulated) or the browser's beforeprint..afterprint window. React renders the
+// store change before the print layout, because the microtask after the event handler runs first.
+let printWindow = false;
+function subscribePrinting(onChange: () => void) {
+  const media = window.matchMedia?.('print');
+  const before = () => { printWindow = true; onChange(); };
+  const after = () => { printWindow = false; onChange(); };
+  window.addEventListener('beforeprint', before);
+  window.addEventListener('afterprint', after);
+  media?.addEventListener?.('change', onChange);
+  return () => {
+    window.removeEventListener('beforeprint', before);
+    window.removeEventListener('afterprint', after);
+    media?.removeEventListener?.('change', onChange);
+  };
+}
+const isPrinting = () => printWindow || window.matchMedia?.('print').matches === true;
+/** True while the page prints, so a paged table can print all its rows. */
+function usePrinting() {
+  return useSyncExternalStore(subscribePrinting, isPrinting, () => false);
+}
 // Clicks on these inside a row belong to the control, never to row activation.
 const interactiveTarget = 'a[href],button,input,select,textarea,label,summary,[role="button"],[role="link"],[contenteditable="true"]';
+
+const ROW_PAGE = 10;
 
 export function DataTable<T>({
   columns, rows, rowKey, caption, captionHidden = true, ariaLabel, searchable = true, sortable = true, pagination = true,
@@ -182,7 +205,9 @@ export function DataTable<T>({
   const serverTotal = pageProp?.index === undefined ? undefined : pageProp.total;
   const serverSize = pageProp?.index === undefined ? 0 : pageProp.size;
   const offset = paged ? (currentPage - 1) * size : (serverIndex ?? 0) * serverSize;
-  const visible = paged ? filtered.slice(offset, offset + size) : filtered;
+  // A print holds every row the table has, not just the page on screen; server pages print as supplied.
+  const printing = usePrinting();
+  const visible = paged && !printing ? filtered.slice(offset, offset + size) : filtered;
   const keys = new Set(rows.map(rowKey));
   const controlledSelection = selectedKeysProp !== undefined;
   const selectedKeys = controlledSelection ? [...selectedKeysProp] : controlledPage ? selected : selected.filter(key => keys.has(key));
@@ -261,7 +286,9 @@ export function DataTable<T>({
       return;
     }
     const last = visibleKeys.length - 1;
+    // PageUp and PageDown move ten rows (APG grid: an author-chosen step), stopping at the first and last row shown.
     const target = event.key === 'ArrowDown' ? Math.min(index + 1, last) : event.key === 'ArrowUp' ? Math.max(index - 1, 0)
+      : event.key === 'PageDown' ? Math.min(index + ROW_PAGE, last) : event.key === 'PageUp' ? Math.max(index - ROW_PAGE, 0)
       : event.key === 'Home' ? 0 : event.key === 'End' ? last : undefined;
     if (target === undefined) return;
     event.preventDefault();
@@ -472,6 +499,16 @@ export function PageHeader({ eyebrow, title, description, actions }: { eyebrow?:
     {eyebrow && <p className="t98-eyebrow">{eyebrow}</p>}
     <h1>{title}</h1>{description != null && description !== '' && <p className="t98-page-description">{description}</p>}
   </div>{actions && <div className="t98-page-actions">{actions}</div>}</header>;
+}
+
+export interface PrintRegionProps {
+  /** only: a browser print shows just this region (for example one report on a dashboard). never: it is left out of prints. */
+  print?: 'only' | 'never';
+  children: ReactNode;
+}
+/** Marks what a browser print includes. It adds no box on screen. */
+export function PrintRegion({ print = 'only', children }: PrintRegionProps) {
+  return <div data-print={print} style={{ display: 'contents' }}>{children}</div>;
 }
 
 export function EmptyState({ title, description, icon = 'inbox', action }: { title: string; description?: ReactNode; icon?: string; action?: ReactNode }) {
