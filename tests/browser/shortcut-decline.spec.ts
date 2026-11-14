@@ -1,9 +1,13 @@
 import { expect, test, type Locator } from '@playwright/test';
 
 // A command can decline a key press, so the key does what it would do with nothing bound. Runs in Chromium and WebKit.
-const press = (field: Locator, init: { key: string; repeat?: boolean; ctrlKey?: boolean }) => field.evaluate((node, { key, repeat = false, ctrlKey = false }) => {
+const press = (field: Locator, init: { key: string; repeat?: boolean; ctrlKey?: boolean }) => field.evaluate(async (node, { key, repeat = false, ctrlKey = false }) => {
   const event = new KeyboardEvent('keydown', { key, repeat, ctrlKey, bubbles: true, cancelable: true });
-  node.dispatchEvent(event);
+  // A throwing command surfaces as an error event; keep it from failing the evaluation.
+  const swallow = (error: ErrorEvent) => error.preventDefault();
+  window.addEventListener('error', swallow);
+  try { node.dispatchEvent(event); } finally { window.removeEventListener('error', swallow); }
+  await Promise.resolve();
   return event.defaultPrevented;
 }, init);
 
@@ -38,4 +42,17 @@ test('a held repeat of a handled press stays prevented, and a disabled command l
   await expect(first).toHaveValue('kept');
   expect(await press(first, { key: 'k', ctrlKey: true })).toBe(false);
   expect(await page.evaluate(() => window.ran)).toEqual(['back']);
+});
+
+test('a command that throws still cancels its key, and declining after run has returned is ignored', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', error => errors.push(error.message));
+  await page.goto('/tests/shortcut-decline.html');
+  const second = page.getByRole('textbox', { name: 'Second' });
+  await second.focus();
+  // Ctrl+S runs a command that throws: the browser's save must not open.
+  expect(await press(second, { key: 's', ctrlKey: true })).toBe(true);
+  // Ctrl+P declines from a microtask, after run returned: still cancelled.
+  expect(await press(second, { key: 'p', ctrlKey: true })).toBe(true);
+  expect(await page.evaluate(() => window.ran)).toEqual(['fail', 'late']);
 });

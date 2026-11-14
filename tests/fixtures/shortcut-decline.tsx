@@ -14,12 +14,16 @@ function Commands({ previous }: { previous: () => void }) {
     else press?.decline();
   } });
   useCommand({ id: 'field.clear', label: 'Clear', enabled: false, run: () => window.ran.push('clear') });
+  // A failing command: its key is still cancelled.
+  useCommand({ id: 'field.fail', label: 'Fail', run: () => { window.ran.push('fail'); throw new Error('command failed'); } });
+  // Declining too late, after run has returned, changes nothing.
+  useCommand({ id: 'field.late', label: 'Late', run: press => { window.ran.push('late'); queueMicrotask(() => press?.decline()); } });
   return null;
 }
 
 function Screen() {
   const first = useRef<HTMLInputElement>(null);
-  return <ShortcutProvider keymaps={{ classic: { 'field.back': 'Backspace', 'field.clear': 'Ctrl+K' } }}>
+  return <ShortcutProvider keymaps={{ classic: { 'field.back': 'Backspace', 'field.clear': 'Ctrl+K', 'field.fail': 'Ctrl+S', 'field.late': 'Ctrl+P' } }}>
     <Commands previous={() => first.current?.focus()} />
     <Stack as="main" gap={3}>
       <Field label="First"><Input ref={first} name="first" defaultValue="kept" /></Field>

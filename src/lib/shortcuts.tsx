@@ -302,7 +302,10 @@ export interface CommandPress {
   event: KeyboardEvent;
   /** The element the key went to: the innermost one, also inside a shadow root. */
   target: Element | null;
-  /** Lets the key do what it would do with no command bound. Held repeats of a declined press are left alone too. */
+  /**
+   * Lets the key do what it would do with no command bound. Held repeats of a declined press are left alone too. Call it
+   * while run runs: a call after run returns (from a promise or a timer) is ignored, and the key stays cancelled.
+   */
   decline: () => void;
 }
 export interface ShortcutCommand {
@@ -443,10 +446,16 @@ class ShortcutStore {
       if (this.declined !== chord) event.preventDefault();
       return;
     }
-    let declined = false;
-    record.run({ event, target, decline: () => { declined = true; } });
-    this.declined = declined ? chord : undefined;
-    if (!declined) event.preventDefault();
+    let declined = false, running = true;
+    try {
+      record.run({ event, target, decline: () => { if (running) declined = true; } });
+    } finally {
+      // Cancelled unless declined, also when the command throws: an F5, Ctrl+P or Ctrl+S command that fails must not
+      // reload, print or open the browser's save dialog.
+      running = false;
+      this.declined = declined ? chord : undefined;
+      if (!declined) event.preventDefault();
+    }
   };
 }
 
