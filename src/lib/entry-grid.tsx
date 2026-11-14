@@ -434,7 +434,8 @@ export function EntryGrid({ label, columns, rows, onRowsChange, createRow, error
     const target = event.target as HTMLElement;
     const column = columns[current.column];
     if (editing) {
-      if (event.ctrlKey || event.altKey || event.metaKey) return;
+      // keyCode 229 is a key the input method owns, including the Enter Safari sends to end a composition.
+      if (event.ctrlKey || event.altKey || event.metaKey || event.keyCode === 229) return;
       if (event.key === 'Enter') { event.preventDefault(); advance(1, 'Enter'); }
       else if (event.key === 'Tab') { if (advance(event.shiftKey ? -1 : 1, 'Tab')) event.preventDefault(); }
       else if (event.key === 'Escape') { event.preventDefault(); cancel(); }

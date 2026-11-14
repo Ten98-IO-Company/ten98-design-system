@@ -361,3 +361,29 @@ test('clicking another cell drops invalid text together with its error', async (
   await expect(cell(page, 1, 'Amount')).not.toContainText('Use up to 2 decimal places.');
   expect((await rows(page))[0].amount).toBeUndefined();
 });
+
+test('the Enter that ends an IME composition (keyCode 229) does not commit or advance a cell', async ({ page }) => {
+  await enterGrid(page);
+  for (let i = 0; i < 5; i++) await page.keyboard.press('ArrowRight');
+  await page.keyboard.type('Note');
+  // Safari ends a composition with an Enter keydown that reports keyCode 229 but isComposing false.
+  const imeEnter = (input: HTMLElement) => {
+    const event = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true });
+    Object.defineProperty(event, 'keyCode', { get: () => 229 });
+    input.dispatchEvent(event);
+  };
+  await editor(page, 'Memo', 1).evaluate(imeEnter);
+  await expect(editor(page, 'Memo', 1)).toBeFocused();
+  expect((await rows(page))[0].memo).toBeUndefined();
+  // The same in a lookup cell, which shares the combobox.
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('Home');
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.type('Cash');
+  await editor(page, 'Account', 1).evaluate(imeEnter);
+  await expect(editor(page, 'Account', 1)).toBeFocused();
+  expect((await rows(page))[0].account).toBeUndefined();
+  // A real Enter afterwards still commits.
+  await page.keyboard.press('Enter');
+  await expect(editor(page, 'Side', 1)).toBeFocused();
+});
