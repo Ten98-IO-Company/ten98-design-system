@@ -1,13 +1,10 @@
 import { expect, test, type Locator } from '@playwright/test';
 
 // A command can decline a key press, so the key does what it would do with nothing bound. Runs in Chromium and WebKit.
-const press = (field: Locator, init: { key: string; repeat?: boolean; ctrlKey?: boolean }) => field.evaluate(async (node, { key, repeat = false, ctrlKey = false }) => {
+const press = (field: Locator, init: { key: string; repeat?: boolean; ctrlKey?: boolean }) => field.evaluate((node, { key, repeat = false, ctrlKey = false }) => {
   const event = new KeyboardEvent('keydown', { key, repeat, ctrlKey, bubbles: true, cancelable: true });
-  // A throwing command surfaces as an error event; keep it from failing the evaluation.
-  const swallow = (error: ErrorEvent) => error.preventDefault();
-  window.addEventListener('error', swallow);
-  try { node.dispatchEvent(event); } finally { window.removeEventListener('error', swallow); }
-  await Promise.resolve();
+  // A listener that throws is reported as a page error; dispatchEvent itself returns normally.
+  node.dispatchEvent(event);
   return event.defaultPrevented;
 }, init);
 
@@ -55,4 +52,6 @@ test('a command that throws still cancels its key, and declining after run has r
   // Ctrl+P declines from a microtask, after run returned: still cancelled.
   expect(await press(second, { key: 'p', ctrlKey: true })).toBe(true);
   expect(await page.evaluate(() => window.ran)).toEqual(['fail', 'late']);
+  // The failure is not swallowed: it surfaces as the page's error.
+  await expect.poll(() => errors).toEqual(['command failed']);
 });
