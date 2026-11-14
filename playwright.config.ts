@@ -20,7 +20,7 @@ export default defineConfig({
     { name: 'narrow-dark', use: { ...devices['Desktop Chrome'], viewport: { width: 320, height: 850 }, colorScheme: 'dark' } },
     // Key handling is engine-specific (key reachability, and focus hand-off in the entry grid); the rest runs on Chromium.
     { name: 'firefox', testMatch: /key-reachability\.spec\.ts/, use: { ...devices['Desktop Firefox'] } },
-    { name: 'webkit', testMatch: /(key-reachability|entry-grid(-rules)?)\.spec\.ts/, use: { ...devices['Desktop Safari'] } },
+    { name: 'webkit', testMatch: /(key-reachability|entry-grid(-rules|-voucher)?)\.spec\.ts/, use: { ...devices['Desktop Safari'] } },
   ],
   webServer: {
     command: 'node scripts/serve-browser.mjs',

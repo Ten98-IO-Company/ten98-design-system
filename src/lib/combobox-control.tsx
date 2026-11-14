@@ -40,8 +40,14 @@ export interface ComboboxControlProps extends ComboboxAsyncProps {
   picked?: ReadonlySet<string>;
   /** Highlight the first match while typing, so Enter or Tab picks it. */
   autoHighlight?: boolean;
+  /** Options whose label (or description, with matchDescription) starts with the typed text come before other matches. */
+  rankPrefix?: boolean;
   /** Tab that picks the highlighted option keeps focus, because the owner moves it (an entry grid cell). */
   keepFocusOnTabPick?: boolean;
+  /** Enter on the unfiltered list with no highlighted option closes it and is left to the owner, which may advance (an entry grid cell). */
+  passUnpickedEnter?: boolean;
+  /** Opens the list, unfiltered, whenever it changes to a new non-zero number (an entry grid cell entered with its list shown). */
+  openRequest?: number;
   /** Match typed text against option descriptions (for example a code) as well as labels. */
   matchDescription?: boolean;
   /** The typed text was dropped: the list closed without a pick, so the input shows `text` again. */
@@ -61,7 +67,19 @@ export interface ComboboxControlProps extends ComboboxAsyncProps {
   /** Rendered after the input, such as hidden form inputs. */
   children?: ReactNode;
 }
-export function ComboboxControl({ id, options, text, onType, onPick, onClear, onLeave, label, placeholder, required, disabled, emptyMessage, picked, onRemoveLast, autoHighlight = false, keepFocusOnTabPick = false, matchDescription = false, onQueryReset, notice, inputRef, inputValue, onInputValueChange, blockReason, before, children, onInputChange, filter = true, loading = false, loadError, ...described }: ComboboxControlProps) {
+/**
+ * The options matching typed text (already lower-cased), in the order shown: anywhere in the label, or the description
+ * with matchDescription; with rankPrefix, those that start with the text come first. No text shows every option.
+ */
+export function matchOptions<T extends ComboboxOption>(options: readonly T[], needle: string | undefined, { matchDescription = false, rankPrefix = false } = {}): T[] {
+  if (!needle) return [...options];
+  const matching = options.filter(option => option.label.toLowerCase().includes(needle) || (matchDescription && option.description?.toLowerCase().includes(needle)));
+  if (!rankPrefix) return matching;
+  const starts = (option: T) => option.label.toLowerCase().startsWith(needle) || (matchDescription && !!option.description?.toLowerCase().startsWith(needle));
+  return [...matching.filter(starts), ...matching.filter(option => !starts(option))];
+}
+
+export function ComboboxControl({ id, options, text, onType, onPick, onClear, onLeave, label, placeholder, required, disabled, emptyMessage, picked, onRemoveLast, autoHighlight = false, rankPrefix = false, keepFocusOnTabPick = false, passUnpickedEnter = false, openRequest = 0, matchDescription = false, onQueryReset, notice, inputRef, inputValue, onInputValueChange, blockReason, before, children, onInputChange, filter = true, loading = false, loadError, ...described }: ComboboxControlProps) {
   const generated = useId();
   const listId = `${generated}-list`;
   const optionId = (index: number) => `${generated}-option-${index}`;
@@ -75,13 +93,14 @@ export function ComboboxControl({ id, options, text, onType, onPick, onClear, on
   const query = inputValue !== undefined ? (inputValue === '' ? null : inputValue) : ownQuery;
   const list = useRef<HTMLUListElement>(null);
   const needle = filter ? query?.toLowerCase() : undefined;
-  const shown = needle ? options.filter(option => option.label.toLowerCase().includes(needle) || (matchDescription && option.description?.toLowerCase().includes(needle))) : options;
+  const shown = matchOptions(options, needle, { matchDescription, rankPrefix });
   const count = shown.length;
   const activeOption = open && active >= 0 && active < count ? active : -1;
 
   useEffect(() => {
     if (activeOption >= 0) list.current?.children[activeOption]?.scrollIntoView({ block: 'nearest' });
   }, [activeOption]);
+  useEffect(() => { if (openRequest) setOpen(true); }, [openRequest]);
 
   function type(typed: string | null) {
     if (inputValue !== undefined) { if (typed !== null) onInputValueChange?.(typed); return; }
@@ -112,6 +131,7 @@ export function ComboboxControl({ id, options, text, onType, onPick, onClear, on
         return;
       case 'Enter':
         if (!open) return;
+        if (activeOption < 0 && passUnpickedEnter && query === null) { close(); return; }
         event.preventDefault();
         if (activeOption >= 0) accept(shown[activeOption]); else close();
         return;

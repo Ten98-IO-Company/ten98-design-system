@@ -63,6 +63,9 @@
 .t98-entry-grid--quantity .t98-entry-grid__value,
 .t98-entry-grid--amount .t98-entry-grid__editor,
 .t98-entry-grid--quantity .t98-entry-grid__editor { direction: ltr; text-align: end; unicode-bidi: plaintext; }
+/* Footer figures read left to right on right-to-left pages too, so "debit / credit" keeps its order. */
+.t98-entry-grid__total.t98-entry-grid--amount,
+.t98-entry-grid__total.t98-entry-grid--quantity { direction: ltr; unicode-bidi: isolate; }
 .t98-entry-grid--lookup { min-inline-size: 12rem; }
 .t98-entry-grid--date { min-inline-size: 9rem; }
 .t98-entry-grid--side { min-inline-size: 6rem; }
