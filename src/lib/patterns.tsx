@@ -150,11 +150,16 @@ interface DataTableBaseProps<T> {
    * Renders only the rows in view, for thousands of one-line rows, in a scroll box with a sticky header (24rem tall).
    * Keyboard movement, the accessible row count and position, and print stay complete. Rows must share one height: it
    * has no effect with rowDetail, wrapping columns or responsive="stack", and rows of different heights turn it off
-   * (with a development warning). Print renders every row, which takes seconds for tens of thousands of rows (about
-   * 8 s for 50,000 in Chromium); print larger statements as a document made by the server.
+   * (with a development warning). Print renders every row up to printRowLimit.
    */
   virtualize?: boolean;
+  /**
+   * A virtualized table with more rows than this prints a notice to use the app's export instead of its rows, because
+   * rendering tens of thousands of rows blocks the page for seconds (about 8 s for 50,000) and can fail. Default 5,000.
+   */
+  printRowLimit?: number;
 }
+const PRINT_ROW_LIMIT = 5000;
 export type DataTableProps<T> = DataTableBaseProps<T> & TableName;
 export interface DataTableApi {
   /** Focuses an activatable table's row by key, turning to its page or scrolling it into view. False when no shown row has the key. */
@@ -200,7 +205,7 @@ export function DataTable<T>({
   columns, rows, rowKey, caption, captionHidden = true, ariaLabel, searchable = true, sortable = true, pagination = true,
   searchPlaceholder = 'Search records…', pageSize = 5, selectable = false, selectionLabel, selectionDisabled = false, selectedKeys: selectedKeysProp, onSelectionChange, activeKey, onRowActivate, rowDetail, expandedKeys: expandedKeysProp, onExpandedChange, emptyTitle = 'No records found', emptyDescription, emptyState,
   sort: sortProp, onSortChange, sortDisabled = false, sortLabel, page: pageProp, onPageChange, search: searchProp, onSearchChange, rowActions, rowActionsLabel = 'Actions',
-  loading = false, unavailable, stickyHeader = false, footerCells, density = 'comfortable', responsive = 'scroll', pageStep, onPageEdge, apiRef, virtualize = false,
+  loading = false, unavailable, stickyHeader = false, footerCells, density = 'comfortable', responsive = 'scroll', pageStep, onPageEdge, apiRef, virtualize = false, printRowLimit = PRINT_ROW_LIMIT,
 }: DataTableProps<T>) {
   const [localQuery, setQuery] = useState('');
   const [localSort, setSort] = useState<TableSort>();
@@ -259,7 +264,9 @@ export function DataTable<T>({
   const end = windowed ? Math.min(visible.length, first + Math.ceil((view.height || 600) / rowHeight) + OVERSCAN * 2) : visible.length;
   // The focused row stays rendered outside the window, so scrolling it away never drops focus to the page.
   const focusedIndex = windowed && focusKey !== undefined ? visibleKeys.indexOf(focusKey) : -1;
-  const renderedIndexes = windowed
+  // Too many rows to print from the page: the print shows a notice instead (printRowLimit).
+  const printTooLarge = virtualize && printing && visible.length > printRowLimit;
+  const renderedIndexes = printTooLarge ? [] : windowed
     ? [...(focusedIndex >= 0 && focusedIndex < first ? [focusedIndex] : []), ...Array.from({ length: end - first }, (_, offset) => first + offset), ...(focusedIndex >= end ? [focusedIndex] : [])]
     : visible.map((_, index) => index);
   const renderedKeys = renderedIndexes.map(index => visibleKeys[index]);
@@ -281,8 +288,11 @@ export function DataTable<T>({
         warnInDevelopment(`@ten98/ui DataTable "${name}": virtualize needs rows of one height; rows differ, so every row is rendered.`);
         setUneven(true);
       } else {
-        const size = { height: box.clientHeight, head: head.current?.offsetHeight ?? 0, row: heights[0] || view.row };
-        if (size.height !== view.height || size.head !== view.head || size.row !== view.row) setView(current => ({ ...current, ...size }));
+        // Sizes settle: the row height is the tallest rendered row (collapsed borders make the first one half a pixel
+        // shorter in WebKit), and a change under a pixel is ignored, so moving the window never re-measures in a loop.
+        const size = { height: box.clientHeight, head: head.current?.offsetHeight ?? 0, row: heights.length ? Math.max(...heights) : view.row };
+        const moved = (from: number, to: number) => Math.abs(from - to) >= 1;
+        if (moved(size.height, view.height) || moved(size.head, view.head) || (size.row && (!view.row || moved(size.row, view.row)))) setView(current => ({ ...current, ...size }));
       }
     }
     const key = pendingFocus.current;
@@ -292,7 +302,8 @@ export function DataTable<T>({
   /** Focuses a row; in a windowed table it scrolls just into view below the sticky header (scroll padding). */
   function reveal(node: HTMLTableRowElement) {
     node.focus({ preventScroll: windowed });
-    if (windowed) node.scrollIntoView({ block: 'nearest' });
+    // The window follows at once rather than on the next scroll event, so Home or End move both together.
+    if (windowed) { node.scrollIntoView({ block: 'nearest' }); readScroll(); }
   }
   const alignOf = (column: DataColumn<T>) => column.align ?? (column.numeric ? 'end' : 'start');
   const cellClass = (column: DataColumn<T>) => cx(
@@ -453,6 +464,9 @@ export function DataTable<T>({
           {rowActions && <th scope="col" className="t98-table-actions" role={role('columnheader')}><span className="t98-visually-hidden">{rowActionsLabel}</span></th>}
         </tr></thead>
         <tbody role={role('rowgroup')}>
+          {printTooLarge && !hasUnavailable && <tr className="t98-table-print-limit"><td colSpan={columnCount}>
+            {`This table has ${visible.length.toLocaleString()} rows, more than the ${printRowLimit.toLocaleString()} that print from the page. Use the export to print it in full.`}
+          </td></tr>}
           {!hasUnavailable && renderedIndexes.map((index, position) => {
             const row = visible[index];
             const key = rowKey(row);

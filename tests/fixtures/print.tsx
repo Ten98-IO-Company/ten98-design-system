@@ -10,7 +10,8 @@ document.documentElement.dataset.theme = params.get('theme') || 'light';
 interface Line { id: string; account: string; balance: number }
 const line = (prefix: string, index: number): Line => ({ id: `${prefix}${index + 1}`, account: `Account ${index + 1}`, balance: (index + 1) * 100 });
 const lines: Line[] = Array.from({ length: 25 }, (_, index) => line('a', index));
-const statement: Line[] = Array.from({ length: 3000 }, (_, index) => line('s', index));
+// ?rows= sets the statement's size for stress and print-limit checks.
+const statement: Line[] = Array.from({ length: Number(params.get('rows')) || 3000 }, (_, index) => line('s', index));
 const ledger: Line[] = Array.from({ length: 30 }, (_, index) => line('p', index));
 const columns: DataColumn<Line>[] = [{ key: 'account', header: 'Account', rowHeader: true }, { key: 'balance', header: 'Balance', numeric: true }];
 // One taller row: virtualize cannot window rows of different heights, so it renders them all.

@@ -172,3 +172,15 @@ test('an open dialog is left out of the print', async ({ page }) => {
   await expect(page.getByText('Open dialog')).toBeHidden();
   await expect(page.getByText('Trial balance')).toBeVisible();
 });
+
+test('a virtualized table over its print limit prints a notice to use the export instead of its rows', async ({ page }) => {
+  await page.goto('/tests/print.html?rows=6000');
+  await page.emulateMedia({ media: 'print' });
+  const statement = page.getByRole('table', { name: 'Statement' });
+  await expect(statement.locator('tbody tr')).toHaveCount(1);
+  await expect(statement.locator('tbody')).toHaveText('This table has 6,000 rows, more than the 5,000 that print from the page. Use the export to print it in full.');
+  // The other tables still print all their rows, and the screen is unchanged afterwards.
+  await expect(bodyRows(page, 'Balances')).toHaveCount(12);
+  await page.emulateMedia({ media: 'screen' });
+  await expect(statement.locator('tbody tr[aria-rowindex]').first()).toHaveAttribute('aria-rowindex', '2');
+});

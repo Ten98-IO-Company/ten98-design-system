@@ -97,3 +97,21 @@ test('a page edge is reported once per key press, not for a held key or while lo
   await page.keyboard.press('PageDown');
   expect(await page.evaluate(() => window.edges)).toEqual([]);
 });
+
+for (const rows of [5000, 50000]) for (const pause of [30, 0]) {
+  test(`wheeling 100px sixty times, ${pause ? `${pause}ms apart` : 'with no wait'}, through ${rows} rows keeps the table mounted`, async ({ page }) => {
+    const errors = watchErrors(page);
+    await page.goto(`/tests/print.html?rows=${rows}`);
+    const box = table(page, 'Statement').locator('xpath=..');
+    await box.hover();
+    for (let step = 0; step < 60; step++) {
+      await page.mouse.wheel(0, 100);
+      if (pause) await page.waitForTimeout(pause);
+    }
+    await expect.poll(() => box.evaluate(node => node.scrollTop)).toBeGreaterThan(3000);
+    await expect.poll(async () => Number(await bodyRows(page, 'Statement').first().getAttribute('aria-rowindex'))).toBeGreaterThan(40);
+    await expect(table(page, 'Statement')).toHaveAttribute('aria-rowcount', String(rows + 2));
+    expect(await bodyRows(page, 'Statement').count()).toBeLessThan(100);
+    expect(errors).toEqual([]);
+  });
+}
