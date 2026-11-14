@@ -247,8 +247,10 @@ export interface EntryGridApi {
    * Commits the active cell's typed text; save and post commands call it first. Returns false, keeping the text, its
    * error and focus, when the text is invalid. onRowsChange has already run when it returns true, so read the rows the
    * app received there (for example from a ref), not from state captured before the call. Empty required cells pass.
-   * Typed lookup text stores the option its open list highlights; with none highlighted, text that names no option
-   * exactly is invalid ("Choose from the list."). Emptied lookup text stores an empty value.
+   * Typed lookup text stores the option its open list highlights. Emptied text stores an empty value, even if an option
+   * was highlighted by arrow keys. With none highlighted, the text is matched exactly: a label or code, and failing that
+   * an option's value; text that names none is invalid ("Choose from the list."). Leaving the cell matches only a label
+   * or code, so text equal to an option's value alone is reported there.
    */
   commit: () => boolean;
   /** Removes a row (default: the active one); focus stays in the grid. */
