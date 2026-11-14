@@ -265,6 +265,8 @@ export function EntryGrid({ label, columns, rows, onRowsChange, createRow, error
     const editor = focus === 'editor' ? editorOf(current) : undefined;
     if (editor) {
       editor.focus();
+      // WebKit's multi-field date input takes focus without a focusin event, so onCellFocus may not run.
+      if (!editing) setEditing(true);
       if (editor instanceof HTMLInputElement && editor.type !== 'date') editor.select();
     } else (document.getElementById(cellId(current)) ?? document.getElementById(emptyId))?.focus();
   });
@@ -436,7 +438,9 @@ export function EntryGrid({ label, columns, rows, onRowsChange, createRow, error
     if (event.defaultPrevented || event.nativeEvent.isComposing) return;
     const target = event.target as HTMLElement;
     const column = columns[current.column];
-    if (editing) {
+    // An editor can hold focus without the grid hearing focusin (WebKit's date input), so the key's target counts too.
+    if (editing || (target !== event.currentTarget && target.matches(EDITOR))) {
+      if (!editing) setEditing(true);
       // keyCode 229 is a key the input method owns, including the Enter Safari sends to end a composition.
       if (event.ctrlKey || event.altKey || event.metaKey || event.keyCode === 229) return;
       if (event.key === 'Enter') { event.preventDefault(); advance(1, 'Enter'); }
@@ -503,7 +507,8 @@ export function EntryGrid({ label, columns, rows, onRowsChange, createRow, error
   function onCellBlur(event: FocusEvent<HTMLTableCellElement>) {
     // Leaving the editor for its own cell (Escape) or within it keeps editing state as set; leaving the cell commits.
     if (event.target === event.currentTarget || event.currentTarget.contains(event.relatedTarget)) return;
-    if (editing) commit();
+    // Typed text commits even when the editor took focus without a focusin (WebKit's date input).
+    if (editing || draftRef.current !== null) commit();
     setEditing(false);
   }
   function onCellClick(event: MouseEvent<HTMLTableCellElement>, cell: EntryCell) {

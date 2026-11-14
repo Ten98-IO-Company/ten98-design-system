@@ -422,3 +422,19 @@ test('a key pressed right after an advance reaches the next cell: select, text, 
     { side: 'credit', account: 'petty-cash', amount: '7.00' },
   ]);
 });
+
+test('a date cell edits, advances and commits on leaving, also where the date input gives the grid no focusin', async ({ page }) => {
+  await enterGrid(page);
+  await page.keyboard.press('Enter');
+  await expect(editor(page, 'Date', 1)).toBeFocused();
+  // Enter in the empty optional date advances: the grid knows the editor has focus.
+  await page.keyboard.press('Enter');
+  await expect(editor(page, 'Account', 1)).toBeFocused();
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('Home');
+  // A date set in the focused editor commits when focus leaves the grid.
+  await page.keyboard.press('Enter');
+  await editor(page, 'Date', 1).fill('2026-03-15');
+  await page.getByRole('textbox', { name: 'Reference' }).click();
+  expect((await rows(page))[0].date).toBe('2026-03-15');
+});
