@@ -8,4 +8,4 @@ const css = file => readFileSync(`src/lib/${file}`, 'utf8').replace("@import './
 for (const file of readdirSync('src/lib').filter(name => name.endsWith('.css'))) writeFileSync(`dist/${file}`, css(file));
 // tokens.css and styles.css load the self-hosted font from ./fonts next to them.
 cpSync('src/lib/fonts', 'dist/fonts', { recursive: true });
-writeFileSync('dist/styles.css', ['tokens.css', 'primitives.css', 'patterns.css', 'workspace.css', 'products.css', 'navigation.css', 'structure.css', 'shell.css', 'controls.css', 'account-flows.css', 'workspace-flows.css', 'charts.css', 'spatial.css', 'shortcuts.css'].map(css).join('\n'));
+writeFileSync('dist/styles.css', ['tokens.css', 'primitives.css', 'patterns.css', 'workspace.css', 'products.css', 'navigation.css', 'structure.css', 'shell.css', 'controls.css', 'account-flows.css', 'workspace-flows.css', 'charts.css', 'spatial.css', 'shortcuts.css', 'entry-grid.css'].map(css).join('\n'));
