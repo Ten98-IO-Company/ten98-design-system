@@ -330,7 +330,12 @@ export interface CommandOptions {
   label: string;
   /** Optional heading for help lists and palettes. */
   group?: string;
-  run: () => void;
+  /**
+   * Runs the command. From a key press it receives the press; calling decline() leaves the key to the browser and the
+   * focused element, as if nothing were bound, for example Backspace that moves to the previous field only when this
+   * one is empty. Menus and palettes call it without a press.
+   */
+  run: (press?: CommandPress) => void;
   /** A disabled command still claims its chord in its scope, but does nothing. Defaults to true. */
   enabled?: boolean;
   /** Chords used when the active keymap does not bind this id, optionally by platform. */
@@ -344,6 +349,16 @@ export interface CommandOptions {
   matchPhysicalKey?: boolean;
   /** Run again while the key is held. Defaults to false. */
   repeat?: boolean;
+}
+export interface CommandPress {
+  event: KeyboardEvent;
+  /** The element the key went to: the innermost one, also inside a shadow root. */
+  target: Element | null;
+  /**
+   * Lets the key do what it would do with no command bound. Held repeats of a declined press are left alone too. Call it
+   * while run runs: a call after run returns (from a promise or a timer) is ignored, and the key stays cancelled.
+   */
+  decline: () => void;
 }
 export interface ShortcutCommand {
   id: string;
@@ -393,6 +408,8 @@ class ShortcutStore {
   private boundPhysical = new Set<string>();
   private conflictCheck = false;
   private warned = new Set<string>();
+  // The chord whose last press a command declined, so its held repeats are left to the browser as well.
+  private declined: string | undefined;
   subscribe = (listener: () => void) => { this.listeners.add(listener); return () => { this.listeners.delete(listener); }; };
   getSnapshot = () => {
     if (this.dirty) {
@@ -484,8 +501,20 @@ class ShortcutStore {
     const match = resolveShortcut({ chord, scopes: this.activeScopes(target), commands, target: targetKind(target), popupOpen: ownsOpenPopup(target), physicalChord, repeat: event.repeat });
     const record = match && this.commands.get(match.command.id);
     if (!record) return;
-    event.preventDefault();
-    if (match.run) record.run();
+    if (!match.run) {
+      if (this.declined !== chord) event.preventDefault();
+      return;
+    }
+    let declined = false, running = true;
+    try {
+      record.run({ event, target, decline: () => { if (running) declined = true; } });
+    } finally {
+      // Cancelled unless declined, also when the command throws: an F5, Ctrl+P or Ctrl+S command that fails must not
+      // reload, print or open the browser's save dialog.
+      running = false;
+      this.declined = declined ? chord : undefined;
+      if (!declined) event.preventDefault();
+    }
   };
 }
 
@@ -564,7 +593,7 @@ export function useCommand({ id, label, group, run, enabled = true, keys, allowI
   const defaults = JSON.stringify(keys ?? []);
   useEffect(() => {
     if (!store) return;
-    store.commands.set(uid, { uid, id, label, group, scope, enabled, allowInTextInput, repeat, matchPhysicalKey, run: () => handler.current(), defaults: JSON.parse(defaults) as KeymapEntry });
+    store.commands.set(uid, { uid, id, label, group, scope, enabled, allowInTextInput, repeat, matchPhysicalKey, run: press => handler.current(press), defaults: JSON.parse(defaults) as KeymapEntry });
     store.changed();
   }, [store, uid, id, label, group, scope, enabled, allowInTextInput, repeat, matchPhysicalKey, defaults]);
   // Updating in place (above) keeps registration order, which decides the winner of a reported conflict.
