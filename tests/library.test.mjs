@@ -360,6 +360,14 @@ test('styles.css bundles every component stylesheet in src/lib', () => {
   for (const file of readdirSync(new URL('../src/lib/', import.meta.url)).filter(name => name.endsWith('.css') && !entryPoints.has(name))) assert.ok(bundled.includes(file), `styles.css bundles ${file}`);
 });
 
+test('product.css, the stylesheet established apps import, includes every stylesheet styles.css bundles', () => {
+  const build = readFileSync(new URL('../scripts/build.mjs', import.meta.url), 'utf8');
+  const bundled = [...build.match(/writeFileSync\('dist\/styles\.css', \[([^\]]+)\]/)[1].matchAll(/'([^']+\.css)'/g)].map(match => match[1]);
+  const product = readFileSync(new URL('../src/lib/product.css', import.meta.url), 'utf8');
+  const imported = [...product.matchAll(/@import '\.\/([^']+\.css)';/g)].map(match => match[1]);
+  assert.deepEqual(bundled.filter(file => !imported.includes(file)), [], 'product.css imports every bundled stylesheet');
+});
+
 test('shipped sources, README and notices use LF only, so npm pack is byte-identical on every OS', () => {
   const offenders = [];
   const walk = url => { for (const entry of readdirSync(url, { withFileTypes: true })) {
