@@ -1,6 +1,6 @@
 'use client';
 
-import { Children, Fragment, useCallback, useEffect, useId, useMemo, useRef, useState, useSyncExternalStore, type HTMLAttributes, type KeyboardEvent, type MouseEvent, type ReactNode, type RefObject, type SyntheticEvent } from 'react';
+import { Children, Fragment, useCallback, useEffect, useId, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type HTMLAttributes, type KeyboardEvent, type MouseEvent, type ReactNode, type Ref, type RefObject, type SyntheticEvent } from 'react';
 import { Badge, Button, Icon, Input, cx } from './primitives.js';
 import { Pager, StatusLine } from './controls.js';
 import { extent, linearScale, segments } from './chart-scale.js';
@@ -140,8 +140,27 @@ interface DataTableBaseProps<T> {
   density?: 'comfortable' | 'compact';
   /** `stack` shows each row as label/value pairs below 600px; table semantics are kept. */
   responsive?: 'scroll' | 'stack';
+  /** Rows PageUp and PageDown move focus in an activatable table. Defaults to the rows in view when virtualized, else 10. */
+  pageStep?: number;
+  /** Arrow or Page keys moved past the last ('next') or first ('previous') row, for example to load a server page and then focusRow. */
+  onPageEdge?: (direction: 'next' | 'previous') => void;
+  /** focusRow for app code and commands: no querying of table rows. */
+  apiRef?: Ref<DataTableApi>;
+  /**
+   * Renders only the rows in view, for thousands of one-line rows, in a scroll box with a sticky header (24rem tall).
+   * Keyboard movement, the accessible row count and position, and print stay complete. Rows must share one height, so
+   * it has no effect with rowDetail, wrapping columns or responsive="stack".
+   */
+  virtualize?: boolean;
 }
 export type DataTableProps<T> = DataTableBaseProps<T> & TableName;
+export interface DataTableApi {
+  /** Focuses an activatable table's row by key, turning to its page or scrolling it into view. False when no shown row has the key. */
+  focusRow: (key: string) => boolean;
+}
+// Focus and measurements must land before paint; server rendering has no layout.
+const useClientLayoutEffect = typeof document === 'undefined' ? useEffect : useLayoutEffect;
+const OVERSCAN = 8;
 
 const isMissing = (value: unknown) => value == null || (typeof value === 'number' && Number.isNaN(value));
 // Printing: print media (also when emulated) or the browser's beforeprint..afterprint window. React renders the
@@ -174,7 +193,7 @@ export function DataTable<T>({
   columns, rows, rowKey, caption, captionHidden = true, ariaLabel, searchable = true, sortable = true, pagination = true,
   searchPlaceholder = 'Search records…', pageSize = 5, selectable = false, selectionLabel, selectionDisabled = false, selectedKeys: selectedKeysProp, onSelectionChange, activeKey, onRowActivate, rowDetail, expandedKeys: expandedKeysProp, onExpandedChange, emptyTitle = 'No records found', emptyDescription, emptyState,
   sort: sortProp, onSortChange, sortDisabled = false, sortLabel, page: pageProp, onPageChange, search: searchProp, onSearchChange, rowActions, rowActionsLabel = 'Actions',
-  loading = false, unavailable, stickyHeader = false, footerCells, density = 'comfortable', responsive = 'scroll',
+  loading = false, unavailable, stickyHeader = false, footerCells, density = 'comfortable', responsive = 'scroll', pageStep, onPageEdge, apiRef, virtualize = false,
 }: DataTableProps<T>) {
   const [localQuery, setQuery] = useState('');
   const [localSort, setSort] = useState<TableSort>();
@@ -183,6 +202,10 @@ export function DataTable<T>({
   const [localExpanded, setLocalExpanded] = useState<string[]>([]);
   const [focusKey, setFocusKey] = useState<string>();
   const rowRefs = useRef(new Map<string, HTMLTableRowElement>());
+  const pendingFocus = useRef<string>(undefined);
+  const scrollBox = useRef<HTMLDivElement>(null);
+  const head = useRef<HTMLTableSectionElement>(null);
+  const [view, setView] = useState({ top: 0, height: 0, head: 0, row: 0 });
   const selectAll = useRef<HTMLInputElement>(null);
   const searchId = useId();
   const name = caption ?? ariaLabel;
@@ -221,8 +244,29 @@ export function DataTable<T>({
   const detailBase = useId();
   const expandedSet = new Set(expandedKeysProp ?? localExpanded);
   const activatable = onRowActivate !== undefined;
-  // One roving tab stop: the last focused row, else the active row, else the first.
-  const tabKey = [focusKey, activeKey].find(key => key !== undefined && visibleKeys.includes(key)) ?? visibleKeys[0];
+  // Windowing: only the rows in the scroll box (plus a margin) are rendered, between spacer rows of the same height.
+  const windowed = virtualize && !printing && !rowDetail && !stack && !shown.some(column => column.wrap);
+  const rowHeight = view.row || 40;
+  const first = windowed ? Math.max(0, Math.floor(Math.max(0, view.top - view.head) / rowHeight) - OVERSCAN) : 0;
+  const end = windowed ? Math.min(visible.length, first + Math.ceil((view.height || 600) / rowHeight) + OVERSCAN * 2) : visible.length;
+  const rendered = windowed ? visible.slice(first, end) : visible;
+  const renderedKeys = windowed ? visibleKeys.slice(first, end) : visibleKeys;
+  // One roving tab stop: the last focused row, else the active row, else the first rendered.
+  const tabKey = [focusKey, activeKey].find(key => key !== undefined && renderedKeys.includes(key)) ?? renderedKeys[0];
+  const step = pageStep !== undefined && pageStep >= 1 ? Math.floor(pageStep) : windowed && view.row ? Math.max(1, Math.floor((view.height - view.head) / view.row)) : ROW_PAGE;
+  const measure = () => {
+    const box = scrollBox.current, row = box?.querySelector<HTMLElement>('tbody > tr:not(.t98-table-spacer)');
+    if (box) setView(current => {
+      const next = { top: box.scrollTop, height: box.clientHeight, head: head.current?.offsetHeight ?? 0, row: row?.offsetHeight || current.row };
+      return next.top === current.top && next.height === current.height && next.head === current.head && next.row === current.row ? current : next;
+    });
+  };
+  useClientLayoutEffect(() => {
+    if (windowed) measure();
+    const key = pendingFocus.current;
+    const node = key === undefined ? undefined : rowRefs.current.get(key);
+    if (node) { pendingFocus.current = undefined; node.focus({ preventScroll: windowed }); }
+  });
   const alignOf = (column: DataColumn<T>) => column.align ?? (column.numeric ? 'end' : 'start');
   const cellClass = (column: DataColumn<T>) => cx(
     alignOf(column) !== 'start' && `t98-table-cell--${alignOf(column)}`, column.numeric && 't98-table-cell--numeric',
@@ -278,6 +322,35 @@ export function DataTable<T>({
     onRowActivate?.(row, rowKey(row));
   }
 
+  /** Focuses a shown row by index, scrolling a windowed table so the row is rendered and clear of the sticky header. */
+  function focusIndex(index: number) {
+    const key = visibleKeys[index];
+    if (key === undefined) return;
+    setFocusKey(key);
+    const box = scrollBox.current;
+    if (windowed && box) {
+      const top = view.head + index * rowHeight;
+      if (top < box.scrollTop + view.head) box.scrollTop = top - view.head;
+      else if (top + rowHeight > box.scrollTop + box.clientHeight) box.scrollTop = top + rowHeight - box.clientHeight;
+      measure();
+    }
+    const node = rowRefs.current.get(key);
+    if (node) node.focus({ preventScroll: windowed }); else pendingFocus.current = key;
+  }
+  function focusRow(key: string) {
+    if (!activatable) return false;
+    const index = visibleKeys.indexOf(key);
+    if (index >= 0) { focusIndex(index); return true; }
+    // A locally paged table turns to the row's page first.
+    const position = paged ? filtered.findIndex(row => rowKey(row) === key) : -1;
+    if (position < 0) return false;
+    setPage(Math.floor(position / size) + 1);
+    setFocusKey(key);
+    pendingFocus.current = key;
+    return true;
+  }
+  useImperativeHandle(apiRef, () => ({ focusRow }));
+
   function onRowKeyDown(event: KeyboardEvent<HTMLTableRowElement>, row: T, index: number) {
     if (event.target !== event.currentTarget || event.altKey || event.ctrlKey || event.metaKey) return;
     if (event.key === 'Enter' || event.key === ' ') {
@@ -286,13 +359,19 @@ export function DataTable<T>({
       return;
     }
     const last = visibleKeys.length - 1;
-    // PageUp and PageDown move ten rows (APG grid: an author-chosen step), stopping at the first and last row shown.
+    const forward = event.key === 'ArrowDown' || event.key === 'PageDown', backward = event.key === 'ArrowUp' || event.key === 'PageUp';
+    if (onPageEdge && ((forward && index === last) || (backward && index === 0))) {
+      event.preventDefault();
+      onPageEdge(forward ? 'next' : 'previous');
+      return;
+    }
+    // PageUp and PageDown move by a step (APG grid: an author-chosen number), stopping at the first and last row shown.
     const target = event.key === 'ArrowDown' ? Math.min(index + 1, last) : event.key === 'ArrowUp' ? Math.max(index - 1, 0)
-      : event.key === 'PageDown' ? Math.min(index + ROW_PAGE, last) : event.key === 'PageUp' ? Math.max(index - ROW_PAGE, 0)
+      : event.key === 'PageDown' ? Math.min(index + step, last) : event.key === 'PageUp' ? Math.max(index - step, 0)
       : event.key === 'Home' ? 0 : event.key === 'End' ? last : undefined;
     if (target === undefined) return;
     event.preventDefault();
-    rowRefs.current.get(visibleKeys[target])?.focus();
+    focusIndex(target);
   }
 
   function changeQuery(value: string) {
@@ -316,7 +395,7 @@ export function DataTable<T>({
   // Counts and pages describe settled data; while loading or unavailable they would state a total the app does not have.
   const settled = pagination && !hasUnavailable && !loading;
 
-  return <div className={cx('t98-data-table', stickyHeader && 't98-data-table--sticky', density === 'compact' && 't98-data-table--compact', stack && 't98-data-table--stack')} aria-busy={loading || undefined}>
+  return <div className={cx('t98-data-table', (stickyHeader || windowed) && 't98-data-table--sticky', density === 'compact' && 't98-data-table--compact', stack && 't98-data-table--stack')} aria-busy={loading || undefined}>
     {(searchable || pagination) && <div className="t98-table-toolbar">
       {searchable && <div className="t98-table-search">
         <label htmlFor={searchId} className="t98-visually-hidden">Search {name}</label>
@@ -329,10 +408,11 @@ export function DataTable<T>({
       </span>}
     </div>}
     {loading && <div className="t98-table-status"><StatusLine busy>Loading records…</StatusLine></div>}
-    <div className={cx('t98-table-scroll', stickyHeader && 't98-table-scroll--sticky')} tabIndex={0} role="region" aria-label={`${name} table`}>
-      <table className="t98-table" role={role('table')} aria-label={caption === undefined ? ariaLabel : undefined} aria-busy={loading || undefined}>
+    <div ref={scrollBox} className={cx('t98-table-scroll', (stickyHeader || windowed) && 't98-table-scroll--sticky')} tabIndex={0} role="region" aria-label={`${name} table`} onScroll={windowed ? measure : undefined}>
+      <table className="t98-table" role={role('table')} aria-label={caption === undefined ? ariaLabel : undefined} aria-busy={loading || undefined}
+        aria-rowcount={windowed ? count + 1 + (footerCells ? 1 : 0) : undefined}>
         {caption !== undefined && <caption className={captionHidden ? 't98-visually-hidden' : 't98-table-caption'}>{caption}</caption>}
-        <thead role={role('rowgroup')}><tr role={role('row')}>
+        <thead ref={head} role={role('rowgroup')}><tr role={role('row')} aria-rowindex={windowed ? 1 : undefined}>
           {selectable && <th className="t98-table-check" scope="col" role={role('columnheader')}>
             <label className="t98-table-checkbox-target"><input ref={selectAll} type="checkbox" checked={allChecked} disabled={selectionDisabled || visible.length === 0}
               aria-label="Select all rows on this page" onChange={togglePage} /></label>
@@ -351,11 +431,13 @@ export function DataTable<T>({
           {rowActions && <th scope="col" className="t98-table-actions" role={role('columnheader')}><span className="t98-visually-hidden">{rowActionsLabel}</span></th>}
         </tr></thead>
         <tbody role={role('rowgroup')}>
-          {!hasUnavailable && visible.map((row, index) => {
+          {windowed && first > 0 && <tr className="t98-table-spacer" aria-hidden="true"><td colSpan={columnCount} style={{ blockSize: first * rowHeight }} /></tr>}
+          {!hasUnavailable && rendered.map((row, renderIndex) => {
+            const index = first + renderIndex;
             const key = rowKey(row);
             const expanded = rowDetail !== undefined && expandedSet.has(key);
             const detailId = `${detailBase}-detail-${offset + index}`;
-            return <Fragment key={key}><tr role={role('row')} data-selected={selectedSet.has(key) || undefined}
+            return <Fragment key={key}><tr role={role('row')} aria-rowindex={windowed ? offset + index + 2 : undefined} data-selected={selectedSet.has(key) || undefined}
               // aria-current rather than aria-selected: aria-selected is not supported on a row of a native table and would blur with checkbox selection.
               aria-current={activeKey === key ? 'true' : undefined} className={activatable ? 't98-table-row--interactive' : undefined}
               ref={activatable ? node => { if (node) rowRefs.current.set(key, node); else rowRefs.current.delete(key); } : undefined}
@@ -392,6 +474,7 @@ export function DataTable<T>({
           {expanded && <tr id={detailId} className="t98-table-detail" role={role('row')}><td colSpan={columnCount} role={role('cell')}>{rowDetail(row)}</td></tr>}
           </Fragment>;
           })}
+          {windowed && end < visible.length && <tr className="t98-table-spacer" aria-hidden="true"><td colSpan={columnCount} style={{ blockSize: (visible.length - end) * rowHeight }} /></tr>}
           {/* A first load keeps the loaded table's height: decorative rows, announced only through aria-busy and the status line. */}
           {loading && !hasUnavailable && visible.length === 0 && [0, 1, 2].map(index => <tr key={index} aria-hidden="true" className="t98-table-skeleton-row">
             {Array.from({ length: columnCount }, (_, cell) => <td key={cell}><span className="t98-skeleton" /></td>)}

@@ -1,12 +1,12 @@
 /* Print: the page content as a document, without the app around it. Loaded last so it wins over screen layout.
    Pages choose what prints with data-print (PrintRegion): "only" prints just that region, "never" leaves it out. */
 @media print {
-  /* Light colours on white whatever the theme; the values match the light theme in tokens.css (tests/browser/print.spec.ts). */
+  /* Black text on white whatever the theme; the other values match the light theme in tokens.css (tests/browser/print.spec.ts). */
   :root, [data-theme], .t98-theme {
     color-scheme: light;
     --t98-shadow: none; --t98-shadow-raised: none; --t98-shadow-popover: none; --t98-shadow-dialog: none; --t98-shadow-panel: none;
     --t98-bg: #FFFFFF; --t98-surface: #FFFFFF; --t98-subtle: #F2F3F5;
-    --t98-text: #1C1D21; --t98-muted: #60646C; --t98-border: #E4E5E9; --t98-border-strong: #D3D5DA; --t98-control-border: #8B8D98;
+    --t98-text: #000000; --t98-muted: #60646C; --t98-border: #E4E5E9; --t98-border-strong: #D3D5DA; --t98-control-border: #8B8D98;
     --t98-accent: #5943CE; --t98-accent-hover: #4C37BE; --t98-accent-soft: #F0EEFC; --t98-on-accent: #FFFFFF;
     --t98-success: #176B49; --t98-success-soft: #EAF5EF;
     --t98-warning: #825208; --t98-warning-soft: #FFF5DC;
@@ -18,8 +18,13 @@
   /* App chrome, navigation, toolbars, action bars, key hints and controls only work on screen. */
   .t98-skip-link, .t98-shell-sidebar, .t98-shell-shade, .t98-shell-header, .t98-shell-banners, .t98-sidebar-nav, .t98-section-nav, .t98-switcher,
   .t98-table-toolbar, .t98-table-pagination, .t98-pagination-controls, .t98-table-pager, .t98-pager, .t98-table-check, .t98-table-expand, .t98-table-actions,
-  .t98-page-actions, .t98-report-actions, .t98-report-toolbar, .t98-card-actions, .t98-form-actions, .t98-key-hint,
+  .t98-page-actions, .t98-report-actions, .t98-report-toolbar-actions, .t98-card-actions, .t98-form-actions, .t98-key-hint,
   .t98-button, .t98-segmented, .t98-switch, [data-print='never'] { display: none !important; }
+
+  /* A report toolbar prints only its applied-scope summary, not its controls or advanced filters. */
+  .t98-report-toolbar > :not(:has(.t98-report-toolbar-summary)) { display: none !important; }
+  /* Dialogs leave no backdrop or shade over the printed page. */
+  .t98-dialog::backdrop, .modal::backdrop { background: none; backdrop-filter: none; }
 
   /* The main content takes the full page width. */
   .t98-app-shell { display: block; min-height: 0; background: var(--t98-bg); }
@@ -34,9 +39,13 @@
   .t98-page-description { margin: 4pt 0 0; }
   .t98-report-root { border: 0; box-shadow: none; break-inside: auto; }
   .t98-report-root .t98-card-title { font-size: 14pt; break-after: avoid; }
+  .t98-report-content { overflow: visible; max-block-size: none; }
 
   /* Tables print every row the table holds, repeat their header on each page and never split a row. */
-  .t98-table-scroll, .t98-data-table--sticky .t98-table-scroll--sticky { overflow: visible; max-block-size: none; }
+  .t98-table-scroll, .t98-table-scroll--sticky, .t98-data-table--sticky .t98-table-scroll--sticky { overflow: visible; max-block-size: none; }
+  /* No row tints, except the bar that marks the current row. */
+  .t98-table tbody tr, .t98-table tbody tr:hover, .t98-table tbody tr[data-selected], .t98-table thead th { background: none; }
+  .t98-table tbody tr[aria-current='true'] { background: none; box-shadow: inset 3px 0 0 var(--t98-accent); print-color-adjust: exact; }
   .t98-table thead { display: table-header-group; }
   .t98-table tfoot { display: table-footer-group; }
   .t98-table tr { break-inside: avoid; }
