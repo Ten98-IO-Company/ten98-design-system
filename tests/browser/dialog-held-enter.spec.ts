@@ -210,6 +210,11 @@ test('holding Enter in a dialog textarea types several line breaks and submits n
 
 // A key whose keyup never arrives, as for Cmd+Enter on macOS, where other keys send no keyup while Cmd is down, must not
 // swallow the next press of that key. The stuck keydown is dispatched to the page directly, so no keyup follows it.
+// The page is rendered before the stuck key goes down, so the press is not missed by a slower engine.
+const openStuckKeyFixture = async (page: Page) => {
+  await page.goto('/tests/dialog-held-enter.html');
+  await expect(page.getByRole('button', { name: 'Send test SMS', exact: true })).toBeVisible();
+};
 const dispatchKey = (page: Page, type: 'keydown' | 'keyup', key: string, metaKey = false) =>
   page.evaluate(([type, key, metaKey]) => { document.body.dispatchEvent(new KeyboardEvent(type, { key, metaKey, bubbles: true })); }, [type, key, metaKey] as const);
 async function freshEnterConfirms(page: Page) {
@@ -222,7 +227,7 @@ async function freshEnterConfirms(page: Page) {
 }
 
 test('Cmd+Enter whose Enter keyup never arrives is released with Cmd: a fresh Enter in the next dialog confirms', async ({ page }) => {
-  await page.goto('/tests/dialog-held-enter.html');
+  await openStuckKeyFixture(page);
   await dispatchKey(page, 'keydown', 'Meta', true);
   await dispatchKey(page, 'keydown', 'Enter', true);
   await dispatchKey(page, 'keyup', 'Meta');
@@ -230,7 +235,7 @@ test('Cmd+Enter whose Enter keyup never arrives is released with Cmd: a fresh En
 });
 
 test('an Enter whose keyup never arrives is released by the next key that is not a modifier', async ({ page }) => {
-  await page.goto('/tests/dialog-held-enter.html');
+  await openStuckKeyFixture(page);
   await dispatchKey(page, 'keydown', 'Enter');
   await page.keyboard.press('Shift');
   await page.keyboard.press('a');
@@ -238,7 +243,7 @@ test('an Enter whose keyup never arrives is released by the next key that is not
 });
 
 test('an Enter whose keyup never arrives is released after a second with no repeat', async ({ page }) => {
-  await page.goto('/tests/dialog-held-enter.html');
+  await openStuckKeyFixture(page);
   await dispatchKey(page, 'keydown', 'Enter');
   await page.waitForTimeout(1200);
   await freshEnterConfirms(page);
