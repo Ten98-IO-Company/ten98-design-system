@@ -15,7 +15,12 @@ export const isAccountTheme = (value: unknown): value is AccountTheme => value =
  * `storageKey: null` there is no cache and no script.
  *
  * It acts once per document. Routers may re-insert head scripts on client navigation (TanStack Start does); a re-run
- * after first paint must not overwrite the theme useTheme has applied since, so later runs do nothing.
+ * after first paint must not overwrite the theme useTheme has applied since, so later runs do nothing. It marks the
+ * document with `document.__ten98Theme`, so an element named `__ten98Theme` (`<img name>`, `<form name>`) already in
+ * the document when it first runs would make it do nothing; that cannot happen when it is first in `<head>`, as above.
+ *
+ * With the default key the script text is 228 characters. An app that allows it by CSP hash rather than nonce must
+ * recompute the hash whenever an upgrade changes the text, as the run-once guard above did.
  */
 export function createThemeScript(storageKey = themeStorageKey) {
   // Escaping the less-than sign keeps a key from closing the inline script element.
