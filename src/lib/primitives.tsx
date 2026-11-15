@@ -6,6 +6,7 @@ import {
   type OptgroupHTMLAttributes, type OptionHTMLAttributes, type ReactElement, type ReactNode, type SelectHTMLAttributes,
   type RefObject, type SVGProps, type SyntheticEvent, type TextareaHTMLAttributes,
 } from 'react';
+import { heldPresses, isActivationKey, stillHeld, trackHeldKeys } from './held-keys.js';
 
 export function cx(...values: (string | false | null | undefined)[]) {
   return values.filter(Boolean).join(' ');
@@ -296,6 +297,8 @@ export interface DialogProps { open: boolean; onOpenChange: (open: boolean) => v
    * Where focus starts when the dialog opens. first-field: the first field in the body. primary: the footer's primary
    * (or danger) button, so Enter accepts. close: the close button. A ref focuses that element. Disabled or missing
    * targets fall back to the browser's choice, the first focusable element (the close button), which is also the default.
+   * Whatever is focused, one keypress never both opens and answers the dialog: an Enter or Space still held from before it
+   * opened, and every auto-repeat, is ignored until the key is released.
    */
   initialFocus?: DialogInitialFocus }
 export type DialogInitialFocus = 'first-field' | 'primary' | 'close' | RefObject<HTMLElement | null>;
@@ -346,6 +349,47 @@ export function Dialog({ open, onOpenChange, title, description, children, foote
       if (dialog.open) dialog.close();
     }
   }, [open, modal]);
+  useEffect(trackHeldKeys, []);
+  // One keypress must never both open the dialog and answer it. An Enter or Space still held from before the dialog opened
+  // (usually the keypress that opened it) and every auto-repeat are cancelled, so they neither activate the focused button
+  // nor submit the form from a field; a fresh press after release works. Space activates a button on keyup, so a Space
+  // keyup without an accepted keydown in this dialog, and the keyboard click it would produce, are cancelled too.
+  useEffect(() => {
+    const dialog = ref.current;
+    if (!open || !dialog) return;
+    const atOpen = heldPresses();
+    let spaceAccepted = false;
+    let blockClick = false;
+    const keydown = (event: KeyboardEvent) => {
+      if (!isActivationKey(event.key)) return;
+      if (event.repeat || stillHeld(atOpen, event.key)) event.preventDefault();
+      else if (event.key === ' ') spaceAccepted = true;
+    };
+    const keyup = (event: KeyboardEvent) => {
+      if (event.key !== ' ') return;
+      if (!spaceAccepted) {
+        event.preventDefault();
+        blockClick = true;
+        setTimeout(() => { blockClick = false; });
+      }
+      spaceAccepted = false;
+    };
+    const click = (event: globalThis.MouseEvent) => {
+      // A keyboard click has detail 0; a pointer click is never blocked.
+      if (!blockClick || event.detail !== 0) return;
+      blockClick = false;
+      event.preventDefault();
+      event.stopPropagation();
+    };
+    dialog.addEventListener('keydown', keydown, true);
+    dialog.addEventListener('keyup', keyup, true);
+    dialog.addEventListener('click', click, true);
+    return () => {
+      dialog.removeEventListener('keydown', keydown, true);
+      dialog.removeEventListener('keyup', keyup, true);
+      dialog.removeEventListener('click', click, true);
+    };
+  }, [open]);
   useEffect(() => () => {
     const active = document.activeElement;
     if (!active || active === document.body || ref.current?.contains(active)) trigger.current?.focus();
