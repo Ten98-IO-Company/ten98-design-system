@@ -22,6 +22,7 @@ export * from './account-menu.js';
 export * from './structure.js';
 export * from './auth-flows.js';
 export * from './app-state.js';
+export * from './page-state.js';
 export * from './shell.js';
 export * from './controls.js';
 export * from './settings-base.js';

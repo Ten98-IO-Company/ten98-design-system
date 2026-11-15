@@ -1,6 +1,6 @@
 import type { ComponentProps, ReactNode } from 'react';
 import { AppBrand } from '../lib/app';
-import { AppStateScreen, AuthErrorBoundary, AuthFrameProvider, AuthStory, FirstUserSetupFlow, InvitationAcceptFlow, OidcProviderButtons, PasswordRecoveryFlow, SignInFlow, TwoFactorChallengeFlow, WorkspaceOnboarding } from '../lib';
+import { AppStateScreen, AuthErrorBoundary, AuthFrameProvider, AuthStory, FirstUserSetupFlow, InvitationAcceptFlow, OidcProviderButtons, PasswordRecoveryFlow, RouteErrorScreen, SignInFlow, TwoFactorChallengeFlow, WorkspaceOnboarding } from '../lib';
 import { tsx, type ComponentEntry, type ComponentProp, type ComponentState } from './model';
 
 const prop = (name: string, type: string, description: string, required = false, defaultValue?: string): ComponentProp => ({ name, type, description, required, defaultValue });
@@ -148,6 +148,18 @@ export const authFlowEntries: ComponentEntry[] = [
       state('Unconfirmed', 'The request may or may not have completed; do not assume either.', <AppStateScreen state="unconfirmed" brand={brand} onRetry={nothing} />, code(['AppStateScreen'], '<AppStateScreen state="unconfirmed" brand={<AppBrand product="Campaign" />} onRetry={() => window.location.reload()} />')),
       state('Not found', 'A missing page or record, with a link home.', <AppStateScreen state="not-found" brand={brand} homeHref="/" />, code(['AppStateScreen'], '<AppStateScreen state="not-found" brand={<AppBrand product="Campaign" />} homeHref="/" />')),
       state('Boundary', 'Shown when an unexpected render failure is caught.', <AppStateScreen state="boundary" brand={brand} onRetry={nothing} />, code(['AppStateScreen'], '<AppStateScreen state="boundary" brand={<AppBrand product="Campaign" />} onRetry={() => undefined} />')),
+    ],
+  },
+  {
+    name: 'RouteErrorScreen', category: 'Application adapters', description: 'A route’s failure inside the app shell’s content area, with retry and home actions.',
+    usage: 'Pass it as the router’s default error component, so every route failure looks the same: createRouter({ defaultErrorComponent: ({ error, reset }) => <RouteErrorScreen message={publicErrorMessage(error)} onRetry={reset} /> }), with publicErrorMessage from @ten98/runtime/start. It takes a message string and never the error itself; a value that is not a non-empty string shows the default message. Before the shell exists, use AppStateScreen.',
+    props: [prop('message', 'string', 'What happened, already safe to show. The only text taken from the failure; a reference number in it stays selectable.', true), prop('title', 'string', 'The h1.', false, 'This page stopped working'), prop('onRetry', '() => void', 'Shows the retry button, for example the router’s reset.'), prop('retryLabel', 'string', 'Retry button text.', false, 'Try again'), prop('homeHref', 'string', 'Shows a Go to home link to this address.')],
+    tokens: ['--t98-danger', '--t98-danger-soft', '--t98-text', '--t98-focus', '--t98-focus-width', '--t98-form-max'],
+    accessibility: ['The h1 takes focus when the screen mounts and shows the focus ring.', 'The message is a role=alert danger alert.', 'A section named by its heading; it adds no main landmark, because the shell already has one.'], related: ['AppStateScreen', 'Alert', 'AppShell'],
+    example: tsx(['RouteErrorScreen'], '<RouteErrorScreen message="The report could not load. Reference: 7F3A-21C9." onRetry={() => undefined} homeHref="/" />'),
+    states: [
+      state('Retry and home', 'The message with both actions.', <RouteErrorScreen message="The report could not load. Reference: 7F3A-21C9." onRetry={nothing} homeHref="/" />, tsx(['RouteErrorScreen'], '<RouteErrorScreen message="The report could not load. Reference: 7F3A-21C9." onRetry={() => undefined} homeHref="/" />')),
+      state('Default message', 'A message that is not a non-empty string shows the default copy.', <RouteErrorScreen message="" onRetry={nothing} />, tsx(['RouteErrorScreen'], '<RouteErrorScreen message="" onRetry={() => undefined} />')),
     ],
   },
   {
