@@ -5,7 +5,7 @@ import { Alert, Badge, Button, Checkbox, Field, Icon, Input, Select, type IconNa
 import { CheckboxGroup, RadioGroup, type ChoiceOption } from './controls.js';
 import { DataTable, type DataColumn, type TableIndexPage, type TablePageChange } from './patterns.js';
 import { SidebarNav, type NavLinkComponent, type SidebarNavGroup } from './shell.js';
-import { FormActions, Heading, Inline, Stack, Text } from './structure.js';
+import { FormActions, Heading, Inline, Stack, Text, VisuallyHidden } from './structure.js';
 import { SettingsTemplate } from './templates.js';
 import { ConfirmDialog, CopyButton, SecretField, type CopyButtonMessages } from './workspace.js';
 import { FlowActionControl, SettingsFlow, TargetConfirm, formText, useFlowDate, ranOrThrow, staticTable, useSingleSubmit, type LabelledAction } from './flow-frame.js';
@@ -134,6 +134,9 @@ export interface TeamMessages {
   resendInvitation: string; resendInvitationTitle: string; resendInvitationDescription: string; renewInvitationLink: string; renewInvitationLinkTitle: string; renewInvitationLinkDescription: string; retry: string;
   inviteHeading: string; inviteEmail: string; inviteRole: string; invite: string; linkLabel: string; linkWarning: string; linkDismiss: string; copy: string; copied: string; copyFailed: string; copyManual: string;
   policy: string; policyLabel: string; ownership: string; ownershipDescription: string; ownershipCandidate: string; ownershipChoose: string; transfer: string; transferTitle: string; transferDescription: string; transferConfirmation: string;
+  /** `{name}`, `{from}` and `{to}` are replaced. */
+  roleChangeTitle: string; roleChangeDescription: string; roleChangeConfirm: string; /** `{name}` and `{role}` are replaced. */ roleChanged: string; roleChangeFailed: string;
+  policyOnTitle: string; policyOnDescription: string; policyOnConfirm: string; policyOn: string; policyOffTitle: string; policyOffDescription: string; policyOffConfirm: string; policyOff: string; policyFailed: string;
 }
 const teamMessages: TeamMessages = {
   members: 'Members', member: 'Member', email: 'Email', role: 'Role', twoFactor: 'Two-factor', twoFactorOn: 'On', twoFactorOff: 'Off', twoFactorUnknown: 'Not reported', actions: 'Actions', you: 'You', remove: 'Remove', removeTitle: 'Remove this member?',
@@ -145,9 +148,22 @@ const teamMessages: TeamMessages = {
   copy: 'Copy link', copied: 'Copied', copyFailed: 'Copy failed. The link is selected: copy it manually.', copyManual: 'Select and copy',
   policy: 'Policy', policyLabel: 'Require two-factor authentication for every member', ownership: 'Ownership', ownershipDescription: 'Make another member the owner. You become an administrator.', ownershipCandidate: 'New owner', ownershipChoose: 'Choose a member',
   transfer: 'Transfer ownership', transferTitle: 'Transfer ownership?', transferDescription: 'You lose owner rights. Only the new owner can undo this.', transferConfirmation: 'TRANSFER',
+  roleChangeTitle: 'Change {name} from {from} to {to}?', roleChangeDescription: 'The new role applies straight away.', roleChangeConfirm: 'Change role', roleChanged: '{name} is now {role}.', roleChangeFailed: 'The role could not be changed. Try again.',
+  policyOnTitle: 'Require two-factor for all members?', policyOnDescription: 'Members without two-factor authentication are locked out until they enrol.', policyOnConfirm: 'Require two-factor', policyOn: 'Two-factor authentication is now required for every member.',
+  policyOffTitle: 'Stop requiring two-factor?', policyOffDescription: 'Members can sign in without two-factor authentication.', policyOffConfirm: 'Stop requiring', policyOff: 'Two-factor authentication is no longer required.', policyFailed: 'The policy could not be changed. Try again.',
 };
 /** Labels for the canonical workspace roles (@ten98/runtime workspaceRoles). */
 const canonicalRoleLabels: Partial<Record<string, string>> = { owner: 'Owner', admin: 'Admin', editor: 'Editor', viewer: 'Viewer' };
+/** The canonical roles from most to least privileged. */
+const canonicalRoleOrder = ['owner', 'admin', 'editor', 'viewer'];
+/** Whether moving from one role to another grants more: owner always does; otherwise only when both roles have a known order. */
+const grantsMore = (from: string, to: string, roles: SelectOption[]) => {
+  if (to === 'owner') return true;
+  const order = [canonicalRoleOrder, roles.map(role => role.value)].find(list => list.includes(from) && list.includes(to));
+  return order !== undefined && order.indexOf(to) < order.indexOf(from);
+};
+/** An application error's own message, so the person sees why the server refused. */
+const failureText = (error: unknown, fallback: string) => error instanceof Error && error.message ? error.message : fallback;
 /** Sentence-case labels for the known invitation states; an unknown status is shown as given. */
 const invitationStatusText: Record<string, string> = { pending: 'Pending', accepted: 'Accepted', expired: 'Expired', revoked: 'Revoked' };
 type InvitationActionKind = 'resend' | 'renew' | 'revoke';
@@ -163,8 +179,12 @@ export interface TeamFlowProps extends FlowState {
   roleLabels?: Partial<Record<string, string>>;
   /** Overrides the built-in Pending/Accepted/Expired/Revoked invitation labels. Statuses stay raw values for the flow's own checks. */
   invitationStatusLabels?: Partial<Record<string, string>>;
+  /** What each role allows, in one short sentence, shown when a role change is confirmed. */
+  roleDescriptions?: Partial<Record<string, string>>;
   /** Roles the current user may give this member. Empty makes the row read-only. */
   assignableRoles: (target: TeamMember) => string[];
+  /** Called only after the person confirms the change; the select keeps the current role until then. Reject with an Error
+   * whose message says why, and the flow shows it and keeps the old role. Applications need no confirmation of their own. */
   onRoleChange: Submit<{ id: string; role: string }>;
   onRemove: Submit<{ id: string }>;
   invitations: TeamInvitation[];
@@ -175,9 +195,10 @@ export interface TeamFlowProps extends FlowState {
   onResendInvitation?: Submit<{ id: string }>;
   /** Replaces the invitation link; show the new one through `inviteLink`. */
   onRenewInvitationLink?: Submit<{ id: string }>;
-  /** Shown once for copying until the application clears it. */
+  /** Shown once for copying until the application clears it, and hidden once its invitation is revoked here. */
   inviteLink?: { id: string; url: string };
   onDismissInviteLink?: () => void;
+  /** `onChange` is called only after the person confirms turning the requirement on or off. */
   policy?: TeamPolicy;
   ownership?: TeamOwnership;
   /** Role preselected in the invite form. Defaults to the last entry of `roles`, which should be the least privileged. */
@@ -190,7 +211,7 @@ export interface TeamFlowProps extends FlowState {
   messages?: Partial<TeamMessages>;
 }
 /** The one place to manage members, roles, invitations, the two-factor policy and ownership. */
-export function TeamFlow({ currentUserId, members, roles, roleLabels, invitationStatusLabels, assignableRoles, onRoleChange, onRemove, invitations, onInvite, onRevokeInvitation, onResendInvitation, onRenewInvitationLink, inviteLink, onDismissInviteLink, policy, ownership, defaultInviteRole = roles[roles.length - 1]?.value, formatDate: ownFormatDate, formatRelative, title = 'Team', description, messages, ...state }: TeamFlowProps) {
+export function TeamFlow({ currentUserId, members, roles, roleLabels, roleDescriptions, invitationStatusLabels, assignableRoles, onRoleChange, onRemove, invitations, onInvite, onRevokeInvitation, onResendInvitation, onRenewInvitationLink, inviteLink, onDismissInviteLink, policy, ownership, defaultInviteRole = roles[roles.length - 1]?.value, formatDate: ownFormatDate, formatRelative, title = 'Team', description, messages, ...state }: TeamFlowProps) {
   const formatDate = useFlowDate(ownFormatDate);
   const id = useId();
   const copy = { ...teamMessages, ...messages };
@@ -208,6 +229,48 @@ export function TeamFlow({ currentUserId, members, roles, roleLabels, invitation
   // The attempt is recorded only when the guarded action really starts; a dropped call never changes it.
   const submit = (action: () => void | Promise<void>, attempt?: { kind: InvitationActionKind; id: string }) => singleFlight(() => { setAttempted(attempt); return action(); });
   const confirmed = (action: () => void | Promise<void>, attempt?: { kind: InvitationActionKind; id: string }) => ranOrThrow(submit(action, attempt));
+  // A role or policy change waits here for confirmation: the control stays on its current value until the request succeeds.
+  const [roleChange, setRoleChange] = useState<{ member: TeamMember; role: string }>();
+  const [policyChange, setPolicyChange] = useState<boolean>();
+  const [announcement, setAnnouncement] = useState('');
+  const [changeError, setChangeError] = useState<{ area: 'role' | 'policy'; text: string }>();
+  const root = useRef<HTMLDivElement>(null);
+  // The control that asked, by its data-team-change key, so focus returns to it even after the table re-renders.
+  const askedBy = useRef<string | undefined>(undefined);
+  const refocus = useRef<HTMLElement | undefined>(undefined);
+  const askingControl = () => {
+    const control = askedBy.current ? root.current?.querySelector<HTMLElement>(`[data-team-change="${CSS.escape(askedBy.current)}"]`) : undefined;
+    // A control the flow locked meanwhile cannot take focus; it gets focus back once the flow unlocks.
+    if (control?.matches(':disabled')) { refocus.current = control; return undefined; }
+    return control ?? undefined;
+  };
+  useEffect(() => {
+    const control = refocus.current;
+    if (locked || !control) return;
+    refocus.current = undefined;
+    if (control.isConnected && (!document.activeElement || document.activeElement === document.body)) control.focus();
+  }, [locked]);
+  const ask = (key: string, open: () => void) => { askedBy.current = key; open(); };
+  // Confirmed changes close the dialog either way: success is announced, and a refusal shows the application's reason
+  // beside the control, which keeps its old value. Only a call the single-submit guard dropped keeps the dialog open.
+  const change = async (area: 'role' | 'policy', action: () => void | Promise<void>, done: string, fallback: string) => {
+    setAnnouncement(''); setChangeError(undefined);
+    const outcome = { failed: false, error: undefined as unknown };
+    await ranOrThrow(submit(async () => { try { await action(); } catch (error) { outcome.failed = true; outcome.error = error; } }));
+    if (outcome.failed) setChangeError({ area, text: failureText(outcome.error, fallback) });
+    else setAnnouncement(done);
+  };
+  // The link the panel shows was made for one invitation; once that invitation is revoked the link is dead and is hidden.
+  const linkRequest = useRef<{ invitationId?: string; email?: string }>({});
+  const linkSources = useRef(new Map<string, { invitationId?: string; email?: string }>());
+  const inviteLinkId = inviteLink?.id;
+  useEffect(() => { if (inviteLinkId && !linkSources.current.has(inviteLinkId)) linkSources.current.set(inviteLinkId, linkRequest.current); }, [inviteLinkId]);
+  const [revokedLinks, setRevokedLinks] = useState<string[]>([]);
+  const linkFor = (link: { id: string }, invitation: TeamInvitation) => {
+    const source = linkSources.current.get(link.id);
+    return link.id === invitation.id || source?.invitationId === invitation.id || (!!source?.email && source.email.toLowerCase() === invitation.email.toLowerCase());
+  };
+  const shownLink = inviteLink && !revokedLinks.includes(inviteLink.id) && !invitations.some(row => row.status === 'revoked' && row.id === inviteLink.id) ? inviteLink : undefined;
   const invitationHandlers: Record<InvitationActionKind, Submit<{ id: string }> | undefined> = { resend: onResendInvitation, renew: onRenewInvitationLink, revoke: onRevokeInvitation };
   const invitationCopy = {
     resend: { label: copy.resendInvitation, title: copy.resendInvitationTitle, description: copy.resendInvitationDescription },
@@ -241,7 +304,9 @@ export function TeamFlow({ currentUserId, members, roles, roleLabels, invitation
       const allowed = assignableRoles(row);
       if (!allowed.length) return roleLabel(row.role);
       const options = [row.role, ...allowed.filter(role => role !== row.role)].map(role => ({ value: role, label: roleLabel(role) }));
-      return <Select aria-label={copy.roleFor.replace('{name}', row.name)} options={options} value={row.role} disabled={locked} onChange={event => { const role = event.target.value; void submit(() => onRoleChange({ id: row.id, role })); }} />;
+      // Controlled from the member's role: a change only asks, so an arrow key on a closed select never commits.
+      return <Select aria-label={copy.roleFor.replace('{name}', row.name)} options={options} value={row.role} disabled={locked} data-team-change={`role:${row.id}`}
+        onChange={event => { const role = event.target.value; if (role !== row.role) ask(`role:${row.id}`, () => setRoleChange({ member: row, role })); }} />;
     } },
     { key: 'twoFactor', header: copy.twoFactor, render: row => row.twoFactor === undefined ? <Text as="span" tone="muted">{copy.twoFactorUnknown}</Text> : <Badge tone={row.twoFactor ? 'success' : 'warning'}>{row.twoFactor ? copy.twoFactorOn : copy.twoFactorOff}</Badge> },
   ];
@@ -254,14 +319,18 @@ export function TeamFlow({ currentUserId, members, roles, roleLabels, invitation
     { key: 'status', header: copy.status, render: row => <Badge tone={invitationTone(row.status)}>{invitationStatusLabels?.[row.status] ?? invitationStatusText[row.status] ?? row.status}</Badge> },
   ];
   const candidate = ownership?.candidates.find(option => option.value === newOwner);
+  const roleAsk = roleChange && { ...roleChange, from: roleLabel(roleChange.member.role), to: roleLabel(roleChange.role) };
   return <SettingsFlow {...state} title={title} description={description}>
-    <Stack gap={6}>
+    <div ref={root}><Stack gap={6}>
+      <VisuallyHidden role="status" aria-atomic="true">{announcement}</VisuallyHidden>
       {policy && <Stack gap={2}>
         <Heading level={3} size="sm">{copy.policy}</Heading>
-        <Checkbox label={copy.policyLabel} checked={policy.twoFactorRequired} onChange={event => { const next = event.target.checked; void submit(() => policy.onChange(next)); }} />
+        {changeError?.area === 'policy' && <Alert tone="danger" title={changeError.text} />}
+        <Checkbox label={copy.policyLabel} checked={policy.twoFactorRequired} data-team-change="policy" onChange={event => { const next = event.target.checked; ask('policy', () => setPolicyChange(next)); }} />
       </Stack>}
       <Stack gap={2}>
         <Heading level={3} size="sm">{copy.members}</Heading>
+        {changeError?.area === 'role' && <Alert tone="danger" title={changeError.text} />}
         <DataTable<TeamMember> ariaLabel={copy.members} columns={members.some(member => member.twoFactor !== undefined) ? memberColumns : memberColumns.filter(column => column.key !== 'twoFactor')} rows={members} rowKey={row => row.id} {...staticTable} emptyTitle={copy.membersEmpty}
           rowActionsLabel={copy.actions} rowActions={row => row.id === currentUserId || !assignableRoles(row).length ? null
             : <Button type="button" variant="secondary" size="sm" disabled={locked} aria-label={`${copy.remove}: ${row.name}`} onClick={() => setRemoving(row)}>{copy.remove}</Button>} />
@@ -269,14 +338,15 @@ export function TeamFlow({ currentUserId, members, roles, roleLabels, invitation
       </Stack>
       <div ref={actions}><Stack gap={2}>
         <Heading level={3} size="sm">{copy.invitations}</Heading>
-        {inviteLink && <div data-invitation-link=""><OneTimeValue label={copy.linkLabel} value={inviteLink.url} masked={false} focusOnShow warning={copy.linkWarning} dismiss={onDismissInviteLink && { label: copy.linkDismiss, onClick: onDismissInviteLink }}
+        {shownLink && <div data-invitation-link=""><OneTimeValue label={copy.linkLabel} value={shownLink.url} masked={false} focusOnShow warning={copy.linkWarning} dismiss={onDismissInviteLink && { label: copy.linkDismiss, onClick: onDismissInviteLink }}
           messages={{ copy: copy.copy, copied: copy.copied, copyFailed: copy.copyFailed, select: copy.copyManual }} /></div>}
         <DataTable<TeamInvitation> ariaLabel={copy.invitations} columns={invitationColumns} rows={invitations} rowKey={row => row.id} {...staticTable} emptyTitle={copy.invitationsEmpty} emptyDescription={copy.invitationsEmptyDescription}
           rowActionsLabel={copy.actions} rowActions={invitationActions} />
         <form key={inviteLink?.id ?? 'invite'} onSubmit={event => {
           event.preventDefault();
           const form = new FormData(event.currentTarget);
-          void submit(() => onInvite({ email: formText(form, 'email'), role: formText(form, 'role') }));
+          const email = formText(form, 'email');
+          void submit(() => { linkRequest.current = { email }; return onInvite({ email, role: formText(form, 'role') }); });
         }}>
           <Stack gap={3}>
             <Heading level={4} size="sm">{copy.inviteHeading}</Heading>
@@ -292,7 +362,7 @@ export function TeamFlow({ currentUserId, members, roles, roleLabels, invitation
         <Field label={copy.ownershipCandidate} htmlFor={`${id}-owner`}><Select options={ownership.candidates} placeholder={copy.ownershipChoose} value={newOwner} disabled={!ownership.candidates.length} onChange={event => setNewOwner(event.target.value)} /></Field>
         <FormActions><Button type="button" variant="danger" disabled={locked || !candidate} onClick={() => setTransferring(true)}>{copy.transfer}</Button></FormActions>
       </Stack>}
-    </Stack>
+    </Stack></div>
     <TargetConfirm target={removing} onClose={() => setRemoving(undefined)} title={copy.removeTitle} description={copy.removeDescription} subject={member => member.name} confirmLabel={copy.remove} onConfirm={member => confirmed(() => onRemove({ id: member.id }))} />
     <ConfirmDialog open={pending !== undefined} onOpenChange={open => { if (!open) setPending(undefined); }} title={pending ? invitationCopy[pending.kind].title : copy.revokeInvitationTitle}
       description={pending ? `${pending.invitation.email}. ${invitationCopy[pending.kind].description}` : ''} confirmLabel={pending ? invitationCopy[pending.kind].label : copy.revokeInvitation} danger={pending?.kind !== 'resend'}
@@ -304,7 +374,32 @@ export function TeamFlow({ currentUserId, members, roles, roleLabels, invitation
         const back = returnTo.current;
         return link ?? (back?.opener.isConnected ? back.opener : back ? firstAction(back.id) : undefined);
       }}
-      onConfirm={() => pending ? confirmed(invitationAction(pending.kind, pending.invitation), { kind: pending.kind, id: pending.invitation.id }).then(() => { linkFocus.current = pending.kind === 'renew'; }) : undefined} />
+      onConfirm={() => {
+        if (!pending) return undefined;
+        const { kind, invitation } = pending;
+        if (kind === 'renew') linkRequest.current = { invitationId: invitation.id };
+        return confirmed(invitationAction(kind, invitation), { kind, id: invitation.id }).then(() => {
+          linkFocus.current = kind === 'renew';
+          if (kind === 'revoke' && inviteLink && linkFor(inviteLink, invitation)) setRevokedLinks(list => [...list, inviteLink.id]);
+        });
+      }} />
+    <ConfirmDialog open={roleChange !== undefined} onOpenChange={open => { if (!open) setRoleChange(undefined); }}
+      title={roleAsk ? copy.roleChangeTitle.replace('{name}', roleAsk.member.name).replace('{from}', roleAsk.from).replace('{to}', roleAsk.to) : ''}
+      description={roleAsk ? roleDescriptions?.[roleAsk.role] ?? copy.roleChangeDescription : ''} confirmLabel={copy.roleChangeConfirm}
+      danger={!!roleAsk && grantsMore(roleAsk.member.role, roleAsk.role, roles)} restoreFocus={askingControl}
+      onConfirm={() => {
+        if (!roleAsk) return undefined;
+        const { member, role, to } = roleAsk;
+        return change('role', () => onRoleChange({ id: member.id, role }), copy.roleChanged.replace('{name}', member.name).replace('{role}', to), copy.roleChangeFailed);
+      }} />
+    {policy && <ConfirmDialog open={policyChange !== undefined} onOpenChange={open => { if (!open) setPolicyChange(undefined); }}
+      title={policyChange ? copy.policyOnTitle : copy.policyOffTitle} description={policyChange ? copy.policyOnDescription : copy.policyOffDescription}
+      confirmLabel={policyChange ? copy.policyOnConfirm : copy.policyOffConfirm} danger={policyChange === true} restoreFocus={askingControl}
+      onConfirm={() => {
+        if (policyChange === undefined) return undefined;
+        const required = policyChange;
+        return change('policy', () => policy.onChange(required), required ? copy.policyOn : copy.policyOff, copy.policyFailed);
+      }} />}
     {ownership && <ConfirmDialog open={transferring} onOpenChange={setTransferring} title={copy.transferTitle} description={candidate ? `${candidate.label}. ${copy.transferDescription}` : copy.transferDescription} confirmLabel={copy.transfer} danger confirmationText={copy.transferConfirmation}
       onConfirm={() => candidate ? confirmed(() => ownership.onTransfer({ userId: candidate.value })) : undefined} />}
   </SettingsFlow>;

@@ -94,6 +94,9 @@ for (const theme of ['light', 'dark'] as const) {
     await expect(team.getByRole('button', { name: /^Remove: Amal/ })).toHaveCount(0);
     await expect(team.getByLabel('Role for Amal Haddad')).toHaveCount(0);
     await team.getByLabel('Role for Sam Lee').selectOption('admin');
+    await expect(dialog.getByRole('heading', { name: 'Change Sam Lee from Member to Admin?' })).toBeVisible();
+    expect(await only(page, 'role:')).toEqual([]);
+    await dialog.getByRole('button', { name: 'Change role' }).click();
     await expect.poll(() => calls(page)).toContain('role:{"id":"u2","role":"admin"}');
     await team.getByRole('button', { name: /^Remove: Sam Lee/ }).click();
     await expect(dialog.getByRole('heading', { name: 'Remove this member?' })).toBeVisible();
@@ -114,7 +117,8 @@ for (const theme of ['light', 'dark'] as const) {
     await expect(team.getByText(/Share this link now\./)).toBeVisible();
 
     // Policy toggle.
-    await team.getByRole('checkbox', { name: /Require two-factor/ }).check();
+    await team.getByRole('checkbox', { name: /Require two-factor/ }).click();
+    await dialog.getByRole('button', { name: 'Require two-factor' }).click();
     await expect.poll(() => calls(page)).toContain('policy:true');
 
     // Ownership transfer needs a candidate and the typed phrase.
@@ -238,8 +242,9 @@ test('Cancel or Escape from an invitation confirm returns focus to the button th
 });
 
 test('a confirm dropped by the single-submit guard stays open with its error instead of closing as if it ran (#153 review)', async ({ page }) => {
-  await page.goto('/tests/workspace-flows.html?theme=light&slowRole=1');
-  await page.getByLabel('Role for Sam Lee').selectOption('admin');
+  await page.goto('/tests/workspace-flows.html?theme=light&slowInvite=1');
+  await page.getByLabel('Email address').fill('invitee@example.com');
+  await page.getByRole('button', { name: 'Send invitation' }).click();
   await page.getByRole('button', { name: /^Revoke: new.person/ }).click();
   const dialog = page.getByRole('dialog');
   await dialog.getByRole('button', { name: 'Revoke', exact: true }).click();
@@ -274,6 +279,7 @@ test('a Checkbox hit target is its whole label row, at least 44px tall at any po
   expect(row.height).toBeGreaterThanOrEqual(43.5);
   expect(row.width).toBeGreaterThanOrEqual(44);
   await page.getByText('Require two-factor authentication for every member').click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Require two-factor' }).click();
   await expect(box).toBeChecked();
   expect(await only(page, 'policy:')).toEqual(['policy:true']);
 });
