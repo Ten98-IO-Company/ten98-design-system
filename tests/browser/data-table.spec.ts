@@ -268,3 +268,16 @@ test('in right-to-left layouts, headers and plain cells align to the start (righ
     expect(placed.right).toBeLessThan(placed.left);
   }
 });
+
+test('an open Disclosure in a table cell wraps within its cap instead of widening the column', async ({ page }) => {
+  await page.goto('/tests/data-table.html?theme=light');
+  const table = page.getByRole('table', { name: 'History table' });
+  const disclosure = table.locator('.t98-disclosure');
+  await expect(disclosure.getByText(/Redirected from/)).toBeVisible();
+  const size = await disclosure.evaluate(element => {
+    const text = element.querySelector('.t98-disclosure-body p, .t98-disclosure-body')!;
+    return { width: element.getBoundingClientRect().width, cap: parseFloat(getComputedStyle(document.documentElement).fontSize) * 30, lines: Math.round(text.getBoundingClientRect().height / parseFloat(getComputedStyle(text).lineHeight)) };
+  });
+  expect(size.width).toBeLessThanOrEqual(size.cap + 0.5);
+  expect(size.lines, 'the history wraps onto several lines').toBeGreaterThan(1);
+});

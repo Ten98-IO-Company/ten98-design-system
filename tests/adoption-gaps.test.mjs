@@ -331,6 +331,24 @@ test('numbers, percentages and counts follow the locale, including right-to-left
   assert.notEqual(ar.number(1234), '1,234');
 });
 
+test('fileSize shows bytes in 1024 steps with the locale digits; a missing or negative size is missing', () => {
+  const en = ui.createDisplayFormatter({ locale: 'en' });
+  assert.equal(en.fileSize(0), '0 B');
+  assert.equal(en.fileSize(512), '512 B');
+  assert.equal(en.fileSize(1023), '1,023 B');
+  assert.equal(en.fileSize(1536), '1.5 KB');
+  assert.equal(en.fileSize(2048), '2 KB');
+  assert.equal(en.fileSize(5.3 * 1024 * 1024), '5.3 MB');
+  assert.equal(en.fileSize(1024 * 1024 - 1), '1 MB', 'rounds before choosing the unit, never 1,024 KB');
+  assert.equal(en.fileSize(3 * 1024 ** 3), '3 GB');
+  assert.equal(en.fileSize(2 * 1024 ** 5), '2,048 TB');
+  for (const value of [null, undefined, Number.NaN, -1, Number.POSITIVE_INFINITY]) assert.equal(en.fileSize(value), 'Unavailable', String(value));
+  const de = ui.createDisplayFormatter({ locale: 'de-DE' });
+  assert.equal(de.fileSize(1536), '1,5 KB');
+  const ar = ui.createDisplayFormatter({ locale: 'ar-EG' });
+  assert.equal(ar.fileSize(1536), `${new Intl.NumberFormat('ar-EG').format(1.5)} KB`);
+});
+
 test('a date-only value shows its calendar day in every time zone; an instant follows the zone (#158)', () => {
   const west = ui.createDateFormatter({ locale: 'en', timeZone: 'America/Los_Angeles' });
   assert.equal(west.date('2026-11-01'), 'Nov 1, 2026');
