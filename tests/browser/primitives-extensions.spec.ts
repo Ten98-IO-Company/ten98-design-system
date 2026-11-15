@@ -230,6 +230,7 @@ test('the hidden attribute hides layout primitives and other library elements th
       grid: probe('t98-grid t98-grid--2', ''),
       shownStack: probe('t98-stack', null),
       untilFound: probe('t98-stack', 'until-found'),
+      untilFoundUpper: probe('t98-stack', 'UNTIL-FOUND'),
       appClass: probe('app-only-row', ''),
     };
   });
@@ -240,5 +241,7 @@ test('the hidden attribute hides layout primitives and other library elements th
   // content-visibility and keeps the box, so find-in-page can reveal it.
   expect(displays.shownStack).toBe('flex');
   expect(displays.untilFound).toBe('flex');
+  // The attribute value is case-insensitive, as in the browser's own rule.
+  expect(displays.untilFoundUpper).toBe('flex');
   expect(displays.appClass).toBe('none');
 });
