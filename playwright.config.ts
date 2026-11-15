@@ -20,9 +20,9 @@ export default defineConfig({
     { name: 'chromium', use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 1000 } } },
     { name: 'narrow-dark', use: { ...devices['Desktop Chrome'], viewport: { width: 320, height: 850 }, colorScheme: 'dark' } },
     // Key handling is engine-specific (key reachability, focus hand-off in the entry grid, held keys in dialogs, how a closed
-    // select commits in the team confirms); the rest runs on Chromium.
+    // select commits in the team confirms, the route error heading taking focus on mount); the rest runs on Chromium.
     { name: 'firefox', testMatch: /(key-reachability|team-confirm)\.spec\.ts/, use: { ...devices['Desktop Firefox'] } },
-    { name: 'webkit', testMatch: /(key-reachability|virtual-table|entry-grid(-rules|-voucher)?|shortcut-decline|dialog-held-enter|team-confirm)\.spec\.ts/, use: { ...devices['Desktop Safari'] } },
+    { name: 'webkit', testMatch: /(key-reachability|route-error-screen|virtual-table|entry-grid(-rules|-voucher)?|shortcut-decline|dialog-held-enter|team-confirm)\.spec\.ts/, use: { ...devices['Desktop Safari'] } },
   ],
   webServer: {
     command: 'node scripts/serve-browser.mjs',
