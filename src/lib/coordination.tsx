@@ -215,6 +215,16 @@ export function SelectableList({ label, items, selectedId = null, onSelect, load
   const enabled = items.filter(item => !item.disabled);
   const stop = enabled.some(item => item.id === focused) ? focused : enabled.some(item => item.id === selectedId) ? selectedId : enabled[0]?.id ?? null;
   const focusItem = (itemId: string) => { setFocused(itemId); list.current?.querySelector<HTMLElement>(`[data-item-id="${CSS.escape(itemId)}"]`)?.focus(); };
+  // When the app changes the selection itself (for example j/k commands) while focus is on a row of this list, focus
+  // follows it, so a screen reader announces the open item rather than the row that was focused before.
+  const previousSelected = useRef(selectedId);
+  useEffect(() => {
+    if (previousSelected.current === selectedId) return;
+    previousSelected.current = selectedId;
+    const active = list.current?.ownerDocument.activeElement;
+    if (!selectedId || !(active instanceof HTMLElement) || !list.current?.contains(active) || !active.dataset.itemId || active.dataset.itemId === selectedId) return;
+    if (enabled.some(item => item.id === selectedId)) focusItem(selectedId);
+  });
   function onKeyDown(event: KeyboardEvent<HTMLLIElement>, itemId: string) {
     const index = enabled.findIndex(item => item.id === itemId);
     const target = event.key === 'ArrowDown' ? enabled[index + 1] : event.key === 'ArrowUp' ? enabled[index - 1] : event.key === 'Home' ? enabled[0] : event.key === 'End' ? enabled.at(-1) : undefined;
