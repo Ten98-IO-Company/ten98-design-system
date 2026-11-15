@@ -170,16 +170,18 @@ export interface WorkspaceOption { id: string; name: string; roleLabel?: string;
 export interface ProjectOption { id: string; name: string }
 export type WorkspaceCreateAction = { label?: string } & ({ href: string; onSelect?: never } | { onSelect: () => void; href?: never });
 export interface WorkspaceProjectSwitcherLabels { workspace: string; project: string; noWorkspaces: string; loadingWorkspaces: string; loading: string; choose: string; noProjects: string }
-export interface WorkspaceProjectSwitcherProps {
+/** With `projects`, both fields render; omit `projects` for workspace-only mode, where `create` adds a workspace. */
+export type WorkspaceProjectSwitcherProps = WorkspaceSwitcherBaseProps & ({
+  /** `null` while the project list loads. */
+  projects: ProjectOption[] | null;
+  projectId: string | null;
+  onProjectChange: (id: string) => void;
+} | { projects?: undefined; projectId?: never; onProjectChange?: never });
+interface WorkspaceSwitcherBaseProps {
   /** `null` while the workspace list loads. */
   workspaces: WorkspaceOption[] | null;
-  /** `null` while the project list loads. Omit for workspace-only mode: just the workspace field, and `create` adds a workspace. */
-  projects?: ProjectOption[] | null;
   workspaceId: string | null;
-  projectId?: string | null;
   onWorkspaceChange: (id: string) => void;
-  /** Required with `projects`. */
-  onProjectChange?: (id: string) => void;
   /** Present only when the user may create projects (or workspaces, in workspace-only mode); the application decides. */
   create?: WorkspaceCreateAction;
   labels?: Partial<WorkspaceProjectSwitcherLabels>;
