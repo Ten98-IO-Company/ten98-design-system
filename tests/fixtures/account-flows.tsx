@@ -57,12 +57,12 @@ function LateError() {
   return <PasswordChangeFlow hasPassword error={error} onSubmit={noop} />;
 }
 
-// noQr: Discover's server returns only the otpauth URI. requireCode: its disable needs a code as well as the password.
+// noQr: Discover's server returns only the otpauth URI. requireCode: its disable and regenerate need a code as well as the password.
 function TwoFactor({ initial, noQr = false, requireCode = false }: { initial: TwoFactorSetupStage; noQr?: boolean; requireCode?: boolean }) {
   const [stage, setStage] = useState<TwoFactorSetupStage>(initial);
-  return <Probe render={log => <TwoFactorSetupFlow stage={stage} enrolment={noQr ? { manualKey: 'JBSWY3DPEHPK3PXP', uri: 'otpauth://totp/Discover:ada%40example.test?secret=JBSWY3DPEHPK3PXP&issuer=Discover' } : { qrDataUrl: qr, manualKey: 'JBSWY3DPEHPK3PXP-LONG-SETUP-KEY-FOR-WRAPPING' }} disableRequiresCode={requireCode} recoveryCodes={codes} downloadName="team-codes.txt"
+  return <Probe render={log => <TwoFactorSetupFlow stage={stage} enrolment={noQr ? { manualKey: 'JBSWY3DPEHPK3PXP', uri: 'otpauth://totp/Discover:ada%40example.test?secret=JBSWY3DPEHPK3PXP&issuer=Discover' } : { qrDataUrl: qr, manualKey: 'JBSWY3DPEHPK3PXP-LONG-SETUP-KEY-FOR-WRAPPING' }} disableRequiresCode={requireCode} regenerateRequiresCode={requireCode} recoveryCodes={codes} downloadName="team-codes.txt"
     onStart={({ password }) => { log(`start:${password}`); setStage('enrolling'); }} onVerify={({ code }) => { log(`verify:${code}`); setStage('codes'); }}
-    onAcknowledgeCodes={() => { log('acknowledged'); setStage('on'); }} onRegenerate={({ password }) => { log(`regenerate:${password}`); setStage('codes'); }} onDisable={({ password, code }) => { log(`disable:${password}${code === undefined ? '' : `:${code}`}`); setStage('off'); }} />} />;
+    onAcknowledgeCodes={() => { log('acknowledged'); setStage('on'); }} onRegenerate={({ password, code }) => { log(`regenerate:${password}${code === undefined ? '' : `:${code}`}`); setStage('codes'); }} onDisable={({ password, code }) => { log(`disable:${password}${code === undefined ? '' : `:${code}`}`); setStage('off'); }} />} />;
 }
 
 function FailingPanel() {
