@@ -139,6 +139,18 @@ function Switchers() {
   </Stack>;
 }
 
+/* Books' case: a company is a workspace with no projects. */
+function CompanySwitchers() {
+  const [company, setCompany] = useState('north');
+  const companies = [{ id: 'north', name: 'Northwind Trading', roleLabel: 'Owner' }, { id: 'south', name: 'Southwind Partners', roleLabel: 'Accountant · not set up yet' }];
+  const labels = { workspace: 'Company', noWorkspaces: 'No companies yet', loadingWorkspaces: 'Loading companies…' };
+  return <Stack gap={4}>
+    <WorkspaceProjectSwitcher workspaces={companies} workspaceId={company} onWorkspaceChange={setCompany} create={{ label: 'Create company', href: 'companies/new' }} labels={labels} linkComponent={RouterLink} />
+    <WorkspaceProjectSwitcher workspaces={null} workspaceId={null} onWorkspaceChange={noop} create={{ label: 'Create company', href: 'companies/new' }} labels={labels} linkComponent={RouterLink} />
+    <WorkspaceProjectSwitcher workspaces={[]} workspaceId={null} onWorkspaceChange={noop} create={{ label: 'Create company', onSelect: noop }} labels={labels} />
+  </Stack>;
+}
+
 function Searches() {
   const [topbar, setTopbar] = useState('');
   return <Stack gap={4}>
@@ -156,6 +168,7 @@ function Fixture() {
       <Card title="Guarded links"><GuardedNav /></Card>
       <Card title="Sections"><Sections /></Card>
       <Card title="Workspace and project"><Switchers /></Card>
+      <Card title="Company (workspace only)"><CompanySwitchers /></Card>
       <Card title="Search"><Searches /></Card>
     </Grid>
   </Stack>;
