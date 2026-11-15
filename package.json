@@ -53,7 +53,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.64.1",
-    "@ten98/runtime": "file:vendor/ten98-runtime-0.27.0.tgz",
+    "@ten98/runtime": "file:vendor/ten98-runtime-0.27.1.tgz",
     "@types/node": "24.10.1",
     "@types/react": "19.2.2",
     "@types/react-dom": "19.2.2",
