@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { Children, useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { Avatar, Icon, cx, type IconName } from './primitives.js';
 import type { NavLinkComponent } from './shell.js';
 
@@ -28,26 +28,58 @@ function AccountMenuItems({ items, linkComponent: LinkComponent }: { items: Acco
   })}</>;
 }
 
+export interface AccountMenuSettingsLink {
+  /** Where account settings live; with a `linkComponent` it is the key your component resolves. */
+  href: string;
+  /** Defaults to "Account settings". */
+  label?: string;
+}
+
+export interface AccountMenuSignOut {
+  onSelect: () => void;
+  /** Defaults to "Sign out". */
+  label?: string;
+  /** Disables the button and sets `aria-busy`, so a second activation cannot start another sign out. */
+  busy?: boolean;
+  /** Shown while `busy`. Defaults to "Signing out…" with the default label, and to `label` otherwise. */
+  busyLabel?: string;
+  disabled?: boolean;
+}
+
 export interface AccountMenuProps {
   name: string;
   email?: string;
   avatar?: ReactNode;
-  /** Declarative links, buttons and separators; the preferred way to fill the menu. */
+  /** Your own links, buttons and separators. They come first; "Account settings" and "Sign out" follow them. */
   items?: AccountMenuItem[];
-  /** Renders `link` items; `href` is then a key your component resolves. */
+  /** Renders `link` items and the account settings link; `href` is then a key your component resolves. */
   linkComponent?: NavLinkComponent;
+  /** The "Account settings" link, after your items. Omit it when the app has no account settings page. */
+  accountSettings?: AccountMenuSettingsLink;
+  /** The "Sign out" button: always last, set apart by a separator. Omit it when the app signs out elsewhere. */
+  signOut?: AccountMenuSignOut;
   /** @deprecated Prefer `items`. Still renders native app elements after `items`. */
   children?: ReactNode;
   label?: string;
   defaultOpen?: boolean;
 }
 
-/** A nonmodal disclosure; applications own its links, forms and account actions. */
-export function AccountMenu({ name, email, avatar, items, linkComponent, children, label = 'Account menu', defaultOpen = false }: AccountMenuProps) {
+/** A nonmodal disclosure: the person's identity, your items, "Account settings", then "Sign out" last. Applications own the routes and the sign-out request. */
+export function AccountMenu({ name, email, avatar, items, linkComponent, accountSettings, signOut, children, label = 'Account menu', defaultOpen = false }: AccountMenuProps) {
   const [open, setOpen] = useState(defaultOpen);
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelId = `t98-account-${useId()}`;
+  // Closing entries follow the app's. A separator sets Sign out apart only when something sits above it.
+  const closing: AccountMenuItem[] = [];
+  if (accountSettings) closing.push({ id: 'account-settings', kind: 'link', label: accountSettings.label ?? 'Account settings', href: accountSettings.href });
+  if (signOut) {
+    if (accountSettings || items?.length || Children.toArray(children).length) closing.push({ id: 'sign-out-separator', kind: 'separator' });
+    closing.push({
+      id: 'sign-out', kind: 'button', danger: true, onSelect: signOut.onSelect, disabled: signOut.disabled, busy: signOut.busy,
+      label: signOut.label ?? 'Sign out', busyLabel: signOut.busyLabel ?? (signOut.label === undefined ? 'Signing out…' : undefined),
+    });
+  }
 
   useEffect(() => {
     if (!open || !rootRef.current) return;
@@ -109,7 +141,7 @@ export function AccountMenu({ name, email, avatar, items, linkComponent, childre
         <strong>{name}</strong>
         {email && <span>{email}</span>}
       </div>
-      <div className="t98-account-menu__actions">{items && <AccountMenuItems items={items} linkComponent={linkComponent} />}{children}</div>
+      <div className="t98-account-menu__actions">{items && <AccountMenuItems items={items} linkComponent={linkComponent} />}{children}<AccountMenuItems items={closing} linkComponent={linkComponent} /></div>
     </div>
   </div>;
 }

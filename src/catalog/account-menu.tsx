@@ -8,15 +8,13 @@ function AccountPreview({ expanded = false, long = false, busy = false }: { expa
   const name = long ? 'Alexandra Morgan-Williams and the regional operations team' : 'Alex Morgan';
   const email = long ? 'alexandra.morgan-williams@regional-operations.example.test' : 'alex@example.test';
   return <div className="account-example" style={{ minHeight: 360, width: '100%', minWidth: 0 }}>
-    <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--t98-space-3)' }}>
+    {/* The example's links never navigate; an app passes its own routes or router link. */}
+    <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--t98-space-3)' }}
+      onClick={event => { const link = (event.target as Element).closest('a'); if (link) { event.preventDefault(); setNotice(`${link.textContent} selected.`); } }}>
       <strong>Workspace</strong>
-      <AccountMenu name={name} email={email} defaultOpen={expanded}>
-        <a href="#account-profile" onClick={event => { event.preventDefault(); setNotice('Profile and appearance selected.'); }}>Profile and appearance</a>
-        <a href="#account-security" onClick={event => { event.preventDefault(); setNotice('Account security selected.'); }}>Account security</a>
-        <button type="button" disabled={busy} aria-busy={busy || undefined} onClick={() => setNotice('Sign out requested once. The app owns the session and any draft guard.')}>
-          {busy ? 'Signing out…' : 'Sign out'}
-        </button>
-      </AccountMenu>
+      <AccountMenu name={name} email={email} defaultOpen={expanded}
+        accountSettings={{ href: '#account-settings' }}
+        signOut={{ busy, onSelect: () => setNotice('Sign out requested once. The app owns the session and any draft guard.') }} />
     </header>
     <p role="status" style={{ marginTop: 'var(--t98-space-6)' }}>{notice}</p>
     <label style={{ display: 'grid', gap: 'var(--t98-space-2)', marginTop: 'var(--t98-space-4)' }}>
@@ -30,16 +28,15 @@ function AccountPreview({ expanded = false, long = false, busy = false }: { expa
 function accountCode(expanded = false, long = false, busy = false) {
   return tsx(['AccountMenu'], `<>
 <header style={{ display: 'flex', justifyContent: 'flex-end' }}>
-  <AccountMenu name="${long ? 'Alexandra Morgan-Williams and the regional operations team' : 'Alex Morgan'}" email="${long ? 'alexandra.morgan-williams@regional-operations.example.test' : 'alex@example.test'}"${expanded ? ' defaultOpen' : ''}>
-    <a href="/account">Profile and appearance</a>
-    <a href="/account/security">Account security</a>
-    <button type="button"${busy ? ' disabled aria-busy="true"' : ''} onClick={() => setNotice('Demo sign out requested.')}>
-      ${busy ? 'Signing out…' : 'Sign out'}
-    </button>
-  </AccountMenu>
+  <AccountMenu
+    name="${long ? 'Alexandra Morgan-Williams and the regional operations team' : 'Alex Morgan'}"
+    email="${long ? 'alexandra.morgan-williams@regional-operations.example.test' : 'alex@example.test'}"${expanded ? '\n    defaultOpen' : ''}
+    accountSettings={{ href: '/account' }}
+    signOut={{ onSelect: signOut${busy ? ', busy: true' : ''} }}
+  />
 </header>
 <p role="status">{notice}</p>
-</>`, "const [notice, setNotice] = useState('');", ['useState']);
+</>`, "const [notice, setNotice] = useState('');\nconst signOut = () => setNotice('Demo sign out requested.');", ['useState']);
 }
 
 function FooterPreview({ connected = false, long = false }: { connected?: boolean; long?: boolean }) {
@@ -57,38 +54,45 @@ function footerCode(connected = false, long = false) {
 </SidebarFooter>`);
 }
 
-const itemsCode = tsx(['AccountMenu'], `<AccountMenu name="Alex Morgan" email="alex@example.test" defaultOpen items={[
-  { id: 'profile', kind: 'link', label: 'Profile and appearance', icon: 'user', href: 'account' },
-  { id: 'security', kind: 'link', label: 'Account security', icon: 'shield', href: 'account/security' },
-  { id: 'sep', kind: 'separator' },
-  { id: 'out', kind: 'button', label: 'Sign out', busyLabel: 'Signing out…', busy: signingOut, danger: true, onSelect: signOut },
-]} />`, 'const signingOut = false;\nconst signOut = () => undefined;');
+const itemsCode = tsx(['AccountMenu'], `<AccountMenu
+  name="Alex Morgan"
+  email="alex@example.test"
+  defaultOpen
+  items={[
+    { id: 'help', kind: 'link', label: 'Help center', icon: 'external', href: 'help' },
+    { id: 'shortcuts', kind: 'button', label: 'Keyboard shortcuts', onSelect: showShortcuts },
+  ]}
+  accountSettings={{ href: 'account' }}
+  signOut={{ onSelect: signOut, busy: signingOut }}
+/>`, 'const signingOut = false;\nconst signOut = () => undefined;\nconst showShortcuts = () => undefined;');
 
 export const accountMenuEntries: ComponentEntry[] = [
   {
     name: 'AccountMenu', category: 'Navigation',
-    description: 'One top-right account dropdown with identity and app-owned account links and actions.',
-    usage: 'Place once in the page header. Remove the duplicate profile and sign-out block from the sidebar. Keep account routes, router links, unsaved-work guards, async errors and sign-out state in the app. Supply native links for navigation and type="button" actions. This nonmodal disclosure uses ordinary Tab navigation; it is not an ARIA application menu. Never render interactive content inside the avatar slot.',
+    description: 'One top-right account dropdown with identity, your items, Account settings and Sign out.',
+    usage: 'Place once in the page header. Remove the duplicate profile and sign-out block from the sidebar. The menu lists your own items first, then Account settings, a separator and Sign out last. Pass `accountSettings` and `signOut` rather than your own entries, so the order and wording are the same in every app. Keep account routes, router links, unsaved-work guards, async errors and sign-out state in the app. Items render native links and buttons. This nonmodal disclosure uses ordinary Tab navigation; it is not an ARIA application menu. Never render interactive content inside the avatar slot.',
     props: [
       { name: 'name', type: 'string', required: true, description: 'Display name shown inside the dropdown and used by the default initials avatar.' },
       { name: 'email', type: 'string', description: 'Optional account email, wrapped without truncating its value.' },
       { name: 'avatar', type: 'ReactNode', description: 'Optional non-interactive existing app avatar. Preserve the Campaign initials/image treatment.' },
-      { name: 'items', type: 'AccountMenuItem[]', description: 'Preferred. { id, label, icon?, danger?, disabled?, busy?, busyLabel? } plus kind: "link" (href), "button" (onSelect) or "separator". Busy items are disabled, aria-busy and show busyLabel. Items render the same native links and buttons, so the dismissal rules are unchanged.' },
-      { name: 'linkComponent', type: 'NavLinkComponent', description: 'Renders link items through your router; href is then a key your component resolves.' },
-      { name: 'children', type: 'ReactNode', description: 'Deprecated in favour of items; native app or router links and buttons still render after items.' },
+      { name: 'items', type: 'AccountMenuItem[]', description: 'Your own entries, placed before Account settings and Sign out. { id, label, icon?, danger?, disabled?, busy?, busyLabel? } plus kind: "link" (href), "button" (onSelect) or "separator". Busy items are disabled, aria-busy and show busyLabel. Items render the same native links and buttons, so the dismissal rules are unchanged.' },
+      { name: 'linkComponent', type: 'NavLinkComponent', description: 'Renders link items and the Account settings link through your router; href is then a key your component resolves.' },
+      { name: 'accountSettings', type: '{ href: string; label?: string }', description: 'The Account settings link, after your items. The label defaults to "Account settings". Omit it when the app has no account settings page.' },
+      { name: 'signOut', type: '{ onSelect: () => void; label?: string; busy?: boolean; busyLabel?: string; disabled?: boolean }', description: 'The Sign out button, always last and set apart by a separator whenever something sits above it. The label defaults to "Sign out". A busy button is disabled, aria-busy and shows busyLabel ("Signing out…" by default), so a second activation cannot start another sign out.' },
+      { name: 'children', type: 'ReactNode', description: 'Deprecated in favour of items; native app or router links and buttons still render after items and before Account settings.' },
       { name: 'label', type: 'string', defaultValue: 'Account menu', description: 'Accessible label on the icon-only disclosure button.' },
       { name: 'defaultOpen', type: 'boolean', defaultValue: 'false', description: 'Initial disclosure state, useful for catalogue states. Does not take focus on mount.' },
     ],
     tokens: ['--t98-space-2', '--t98-space-3', '--t98-space-4', '--t98-surface', '--t98-text', '--t98-muted', '--t98-border', '--t98-accent', '--t98-radius', '--t98-z-popover'],
-    accessibility: ['Use Enter or Space on the labelled trigger, then Tab through native links and actions.', 'Escape closes and restores trigger focus. Outside interaction and Tab exit dismiss without trapping or stealing focus.', 'Keep busy/disabled actions native. Navigation and session changes remain explicit app behavior. Long identity text wraps at narrow widths.'],
+    accessibility: ['Use Enter or Space on the labelled trigger, then Tab through native links and actions. Your items come first in the Tab order and Sign out last.', 'Escape closes and restores trigger focus. Outside interaction and Tab exit dismiss without trapping or stealing focus.', 'Keep busy/disabled actions native. Navigation and session changes remain explicit app behavior. Long identity text wraps at narrow widths.'],
     related: ['Avatar', 'SidebarFooter', 'AppShell', 'useSidebarNavigation'],
     example: accountCode(),
     states: [
-      { name: 'Items', description: 'Declarative links, a separator and a danger action.', preview: <AccountMenu name="Alex Morgan" email="alex@example.test" defaultOpen items={[{ id: 'profile', kind: 'link', label: 'Profile and appearance', icon: 'user', href: '#profile' }, { id: 'sep', kind: 'separator' }, { id: 'out', kind: 'button', label: 'Sign out', busyLabel: 'Signing out…', danger: true, onSelect: () => undefined }]} />, code: itemsCode },
+      { name: 'App items', description: 'Your own link and button come first, then Account settings, a separator and Sign out.', preview: <AccountMenu name="Alex Morgan" email="alex@example.test" defaultOpen items={[{ id: 'help', kind: 'link', label: 'Help center', icon: 'external', href: '#help' }, { id: 'shortcuts', kind: 'button', label: 'Keyboard shortcuts', onSelect: () => undefined }]} accountSettings={{ href: '#account' }} signOut={{ onSelect: () => undefined }} />, code: itemsCode },
       { name: 'Closed', description: 'A single header avatar opens the account options; the draft below remains mounted.', preview: <AccountPreview/>, code: accountCode() },
-      { name: 'Open', description: 'Identity, account links and sign out form one compact dropdown.', preview: <AccountPreview expanded/>, code: accountCode(true) },
+      { name: 'Open', description: 'Identity, Account settings and Sign out form one compact dropdown.', preview: <AccountPreview expanded/>, code: accountCode(true) },
       { name: 'Long identity', description: 'A long display name and email wrap inside the dropdown.', preview: <AccountPreview expanded long/>, code: accountCode(true, true) },
-      { name: 'Busy action', description: 'A pending app action stays disabled while account navigation remains inspectable.', preview: <AccountPreview expanded busy/>, code: accountCode(true, false, true) },
+      { name: 'Signing out', description: 'A pending sign out stays disabled and shows its busy label while the rest of the menu remains inspectable.', preview: <AccountPreview expanded busy/>, code: accountCode(true, false, true) },
     ],
   },
   {

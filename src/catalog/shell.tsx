@@ -55,8 +55,8 @@ const topbarCode = tsx(['AppTopbar', 'AccountMenu', 'SearchField'], `<AppTopbar
   menuToggle
   breadcrumb={{ icon: 'home', scope: 'Acme', current: 'Overview' }}
   search={<SearchField variant="topbar" label="Search" hideLabel placeholder="Search" shortcut="/" value={query} onValueChange={setQuery} />}
-  actions={<AccountMenu name="Alex Morgan" email="alex@example.test" items={[{ id: 'profile', kind: 'link', label: 'Profile', href: 'account' }]} />}
-/>`, "const [query, setQuery] = useState('');", ['useState']);
+  actions={<AccountMenu name="Alex Morgan" email="alex@example.test" accountSettings={{ href: 'account' }} signOut={{ onSelect: signOut }} />}
+/>`, "const [query, setQuery] = useState('');\nconst signOut = () => undefined;", ['useState']);
 const bannerCode = tsx(['Banner'], `<Banner tone="sample" pill="Sample" title="Demo data" icon="box" action={{ label: 'Connect real data', href: 'connections' }}>
   Figures are illustrative.
 </Banner>`);
@@ -225,7 +225,7 @@ export const shellEntries: ComponentEntry[] = [
     example: topbarCode,
     states: [{
       name: 'Default', description: 'Breadcrumb, search and an account action.', code: topbarCode,
-      preview: <AppTopbar breadcrumb={{ icon: 'home', scope: 'Acme', current: 'Overview' }} search={<SearchField variant="topbar" label="Search" hideLabel placeholder="Search" shortcut="/" value="" onValueChange={noop} />} actions={<AccountMenu name="Alex Morgan" email="alex@example.test" items={[{ id: 'profile', kind: 'link', label: 'Profile', href: '#profile' }]} />} />,
+      preview: <AppTopbar breadcrumb={{ icon: 'home', scope: 'Acme', current: 'Overview' }} search={<SearchField variant="topbar" label="Search" hideLabel placeholder="Search" shortcut="/" value="" onValueChange={noop} />} actions={<AccountMenu name="Alex Morgan" email="alex@example.test" accountSettings={{ href: '#account' }} signOut={{ onSelect: noop }} />} />,
     }, {
       name: 'Wrapping labels', description: 'wrap lets long labels flow onto several lines rather than truncating.', code: tsx(['AppTopbar'], `<AppTopbar wrap breadcrumb={{ icon: 'home', scope: 'Acme International Marketing Group', current: 'Quarterly campaign performance review' }} />`),
       preview: <div style={{ maxWidth: 320 }}><AppTopbar wrap breadcrumb={{ icon: 'home', scope: 'Acme International Marketing Group', current: 'Quarterly campaign performance review' }} /></div>,

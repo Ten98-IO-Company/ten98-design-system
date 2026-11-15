@@ -8,6 +8,8 @@ import '@ten98/ui/product.css';
 const params = new URLSearchParams(location.search);
 const formMode = params.has('form');
 const unavailable = params.has('unavailable');
+// The default entries: the app's own item, then Account settings, a separator and Sign out, instead of native children.
+const entries = params.has('entries');
 document.documentElement.dataset.theme = params.get('theme') || 'light';
 
 function Shell() {
@@ -66,13 +68,20 @@ function Shell() {
       event.preventDefault();
       setStatus('Unexpected form submit');
     }}>
-      <header className="topbar" style={{ position: 'relative', padding: 0, minHeight: 56, overflow: 'visible' }}>
+      <header className="topbar" style={{ position: 'relative', padding: 0, minHeight: 56, overflow: 'visible' }}
+        onClick={entries ? event => {
+          const link = (event.target as Element).closest('a');
+          if (link) { event.preventDefault(); guarded(() => setRoute(link.textContent ?? '')); }
+        } : undefined}>
         <strong>Campaign</strong>
         {mounted && <AccountMenu
           name={long ? 'Alexandra Morgan-Williams and the regional operations team' : 'Alex Morgan'}
           email={long ? 'alexandra.morgan-williams@regional-operations.example.test' : 'alex@example.test'}
           avatar={<span className="avatar mini" aria-hidden>AM</span>}
-        >{accountActions}</AccountMenu>}
+          items={entries ? [{ id: 'shortcuts', kind: 'button', label: 'Keyboard shortcuts', onSelect: () => setStatus('Keyboard shortcuts opened') }] : undefined}
+          accountSettings={entries ? { href: '/account' } : undefined}
+          signOut={entries ? { busy, onSelect: () => guarded(signOut) } : undefined}
+        >{entries ? undefined : accountActions}</AccountMenu>}
       </header>
       <h1 style={{ marginTop: 24 }}>{route}</h1>
       <label style={{ display: 'grid', gap: 8, marginTop: 16 }}>
