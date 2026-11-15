@@ -368,7 +368,7 @@ test('product.css, the stylesheet established apps import, includes every styles
   assert.deepEqual(bundled.filter(file => !imported.includes(file)), [], 'product.css imports every bundled stylesheet');
 });
 
-test('shipped sources, README and notices use LF only, so npm pack is byte-identical on every OS', () => {
+test('shipped sources, README and notices use LF only, so pnpm pack is byte-identical on every OS', () => {
   const offenders = [];
   const walk = url => { for (const entry of readdirSync(url, { withFileTypes: true })) {
     const child = new URL(entry.name + (entry.isDirectory() ? '/' : ''), url);
@@ -469,9 +469,9 @@ test('the self-hosted Inter faces resolve inside the package and lead both font 
 });
 
 test('the packed archive ships the Inter files, their licence and the notice', () => {
-  // --ignore-scripts packs the dist that npm test runs against; prepack would rebuild it.
-  const output = execSync('npm pack --dry-run --json --ignore-scripts', { cwd: fileURLToPath(file('')), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
-  const [archive] = JSON.parse(output.slice(output.indexOf('[')));
+  // ignore-scripts packs the dist that pnpm test runs against; prepack would rebuild it.
+  const output = execSync('pnpm pack --dry-run --json --config.ignore-scripts=true', { cwd: fileURLToPath(file('')), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+  const archive = JSON.parse(output.slice(output.indexOf('{')));
   const shipped = new Set(archive.files.map(entry => entry.path.replaceAll('\\', '/')));
   for (const path of ['dist/fonts/inter-latin-wght-normal.woff2', 'dist/fonts/inter-latin-ext-wght-normal.woff2', 'dist/fonts/OFL.txt', 'dist/tokens.css', 'dist/styles.css', 'THIRD_PARTY_NOTICES.md']) {
     assert.ok(shipped.has(path), `${path} is in the packed archive`);
