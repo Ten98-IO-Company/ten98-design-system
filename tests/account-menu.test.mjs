@@ -85,3 +85,53 @@ test('AccountMenu renders items before still-supported children and every class 
   const styles = readFileSync(new URL('../dist/styles.css', import.meta.url), 'utf8');
   for (const name of new Set([...html.matchAll(/class="([^"]+)"/g)].flatMap(match => match[1].split(' ')).filter(name => name.startsWith('t98-') && !name.startsWith('t98-avatar')))) assert.ok(styles.includes(`.${name}`), `${name} is styled`);
 });
+
+// The menu's actions in order as their text, with a separator shown as "—".
+const entries = html => [...html.split('class="t98-account-menu__actions">')[1].matchAll(/<hr\b[^>]*>|<(a|button)\b[^>]*>[\s\S]*?<\/\1>/g)]
+  .map(match => match[0].startsWith('<hr') ? '—' : match[0].replace(/<[^>]+>/g, ''));
+const menu = props => renderToStaticMarkup(h(AccountMenu, { name: 'Alex', ...props }));
+const help = { id: 'help', kind: 'link', label: 'Help center', href: '/help' };
+const signOut = { onSelect: () => undefined };
+const legacy = h('a', { href: '/legacy' }, 'Legacy');
+
+test('AccountMenu lists the app items, then Account settings, a separator and Sign out last', () => {
+  assert.deepEqual(entries(menu({ items: [help], accountSettings: { href: '/account' }, signOut })), ['Help center', 'Account settings', '—', 'Sign out']);
+  assert.deepEqual(entries(menu({ accountSettings: { href: '/account' }, signOut })), ['Account settings', '—', 'Sign out']);
+  // Items the app already passes keep their own separators and place before the two entries, whatever they are.
+  assert.deepEqual(entries(menu({ items: [help, { id: 'sep', kind: 'separator' }, { id: 'keys', kind: 'button', label: 'Shortcuts', onSelect: () => undefined }], accountSettings: { href: '/account' }, signOut })),
+    ['Help center', '—', 'Shortcuts', 'Account settings', '—', 'Sign out']);
+  // Deprecated children still render after items, and before the two entries.
+  assert.deepEqual(entries(menu({ items: [help], children: legacy, accountSettings: { href: '/account' }, signOut })), ['Help center', 'Legacy', 'Account settings', '—', 'Sign out']);
+  // It stays a disclosure with ordinary Tab order: no menu roles and no roving tabindex.
+  assert.doesNotMatch(menu({ items: [help], accountSettings: { href: '/account' }, signOut }), /role="(?:menu|menuitem)"|tabindex=|tabIndex=/);
+});
+
+test('the separator before Sign out appears only when something sits above it', () => {
+  assert.deepEqual(entries(menu({ signOut })), ['Sign out']);
+  assert.deepEqual(entries(menu({ signOut, items: [] })), ['Sign out']);
+  assert.deepEqual(entries(menu({ signOut, children: [false, null] })), ['Sign out']);
+  assert.deepEqual(entries(menu({ signOut, items: [help] })), ['Help center', '—', 'Sign out']);
+  assert.deepEqual(entries(menu({ signOut, children: legacy })), ['Legacy', '—', 'Sign out']);
+  assert.deepEqual(entries(menu({ signOut, accountSettings: { href: '/account' } })), ['Account settings', '—', 'Sign out']);
+  // Without Sign out nothing follows Account settings, so no separator trails it; without both props the menu is the app's own.
+  assert.deepEqual(entries(menu({ accountSettings: { href: '/account' } })), ['Account settings']);
+  assert.deepEqual(entries(menu({ items: [help] })), ['Help center']);
+  assert.deepEqual(entries(menu({})), []);
+});
+
+test('Account settings and Sign out default their labels, style Sign out as a danger action and pass a busy state through', () => {
+  const html = menu({ accountSettings: { href: '/account' }, signOut: { ...signOut, busy: true } });
+  assert.match(html, /<a href="\/account" class="t98-account-menu__item"><span>Account settings<\/span><\/a>/);
+  assert.match(html, /<button type="button" class="t98-account-menu__item t98-account-menu__item--danger" disabled="" aria-busy="true"><span>Signing out…<\/span><\/button>/);
+  assert.match(menu({ signOut }), /<button type="button" class="t98-account-menu__item t98-account-menu__item--danger"><span>Sign out<\/span><\/button>/);
+  assert.match(menu({ signOut: { ...signOut, disabled: true } }), /t98-account-menu__item--danger" disabled=""><span>Sign out/);
+  // A relabelled Sign out keeps its own label while busy unless the app gives a busy label; the default one is English.
+  assert.deepEqual(entries(menu({ signOut: { ...signOut, label: 'Log out', busy: true } })), ['Log out']);
+  assert.deepEqual(entries(menu({ signOut: { ...signOut, label: 'Log out', busyLabel: 'Logging out…', busy: true } })), ['Logging out…']);
+  assert.deepEqual(entries(menu({ accountSettings: { href: '/account', label: 'Settings' } })), ['Settings']);
+});
+
+test('Account settings renders through linkComponent like the link items', () => {
+  const Route = ({ href, ...rest }) => h('a', { href: `/app/${href}`, 'data-route': href, ...rest });
+  assert.match(menu({ linkComponent: Route, accountSettings: { href: 'account' }, signOut }), /<a href="\/app\/account" data-route="account" class="t98-account-menu__item"><span>Account settings<\/span><\/a>/);
+});

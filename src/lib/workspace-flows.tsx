@@ -460,10 +460,12 @@ const projectMessages: ProjectCreateFlowMessages = {
   nameLabel: 'Project name', originLabel: 'Site origin', originHint: 'The address of the site, for example https://www.example.com.', create: 'Create project', save: 'Save project', createTitle: 'Create a project', editTitle: 'Project details', cancel: 'Cancel', creating: 'Creating project…', saving: 'Saving…', nameBlank: 'Enter a project name.' };
 export interface ProjectCreateFlowProps extends FlowState {
   mode: 'create' | 'edit';
+  /** A non-empty `name` is the person's own, so the address never replaces it. */
   defaultValues: { name: string; origin?: string };
-  /** Defaults to true. When false the origin may stay empty. */
+  /** Defaults to true. When false the origin may stay empty. Applies with `showOrigin`. */
   originRequired?: boolean;
-  /** Defaults to true. False is for projects without a website: no origin field, validation or submitted value. */
+  /** Defaults to false: the form asks for the name only. True adds the site's address before the name. The name then
+   * follows the address (its hostname without `www.`) until the person edits it, and the address is submitted as `origin`. */
   showOrigin?: boolean;
   /** A checkbox such as "Add sample data" for a first-project step; its value is submitted as `sample`. `false` or omitted hides it. */
   sampleOptIn?: { label: string; defaultChecked?: boolean } | false;
@@ -474,17 +476,35 @@ export interface ProjectCreateFlowProps extends FlowState {
   description?: string;
   messages?: Partial<ProjectCreateFlowMessages>;
 }
-/** Names a project and sets the origin of its site. */
-export function ProjectCreateFlow({ mode, defaultValues, originRequired = true, showOrigin = true, sampleOptIn = false, onSubmit, cancel, title, description, messages, ...state }: ProjectCreateFlowProps) {
+const projectNameMax = 120;
+/** The name an address suggests: its hostname without a leading "www.", or '' while the text is not an address yet. */
+function nameFromAddress(address: string) {
+  const text = address.trim();
+  if (!text) return '';
+  try {
+    // A bare domain such as example.com has no scheme, which URL requires.
+    const { hostname } = new URL(/^[a-z][a-z\d+.-]*:\/\//i.test(text) ? text : `https://${text}`);
+    return hostname.replace(/^www\./, '').slice(0, projectNameMax);
+  } catch { return ''; }
+}
+
+/** Names a project. With `showOrigin` it also sets the address of the project's site, which comes first and suggests the name. */
+export function ProjectCreateFlow({ mode, defaultValues, originRequired = true, showOrigin = false, sampleOptIn = false, onSubmit, cancel, title, description, messages, ...state }: ProjectCreateFlowProps) {
   const id = useId();
   const copy = { ...projectMessages, ...messages };
   const [blank, setBlank] = useState(false);
+  const nameInput = useRef<HTMLInputElement>(null);
+  // The name follows the address until it is the person's own: given by the app, or typed. Like the other flows the
+  // inputs stay uncontrolled, and a value set from code fires no change event, so a suggestion never counts as typed.
+  const ownName = useRef(Boolean(defaultValues.name));
+  const initialName = defaultValues.name || (showOrigin ? nameFromAddress(defaultValues.origin ?? '') : '');
   return <NameForm {...state} busyLabel={state.busyLabel ?? (mode === 'create' ? copy.creating : copy.saving)} onBlankName={() => setBlank(true)} title={title ?? (mode === 'create' ? copy.createTitle : copy.editTitle)} description={description} submitLabel={mode === 'create' ? copy.create : copy.save} cancel={cancel} cancelLabel={copy.cancel}
     onSubmit={form => { setBlank(false); return onSubmit({ name: formText(form, 'name').trim(), ...(showOrigin ? { origin: formText(form, 'origin') } : {}), ...(sampleOptIn ? { sample: form.get('sample') === 'true' } : {}) }); }}>
-    <Field label={copy.nameLabel} htmlFor={`${id}-name`} error={state.fieldErrors?.name ?? (blank ? copy.nameBlank : undefined)}><Input name="name" autoComplete="off" required maxLength={120} defaultValue={defaultValues.name} /></Field>
     {/* Text with a URL keyboard, not type="url": a bare domain such as example.com must reach the app's own validation
         and field error rather than the browser's untranslatable bubble. */}
-    {showOrigin && <Field label={copy.originLabel} htmlFor={`${id}-origin`} description={copy.originHint} error={state.fieldErrors?.origin}><Input name="origin" type="text" inputMode="url" autoComplete="off" spellCheck={false} required={originRequired} maxLength={2048} defaultValue={defaultValues.origin} /></Field>}
+    {showOrigin && <Field label={copy.originLabel} htmlFor={`${id}-origin`} description={copy.originHint} error={state.fieldErrors?.origin}><Input name="origin" type="text" inputMode="url" autoComplete="off" spellCheck={false} required={originRequired} maxLength={2048} defaultValue={defaultValues.origin}
+      onChange={event => { if (!ownName.current && nameInput.current) nameInput.current.value = nameFromAddress(event.currentTarget.value); }} /></Field>}
+    <Field label={copy.nameLabel} htmlFor={`${id}-name`} error={state.fieldErrors?.name ?? (blank ? copy.nameBlank : undefined)}><Input ref={nameInput} name="name" autoComplete="off" required maxLength={projectNameMax} defaultValue={initialName} onChange={() => { ownName.current = true; }} /></Field>
     {sampleOptIn && <Checkbox name="sample" value="true" label={sampleOptIn.label} defaultChecked={sampleOptIn.defaultChecked} />}
   </NameForm>;
 }

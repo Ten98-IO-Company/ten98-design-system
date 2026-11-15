@@ -66,7 +66,7 @@ function Screen() {
         policy={{ twoFactorRequired: policy, onChange: required => { log('policy', required); setPolicy(required); } }}
         ownership={{ candidates: [{ value: 'u2', label: 'Sam Lee' }, { value: 'u3', label: 'Priya Nair' }], onTransfer: values => log('transfer', values) }} />
       <WorkspaceCreateFlow mode="rename" defaultValues={{ name: 'Acme' }} onSubmit={values => log('workspace', values)} cancel={{ onClick: () => log('cancel', 'workspace') }} />
-      <ProjectCreateFlow mode="create" defaultValues={{ name: '', origin: '' }} onSubmit={values => log('project', values)} />
+      <ProjectCreateFlow mode="create" showOrigin defaultValues={{ name: '', origin: '' }} onSubmit={values => log('project', values)} />
       <DangerZoneFlow actions={[{ id: 'delete', title: 'Delete workspace', description: 'Removes every project and member. This cannot be undone.', confirmLabel: 'Delete workspace', confirmationText: 'DELETE' }]}
         onConfirm={values => log('danger', values)} />
     </Stack>

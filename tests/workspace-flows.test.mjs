@@ -10,6 +10,8 @@ const styles = readFileSync(new URL('../dist/styles.css', import.meta.url), 'utf
 const rendered = [];
 const render = element => { const html = renderToStaticMarkup(element); rendered.push(html); return html; };
 const names = html => [...html.matchAll(/ name="([^"]+)"/g)].map(match => match[1]);
+// The value attribute of the named input, or '' when it renders none.
+const valueOf = (html, name) => html.match(new RegExp(`<input[^>]*name="${name}"[^>]*>`))?.[0].match(/ value="([^"]*)"/)?.[1] ?? '';
 const noop = () => {};
 
 const scopes = [{ value: 'read', label: 'Read' }, { value: 'write', label: 'Write' }];
@@ -84,12 +86,12 @@ test('WorkspaceCreateFlow and ProjectCreateFlow submit typed names; originRequir
   const rename = render(h(WorkspaceCreateFlow, { mode: 'rename', defaultValues: { name: 'Acme' }, onSubmit: noop, cancel: { href: '/back' } }));
   assert.match(rename, /value="Acme"/);
   assert.match(rename, /href="\/back"/);
-  const required = render(h(ProjectCreateFlow, { mode: 'create', defaultValues: { name: '', origin: '' }, onSubmit: noop }));
-  assert.deepEqual(names(required), ['name', 'origin']);
+  const required = render(h(ProjectCreateFlow, { mode: 'create', defaultValues: { name: '', origin: '' }, showOrigin: true, onSubmit: noop }));
+  assert.deepEqual(names(required), ['origin', 'name']);
   assert.match(required, /<input[^>]*name="origin"[^>]*>/);
   assert.match(required.match(/<input[^>]*name="origin"[^>]*>/)[0], /inputMode="url"/);
   assert.match(required.match(/<input[^>]*name="origin"[^>]*>/)[0], /required=""/);
-  const optional = render(h(ProjectCreateFlow, { mode: 'edit', defaultValues: { name: 'Site', origin: '' }, originRequired: false, onSubmit: noop }));
+  const optional = render(h(ProjectCreateFlow, { mode: 'edit', defaultValues: { name: 'Site', origin: '' }, showOrigin: true, originRequired: false, onSubmit: noop }));
   assert.doesNotMatch(optional.match(/<input[^>]*name="origin"[^>]*>/)[0], /required/);
 });
 
@@ -169,13 +171,47 @@ test('an admin sees owner and admin rows labelled while inviting only editors an
   assert.match(renamed, />Workspace owner</);
 });
 
-test('ProjectCreateFlow renders the site origin only for projects that have one', async () => {
+test('ProjectCreateFlow asks for the name only, and renders the site address only when the app asks for it', async () => {
   const { ProjectCreateFlow } = await import('../dist/index.js');
-  const website = renderToStaticMarkup(h(ProjectCreateFlow, { mode: 'create', defaultValues: { name: '' }, onSubmit() {} }));
-  const originInput = website.match(/<input[^>]*name="origin"[^>]*>/)[0];
-  assert.match(originInput, /required/);
-  const campaign = renderToStaticMarkup(h(ProjectCreateFlow, { mode: 'create', defaultValues: { name: '' }, showOrigin: false, onSubmit() {} }));
-  assert.doesNotMatch(campaign, /name="origin"/);
+  const props = { mode: 'create', defaultValues: { name: '', origin: 'https://example.com' }, onSubmit() {} };
+  const byDefault = renderToStaticMarkup(h(ProjectCreateFlow, props));
+  assert.deepEqual(names(byDefault), ['name']);
+  assert.doesNotMatch(byDefault, /name="origin"|Site origin/);
+  // An address the app passes is not used while its field is hidden.
+  assert.equal(valueOf(byDefault, 'name'), '');
+  assert.deepEqual(names(renderToStaticMarkup(h(ProjectCreateFlow, { ...props, showOrigin: false }))), ['name']);
+  const website = renderToStaticMarkup(h(ProjectCreateFlow, { ...props, showOrigin: true }));
+  assert.match(website.match(/<input[^>]*name="origin"[^>]*>/)[0], /required/);
+});
+
+test('ProjectCreateFlow puts the address before the name, in create and edit mode alike', async () => {
+  const { ProjectCreateFlow } = await import('../dist/index.js');
+  for (const mode of ['create', 'edit']) {
+    const html = renderToStaticMarkup(h(ProjectCreateFlow, { mode, showOrigin: true, defaultValues: { name: 'Site', origin: 'https://example.com' }, sampleOptIn: { label: 'Add sample data' }, onSubmit() {} }));
+    assert.deepEqual(names(html), ['origin', 'name', 'sample']);
+    assert.ok(html.indexOf('Site origin') < html.indexOf('Project name'), `${mode}: the address label comes first`);
+    assert.ok(html.indexOf('Project name') < html.indexOf('Add sample data'), `${mode}: the sample choice stays last`);
+  }
+});
+
+test('ProjectCreateFlow suggests the name from the address hostname until the app gives a name', async () => {
+  const { ProjectCreateFlow } = await import('../dist/index.js');
+  const suggested = (origin, name = '', showOrigin = true) =>
+    valueOf(renderToStaticMarkup(h(ProjectCreateFlow, { mode: 'create', showOrigin, defaultValues: { name, origin }, onSubmit() {} })), 'name');
+  assert.equal(suggested('https://www.example.com/x'), 'example.com');
+  assert.equal(suggested('www.example.com'), 'example.com');
+  assert.equal(suggested('example.com/path?q=1#top'), 'example.com');
+  assert.equal(suggested('HTTP://WWW.Example.COM:8080'), 'example.com');
+  assert.equal(suggested('https://shop.example.co.uk/'), 'shop.example.co.uk');
+  assert.equal(suggested('localhost:3000'), 'localhost');
+  assert.equal(suggested('https://user@www.example.com'), 'example.com');
+  // No address, or text that is not one yet, suggests nothing.
+  for (const text of ['', '   ', 'https://', 'my website']) assert.equal(suggested(text), '', JSON.stringify(text));
+  // A name from the app is kept; the suggestion is not a default for it.
+  assert.equal(suggested('https://www.example.com', 'Acme'), 'Acme');
+  assert.equal(suggested('https://www.example.com', '', false), '');
+  // The name field's own limit holds for a long host.
+  assert.equal(suggested(`https://${'a'.repeat(60)}.${'b'.repeat(60)}.${'c'.repeat(60)}.com`).length, 120);
 });
 
 test('TeamFlow explains an empty invitation list, hints a solo member to invite, and shows expiry as relative text (#151)', () => {

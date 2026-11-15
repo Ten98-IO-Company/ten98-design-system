@@ -187,6 +187,68 @@ test('native form validation keeps its fields visible until a successful submit 
   await expect(page.getByLabel('Account name', { exact: true })).toHaveValue('Updated name');
 });
 
+test.describe('default entries after the app items', () => {
+  test.beforeEach(async ({ page }, info) => {
+    await page.goto(`/tests/account-menu.html?entries=1&theme=${info.project.name === 'narrow-dark' ? 'dark' : 'light'}`);
+  });
+
+  test('the menu reads app item, Account settings, a separator and Sign out last, top to bottom', async ({ page }) => {
+    const trigger = page.getByRole('button', { name: 'Account menu', exact: true });
+    await trigger.click();
+    const panel = page.locator(`[id="${await trigger.getAttribute('aria-controls')}"]`);
+    const rows = await panel.locator('.t98-account-menu__actions > *').evaluateAll(nodes => nodes.map(node => ({
+      label: node.tagName === 'HR' ? '—' : node.textContent?.trim(), top: node.getBoundingClientRect().top,
+    })));
+    expect(rows.map(row => row.label)).toEqual(['Keyboard shortcuts', 'Account settings', '—', 'Sign out']);
+    expect(rows.map(row => row.top)).toEqual([...rows.map(row => row.top)].sort((a, b) => a - b));
+    await expect(page.getByRole('menu')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Sign out', exact: true })).toHaveClass(/t98-account-menu__item--danger/);
+  });
+
+  test('Tab reaches the app item, Account settings and Sign out in that order, and Escape still returns to the trigger', async ({ page }) => {
+    const trigger = page.getByRole('button', { name: 'Account menu', exact: true });
+    await trigger.focus();
+    await page.keyboard.press('Enter');
+    await page.keyboard.press('Tab');
+    await expect(page.getByRole('button', { name: 'Keyboard shortcuts', exact: true })).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(page.getByRole('link', { name: 'Account settings', exact: true })).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(page.getByRole('button', { name: 'Sign out', exact: true })).toBeFocused();
+    await page.keyboard.press('Escape');
+    await expect(trigger).toBeFocused();
+    await expect(trigger).toHaveAttribute('aria-expanded', 'false');
+    await page.keyboard.press('Space');
+    await page.keyboard.press('Tab');
+    await page.keyboard.press('Tab');
+    await page.keyboard.press('Tab');
+    await page.keyboard.press('Tab');
+    await expect(page.getByLabel('Local draft', { exact: true })).toBeFocused();
+    await expect(trigger).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  test('Account settings navigates through the app, and Sign out stays single and retryable while busy', async ({ page }) => {
+    const trigger = page.getByRole('button', { name: 'Account menu', exact: true });
+    await trigger.click();
+    await page.getByRole('link', { name: 'Account settings', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Account settings', exact: true })).toBeVisible();
+    await expect(trigger).toHaveAttribute('aria-expanded', 'false');
+    await trigger.click();
+    await page.getByRole('button', { name: 'Sign out', exact: true }).click();
+    await expect(page.getByLabel('Sign out calls', { exact: true })).toHaveText('1');
+    await trigger.click();
+    const busy = page.getByRole('button', { name: 'Signing out…', exact: true });
+    await expect(busy).toBeDisabled();
+    await expect(busy).toHaveAttribute('aria-busy', 'true');
+    await busy.evaluate(button => (button as HTMLButtonElement).click());
+    await expect(page.getByLabel('Sign out calls', { exact: true })).toHaveText('1');
+    await page.getByRole('button', { name: 'Finish failed sign out', exact: true }).click();
+    await trigger.click();
+    await page.getByRole('button', { name: 'Sign out', exact: true }).click();
+    await expect(page.getByLabel('Sign out calls', { exact: true })).toHaveText('2');
+  });
+});
+
 test('the containment check rejects an intentionally overflowing dropdown and passes after restoration', async ({ page }) => {
   const trigger = page.getByRole('button', { name: 'Account menu', exact: true });
   await trigger.click();
