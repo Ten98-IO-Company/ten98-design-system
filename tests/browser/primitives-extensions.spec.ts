@@ -245,3 +245,18 @@ test('the hidden attribute hides layout primitives and other library elements th
   expect(displays.untilFoundUpper).toBe('flex');
   expect(displays.appClass).toBe('none');
 });
+
+test('a standalone link is at least 24px tall on a fine pointer (WCAG 2.2 target size)', async ({ page }) => {
+  await page.goto('/tests/primitives-extensions.html');
+  const height = await page.evaluate(() => {
+    const link = document.createElement('a');
+    link.href = '#target';
+    link.className = 't98-link t98-link--standalone';
+    link.textContent = 'Open inspection';
+    document.body.append(link);
+    const box = link.getBoundingClientRect().height;
+    link.remove();
+    return box;
+  });
+  expect(height).toBeGreaterThanOrEqual(24);
+});
