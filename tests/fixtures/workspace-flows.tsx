@@ -14,7 +14,9 @@ const calls: string[] = [];
 (window as unknown as { __calls: string[] }).__calls = calls;
 const log = (name: string, values: unknown) => { calls.push(`${name}:${JSON.stringify(values)}`); };
 // Test switches: ?slowInvite holds an invitation pending; ?rejectRole rejects every role change; ?promote also offers Owner;
-// ?unconfirmed=blank reports '' (nothing unconfirmed) after a resend; ?revokeUnconfirmed revokes i1 but reports the outcome as unconfirmed.
+// ?unconfirmed=blank reports '' (nothing unconfirmed) after a resend; ?revokeUnconfirmed revokes i1 but reports the outcome as unconfirmed;
+// ?noOwnerRole leaves Owner out of `roles`; ?selfEdit lets the owner change their own role.
+// window.__team changes the team from outside, the way another admin or a refetch would while a confirm is open.
 const params = new URLSearchParams(location.search);
 
 const longName = 'production-deployment-pipeline-credentials-for-the-regional-data-platform-team';
@@ -22,7 +24,7 @@ const keys: ApiKey[] = [
   { id: 'k1', name: longName, prefix: 't98_ab12cd', scopes: ['read', 'write'], createdAt: '2026-09-01', expiresAt: '2027-01-01', lastUsedAt: '2026-10-18', revoked: false },
   { id: 'k2', name: 'Retired key', prefix: 't98_zz99yy', scopes: ['read'], createdAt: '2026-01-05', revoked: true },
 ];
-const roles = [{ value: 'owner', label: 'Owner' }, { value: 'admin', label: 'Admin' }, { value: 'member', label: 'Member' }];
+const roles = [{ value: 'owner', label: 'Owner' }, { value: 'admin', label: 'Admin' }, { value: 'member', label: 'Member' }].filter(role => !params.has('noOwnerRole') || role.value !== 'owner');
 const initialMembers: TeamMember[] = [
   { id: 'u1', name: 'Amal Haddad', email: 'amal.haddad@example.com', role: 'owner', twoFactor: true },
   { id: 'u2', name: 'Sam Lee', email: 'sam.lee.with.a.deliberately.long.address@subdomain.example.com', role: 'member', twoFactor: false },
@@ -43,7 +45,19 @@ function Screen() {
   const [unconfirmed, setUnconfirmed] = useState<string>();
   const [firstStatus, setFirstStatus] = useState('pending');
   const [members, setMembers] = useState(initialMembers);
+  const [restricted, setRestricted] = useState<string[]>([]);
   const changeRole = ({ id, role }: { id: string; role: string }) => setMembers(list => list.map(member => member.id === id ? { ...member, role } : member));
+  (window as unknown as { __team: object }).__team = {
+    remove: (id: string) => setMembers(list => list.filter(member => member.id !== id)),
+    setRole: (id: string, role: string) => changeRole({ id, role }),
+    // Admin is no longer assignable to this member.
+    restrict: (id: string) => setRestricted(list => [...list, id]),
+  };
+  const assignable = (member: TeamMember) => {
+    if (member.id === 'u1' && !params.has('selfEdit')) return [];
+    const offered = params.has('promote') || member.id === 'u1' ? ['owner', 'admin', 'member'] : ['admin', 'member'];
+    return restricted.includes(member.id) ? offered.filter(role => role !== 'admin') : offered;
+  };
   return <SettingsLayout title="Settings" scope="Acme workspace" items={items} current="team">
     <Stack gap={8}>
       <ApiKeysFlow keys={keys} scopes={[{ value: 'read', label: 'Read' }, { value: 'write', label: 'Write', description: 'Create and change records.' }]}
@@ -51,7 +65,7 @@ function Screen() {
         revealedSecret={secret} onDismissSecret={() => setSecret(undefined)}
         onCreate={values => { log('create', values); setSecret({ id: 'k9', token: 't98_live_0123456789abcdef0123456789abcdef' }); }}
         onRevoke={values => log('revoke', values)} />
-      <TeamFlow currentUserId="u1" members={members} roles={roles} assignableRoles={member => member.id === 'u1' ? [] : params.has('promote') ? ['owner', 'admin', 'member'] : ['admin', 'member']}
+      <TeamFlow currentUserId="u1" members={members} roles={roles} assignableRoles={assignable}
         onRoleChange={values => {
           log('role', values);
           if (params.has('rejectRole')) return Promise.reject(new Error('Only owners can make admins.'));

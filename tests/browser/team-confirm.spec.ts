@@ -179,3 +179,87 @@ test('revoking a different invitation keeps the link that is still valid', async
   await expect(dialog).toBeHidden();
   await expect(page.getByLabel('Invitation link')).toHaveValue(/fedcba9876543210/);
 });
+
+test('a role change to Owner is a danger confirm even when Owner is not in the invitation roles (#233 N7)', async ({ page }) => {
+  await open(page, '&promote=1&noOwnerRole=1');
+  await expect(page.getByRole('combobox', { name: 'Role', exact: true })).not.toContainText('Owner');
+  await samRole(page).selectOption('owner');
+  const dialog = page.getByRole('dialog');
+  await expect(dialog.getByRole('heading', { name: 'Change Sam Lee from Member to Owner?' })).toBeVisible();
+  await expect(dialog.getByRole('button', { name: 'Change role' })).toHaveClass(/t98-button--danger/);
+  await expect(dialog.getByRole('button', { name: 'Cancel' })).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeHidden();
+  expect(await only(page, 'role:')).toEqual([]);
+});
+
+test('changing your own role is a danger confirm, even as a demotion (#233 N8)', async ({ page }) => {
+  await open(page, '&selfEdit=1');
+  await page.getByLabel('Role for Amal Haddad').selectOption('admin');
+  const dialog = page.getByRole('dialog');
+  await expect(dialog.getByRole('heading', { name: 'Change Amal Haddad from Owner to Admin?' })).toBeVisible();
+  await expect(dialog.getByRole('button', { name: 'Change role' })).toHaveClass(/t98-button--danger/);
+  await expect(dialog.getByRole('button', { name: 'Cancel' })).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeHidden();
+  expect(await only(page, 'role:')).toEqual([]);
+});
+
+// The open confirm names one member and one role. When the list changes under it, it closes and says why, so Confirm
+// can never send that id or role.
+type TeamControl = { remove: (id: string) => void; setRole: (id: string, role: string) => void; restrict: (id: string) => void };
+const staleCases: { name: string; change: (team: TeamControl) => void; focus: 'message' | 'select' }[] = [
+  { name: 'the member is removed', change: team => team.remove('u2'), focus: 'message' },
+  { name: 'the member’s role changes', change: team => team.setRole('u2', 'owner'), focus: 'select' },
+  { name: 'the chosen role is no longer assignable', change: team => team.restrict('u2'), focus: 'select' },
+];
+for (const { name, change, focus } of staleCases) {
+  test(`an open role confirm closes with a message when ${name} (#233 N3)`, async ({ page }) => {
+    await open(page);
+    await samRole(page).selectOption('admin');
+    const dialog = page.getByRole('dialog');
+    await expect(dialog.getByRole('button', { name: 'Cancel' })).toBeFocused();
+    await page.evaluate(`(${change.toString()})(window.__team)`);
+    await expect(dialog).toBeHidden();
+    const message = page.getByRole('alert').filter({ hasText: 'Sam Lee’s role was not changed because the team list changed.' });
+    await expect(message).toBeVisible();
+    if (focus === 'message') await expect(message).toBeFocused();
+    else await expect(samRole(page)).toBeFocused();
+    await expect(page.getByRole('status').filter({ hasText: 'is now' })).toHaveCount(0);
+    expect(await only(page, 'role:')).toEqual([]);
+  });
+}
+
+test('a confirmed role change that updates the list is not reported as stale', async ({ page }) => {
+  await open(page, '&promote=1');
+  await samRole(page).selectOption('owner');
+  await page.getByRole('dialog').getByRole('button', { name: 'Change role' }).click();
+  await expect(page.getByRole('dialog')).toBeHidden();
+  expect(await only(page, 'role:')).toEqual(['role:{"id":"u2","role":"owner"}']);
+  await expect(page.getByRole('status').filter({ hasText: 'Sam Lee is now Owner.' })).toHaveCount(1);
+  await expect(page.getByRole('alert')).toHaveCount(0);
+});
+
+// #233 N9 depends on the Dialog patch for a multi-click that closes a dialog (0.40.1): on WebKit the dialog closes between the
+// two clicks, the second lands on the page beneath and focus falls to the body. Remove fixme once that patch is merged.
+test.fixme('a double-click on Confirm changes the role once and keeps focus on the select (#233 N9)', async ({ page }) => {
+  await open(page);
+  const select = samRole(page);
+  await select.selectOption('admin');
+  await page.getByRole('dialog').getByRole('button', { name: 'Change role' }).dblclick();
+  await expect(page.getByRole('dialog')).toBeHidden();
+  expect(await only(page, 'role:')).toEqual(['role:{"id":"u2","role":"admin"}']);
+  await expect(select).toBeFocused();
+});
+
+test('a role written to the select without a change event is not kept after a reload (#233 N4)', async ({ page }) => {
+  await open(page);
+  await expect(samRole(page)).toHaveAttribute('autocomplete', 'off');
+  await expect(page.getByRole('checkbox', { name: 'Require two-factor authentication for every member' })).toHaveAttribute('autocomplete', 'off');
+  // Firefox restores form values on reload unless autocomplete is off; Chromium and WebKit do not restore them.
+  await samRole(page).evaluate(select => { (select as HTMLSelectElement).value = 'admin'; });
+  await page.reload();
+  await expect(samRole(page)).toHaveValue('member');
+  await expect(page.getByRole('dialog')).toBeHidden();
+  expect(await only(page, 'role:')).toEqual([]);
+});
