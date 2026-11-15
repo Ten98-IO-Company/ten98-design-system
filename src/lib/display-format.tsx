@@ -34,36 +34,40 @@ export interface DisplayFormatter {
 }
 
 const decimal = /^-?\d+(\.\d+)?$/;
+// A value that rounds to zero is shown without a minus: -0.4 JPY reads "¥0", not "-¥0". Real negatives keep their sign.
+const sign = { signDisplay: 'negative' } as const;
 const absent = (value: unknown): value is null | undefined => value === null || value === undefined || (typeof value === 'number' && Number.isNaN(value));
 
 export function createDisplayFormatter({ locale, timeZone, missing = 'Unavailable' }: DisplayFormatOptions = {}): DisplayFormatter {
   const dates: DateFormatter = createDateFormatter({ locale, timeZone });
   const grouped = new Map<number | undefined, Intl.NumberFormat>();
   const numberFormat = (digits?: number) => {
-    if (!grouped.has(digits)) grouped.set(digits, new Intl.NumberFormat(locale, digits === undefined ? undefined : { maximumFractionDigits: digits }));
+    if (!grouped.has(digits)) grouped.set(digits, new Intl.NumberFormat(locale, digits === undefined ? sign : { ...sign, maximumFractionDigits: digits }));
     return grouped.get(digits)!;
   };
-  const compact = new Intl.NumberFormat(locale, { notation: 'compact', maximumFractionDigits: 1 });
+  const compact = new Intl.NumberFormat(locale, { ...sign, notation: 'compact', maximumFractionDigits: 1 });
   const plural = new Intl.PluralRules(locale);
   const orMissing = <T,>(format: (value: T) => string) => (value: T | null | undefined) => absent(value) ? missing : format(value as T);
   return {
     missing,
     number: (value, options) => absent(value) ? missing : numberFormat(options?.maximumFractionDigits).format(value),
     compact: orMissing<number>(value => compact.format(value)),
-    percent: (value, options) => absent(value) ? missing : new Intl.NumberFormat(locale, { style: 'percent', maximumFractionDigits: options?.maximumFractionDigits ?? 1 }).format(value),
+    percent: (value, options) => absent(value) ? missing : new Intl.NumberFormat(locale, { ...sign, style: 'percent', maximumFractionDigits: options?.maximumFractionDigits ?? 1 }).format(value),
     count: (value, noun) => absent(value) ? missing : `${numberFormat().format(value)} ${plural.select(value) === 'one' ? noun.one : noun.other}`,
     currency: (value, code, options) => {
       if (absent(value)) return missing;
       const text = typeof value === 'number' ? String(value) : value.trim();
       if (typeof value === 'string' && !decimal.test(text)) return missing;
+      // No currency code (a provider that did not report one): the exact amount as a grouped plain number, no symbol.
+      if (code.trim() === '') return new Intl.NumberFormat(locale, { ...sign, maximumFractionDigits: Math.min(20, text.split('.')[1]?.length ?? 0) }).format(text as unknown as number);
       try {
-        const base = new Intl.NumberFormat(locale, { style: 'currency', currency: code });
+        const base = new Intl.NumberFormat(locale, { ...sign, style: 'currency', currency: code });
         const whole = { minimumFractionDigits: 0, maximumFractionDigits: 0 };
         // A number keeps the currency's usual digits, so 0.1 + 0.2 reads $0.30. Only an exact decimal string widens to
         // show every digit it carries, and Intl formats such a string exactly (ECMA-402 NumberFormat v3).
-        if (typeof value === 'number') return (options?.wholeUnits ? new Intl.NumberFormat(locale, { style: 'currency', currency: code, ...whole }) : base).format(value);
+        if (typeof value === 'number') return (options?.wholeUnits ? new Intl.NumberFormat(locale, { ...sign, style: 'currency', currency: code, ...whole }) : base).format(value);
         const digits = Math.min(20, Math.max(base.resolvedOptions().maximumFractionDigits ?? 2, text.split('.')[1]?.length ?? 0));
-        return new Intl.NumberFormat(locale, { style: 'currency', currency: code, ...(options?.wholeUnits ? whole : { maximumFractionDigits: digits }) })
+        return new Intl.NumberFormat(locale, { ...sign, style: 'currency', currency: code, ...(options?.wholeUnits ? whole : { maximumFractionDigits: digits }) })
           .format(text as unknown as number);
       } catch (error) {
         // A malformed currency code: still show the amount and the code rather than failing the whole screen.
