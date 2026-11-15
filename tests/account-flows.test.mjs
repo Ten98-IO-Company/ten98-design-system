@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createElement as h } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { AccountProfileFlow, LinkedIdentitiesFlow, PasswordChangeFlow, SessionListFlow, SettingsPanel, TwoFactorSetupFlow } from '../dist/index.js';
+import { AccountProfileFlow, LinkedIdentitiesFlow, PasswordChangeFlow, SessionListFlow, SettingsPanel, TwoFactorSetupFlow, createThemeScript, isAccountTheme, themeStorageKey, useTheme } from '../dist/index.js';
 
 const styles = readFileSync(new URL('../dist/styles.css', import.meta.url), 'utf8');
 const classes = html => [...html.matchAll(/class="([^"]+)"/g)].flatMap(match => match[1].split(' '));
@@ -136,4 +136,51 @@ test('SettingsPanel posts natively with action, renders no form without a handle
   assert.match(native, /<form[^>]*action="\/save"[^>]*method="post"|<form[^>]*method="post"[^>]*action="\/save"/);
   assert.doesNotMatch(panel({ submitLabel: 'Save' }), /<form/);
   assert.match(panel({ onSubmit: noop, actions: h('a', { href: '/cancel' }, 'Cancel') }), /<a href="\/cancel">Cancel<\/a>/);
+});
+
+// Runs the pre-paint script against a stand-in document and storage.
+function run(script, storage) {
+  const documentElement = { dataset: {} };
+  new Function('localStorage', 'document', script)(storage, { documentElement });
+  return documentElement.dataset.theme;
+}
+const store = values => ({ getItem: key => values[key] ?? null });
+
+test('the pre-paint script applies a valid cached theme and otherwise system', () => {
+  const script = createThemeScript();
+  assert.equal(run(script, store({ [themeStorageKey]: 'dark' })), 'dark');
+  assert.equal(run(script, store({ [themeStorageKey]: 'light' })), 'light');
+  assert.equal(run(script, store({ [themeStorageKey]: 'system' })), 'system');
+  assert.equal(run(script, store({ [themeStorageKey]: 'sepia' })), 'system');
+  assert.equal(run(script, store({})), 'system');
+  assert.equal(run(script, { getItem() { throw new Error('SecurityError'); } }), 'system');
+});
+
+test('the pre-paint script reads its own key and cannot close its script element', () => {
+  assert.equal(themeStorageKey, 'ten98-theme');
+  assert.equal(run(createThemeScript('ten98-campaign-theme'), store({ 'ten98-campaign-theme': 'dark', 'ten98-theme': 'light' })), 'dark');
+  const key = '</script><script>alert(1)</script>';
+  const script = createThemeScript(key);
+  assert.ok(!script.includes('</script'));
+  assert.equal(run(script, store({ [key]: 'dark' })), 'dark');
+  // Constant apart from the encoded key: nothing else from the app or the account reaches the inline script.
+  assert.equal(createThemeScript('a').replace('"a"', 'KEY'), createThemeScript('b').replace('"b"', 'KEY'));
+  assert.equal(createThemeScript(), createThemeScript(themeStorageKey));
+});
+
+test('isAccountTheme accepts exactly the three themes', () => {
+  assert.deepEqual(['system', 'light', 'dark', 'Dark', '', null, undefined, 1].map(isAccountTheme), [true, true, true, false, false, false, false, false]);
+});
+
+test('server rendering uses the account value, else system, without touching the document', () => {
+  let state;
+  const Probe = props => { state = useTheme(props); return h('span', null, state.theme); };
+  assert.equal(renderToStaticMarkup(h(Probe)), '<span>system</span>');
+  assert.equal(state.resolvedTheme, 'light');
+  assert.equal(renderToStaticMarkup(h(Probe, { value: 'dark' })), '<span>dark</span>');
+  assert.equal(state.resolvedTheme, 'dark');
+  assert.equal(renderToStaticMarkup(h(Probe, { value: 'sepia' })), '<span>system</span>');
+  assert.equal(typeof state.setTheme, 'function');
+  assert.equal(renderToStaticMarkup(h(Probe, { storageKey: null })), '<span>system</span>');
+  assert.equal(renderToStaticMarkup(h(Probe, { value: 'light', storageKey: null })), '<span>light</span>');
 });

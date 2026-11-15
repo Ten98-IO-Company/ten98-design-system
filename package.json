@@ -41,7 +41,7 @@
     "typecheck:fixtures": "tsc --project tsconfig.fixtures.json",
     "build:lib": "node scripts/build.mjs",
     "preview": "vite preview --host 127.0.0.1 --port 5198",
-    "test": "npm run check:architecture && node --test tests/*.test.mjs",
+    "test": "npm run check:architecture && node --test tests/*.test.mjs tests/*.test.ts",
     "check": "npm run build && npm test",
     "prepack": "npm run build:lib",
     "test:browser": "playwright test",

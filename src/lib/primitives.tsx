@@ -4,7 +4,7 @@ import {
   Children, cloneElement, forwardRef, isValidElement, useEffect, useId, useRef, useState,
   type ButtonHTMLAttributes, type ComponentType, type CSSProperties, type FormEvent, type MouseEvent, type HTMLAttributes, type InputHTMLAttributes,
   type OptgroupHTMLAttributes, type OptionHTMLAttributes, type ReactElement, type ReactNode, type SelectHTMLAttributes,
-  type RefObject, type SVGProps, type TextareaHTMLAttributes,
+  type RefObject, type SVGProps, type SyntheticEvent, type TextareaHTMLAttributes,
 } from 'react';
 
 export function cx(...values: (string | false | null | undefined)[]) {
@@ -302,6 +302,9 @@ export type DialogInitialFocus = 'first-field' | 'primary' | 'close' | RefObject
 const DIALOG_FIELDS = '.t98-dialog-body input:not([type=hidden]), .t98-dialog-body select, .t98-dialog-body textarea';
 export type DialogCloseReason = 'escape' | 'backdrop' | 'close-button';
 /* Behaviour follows the WAI-ARIA APG Modal Dialog pattern and react-aria's useOverlay close interception (Apache-2.0); no code is copied. */
+// React bubbles a nested dialog's cancel, close and keydown events through this one's handlers (for example a confirm
+// prompt rendered inside an editor), though natively they belong to the top dialog alone.
+const fromNestedDialog = (event: SyntheticEvent<HTMLElement>) => event.target instanceof Element && event.target.closest('dialog') !== event.currentTarget;
 export function Dialog({ open, onOpenChange, title, description, children, footer, className, style, closeDisabled = false, modal = true, actions, onBeforeClose, eyebrow, onSubmit, restoreFocus, initialFocus, dirty = false, discardMessage = 'Your changes have not been saved.', size = 'default' }: DialogProps) {
   const id = useId();
   const ref = useRef<HTMLDialogElement>(null);
@@ -387,8 +390,9 @@ export function Dialog({ open, onOpenChange, title, description, children, foote
   }
   const closeButton = <Button variant="ghost" aria-label="Close dialog" disabled={locked} className="t98-icon-button" onClick={() => requestClose('close-button')} icon={<Icon name="x" />} />;
   return <dialog ref={ref} style={style} className={cx('t98-dialog', size === 'wide' && 't98-dialog--wide', className)} aria-modal={modal} aria-labelledby={`${id}-title`} aria-describedby={description ? `${id}-description` : undefined} onKeyDown={event => {
-    if (!modal && event.key === 'Escape' && !event.defaultPrevented) { event.preventDefault(); event.stopPropagation(); requestClose('escape'); }
-  }} onCancel={event => { event.preventDefault(); requestClose('escape'); }} onClose={() => {
+    if (!modal && event.key === 'Escape' && !event.defaultPrevented && !fromNestedDialog(event)) { event.preventDefault(); event.stopPropagation(); requestClose('escape'); }
+  }} onCancel={event => { if (fromNestedDialog(event)) return; event.preventDefault(); requestClose('escape'); }} onClose={event => {
+    if (fromNestedDialog(event)) return;
     const dialog = ref.current;
     // close() queues an event: a mode switch may already have reopened this element.
     if (dialog?.open) return;
