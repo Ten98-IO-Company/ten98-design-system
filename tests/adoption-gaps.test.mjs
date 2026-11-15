@@ -457,6 +457,20 @@ test('a nested DisplayFormatProvider overrides only what it sets and inherits th
   assert.match(renderToStaticMarkup(h(ui.DisplayFormatProvider, { locale: 'de-DE', timeZone: 'Pacific/Kiritimati' }, h(Probe))), /<output>1\.234,5\|16\.01\.2030\|Unavailable\|01\.01\.2030 – 31\.01\.2030<\/output>/);
 });
 
+test('DateRangeField limit messages use the provider\'s date format only when the app sets dateStyle or dateLocale', () => {
+  const messages = wrap => [{ start: '2025-12-30', end: '2026-01-05' }, { start: '2026-12-01', end: '2027-01-02' }].map(range =>
+    renderToStaticMarkup(wrap(h(ui.DateRangeField, { label: 'Period', min: '2026-01-01', max: '2026-12-31', onChange() {}, ...range }))).match(/role="alert">([^<]+)</)?.[1]);
+  const iso = ['Start on or after 2026-01-01.', 'End on or before 2026-12-31.'];
+  assert.deepEqual(messages(field => field), iso);
+  assert.deepEqual(messages(field => h(ui.DisplayFormatProvider, { locale: 'en-US', timeZone: 'Asia/Dubai' }, field)), iso);
+  // Calendar days: UTC-12 does not move 1 January back to 31 December.
+  const books = inner => messages(field => h(ui.DisplayFormatProvider, { locale: 'en-US', dateLocale: 'en-GB', timeZone: 'Etc/GMT+12', dateStyle: { order: 'day-month-year', day: 'numeric', month: 'short', year: '2-digit', separator: '-' } }, inner(field)));
+  assert.deepEqual(books(field => field), ['Start on or after 1-Jan-26.', 'End on or before 31-Dec-26.']);
+  // A nested provider that sets only locale still inherits the books format from its parent.
+  assert.deepEqual(books(field => h(ui.DisplayFormatProvider, { locale: 'en-US' }, field)), ['Start on or after 1-Jan-26.', 'End on or before 31-Dec-26.']);
+  assert.deepEqual(messages(field => h(ui.DisplayFormatProvider, { dateLocale: 'en-GB' }, field)), ['Start on or after 1 Jan 2026.', 'End on or before 31 Dec 2026.']);
+});
+
 test('flows take their default date and money format from ui.DisplayFormatProvider (#158)', () => {
   const sessions = [{ id: 's1', device: 'Chrome', lastActiveAt: '2030-01-15T12:00:00Z', current: true }];
   const plain = renderToStaticMarkup(h(ui.SessionListFlow, { sessions, onRevoke: (() => undefined), onRevokeOthers: (() => undefined) }));

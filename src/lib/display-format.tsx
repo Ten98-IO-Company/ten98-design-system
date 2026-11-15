@@ -4,6 +4,7 @@
  * exact money and dates, with one marker for a missing value. Missing (null, undefined, NaN) is never shown as 0. */
 import { createContext, useContext, useMemo, type ReactNode } from 'react';
 import { createDateFormatter, type DateFormatter, type DateFormatterOptions, type DateStyle } from './date-format.js';
+import { DisplayFormatOptionsContext } from './display-options.js';
 import { formatFileSize } from './format.js';
 
 type Num = number | null | undefined;
@@ -90,9 +91,6 @@ export function createDisplayFormatter({ locale, timeZone, dateLocale, dateStyle
 // Without a provider: English and UTC, the same deterministic output on the server and in every browser.
 const fallback = createDisplayFormatter({ locale: 'en', timeZone: 'UTC' });
 const DisplayFormatContext = createContext<DisplayFormatter>(fallback);
-// The nearest provider's options, so a nested provider overrides only what it sets. Outside any provider nothing is set,
-// so a root provider keeps the browser defaults for whatever it leaves out, as before.
-const DisplayFormatOptionsContext = createContext<DisplayFormatOptions>({});
 const styleKey = (style: DateStyle | undefined) => typeof style === 'object' ? [style.order, style.day, style.month, style.year, style.separator].join('|') : style;
 /** Supplies the viewer's locale, time zone, date style and missing-value marker to every flow's default dates and to
  * useDisplayFormat. A nested provider inherits each option it leaves out from the nearest provider above it. Options may
