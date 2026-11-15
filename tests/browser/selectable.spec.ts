@@ -22,3 +22,31 @@ test('SelectableList moves focus with arrows without selecting, selects on Enter
   expect(box!.height).toBeGreaterThanOrEqual(43.5);
   expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
 });
+
+test('when the app changes the selection, focus on a row follows it; focus elsewhere stays put', async ({ page }) => {
+  await page.goto('/tests/selectable.html');
+  const list = page.getByRole('listbox', { name: 'Conversations' });
+  const omar = list.getByRole('option', { name: /Omar Saleh/ });
+  const sara = list.getByRole('option', { name: /Sara Odeh/ });
+  await omar.click();
+  await expect(omar).toBeFocused();
+  // j selects the next enabled conversation (skipping Archived); focus and selection agree.
+  await page.keyboard.press('j');
+  await expect(page.locator('#selected')).toHaveText('d');
+  await expect(sara).toBeFocused();
+  await expect(sara).toHaveAttribute('aria-selected', 'true');
+  await page.keyboard.press('k');
+  await expect(page.locator('#selected')).toHaveText('b');
+  await expect(omar).toBeFocused();
+  // Focus outside the list is never taken.
+  const elsewhere = page.getByRole('button', { name: 'Elsewhere' });
+  await elsewhere.focus();
+  await page.keyboard.press('j');
+  await expect(page.locator('#selected')).toHaveText('d');
+  await expect(elsewhere).toBeFocused();
+  // Arrow keys still move focus without selecting.
+  await sara.focus();
+  await page.keyboard.press('Home');
+  await expect(list.getByRole('option', { name: /Lina Haddad/ })).toBeFocused();
+  await expect(page.locator('#selected')).toHaveText('d');
+});
