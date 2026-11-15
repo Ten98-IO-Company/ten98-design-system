@@ -40,3 +40,5 @@ export * from './save-file.js';
 export * from './shortcuts.js';
 export * from './entry-grid.js';
 export * from './leave-guard.js';
+export * from './theme-script.js';
+export * from './theme.js';
