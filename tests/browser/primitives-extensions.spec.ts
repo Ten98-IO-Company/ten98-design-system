@@ -246,6 +246,40 @@ test('the hidden attribute hides layout primitives and other library elements th
   expect(displays.appClass).toBe('none');
 });
 
+test('an app can focus an Alert through its ref; the alert keeps its role, gains no live region and shows the focus ring (#217)', async ({ page }) => {
+  await page.goto('/tests/primitives-extensions.html');
+  await expect(page.locator('#load-error')).toHaveCount(0);
+  // A keyboard user starts the load. The ring is :focus-visible, which focus() from a script matches only after keyboard use;
+  // after a mouse click the browser draws no ring on the Alert.
+  await page.locator('#load-report').focus();
+  await page.keyboard.press('Enter');
+  // The ref reached the root element, so the app's effect focused the Alert itself and not a wrapper around it.
+  await expect(page.locator('#load-error')).toBeFocused();
+  const active = await page.evaluate(() => {
+    const element = document.activeElement!;
+    return { id: element.id, role: element.getAttribute('role'), liveRegion: element.hasAttribute('aria-live'), tabindex: element.getAttribute('tabindex') };
+  });
+  expect(active).toEqual({ id: 'load-error', role: 'alert', liveRegion: false, tabindex: '-1' });
+
+  // Focused from code, the Alert draws the library's focus ring, not the browser's default one. The expected values are the
+  // tokens as this page resolves them (read through a probe element), so the ring follows the theme and the test holds no
+  // colour or width of its own.
+  for (const theme of ['light', 'dark']) {
+    await page.evaluate(value => { document.documentElement.dataset.theme = value; }, theme);
+    const ring = await page.locator('#load-error').evaluate(element => {
+      const probe = document.createElement('div');
+      probe.style.cssText = 'position: absolute; width: var(--t98-focus-width); margin-left: var(--t98-focus-offset); color: var(--t98-focus)';
+      element.parentElement!.append(probe);
+      const token = getComputedStyle(probe);
+      const expected = { style: 'solid', colour: token.color, width: token.width, offset: token.marginLeft };
+      probe.remove();
+      const style = getComputedStyle(element);
+      return { expected, actual: { style: style.outlineStyle, colour: style.outlineColor, width: style.outlineWidth, offset: style.outlineOffset } };
+    });
+    expect(ring.actual, `${theme} focus ring`).toEqual(ring.expected);
+  }
+});
+
 test('a standalone link is at least 24px tall on a fine pointer (WCAG 2.2 target size)', async ({ page }) => {
   await page.goto('/tests/primitives-extensions.html');
   const height = await page.evaluate(() => {

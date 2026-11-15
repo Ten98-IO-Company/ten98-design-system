@@ -108,6 +108,29 @@ function dialogCode(pending = false) {
   return tsx(['Button', 'Dialog', 'Field', 'Input'], `<>\n  <Button onClick={() => { setBusy(${pending}); setOpen(true); }}>Open dialog</Button>\n  <Dialog\n    open={open}\n    onOpenChange={setOpen}\n    title="Edit project"\n    description="Dialog state belongs to the application."\n    closeDisabled={busy}\n    footer={busy\n      ? <Button onClick={() => setBusy(false)}>Finish simulated save</Button>\n      : <Button variant="secondary" onClick={() => setOpen(false)}>Done</Button>}\n  >\n    {busy\n      ? <p role="status">Simulated save is pending. Finish it to enable dismissal.</p>\n      : <Field htmlFor={id} label="Project name"><Input defaultValue="Launch campaign" /></Field>}\n  </Dialog>\n</>`, 'const [open, setOpen] = useState(false);\nconst [busy, setBusy] = useState(false);\nconst id = useId();', ['useState', 'useId']);
 }
 
+function AlertFocusPreview() {
+  const [failed, setFailed] = useState(false);
+  const alertRef = useRef<HTMLDivElement>(null);
+  useEffect(() => { if (failed) alertRef.current?.focus(); }, [failed]);
+  return <>
+    <Button onClick={() => setFailed(true)}>Load report</Button>
+    {failed && <Alert ref={alertRef} tabIndex={-1} tone="danger" title="The report did not load">Check the connection and try again.</Alert>}
+  </>;
+}
+
+const alertFocusCode = tsx(['Alert', 'Button'], `<>
+  <Button onClick={() => setFailed(true)}>Load report</Button>
+  {failed && (
+    <Alert ref={alertRef} tabIndex={-1} tone="danger" title="The report did not load">
+      Check the connection and try again.
+    </Alert>
+  )}
+</>`, `const [failed, setFailed] = useState(false);
+const alertRef = useRef<HTMLDivElement>(null);
+useEffect(() => {
+  if (failed) alertRef.current?.focus();
+}, [failed]);`, ['useEffect', 'useRef', 'useState']);
+
 type SheetMode = 'default' | 'dirty' | 'busy' | 'unconfirmed' | 'modeless';
 
 function SheetPreview({ mode = 'default' }: { mode?: SheetMode }) {
@@ -421,8 +444,9 @@ export const primitiveEntries: ComponentEntry[] = [
       { name: 'dismissLabel', type: 'string', defaultValue: "'Dismiss'", description: 'Accessible name of the dismiss button.' },
       { name: 'tone', type: "'neutral' | 'accent' | 'success' | 'warning' | 'danger' | 'info'", defaultValue: "'info'", description: 'Semantic tone. danger supplies role="alert"; other tones supply role="status".' },
       { name: 'actions', type: 'ReactNode', description: 'Optional wrapping action row below the message, separated by the shared 12px action gap. Keep related buttons here instead of beside inline prose.' },
-    ], nativeProps: 'HTMLAttributes<HTMLDivElement> except native title; children form the optional description. Includes className. Pass role to override the default announcement. No disabled or loading API.',
-    tokens: ['--t98-font', '--t98-radius', ...toneTokens], accessibility: ['Danger uses an assertive alert role; other tones use a polite status role.', 'Use live updates sparingly and avoid repeating the same message unnecessarily.', 'The icon is decorative; readable text explains the condition.'],
+      { name: 'ref', type: 'Ref<HTMLDivElement>', description: 'The alert’s root element. Pass tabIndex={-1} with it so code can focus the alert, for example after a failed load.' },
+    ], nativeProps: 'HTMLAttributes<HTMLDivElement> except native title; children form the optional description. Includes className and tabIndex. Pass role to override the default announcement. No disabled or loading API.',
+    tokens: ['--t98-font', '--t98-radius', ...toneTokens], accessibility: ['Danger uses an assertive alert role; other tones use a polite status role.', 'Use live updates sparingly and avoid repeating the same message unnecessarily.', 'The icon is decorative; readable text explains the condition.', 'Focusing the alert from code through its ref adds no live region and does not change its role.'],
     related: ['ToastProvider', 'Badge', 'EmptyState'], example: tsx(['Alert'], '<Alert title="Connection saved" tone="success">New events will appear after the next successful sync.</Alert>'),
     states: [
       ...tones.map(tone => ({ name: `Tone ${tone}`, description: tone === 'danger' ? 'An assertive alert for a failure that needs attention.' : 'A polite status message with supporting text.', preview: <Alert title={tone === 'danger' ? 'Connection failed' : 'Connection status'} tone={tone}>{tone === 'danger' ? 'Check the credentials and try again.' : 'The application supplies this message from its actual connection state.'}</Alert>, code: tsx(['Alert'], `<Alert title="${tone === 'danger' ? 'Connection failed' : 'Connection status'}" tone="${tone}">${tone === 'danger' ? 'Check the credentials and try again.' : 'The application supplies this message from its actual connection state.'}</Alert>`) })),
@@ -432,6 +456,7 @@ export const primitiveEntries: ComponentEntry[] = [
       { name: 'Banner', description: 'Full-width message for the top of a page or panel.', preview: <Alert variant="banner" title="Maintenance tonight" tone="info">Reports may be unavailable from 22:00.</Alert>, code: tsx(['Alert'], '<Alert variant="banner" title="Maintenance tonight" tone="info">Reports may be unavailable from 22:00.</Alert>') },
       { name: 'Dismissible', description: 'A labelled dismiss button calls onDismiss; the component keeps no state.', preview: <Alert title="Changes saved" tone="success" onDismiss={() => {}} dismissLabel="Dismiss message" />, code: tsx(['Alert'], '<>{open && <Alert title="Changes saved" tone="success" onDismiss={() => setOpen(false)} dismissLabel="Dismiss message" />}</>', 'const [open, setOpen] = useState(true);', ['useState']) },
       { name: 'Recovery action', description: 'Recovery follows the complete message and wraps without squeezing the text into columns.', preview: <Alert title="Outcome unknown" tone="warning" actions={<><Button variant="secondary">Check outcome</Button><Button variant="ghost">Keep receipt</Button></>}>Keep this receipt while checking the existing operation before trying again.</Alert>, code: tsx(['Alert', 'Button'], '<Alert title="Outcome unknown" tone="warning" actions={<><Button variant="secondary">Check outcome</Button><Button variant="ghost">Keep receipt</Button></>}>Keep this receipt while checking the existing operation before trying again.</Alert>') },
+      { name: 'Focus after a failure', description: 'Pass a ref and tabIndex={-1}, then focus the alert from an effect once an action fails. Press the button to try it.', preview: <AlertFocusPreview />, code: alertFocusCode },
     ],
   },
   {

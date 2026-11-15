@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createElement as h } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { FormActions, FormGrid, Grid, Heading, Image, Inline, Link, Stack, Text, VisuallyHidden } from '../dist/index.js';
+import { FormActions, FormGrid, Grid, Heading, Image, Inline, Link, Stack, Text, VisuallyHidden, createDisplayFormatter } from '../dist/index.js';
 
 const styles = readFileSync(new URL('../dist/styles.css', import.meta.url), 'utf8');
 const classes = html => [...html.matchAll(/class="([^"]+)"/g)].flatMap(match => match[1].split(' '));
@@ -38,6 +38,13 @@ test('text and heading separate outline level from visual size and only emit sty
   assert.match(html, /<time dateTime="2026-10-20" class="t98-text">/i);
   assert.match(html, /<span class="t98-visually-hidden">Hidden<\/span>/);
   for (const name of new Set(classes(html))) assert.ok(styles.includes(`.${name}`), `${name} is styled`);
+});
+
+test('Text as="time" shows display-formatted text and keeps the ISO value machine-readable (#216)', () => {
+  const display = createDisplayFormatter({ locale: 'en', timeZone: 'UTC' });
+  const updated = '2026-01-04T14:05:00Z';
+  const html = renderToStaticMarkup(h(Text, { as: 'time', dateTime: updated, size: 'sm', tone: 'muted' }, display.dateTime(updated)));
+  assert.match(html, /^<time dateTime="2026-01-04T14:05:00Z" class="t98-text t98-text--sm t98-text-tone-muted">Jan 4, 2026, 2:05 PM<\/time>$/i);
 });
 
 test('links protect new-tab openers and delegate to a router component without losing styling', () => {

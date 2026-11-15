@@ -89,6 +89,7 @@
 .t98-dialog-discard-message { margin: 0; color: var(--t98-muted); font-size: 13px; }
 .t98-dialog-footer { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 9px; padding: 16px 24px; border-top: 1px solid var(--t98-border); background: var(--t98-bg); }
 .t98-alert { display: flex; align-items: flex-start; gap: 10px; border: 1px solid color-mix(in srgb, var(--t98-tone-text) 18%, transparent); border-radius: var(--t98-radius); padding: 13px 15px; background: var(--t98-tone-bg); color: var(--t98-tone-text); }
+.t98-alert:focus-visible { outline: var(--t98-focus-width) solid var(--t98-focus); outline-offset: var(--t98-focus-offset); }
 .t98-alert > .t98-icon { margin-top: 1px; }
 .t98-alert-title { margin: 0; font-size: 12px; line-height: 19px; font-weight: 600; }
 .t98-alert-content { min-width: 0; flex: 1; overflow-wrap: anywhere; }

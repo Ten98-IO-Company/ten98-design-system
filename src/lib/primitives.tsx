@@ -503,10 +503,11 @@ export interface AlertProps extends Omit<HTMLAttributes<HTMLDivElement>, 'title'
   onDismiss?: () => void;
   dismissLabel?: string;
 }
-/** Danger announces as `alert`, other tones as `status`; pass `role` to override. */
-export function Alert({ title, tone = 'info', variant = 'default', onDismiss, dismissLabel = 'Dismiss', children, actions, className, ...props }: AlertProps) {
-  return <div className={cx('t98-alert', `t98-tone--${tone}`, variant !== 'default' && `t98-alert--${variant}`, className)} role={tone === 'danger' ? 'alert' : 'status'} {...props}><Icon name={tone === 'success' ? 'check' : tone === 'danger' ? 'shield' : 'bell'} /><div className="t98-alert-content">{title && <p className="t98-alert-title">{title}</p>}{children && <div className="t98-alert-description">{children}</div>}{actions != null && <div className="t98-form-actions t98-alert-actions">{actions}</div>}</div>{onDismiss && <Button variant="ghost" size="sm" className="t98-alert-dismiss" aria-label={dismissLabel} icon={<Icon name="x" />} onClick={onDismiss} />}</div>;
-}
+/** Danger announces as `alert`, other tones as `status`; pass `role` to override. The ref reaches the root element, so with
+ * `tabIndex={-1}` an app can focus the alert itself, for example after a failed load. */
+export const Alert = forwardRef<HTMLDivElement, AlertProps>(function Alert({ title, tone = 'info', variant = 'default', onDismiss, dismissLabel = 'Dismiss', children, actions, className, ...props }, ref) {
+  return <div ref={ref} className={cx('t98-alert', `t98-tone--${tone}`, variant !== 'default' && `t98-alert--${variant}`, className)} role={tone === 'danger' ? 'alert' : 'status'} {...props}><Icon name={tone === 'success' ? 'check' : tone === 'danger' ? 'shield' : 'bell'} /><div className="t98-alert-content">{title && <p className="t98-alert-title">{title}</p>}{children && <div className="t98-alert-description">{children}</div>}{actions != null && <div className="t98-form-actions t98-alert-actions">{actions}</div>}</div>{onDismiss && <Button variant="ghost" size="sm" className="t98-alert-dismiss" aria-label={dismissLabel} icon={<Icon name="x" />} onClick={onDismiss} />}</div>;
+});
 
 /** Omit `value` for an indeterminate operation of unknown length. */
 /** Task progress from 0 to 100. Without a finite value it is indeterminate, never 0%. */

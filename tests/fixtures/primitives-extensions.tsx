@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Alert, Badge, Button, Card, ConfirmDialog, Dialog, Field, Heading, Inline, Input, Meter, Progress, Select, Stack, Tabs } from '@ten98/ui';
 import '@ten98/ui/styles.css';
@@ -48,6 +48,17 @@ function AcknowledgedConfirm() {
   </div>;
 }
 
+// An app moves focus to the error after a failed load by focusing the Alert itself through its ref.
+function FailedLoad() {
+  const [failed, setFailed] = useState(false);
+  const alertRef = useRef<HTMLDivElement>(null);
+  useEffect(() => { if (failed) alertRef.current?.focus(); }, [failed]);
+  return <div id="failed-load">
+    <Button id="load-report" variant="secondary" onClick={() => setFailed(true)}>Load report</Button>
+    {failed && <Alert ref={alertRef} id="load-error" tabIndex={-1} tone="danger" title="The report did not load">Check the connection and try again.</Alert>}
+  </div>;
+}
+
 function Screen() {
   const [pressed, setPressed] = useState(false);
   const [dismissed, setDismissed] = useState(false);
@@ -76,6 +87,7 @@ function Screen() {
     <GuardedDialog />
     <AcknowledgedConfirm />
     <Inline id="palettes">{palettes.map(palette => <Badge key={palette} palette={palette}>{palette}</Badge>)}</Inline>
+    <FailedLoad />
   </Stack>;
 }
 
