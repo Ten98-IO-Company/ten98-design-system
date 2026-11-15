@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { createElement as h } from 'react';
+import { createElement as h, createRef } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { Alert, Badge, Button, Card, ConfirmDialog, Dialog, EmptyState, ActivityFeed, ResourceCard, Field, Icon, Input, Meter, Progress, Select, Tabs } from '../dist/index.js';
 
@@ -70,6 +70,19 @@ test('Alert works without a title, can be dismissed, and supports variants and r
   assert.doesNotMatch(render(h(Alert, { title: 'x' })), /t98-alert--default/);
   assert.match(render(h(Alert, { tone: 'danger', title: 'x' })), /role="alert"/);
   assert.match(render(h(Alert, { tone: 'danger', title: 'x', role: 'status' })), /role="status"/);
+});
+
+test('Alert forwards a ref to its root and passes tabIndex through without changing how it is announced (#217)', () => {
+  // React 19 hands every function component a ref prop but React 18 drops it, so only forwardRef serves the whole peer range.
+  assert.equal(Alert.$$typeof, Symbol.for('react.forward_ref'));
+  assert.equal(Alert.displayName ?? Alert.render.displayName ?? Alert.render.name, 'Alert', 'React DevTools and warnings still name it Alert');
+  const danger = render(h(Alert, { tone: 'danger', title: 'x', tabIndex: -1, ref: createRef() }));
+  assert.match(danger, /^<div [^>]*role="alert"/);
+  assert.match(danger, /^<div [^>]*tabindex="-1"/);
+  assert.doesNotMatch(danger, /aria-live|ref=/);
+  const status = render(h(Alert, { tone: 'success', title: 'x', tabIndex: -1 }));
+  assert.match(status, /^<div [^>]*role="status"/);
+  assert.doesNotMatch(status, /aria-live/);
 });
 
 test('Card chooses its element and heading level and names landmarks by their title', () => {

@@ -1,15 +1,21 @@
 import type { ReactNode } from 'react';
-import { Badge, Blockquote, Button, DescriptionList, FeatureControls, Field, FormActions, FormGrid, Grid, Heading, Image, Inline, Input, Link, List, ListItem, Option, OptionGroup, Select, Stack, Text, VisuallyHidden } from '../lib';
-import { tsx, type ComponentEntry, type ComponentProp } from './model';
+import { Badge, Blockquote, Button, DescriptionList, FeatureControls, Field, FormActions, FormGrid, Grid, Heading, Image, Inline, Input, Link, List, ListItem, Option, OptionGroup, Select, Stack, Text, VisuallyHidden, useDisplayFormat } from '../lib';
+import { tsx, type ComponentEntry, type ComponentProp, type ComponentState } from './model';
 
 const space: ComponentProp = { name: 'gap', type: '0 | 1 | 2 | 3 | 4 | 5 | 6 | 8 | 10 | 12 | 16', description: 'Spacing token step between children (--t98-space-N).' };
 const as = (tags: string, fallback: string): ComponentProp => ({ name: 'as', type: tags, description: `Semantic element to render. Defaults to ${fallback}.` });
 const spaceTokens = ['--t98-space-1', '--t98-space-2', '--t98-space-4', '--t98-space-6'];
 const noElements = 'Applications compose screens from library components only. Use this primitive instead of writing an element, className or style.';
 
-function entry(name: string, description: string, usage: string, props: ComponentProp[], tokens: string[], accessibility: string[], imports: string[], code: string, preview: ReactNode, related: string[] = [], nativeProps?: string): ComponentEntry {
+function entry(name: string, description: string, usage: string, props: ComponentProp[], tokens: string[], accessibility: string[], imports: string[], code: string, preview: ReactNode, related: string[] = [], nativeProps?: string, moreStates: ComponentState[] = []): ComponentEntry {
   const example = tsx(imports, code);
-  return { name, category: 'Layout', description, usage: `${usage} ${noElements}`, props, nativeProps, tokens, accessibility, related, example, states: [{ name: 'Default', description, preview, code: example }] };
+  return { name, category: 'Layout', description, usage: `${usage} ${noElements}`, props, nativeProps, tokens, accessibility, related, example, states: [{ name: 'Default', description, preview, code: example }, ...moreStates] };
+}
+
+// The viewer's formatter writes the text people read; the ISO value stays machine-readable in dateTime.
+function UpdatedAt({ value }: { value: string }) {
+  const display = useDisplayFormat();
+  return <Text as="time" dateTime={value} tone="muted" size="sm">{display.dateTime(value)}</Text>;
 }
 
 export const structureEntries: ComponentEntry[] = [
@@ -40,11 +46,14 @@ export const structureEntries: ComponentEntry[] = [
     [], ['--t98-space-4'], ['Filters keep native labels; results follow the controls in source order.'],
     ['FeatureControls', 'Field', 'Input', 'Option', 'Select'], '<FeatureControls>\n  <Field label="Search" htmlFor="q"><Input id="q" type="search" /></Field>\n  <Field label="Channel" htmlFor="channel"><Select id="channel"><Option value="all">All channels</Option></Select></Field>\n</FeatureControls>',
     <FeatureControls><Field label="Search" htmlFor="catalog-q"><Input id="catalog-q" type="search" /></Field><Field label="Channel" htmlFor="catalog-channel"><Select id="catalog-channel"><Option value="all">All channels</Option></Select></Field></FeatureControls>, ['AppliedFilters', 'FormGrid'], 'Standard div attributes.'),
-  entry('Text', 'Body text with token sizes, tones and weights.', 'Use for every paragraph, label-like caption, value and inline emphasis. Choose as="span" inside other text, as="time" with dateTime for dates, and truncate with a title for cut values.',
-    [as('p | span | div | strong | em | small | code | time | dt | dd | figcaption | label', 'p'), { name: 'size', type: "'xs' | 'sm' | 'md' | 'lg' | 'xl'", description: 'Type size token. Inherits md.' }, { name: 'tone', type: "'default' | 'muted' | 'accent' | 'success' | 'warning' | 'danger'", description: 'Color token. Never the only signal of status.' }, { name: 'weight', type: "'regular' | 'medium' | 'semibold'", description: 'Font weight token.' }, { name: 'align', type: "'start' | 'center' | 'end'", description: 'Text alignment.' }, { name: 'mono', type: 'boolean', description: 'Monospace face for identifiers and code.' }, { name: 'numeric', type: 'boolean', description: 'Tabular numerals for aligned values.' }, { name: 'truncate', type: 'boolean', description: 'One line with an ellipsis; supply the full value in title.' }],
-    ['--t98-text-sm', '--t98-text-md', '--t98-text-xl', '--t98-text', '--t98-muted'], ['Pair tone with words or icons; color alone does not convey status.', 'Truncated text keeps its full value in title or nearby.'],
+  entry('Text', 'Body text with token sizes, tones and weights.', 'Use for every paragraph, label-like caption, value and inline emphasis. Choose as="span" inside other text, as="time" with dateTime (the ISO value) beside a date from useDisplayFormat, and truncate with a title for cut values.',
+    [as('p | span | div | strong | em | small | code | time | dt | dd | figcaption | label', 'p'), { name: 'size', type: "'xs' | 'sm' | 'md' | 'lg' | 'xl'", description: 'Type size token. Inherits md.' }, { name: 'tone', type: "'default' | 'muted' | 'accent' | 'success' | 'warning' | 'danger'", description: 'Color token. Never the only signal of status.' }, { name: 'weight', type: "'regular' | 'medium' | 'semibold'", description: 'Font weight token.' }, { name: 'align', type: "'start' | 'center' | 'end'", description: 'Text alignment.' }, { name: 'mono', type: 'boolean', description: 'Monospace face for identifiers and code.' }, { name: 'numeric', type: 'boolean', description: 'Tabular numerals for aligned values.' }, { name: 'truncate', type: 'boolean', description: 'One line with an ellipsis; supply the full value in title.' }, { name: 'dateTime', type: 'string', description: 'Machine-readable date or time behind the visible text, for example its ISO 8601 value. Only with as="time"; any other element is a type error.' }],
+    ['--t98-text-sm', '--t98-text-md', '--t98-text-xl', '--t98-text', '--t98-muted'], ['Pair tone with words or icons; color alone does not convey status.', 'Truncated text keeps its full value in title or nearby.', 'A date written for people needs its machine-readable value in dateTime on as="time".'],
     ['Text'], '<Text tone="muted" size="sm">Updated 5 minutes ago</Text>',
-    <Text tone="muted" size="sm">Updated 5 minutes ago</Text>, ['Heading'], 'Standard attributes, plus dateTime for time and htmlFor for label.'),
+    <Text tone="muted" size="sm">Updated 5 minutes ago</Text>, ['Heading', 'DisplayFormatProvider'], 'Standard attributes, plus htmlFor for label.', [
+      { name: 'Date and time', description: 'The viewer’s formatter writes the visible text; dateTime keeps the ISO value for machines.', preview: <UpdatedAt value="2026-10-19T09:30:00Z" />,
+        code: tsx(['Text', 'useDisplayFormat'], '<Text as="time" dateTime={updatedAt} tone="muted" size="sm">\n  {display.dateTime(updatedAt)}\n</Text>', "const display = useDisplayFormat();\nconst updatedAt = '2026-10-19T09:30:00Z';") },
+    ]),
   entry('Heading', 'A section heading whose outline level is independent of its size.', 'Use one level 1 per page (templates render it), level 2 for sections and level 3 inside them. Change size, never skip levels for looks.',
     [{ name: 'level', type: '1 | 2 | 3 | 4 | 5 | 6', required: true, description: 'Document outline level.' }, { name: 'size', type: "'sm' | 'md' | 'lg' | 'xl' | '2xl'", description: 'Visual size. Defaults by level.' }],
     ['--t98-text-xl', '--t98-text-2xl', '--t98-text'], ['Levels describe structure for assistive technology; keep them sequential.'],

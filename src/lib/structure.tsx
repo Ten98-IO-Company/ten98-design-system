@@ -64,8 +64,8 @@ export function FormActions({ className, ...props }: Omit<HTMLAttributes<HTMLDiv
 
 export type TextTone = 'default' | 'muted' | 'accent' | 'success' | 'warning' | 'danger';
 export type TextSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
-export interface TextProps extends Omit<HTMLAttributes<HTMLElement>, 'style'> {
-  as?: 'p' | 'span' | 'div' | 'strong' | 'em' | 'small' | 'code' | 'time' | 'dt' | 'dd' | 'figcaption' | 'label';
+type TextElement = 'p' | 'span' | 'div' | 'strong' | 'em' | 'small' | 'code' | 'time' | 'dt' | 'dd' | 'figcaption' | 'label';
+interface TextBaseProps extends Omit<HTMLAttributes<HTMLElement>, 'style'> {
   size?: TextSize;
   tone?: TextTone;
   weight?: 'regular' | 'medium' | 'semibold';
@@ -77,9 +77,19 @@ export interface TextProps extends Omit<HTMLAttributes<HTMLElement>, 'style'> {
   truncate?: boolean;
   /** Keeps the line breaks and spacing of multi-line user or model text; long words still wrap. */
   preserveWhitespace?: boolean;
-  dateTime?: string;
   htmlFor?: string;
 }
+interface TimeTextProps extends TextBaseProps {
+  as: 'time';
+  /** The machine-readable date or time behind the visible text, for example the ISO 8601 value of a date the display formatter wrote. */
+  dateTime?: string;
+}
+interface OtherTextProps extends TextBaseProps {
+  as?: Exclude<TextElement, 'time'>;
+  dateTime?: never;
+}
+/** `dateTime` is accepted only with `as="time"`; any other element rejects it at compile time. */
+export type TextProps = TimeTextProps | OtherTextProps;
 export function Text({ as: Tag = 'p', size, tone = 'default', weight, align, mono, numeric, truncate, preserveWhitespace, className, ...props }: TextProps) {
   return <Tag {...props} className={cx('t98-text', size && `t98-text--${size}`, tone !== 'default' && `t98-text-tone-${tone}`, weight && `t98-weight-${weight}`, align && `t98-text-align-${align}`, mono && 't98-mono', numeric && 't98-numeric', truncate && 't98-truncate', preserveWhitespace && 't98-text--pre', className)} />;
 }

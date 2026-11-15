@@ -246,6 +246,19 @@ test('the hidden attribute hides layout primitives and other library elements th
   expect(displays.appClass).toBe('none');
 });
 
+test('an app can focus an Alert through its ref; the alert keeps its role and gains no live region (#217)', async ({ page }) => {
+  await page.goto('/tests/primitives-extensions.html');
+  await expect(page.locator('#load-error')).toHaveCount(0);
+  await page.locator('#load-report').click();
+  // The ref reached the root element, so the app's effect focused the Alert itself and not a wrapper around it.
+  await expect(page.locator('#load-error')).toBeFocused();
+  const active = await page.evaluate(() => {
+    const element = document.activeElement!;
+    return { id: element.id, role: element.getAttribute('role'), liveRegion: element.hasAttribute('aria-live'), tabindex: element.getAttribute('tabindex') };
+  });
+  expect(active).toEqual({ id: 'load-error', role: 'alert', liveRegion: false, tabindex: '-1' });
+});
+
 test('a standalone link is at least 24px tall on a fine pointer (WCAG 2.2 target size)', async ({ page }) => {
   await page.goto('/tests/primitives-extensions.html');
   const height = await page.evaluate(() => {
