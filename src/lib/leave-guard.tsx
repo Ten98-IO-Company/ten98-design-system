@@ -54,10 +54,11 @@ const noBlocker: LeaveGuardBlocker = () => {};
 /**
  * Keeps typed work from being lost. While `dirty`, the router adapter holds in-app navigation until the user answers the shared
  * confirm prompt, `leave` asks before the screen's own exits, and reloading or closing the tab gets the browser's own warning
- * (the `beforeunload` listener exists only while dirty). Clean screens never prompt. `dirty`, `prompt` and `confirm` are read
- * when a navigation asks, not when the screen rendered. One question is open at a time: an exit or navigation attempted while
- * it is open waits for the same answer instead of opening a second dialog. Routing stays in the app: the package imports no
- * router, and the app plugs its own in through `useBlocker` or by calling `leave` from its navigation.
+ * (the `beforeunload` listener exists only while dirty). Clean screens never prompt. `dirty`, `prompt` and `confirm` are the
+ * values from the screen's last render, so a `leave` called before React re-renders with a new `dirty` still sees the old one.
+ * One question is open at a time: an exit or navigation attempted while it is open waits for the same answer instead of
+ * opening a second dialog. Routing stays in the app: the package imports no router, and the app plugs its own in through
+ * `useBlocker` or by calling `leave` from its navigation.
  */
 export function useLeaveGuard(dirty: boolean, { useBlocker = noBlocker, prompt, confirm }: LeaveGuardOptions = {}): LeaveGuard {
   const latest = useRef({ dirty, prompt, confirm });

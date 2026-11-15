@@ -55,7 +55,6 @@ const topbarCode = tsx(['AppTopbar', 'AccountMenu', 'SearchField'], `<AppTopbar
   menuToggle
   breadcrumb={{ icon: 'home', scope: 'Acme', current: 'Overview' }}
   search={<SearchField variant="topbar" label="Search" hideLabel placeholder="Search" shortcut="/" value={query} onValueChange={setQuery} />}
-  badge={{ label: 'Beta', hideOnMobile: true }}
   actions={<AccountMenu name="Alex Morgan" email="alex@example.test" items={[{ id: 'profile', kind: 'link', label: 'Profile', href: 'account' }]} />}
 />`, "const [query, setQuery] = useState('');", ['useState']);
 const bannerCode = tsx(['Banner'], `<Banner tone="sample" pill="Sample" title="Demo data" icon="box" action={{ label: 'Connect real data', href: 'connections' }}>
@@ -217,7 +216,7 @@ export const shellEntries: ComponentEntry[] = [
       { name: 'menuToggle', type: 'boolean', description: 'Shows the button that opens the AppShell drawer (aria-controls, aria-expanded).' },
       { name: 'menuLabel / breadcrumbLabel', type: 'string', description: 'Localised names; default "Open navigation" and "Breadcrumb".' },
       { name: 'search', type: 'ReactNode', description: 'Usually a SearchField variant="topbar"; wraps to its own row on narrow screens.' },
-      { name: 'badge', type: '{ label; hideOnMobile? }', description: 'Environment or plan tag.' },
+      { name: 'badge', type: '{ label; hideOnMobile? }', description: 'Environment or plan tag beside the search; hideOnMobile hides it at 760px and narrower. The bar shows none unless you pass one. Not for release-stage labels such as Beta or Preview.' },
       { name: 'actions', type: 'ReactNode', description: 'Trailing controls such as AccountMenu.' },
     ],
     tokens: ['--t98-control-touch', '--t98-muted', '--t98-text', '--t98-control-border', '--t98-focus'],
@@ -225,8 +224,8 @@ export const shellEntries: ComponentEntry[] = [
     related: ['AppShell', 'SearchField', 'AccountMenu'],
     example: topbarCode,
     states: [{
-      name: 'Default', description: 'Breadcrumb, search, badge and an account action.', code: topbarCode,
-      preview: <AppTopbar breadcrumb={{ icon: 'home', scope: 'Acme', current: 'Overview' }} search={<SearchField variant="topbar" label="Search" hideLabel placeholder="Search" shortcut="/" value="" onValueChange={noop} />} badge={{ label: 'Beta' }} actions={<AccountMenu name="Alex Morgan" email="alex@example.test" items={[{ id: 'profile', kind: 'link', label: 'Profile', href: '#profile' }]} />} />,
+      name: 'Default', description: 'Breadcrumb, search and an account action.', code: topbarCode,
+      preview: <AppTopbar breadcrumb={{ icon: 'home', scope: 'Acme', current: 'Overview' }} search={<SearchField variant="topbar" label="Search" hideLabel placeholder="Search" shortcut="/" value="" onValueChange={noop} />} actions={<AccountMenu name="Alex Morgan" email="alex@example.test" items={[{ id: 'profile', kind: 'link', label: 'Profile', href: '#profile' }]} />} />,
     }, {
       name: 'Wrapping labels', description: 'wrap lets long labels flow onto several lines rather than truncating.', code: tsx(['AppTopbar'], `<AppTopbar wrap breadcrumb={{ icon: 'home', scope: 'Acme International Marketing Group', current: 'Quarterly campaign performance review' }} />`),
       preview: <div style={{ maxWidth: 320 }}><AppTopbar wrap breadcrumb={{ icon: 'home', scope: 'Acme International Marketing Group', current: 'Quarterly campaign performance review' }} /></div>,

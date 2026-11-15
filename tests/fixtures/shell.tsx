@@ -209,7 +209,7 @@ function AppFixture() {
     </>}
     topbar={<AppTopbar menuToggle wrap={longCrumbs} breadcrumb={unbroken ? { icon: 'folder', scope: 'Project-' + 'long-name-'.repeat(12), current: 'Events' } : longCrumbs ? { icon: 'home', scope: 'Discover workspace with a complete retained observation context', current: 'Research / Saved keyword report with a very long project and website scope' } : { icon: 'home', scope: 'Acme', current: 'Overview' }}
       search={<SearchField variant="topbar" label="Search everything" hideLabel placeholder="Search" shortcut="/" value={query} onValueChange={setQuery} onClear={() => setQuery('')} clearLabel="Clear search" />}
-      badge={{ label: 'Beta', hideOnMobile: true }}
+      badge={{ label: 'Pro plan', hideOnMobile: true }}
       actions={<AccountMenu name="Alex Morgan" email="alex@example.test" linkComponent={RouterLink} items={[
         { id: 'profile', kind: 'link', label: 'Profile and appearance', icon: 'user', href: 'account' },
         { id: 'sep', kind: 'separator' },
