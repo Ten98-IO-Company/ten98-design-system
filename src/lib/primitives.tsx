@@ -6,7 +6,7 @@ import {
   type OptgroupHTMLAttributes, type OptionHTMLAttributes, type ReactElement, type ReactNode, type SelectHTMLAttributes,
   type RefObject, type SVGProps, type SyntheticEvent, type TextareaHTMLAttributes,
 } from 'react';
-import { heldPresses, isActivationKey, isTextEntry, stillHeld, trackHeldKeys } from './held-keys.js';
+import { heldPresses, isActivationKey, isMultilineEntry, isTextEntry, stillHeld, trackHeldKeys } from './held-keys.js';
 
 export function cx(...values: (string | false | null | undefined)[]) {
   return values.filter(Boolean).join(' ');
@@ -298,7 +298,8 @@ export interface DialogProps { open: boolean; onOpenChange: (open: boolean) => v
    * (or danger) button, so Enter accepts. close: the close button. A ref focuses that element. Disabled or missing
    * targets fall back to the browser's choice, the first focusable element (the close button), which is also the default.
    * Whatever is focused, one keypress never both opens and answers the dialog: an Enter or Space still held from before it
-   * opened, and every auto-repeat, is ignored until the key is released. Space typed in a text field is left alone.
+   * opened, and every auto-repeat, is ignored until the key is released, even when an app's own keydown handler opened it
+   * without cancelling the key. Space typed in a text field and Enter typed in a multi-line field are left alone.
    */
   initialFocus?: DialogInitialFocus }
 export type DialogInitialFocus = 'first-field' | 'primary' | 'close' | RefObject<HTMLElement | null>;
@@ -352,27 +353,39 @@ export function Dialog({ open, onOpenChange, title, description, children, foote
   useEffect(trackHeldKeys, []);
   // One keypress must never both open the dialog and answer it. An Enter or Space still held from before the dialog opened
   // (usually the keypress that opened it) and every auto-repeat are cancelled, so they neither activate the focused button
-  // nor submit the form from a field; a fresh press after release works. Space activates a button on keyup, so a Space
-  // keyup without an accepted keydown in this dialog, and the keyboard click it would produce, are cancelled too. Space in
-  // a text-entry field only types, so it is left alone there; Enter in a field submits, so it is guarded everywhere.
+  // nor submit the form from a field; a fresh press after release works. A button acts on a later event of the press:
+  // Enter on its keypress, Space on its keyup. So an Enter keypress or a Space keyup without an accepted keydown in this
+  // dialog, and the keyboard click it would produce, are cancelled too: the keydown may have gone to the element that
+  // opened the dialog, from an app handler that did not cancel it. Space in a text-entry field and Enter in a multi-line
+  // one only type, so they are left alone there; Enter in a single-line field submits, so it is guarded there.
   useEffect(() => {
     const dialog = ref.current;
     if (!open || !dialog) return;
     const atOpen = heldPresses();
     let spaceAccepted = false;
+    let enterAccepted = false;
     let blockClick = false;
+    const blockKeyboardClick = (event: KeyboardEvent) => {
+      event.preventDefault();
+      blockClick = true;
+      setTimeout(() => { blockClick = false; });
+    };
+    const typed = (event: KeyboardEvent) => event.key === ' ' ? isTextEntry(event.target) : isMultilineEntry(event.target);
     const keydown = (event: KeyboardEvent) => {
-      if (!isActivationKey(event.key) || (event.key === ' ' && isTextEntry(event.target))) return;
-      if (event.repeat || stillHeld(atOpen, event.key)) event.preventDefault();
-      else if (event.key === ' ') spaceAccepted = true;
+      if (!isActivationKey(event.key) || typed(event)) return;
+      const accepted = !event.repeat && !stillHeld(atOpen, event.key);
+      if (!accepted) event.preventDefault();
+      if (event.key === 'Enter') enterAccepted = accepted;
+      else if (accepted) spaceAccepted = true;
+    };
+    const keypress = (event: KeyboardEvent) => {
+      if (event.key !== 'Enter' || typed(event)) return;
+      if (!enterAccepted) blockKeyboardClick(event);
+      enterAccepted = false;
     };
     const keyup = (event: KeyboardEvent) => {
       if (event.key !== ' ') return;
-      if (!spaceAccepted) {
-        event.preventDefault();
-        blockClick = true;
-        setTimeout(() => { blockClick = false; });
-      }
+      if (!spaceAccepted) blockKeyboardClick(event);
       spaceAccepted = false;
     };
     const click = (event: globalThis.MouseEvent) => {
@@ -383,10 +396,12 @@ export function Dialog({ open, onOpenChange, title, description, children, foote
       event.stopPropagation();
     };
     dialog.addEventListener('keydown', keydown, true);
+    dialog.addEventListener('keypress', keypress, true);
     dialog.addEventListener('keyup', keyup, true);
     dialog.addEventListener('click', click, true);
     return () => {
       dialog.removeEventListener('keydown', keydown, true);
+      dialog.removeEventListener('keypress', keypress, true);
       dialog.removeEventListener('keyup', keyup, true);
       dialog.removeEventListener('click', click, true);
     };

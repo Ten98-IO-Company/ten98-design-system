@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Button, ConfirmDialog, Dialog, Field, Input, Stack, Text, useConfirmDialog, type ConfirmRequest } from '@ten98/ui';
+import { Button, ConfirmDialog, Dialog, Field, Input, Stack, Text, Textarea, useConfirmDialog, type ConfirmRequest } from '@ten98/ui';
 import '@ten98/ui/styles.css';
 
 // Composed the way an application screen must be: library components only. Each opener can also be opened from the test
@@ -54,6 +54,27 @@ function FormDialog() {
     </Dialog>
   </>;
 }
+// An app's own keydown handler that opens a confirmation and does not cancel the key, so the same press goes on to the
+// dialog's focused confirm button as a keypress.
+function KeyedConfirm() {
+  const [open, setOpen] = useState(false);
+  return <>
+    <Button onKeyDown={event => { if (event.key === 'Enter') setOpen(true); }}>Archive on Enter</Button>
+    <ConfirmDialog open={open} onOpenChange={setOpen} title="Archive this campaign?" description="It stops sending today."
+      confirmLabel="Archive" initialFocus="confirm" onConfirm={() => record('archive')} />
+  </>;
+}
+function ReplyDialog() {
+  const [open, setOpen] = useState(false);
+  return <>
+    <Button onClick={() => setOpen(true)}>Write reply</Button>
+    <Dialog open={open} onOpenChange={setOpen} title="Write a reply" initialFocus="first-field"
+      onSubmit={data => { record(`reply ${String(data.get('reply'))}`); setOpen(false); }}
+      footer={<><Button variant="secondary" onClick={() => setOpen(false)}>Cancel</Button><Button type="submit">Send reply</Button></>}>
+      <Field label="Reply"><Textarea name="reply" defaultValue="Thanks" /></Field>
+    </Dialog>
+  </>;
+}
 function TypedConfirm({ danger }: { danger?: boolean }) {
   const [open, setOpen] = useState(false);
   const name = danger ? 'Delete' : 'Rename';
@@ -72,5 +93,7 @@ createRoot(document.getElementById('dialog-held-enter-fixture')!).render(<Stack 
   <FormDialog />
   <TypedConfirm />
   <TypedConfirm danger />
+  <KeyedConfirm />
+  <ReplyDialog />
   <Text>Dialog held Enter</Text>
 </Stack>);

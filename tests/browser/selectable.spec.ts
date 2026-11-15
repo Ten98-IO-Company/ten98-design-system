@@ -50,3 +50,24 @@ test('when the app changes the selection, focus on a row follows it; focus elsew
   await expect(list.getByRole('option', { name: /Lina Haddad/ })).toBeFocused();
   await expect(page.locator('#selected')).toHaveText('d');
 });
+
+test('a selection the app changes in the background leaves focus on the row the user is arrowing through', async ({ page }) => {
+  await page.goto('/tests/selectable.html');
+  const list = page.getByRole('listbox', { name: 'Conversations' });
+  const lina = list.getByRole('option', { name: /Lina Haddad/ });
+  const omar = list.getByRole('option', { name: /Omar Saleh/ });
+  await page.keyboard.press('Tab');
+  await expect(omar).toBeFocused();
+  await page.keyboard.press('ArrowUp');
+  await expect(lina).toBeFocused();
+  // A timer, like a data refresh, selects Sara while the user is on Lina's row.
+  await page.evaluate(() => window.selectLater('d', 100));
+  await expect(page.locator('#selected')).toHaveText('d');
+  await expect(list.getByRole('option', { name: /Sara Odeh/ })).toHaveAttribute('aria-selected', 'true');
+  await page.waitForTimeout(100);
+  await expect(lina).toBeFocused();
+  // A command the user gives from the row still brings focus along.
+  await page.keyboard.press('k');
+  await expect(page.locator('#selected')).toHaveText('b');
+  await expect(omar).toBeFocused();
+});

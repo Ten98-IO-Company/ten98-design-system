@@ -7,8 +7,11 @@ import '@ten98/ui/product.css';
 
 // Composed the way an application screen must be: library components only, no elements or styles of our own.
 document.documentElement.dataset.theme = new URLSearchParams(location.search).get('theme') || 'light';
+// A background change of the selection, as a data refresh or a timer makes it, with no input from the user.
+declare global { interface Window { selectLater: (id: string, delay: number) => void } }
 function Screen() {
   const [selected, setSelected] = useState<string | null>('b');
+  useEffect(() => { window.selectLater = (id, delay) => { setTimeout(() => setSelected(id), delay); }; }, []);
   // App-level next/previous commands, as an inbox binds to j and k: they change the selection without touching focus.
   useEffect(() => {
     const order = ['a', 'b', 'd'];

@@ -146,3 +146,100 @@ test('confirmations start on Cancel, or on the field they wait for; opened by mo
   await expect(dialog).toBeHidden();
   expect(await log(page)).toEqual(['ads false', 'sms true', 'apply']);
 });
+
+test("an app's keydown handler opening a confirm-first dialog: neither the press nor its repeats confirm", async ({ page }) => {
+  await page.goto('/tests/dialog-held-enter.html');
+  const dialog = page.getByRole('dialog', { name: 'Archive this campaign?' });
+  const opener = page.getByRole('button', { name: 'Archive on Enter', exact: true });
+  const confirm = dialog.getByRole('button', { name: 'Archive', exact: true });
+
+  // The handler does not cancel the key, so the press goes on to the focused confirm button as a keypress.
+  await opener.focus();
+  await page.keyboard.down('Enter');
+  await expect(dialog).toBeVisible();
+  await expect(confirm).toBeFocused();
+  await hold(page, 'Enter');
+  await expect(dialog).toBeVisible();
+  expect(await log(page)).toEqual([]);
+  await page.keyboard.press('Enter');
+  await expect(dialog).toBeHidden();
+  expect(await log(page)).toEqual(['archive']);
+
+  // A single press opens it and stops there too.
+  await opener.focus();
+  await page.keyboard.press('Enter');
+  await expect(dialog).toBeVisible();
+  await expect(confirm).toBeFocused();
+  expect(await log(page)).toEqual(['archive']);
+  await page.keyboard.press('Enter');
+  await expect(dialog).toBeHidden();
+  expect(await log(page)).toEqual(['archive', 'archive']);
+});
+
+test('the first dialog on a page, mounted when it opens, ignores the held Enter that opened it without repeat flags', async ({ page, browserName }) => {
+  test.skip(browserName !== 'chromium', 'Sends raw keydowns through the Chrome DevTools Protocol');
+  await page.goto('/tests/dialog-first-mount.html');
+  const cdp = await page.context().newCDPSession(page);
+  const enter = { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13, nativeVirtualKeyCode: 13, text: '\r', unmodifiedText: '\r' };
+  const dialog = page.getByRole('dialog', { name: 'Archive this project?' });
+  await page.getByRole('button', { name: 'Archive project', exact: true }).focus();
+  await cdp.send('Input.dispatchKeyEvent', { type: 'keyDown', ...enter });
+  await expect(dialog.getByRole('button', { name: 'Archive', exact: true })).toBeFocused();
+  for (let i = 0; i < 3; i++) await cdp.send('Input.dispatchKeyEvent', { type: 'keyDown', ...enter, autoRepeat: false });
+  await cdp.send('Input.dispatchKeyEvent', { type: 'keyUp', ...enter });
+  await expect(dialog).toBeVisible();
+  expect(await log(page)).toEqual([]);
+  await page.keyboard.press('Enter');
+  await expect(dialog).toBeHidden();
+  expect(await log(page)).toEqual(['archive']);
+});
+
+test('holding Enter in a dialog textarea types several line breaks and submits nothing', async ({ page }) => {
+  await page.goto('/tests/dialog-held-enter.html');
+  const dialog = page.getByRole('dialog', { name: 'Write a reply' });
+  await page.getByRole('button', { name: 'Write reply', exact: true }).click();
+  const reply = dialog.getByRole('textbox', { name: 'Reply' });
+  await expect(reply).toBeFocused();
+  await page.keyboard.press('End');
+  await page.keyboard.down('Enter');
+  await hold(page, 'Enter');
+  await expect(reply).toHaveValue(/^Thanks\n{3,}$/);
+  await expect(dialog).toBeVisible();
+  expect(await log(page)).toEqual([]);
+});
+
+// A key whose keyup never arrives, as for Cmd+Enter on macOS, where other keys send no keyup while Cmd is down, must not
+// swallow the next press of that key. The stuck keydown is dispatched to the page directly, so no keyup follows it.
+const dispatchKey = (page: Page, type: 'keydown' | 'keyup', key: string, metaKey = false) =>
+  page.evaluate(([type, key, metaKey]) => { document.body.dispatchEvent(new KeyboardEvent(type, { key, metaKey, bubbles: true })); }, [type, key, metaKey] as const);
+async function freshEnterConfirms(page: Page) {
+  const dialog = page.getByRole('dialog', { name: 'Send a test SMS?' });
+  await page.getByRole('button', { name: 'Send test SMS', exact: true }).click();
+  await expect(dialog.getByRole('button', { name: 'Send SMS' })).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(dialog).toBeHidden();
+  expect(await log(page)).toEqual(['sms true']);
+}
+
+test('Cmd+Enter whose Enter keyup never arrives is released with Cmd: a fresh Enter in the next dialog confirms', async ({ page }) => {
+  await page.goto('/tests/dialog-held-enter.html');
+  await dispatchKey(page, 'keydown', 'Meta', true);
+  await dispatchKey(page, 'keydown', 'Enter', true);
+  await dispatchKey(page, 'keyup', 'Meta');
+  await freshEnterConfirms(page);
+});
+
+test('an Enter whose keyup never arrives is released by the next key that is not a modifier', async ({ page }) => {
+  await page.goto('/tests/dialog-held-enter.html');
+  await dispatchKey(page, 'keydown', 'Enter');
+  await page.keyboard.press('Shift');
+  await page.keyboard.press('a');
+  await freshEnterConfirms(page);
+});
+
+test('an Enter whose keyup never arrives is released after a second with no repeat', async ({ page }) => {
+  await page.goto('/tests/dialog-held-enter.html');
+  await dispatchKey(page, 'keydown', 'Enter');
+  await page.waitForTimeout(1200);
+  await freshEnterConfirms(page);
+});

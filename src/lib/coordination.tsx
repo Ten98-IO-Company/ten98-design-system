@@ -203,6 +203,10 @@ export interface SelectableListProps {
   className?: string;
 }
 
+// Keys SelectableList handles itself by moving focus, plus Tab and modifiers: none of them asks for a new selection.
+const listOwnKeys = new Set(['ArrowUp', 'ArrowDown', 'Home', 'End', 'Tab', 'Shift', 'Control', 'Alt', 'Meta']);
+/** How soon after the user's input in a list a selection change still counts as the user's request. */
+const userIntentWindow = 1000;
 /**
  * The list side of DetailWorkspace: conversations, contacts or queue items as one listbox. Arrow keys, Home and End move
  * focus without opening anything; Enter, Space or a click selects. One roving tab stop returns to the selected item.
@@ -211,18 +215,40 @@ export interface SelectableListProps {
 export function SelectableList({ label, items, selectedId = null, onSelect, loading = false, emptyMessage = 'Nothing to show.', footer, className }: SelectableListProps) {
   const id = useId();
   const list = useRef<HTMLUListElement>(null);
+  const scope = useRef<HTMLElement>(null);
   const [focused, setFocused] = useState<string | null>(null);
   const enabled = items.filter(item => !item.disabled);
   const stop = enabled.some(item => item.id === focused) ? focused : enabled.some(item => item.id === selectedId) ? selectedId : enabled[0]?.id ?? null;
   const focusItem = (itemId: string) => { setFocused(itemId); list.current?.querySelector<HTMLElement>(`[data-item-id="${CSS.escape(itemId)}"]`)?.focus(); };
-  // When the app changes the selection itself (for example j/k commands) while focus is on a row of this list, focus
-  // follows it, so a screen reader announces the open item rather than the row that was focused before.
+  // When the app changes the selection at the user's request (for example j/k commands) while focus is on a row of this
+  // list, focus follows it, so a screen reader announces the open item rather than the row that was focused before. A
+  // change with no recent user input in the list, such as a timer or a data refresh, leaves focus alone, so it never jumps
+  // while the user is arrowing through rows. The input is noted in the window's capture phase, before any app handler
+  // that changes the selection runs, and each input moves focus at most once.
   const previousSelected = useRef(selectedId);
+  const userInput = useRef(-Infinity);
+  useEffect(() => {
+    const view = scope.current?.ownerDocument.defaultView;
+    if (!view) return;
+    const note = (event: Event) => {
+      if (!(event.target instanceof Node) || !scope.current?.contains(event.target)) return;
+      // The list's own focus moves are not a request to select.
+      userInput.current = event instanceof globalThis.KeyboardEvent && listOwnKeys.has(event.key) ? -Infinity : performance.now();
+    };
+    view.addEventListener('keydown', note, true);
+    view.addEventListener('pointerdown', note, true);
+    return () => {
+      view.removeEventListener('keydown', note, true);
+      view.removeEventListener('pointerdown', note, true);
+    };
+  }, []);
   useEffect(() => {
     if (previousSelected.current === selectedId) return;
     previousSelected.current = selectedId;
+    const requested = performance.now() - userInput.current < userIntentWindow;
+    userInput.current = -Infinity;
     const active = list.current?.ownerDocument.activeElement;
-    if (!selectedId || !(active instanceof HTMLElement) || !list.current?.contains(active) || !active.dataset.itemId || active.dataset.itemId === selectedId) return;
+    if (!requested || !selectedId || !(active instanceof HTMLElement) || !list.current?.contains(active) || !active.dataset.itemId || active.dataset.itemId === selectedId) return;
     if (enabled.some(item => item.id === selectedId)) focusItem(selectedId);
   });
   function onKeyDown(event: KeyboardEvent<HTMLLIElement>, itemId: string) {
@@ -231,7 +257,7 @@ export function SelectableList({ label, items, selectedId = null, onSelect, load
     if (target) { event.preventDefault(); focusItem(target.id); return; }
     if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onSelect(itemId); }
   }
-  return <section className={cx('t98-selectable', className)} aria-labelledby={`${id}-label`} aria-busy={loading || undefined}>
+  return <section ref={scope} className={cx('t98-selectable', className)} aria-labelledby={`${id}-label`} aria-busy={loading || undefined}>
     <h3 className="t98-visually-hidden" id={`${id}-label`}>{label}</h3>
     {loading && <p className="t98-selectable-status" role="status">Loading…</p>}
     {items.length === 0 ? !loading && <p className="t98-selectable-empty">{emptyMessage}</p>
