@@ -211,3 +211,37 @@ test('tabs are 44px touch targets at every width (Discover, 0.26.0 regression)',
     for (const height of heights) expect(height).toBeGreaterThanOrEqual(43.5);
   }
 });
+
+test('the hidden attribute hides layout primitives and other library elements that set display', async ({ page }) => {
+  await page.goto('/tests/primitives-extensions.html');
+  const displays = await page.evaluate(() => {
+    const probe = (className: string, hidden: string | null) => {
+      const element = document.createElement('div');
+      element.className = className;
+      if (hidden !== null) element.setAttribute('hidden', hidden);
+      document.body.append(element);
+      const display = getComputedStyle(element).display;
+      element.remove();
+      return display;
+    };
+    return {
+      stack: probe('t98-stack', ''),
+      inline: probe('custom t98-inline', ''),
+      grid: probe('t98-grid t98-grid--2', ''),
+      shownStack: probe('t98-stack', null),
+      untilFound: probe('t98-stack', 'until-found'),
+      untilFoundUpper: probe('t98-stack', 'UNTIL-FOUND'),
+      appClass: probe('app-only-row', ''),
+    };
+  });
+  expect(displays.stack).toBe('none');
+  expect(displays.inline).toBe('none');
+  expect(displays.grid).toBe('none');
+  // Without hidden the primitive keeps its own display. "until-found" is left to the browser, which hides the content with
+  // content-visibility and keeps the box, so find-in-page can reveal it.
+  expect(displays.shownStack).toBe('flex');
+  expect(displays.untilFound).toBe('flex');
+  // The attribute value is case-insensitive, as in the browser's own rule.
+  expect(displays.untilFoundUpper).toBe('flex');
+  expect(displays.appClass).toBe('none');
+});
