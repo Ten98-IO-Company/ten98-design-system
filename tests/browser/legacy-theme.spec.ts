@@ -392,3 +392,15 @@ test('legacy topbar retains normal heights and contains doubled text at 320px', 
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeGreaterThan(320);
   expect(await page.locator('.breadcrumb > *').evaluateAll(nodes => nodes.some(element => element.getBoundingClientRect().right > 320))).toBeTruthy();
 });
+
+test('on a touch screen legacy navigation items are 44px targets', async ({ browser }) => {
+  const context = await browser.newContext({ hasTouch: true, isMobile: true, viewport: { width: 1024, height: 800 } });
+  const page = await context.newPage();
+  await page.goto('/tests/legacy-theme.html?theme=light');
+  const coarse = await page.evaluate(() => matchMedia('(pointer: coarse)').matches);
+  test.skip(!coarse, 'this browser does not report a coarse pointer for touch emulation');
+  const item = page.locator('#nav-normal');
+  await expect(item).toBeVisible();
+  expect(await item.evaluate(element => element.getBoundingClientRect().height)).toBeGreaterThanOrEqual(43.5);
+  await context.close();
+});

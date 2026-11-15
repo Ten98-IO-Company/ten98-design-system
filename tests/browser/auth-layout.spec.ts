@@ -208,3 +208,18 @@ test('auth controls have a touch floor and grow with root text without enlarging
     }
   }
 });
+
+test('the auth orbit overhangs the inline end of the story, so a right to left page mirrors it', async ({ page }) => {
+  await page.goto('/tests/auth-layout.html?theme=light');
+  const story = page.locator('.auth-story');
+  await expect(story).toBeVisible();
+  const overhang = (dir: string) => story.evaluate((element, dir) => {
+    document.documentElement.dir = dir;
+    const box = element.getBoundingClientRect(), orbit = element.querySelector('.auth-orbit')!.getBoundingClientRect();
+    return { start: dir === 'rtl' ? orbit.right - box.right : box.left - orbit.left, end: dir === 'rtl' ? box.left - orbit.left : orbit.right - box.right };
+  }, dir);
+  const ltr = await overhang('ltr'), rtl = await overhang('rtl');
+  expect(ltr.end, 'the orbit hangs past the inline end').toBeGreaterThan(0);
+  expect(rtl.end).toBeCloseTo(ltr.end, 1);
+  expect(rtl.start).toBeCloseTo(ltr.start, 1);
+});
