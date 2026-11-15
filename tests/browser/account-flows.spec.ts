@@ -274,3 +274,22 @@ test('the profile flow reports its draft for a preview, stages restored defaults
   await expect(page.getByRole('radio', { name: 'Match system' })).toBeChecked();
   await expect(save).toBeEnabled();
 });
+
+test('a nested DisplayFormatProvider switches the date style at run time and keeps the outer locale and zone', async ({ page }, info) => {
+  await open(page, 'sessions-books', info.project.name === 'narrow-dark' ? 'dark' : 'light', widthOf(info.project.name));
+  const probe = page.locator('#formatter-probe');
+  const table = page.getByRole('table');
+  await expect(probe).toHaveText('1,234.5 | 1-Jan-26 to 31-Dec-26 | formatters 1');
+  await expect(table).toContainText('15-Jan-30');
+  await expect(table).toContainText('14-Jan-30');
+  // A new but equal style object on a re-render keeps the same formatter.
+  await page.getByRole('button', { name: 'Render again' }).click();
+  await expect(probe).toHaveText('1,234.5 | 1-Jan-26 to 31-Dec-26 | formatters 1');
+  await page.getByRole('button', { name: 'Switch date style' }).click();
+  await expect(probe).toHaveText('1,234.5 | 1 Jan 2026 to 31 Dec 2026 | formatters 2');
+  await expect(table).toContainText('15 Jan 2030');
+  await page.getByRole('button', { name: 'Switch date style' }).click();
+  await expect(probe).toHaveText('1,234.5 | 1-Jan-26 to 31-Dec-26 | formatters 3');
+  await expect(table).toContainText('15-Jan-30');
+  expect(await overflow(page)).toBeLessThanOrEqual(1);
+});

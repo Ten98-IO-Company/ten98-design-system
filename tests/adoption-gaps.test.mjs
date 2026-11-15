@@ -383,6 +383,122 @@ test('a date-only value shows its calendar day in every time zone; an instant fo
   assert.equal(west.date('2026-11-01T03:00:00Z'), 'Oct 31, 2026');
 });
 
+// The same grid printed from main before dateLocale, dateStyle and dateRange existed: tests/display-format-defaults.json.
+function defaultGrid(ui) {
+  const locales = ['en', 'en-US', 'en-GB', 'de-DE', 'ar-EG'];
+  const zones = ['UTC', 'Asia/Dubai', 'Pacific/Kiritimati', 'Etc/GMT+12'];
+  const dates = ['2026-01-04', '2026-12-31', '2026-01-04T14:05:09Z', '2026-12-31T23:30:00Z', 1767535509000, 'not a date'];
+  const now = new Date('2026-01-01T00:00:00Z');
+  const grid = {};
+  for (const locale of locales) {
+    for (const timeZone of zones) {
+      const d = ui.createDateFormatter({ locale, timeZone }), f = ui.createDisplayFormatter({ locale, timeZone });
+      grid[`${locale} ${timeZone}`] = dates.flatMap(v => [d.date(v), d.dateTime(v), d.relative(v, now), f.date(v), f.dateTime(v), f.relative(v, now)]);
+    }
+    const f = ui.createDisplayFormatter({ locale, timeZone: 'UTC' });
+    grid[locale] = [...[0, 1234.5, -0.000123, 1e7].map(v => f.number(v)), f.number(12345.678, { maximumFractionDigits: 1 }), f.compact(12400),
+      ...[0.256, 1, 0].map(v => f.percent(v)), ...[1, 3].map(v => f.count(v, { one: 'post', other: 'posts' })),
+      ...['0.000123', '1234.5', 12.3].flatMap(v => ['USD', 'AED', 'JPY'].map(c => f.currency(v, c))), f.currency('1250.5', 'AED', { wholeUnits: true }),
+      f.fileSize(1536), f.date(null)];
+  }
+  return grid;
+}
+
+test('without dateLocale or dateStyle every date, number, money, percent and count reads exactly as before', () => {
+  const expected = JSON.parse(readFileSync(new URL('./display-format-defaults.json', import.meta.url), 'utf8'));
+  assert.deepEqual(defaultGrid(ui), expected);
+  assert.equal(ui.createDateFormatter({ locale: 'en', timeZone: 'UTC', dateStyle: 'medium' }).dateTime('2026-01-04T14:05:00Z'), 'Jan 4, 2026, 2:05 PM');
+});
+
+const books = { order: 'day-month-year', day: 'numeric', month: 'short', year: '2-digit', separator: '-' };
+const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+test('day-month-year styles: "04 Jan 26" and books\' "4-Jan-26" in every English locale and time zone', () => {
+  for (const dateLocale of ['en', 'en-US', 'en-GB']) {
+    const short = ui.createDateFormatter({ dateLocale, dateStyle: 'day-month-year-short', timeZone: 'UTC' });
+    assert.equal(short.date('2026-01-04T10:00:00Z'), '04 Jan 26', dateLocale);
+    assert.equal(ui.createDateFormatter({ dateLocale, dateStyle: { ...books, day: '2-digit', separator: ' ' }, timeZone: 'UTC' }).date('2026-01-04'), '04 Jan 26');
+    const bookish = ui.createDateFormatter({ dateLocale, dateStyle: books, timeZone: 'UTC' });
+    assert.equal(bookish.date('2026-01-04'), '4-Jan-26');
+    assert.equal(bookish.date('2026-12-31'), '31-Dec-26');
+    // Exactly three letters, title case, no period: never en-GB "Sept".
+    assert.deepEqual(months.map((_, index) => short.date(`2026-${String(index + 1).padStart(2, '0')}-04`)), months.map(month => `04 ${month} 26`), dateLocale);
+  }
+  // A date-only string is its calendar day at both ends of the clock.
+  for (const timeZone of ['Pacific/Kiritimati', 'Etc/GMT+12']) {
+    assert.equal(ui.createDateFormatter({ locale: 'en-US', timeZone, dateStyle: 'day-month-year-short' }).date('2026-01-04'), '04 Jan 26', timeZone);
+    assert.equal(ui.createDisplayFormatter({ locale: 'en-US', timeZone, dateStyle: books }).dateTime('2026-01-04'), '4-Jan-26', timeZone);
+  }
+  // An instant follows the zone: 23:30 UTC on 31 Dec is already 1 Jan in Dubai.
+  assert.equal(ui.createDateFormatter({ timeZone: 'Asia/Dubai', dateLocale: 'en-GB', dateStyle: books }).date('2026-12-31T23:30:00Z'), '1-Jan-27');
+  assert.equal(ui.createDateFormatter({ dateLocale: 'en-GB', dateStyle: 'long', timeZone: 'UTC' }).date('2026-01-04'), '4 January 2026');
+  assert.equal(ui.createDateFormatter({ dateLocale: 'en-US', timeZone: 'UTC', dateStyle: { ...books, month: 'long', year: 'numeric', separator: ' ' } }).date('2026-01-04'), '4 January 2026');
+});
+
+test('other languages take the month from Intl without a trailing period', () => {
+  const intl = new Intl.DateTimeFormat('de', { month: 'short', timeZone: 'UTC' }).formatToParts(new Date('2026-01-04')).find(part => part.type === 'month').value;
+  assert.equal(intl.replace(/\.$/u, ''), 'Jan', 'German short January');
+  const de = ui.createDateFormatter({ dateLocale: 'de', dateStyle: 'day-month-year-short', timeZone: 'UTC' });
+  assert.equal(de.date('2026-01-04'), '04 Jan 26');
+  assert.equal(de.date('2026-12-04'), '04 Dez 26');
+  assert.doesNotMatch(ui.createDateFormatter({ dateLocale: 'de', dateStyle: books, timeZone: 'UTC' }).date('2026-03-04'), /\./u);
+});
+
+test('dateTime in a day-first style is the date, ", " and a 24-hour time without seconds in the viewer\'s zone', () => {
+  const us = ui.createDisplayFormatter({ locale: 'en-US', dateLocale: 'en-US', dateStyle: books, timeZone: 'UTC' });
+  assert.equal(us.dateTime('2026-01-04T14:05:59Z'), '4-Jan-26, 14:05');
+  assert.equal(us.dateTime('2026-01-04T09:05:00Z'), '4-Jan-26, 09:05');
+  assert.equal(us.dateTime('2026-01-04T00:00:00Z'), '4-Jan-26, 00:00');
+  assert.equal(ui.createDateFormatter({ dateLocale: 'en-GB', dateStyle: 'day-month-year-short', timeZone: 'Asia/Dubai' }).dateTime('2026-01-04T10:05:00Z'), '04 Jan 26, 14:05');
+  assert.equal(ui.createDateFormatter({ dateLocale: 'en-GB', dateStyle: 'long', timeZone: 'UTC' }).dateTime('2026-01-04T14:05:00Z'), '4 January 2026, 14:05');
+  assert.equal(us.dateTime('not a date'), 'not a date');
+  assert.equal(us.dateTime(null), 'Unavailable');
+});
+
+test('dateRange joins two dates with the app\'s connector; numbers and money ignore the date options', () => {
+  const format = ui.createDisplayFormatter({ locale: 'en-US', dateLocale: 'en-GB', dateStyle: books, rangeConnector: 'to', timeZone: 'UTC' });
+  assert.equal(format.dateRange('2026-01-01', '2026-12-31'), '1-Jan-26 to 31-Dec-26');
+  assert.equal(format.dateRange('2026-01-01', null), '1-Jan-26 to Unavailable');
+  assert.equal(format.dateRange(null, undefined), 'Unavailable');
+  assert.equal(ui.createDateFormatter({ locale: 'en', timeZone: 'UTC' }).dateRange('2026-01-01', '2026-12-31'), 'Jan 1, 2026 – Dec 31, 2026');
+  const plain = ui.createDisplayFormatter({ locale: 'en-US', timeZone: 'UTC' });
+  for (const options of [{ dateLocale: 'en-GB', dateStyle: 'day-month-year-short' }, { dateLocale: 'ar-EG', dateStyle: books }, { dateLocale: 'de', dateStyle: 'long' }]) {
+    const styled = ui.createDisplayFormatter({ locale: 'en-US', timeZone: 'UTC', ...options });
+    assert.equal(styled.number(1234.5), '1,234.5');
+    for (const method of ['compact', 'percent', 'fileSize']) assert.equal(styled[method](12400.5), plain[method](12400.5), method);
+    assert.equal(styled.count(3, { one: 'post', other: 'posts' }), '3 posts');
+    assert.equal(styled.currency('1234.5', 'USD'), plain.currency('1234.5', 'USD'));
+    assert.equal(styled.currency(12.3, 'AED', { wholeUnits: true }), plain.currency(12.3, 'AED', { wholeUnits: true }));
+  }
+});
+
+test('a nested DisplayFormatProvider overrides only what it sets and inherits the rest', () => {
+  const sessions = [{ id: 's1', device: 'Chrome', lastActiveAt: '2030-01-15T12:00:00Z', current: true }];
+  const Probe = () => { const format = ui.useDisplayFormat(); return h('output', null, `${format.number(1234.5)}|${format.date('2030-01-15T12:00:00Z')}|${format.date(null)}|${format.dateRange('2030-01-01', '2030-01-31')}`); };
+  const tree = h(ui.DisplayFormatProvider, { locale: 'de-DE', timeZone: 'Pacific/Kiritimati', missing: 'n/a', rangeConnector: 'bis' },
+    h(ui.DisplayFormatProvider, { dateStyle: books }, h(Probe), h(ui.SessionListFlow, { sessions, onRevoke: (() => undefined), onRevokeOthers: (() => undefined) })));
+  const html = renderToStaticMarkup(tree);
+  // German numbers and month text, Kiritimati's next day, the parent's missing word and connector, the child's style.
+  assert.match(html, /<output>1\.234,5\|16-Jan-30\|n\/a\|1-Jan-30 bis 31-Jan-30<\/output>/);
+  assert.match(html, /16-Jan-30/);
+  // The outer provider alone is unchanged by the inner one.
+  assert.match(renderToStaticMarkup(h(ui.DisplayFormatProvider, { locale: 'de-DE', timeZone: 'Pacific/Kiritimati' }, h(Probe))), /<output>1\.234,5\|16\.01\.2030\|Unavailable\|01\.01\.2030 – 31\.01\.2030<\/output>/);
+});
+
+test('DateRangeField limit messages use the provider\'s date format only when the app sets dateStyle or dateLocale', () => {
+  const messages = wrap => [{ start: '2025-12-30', end: '2026-01-05' }, { start: '2026-12-01', end: '2027-01-02' }].map(range =>
+    renderToStaticMarkup(wrap(h(ui.DateRangeField, { label: 'Period', min: '2026-01-01', max: '2026-12-31', onChange() {}, ...range }))).match(/role="alert">([^<]+)</)?.[1]);
+  const iso = ['Start on or after 2026-01-01.', 'End on or before 2026-12-31.'];
+  assert.deepEqual(messages(field => field), iso);
+  assert.deepEqual(messages(field => h(ui.DisplayFormatProvider, { locale: 'en-US', timeZone: 'Asia/Dubai' }, field)), iso);
+  // Calendar days: UTC-12 does not move 1 January back to 31 December.
+  const books = inner => messages(field => h(ui.DisplayFormatProvider, { locale: 'en-US', dateLocale: 'en-GB', timeZone: 'Etc/GMT+12', dateStyle: { order: 'day-month-year', day: 'numeric', month: 'short', year: '2-digit', separator: '-' } }, inner(field)));
+  assert.deepEqual(books(field => field), ['Start on or after 1-Jan-26.', 'End on or before 31-Dec-26.']);
+  // A nested provider that sets only locale still inherits the books format from its parent.
+  assert.deepEqual(books(field => h(ui.DisplayFormatProvider, { locale: 'en-US' }, field)), ['Start on or after 1-Jan-26.', 'End on or before 31-Dec-26.']);
+  assert.deepEqual(messages(field => h(ui.DisplayFormatProvider, { dateLocale: 'en-GB' }, field)), ['Start on or after 1 Jan 2026.', 'End on or before 31 Dec 2026.']);
+});
+
 test('flows take their default date and money format from ui.DisplayFormatProvider (#158)', () => {
   const sessions = [{ id: 's1', device: 'Chrome', lastActiveAt: '2030-01-15T12:00:00Z', current: true }];
   const plain = renderToStaticMarkup(h(ui.SessionListFlow, { sessions, onRevoke: (() => undefined), onRevokeOthers: (() => undefined) }));

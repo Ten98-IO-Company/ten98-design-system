@@ -1,6 +1,6 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { AccountProfileFlow, type AccountProfileValues, Button, Field, Input, LinkedIdentitiesFlow, PasswordChangeFlow, SessionListFlow, SettingsPanel, Stack, Text, TwoFactorSetupFlow, type TwoFactorSetupStage } from '@ten98/ui';
+import { AccountProfileFlow, type AccountProfileValues, Button, DisplayFormatProvider, Field, Inline, Input, LinkedIdentitiesFlow, PasswordChangeFlow, SessionListFlow, SettingsPanel, Stack, Text, TwoFactorSetupFlow, type TwoFactorSetupStage, useDisplayFormat } from '@ten98/ui';
 import '@ten98/ui/app-tokens.css';
 import '@ten98/ui/app.css';
 import '@ten98/ui/product.css';
@@ -65,6 +65,31 @@ function TwoFactor({ initial, noQr = false, requireCode = false, regenerateCode 
     onAcknowledgeCodes={() => { log('acknowledged'); setStage('on'); }} onRegenerate={({ password, code }) => { log(`regenerate:${password}${code === undefined ? '' : `:${code}`}`); setStage('codes'); }} onDisable={({ password, code }) => { log(`disable:${password}${code === undefined ? '' : `:${code}`}`); setStage('off'); }} />} />;
 }
 
+// Books switches the date style per company at run time. The style is a new object on every render, so a re-render
+// must not rebuild the formatter, and a switch must; nested providers inherit the outer locale and zone.
+function FormatterProbe() {
+  const format = useDisplayFormat();
+  const count = useRef(new Set<object>());
+  count.current.add(format);
+  return <Text id="formatter-probe" size="sm">{`${format.number(1234.5)} | ${format.dateRange('2026-01-01', '2026-12-31')} | formatters ${count.current.size}`}</Text>;
+}
+function BooksDates() {
+  const [books, setBooks] = useState(true);
+  const [, setRenders] = useState(0);
+  return <DisplayFormatProvider locale="en-US" timeZone="Asia/Dubai" rangeConnector="to">
+    <DisplayFormatProvider dateLocale="en-GB" dateStyle={books ? { order: 'day-month-year', day: 'numeric', month: 'short', year: '2-digit', separator: '-' } : undefined}>
+      <Stack gap={4}>
+        <Inline>
+          <Button type="button" variant="secondary" onClick={() => setBooks(current => !current)}>Switch date style</Button>
+          <Button type="button" variant="ghost" onClick={() => setRenders(current => current + 1)}>Render again</Button>
+        </Inline>
+        <FormatterProbe />
+        <SessionListFlow sessions={sessions} onRevoke={noop} onRevokeOthers={noop} />
+      </Stack>
+    </DisplayFormatProvider>
+  </DisplayFormatProvider>;
+}
+
 function FailingPanel() {
   const [failed, setFailed] = useState(false);
   return <SettingsPanel title="Webhook" submitLabel="Save" onSubmit={() => setFailed(true)} error={failed ? 'The endpoint could not be saved.' : undefined} fieldErrors={failed ? { url: 'Enter a valid URL.' } : undefined}>
@@ -96,6 +121,7 @@ const screens: Record<string, ReactNode> = {
   '2fa-enrolling-noqr': <TwoFactor initial="enrolling" noQr />,
   '2fa-on-code': <TwoFactor initial="on" requireCode />,
   '2fa-on-no-regenerate-code': <TwoFactor initial="on" regenerateCode={false} />,
+  'sessions-books': <BooksDates />,
   'sessions': <Probe render={log => <SessionListFlow sessions={sessions} onRevoke={({ id }) => log(`revoke:${id}`)} onRevokeOthers={() => log('revoke-others')} />} />,
   'identities': <Probe render={log => <LinkedIdentitiesFlow identities={identities} providers={[{ id: 'github', name: 'GitHub' }]} hasPassword onLink={id => log(`link:${id}`)} onUnlink={({ id, password }) => log(`unlink:${id}:${password}`)} />} />,
   'identities-last': <LinkedIdentitiesFlow identities={identities.slice(0, 1)} providers={[]} hasPassword={false} onLink={noop} onUnlink={noop} />,

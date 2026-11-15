@@ -3,6 +3,8 @@
 import { createContext, useCallback, useContext, useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { Alert, Button, Checkbox, Dialog, Field, Icon, Input, Select, cx, type DialogProps, type Tone } from './primitives.js';
 import { addDays, inclusiveDays } from './dates.js';
+import { useDisplayFormat } from './display-format.js';
+import { DisplayFormatOptionsContext } from './display-options.js';
 import { trackHeldKeys } from './held-keys.js';
 import type { PasswordPolicy } from './auth-flows.js';
 
@@ -30,25 +32,32 @@ export interface DateRangeFieldProps extends DateRange {
   error?: ReactNode;
 }
 type RangeLimits = Pick<DateRangeFieldProps, 'min' | 'max' | 'maxDays'>;
-/** Why a range with an inclusive end is invalid, or null. */
-function rangeProblem(start: string, lastDay: string, { min, max, maxDays }: RangeLimits) {
+/** Why a range with an inclusive end is invalid, or null. `day` writes a limit date. */
+function rangeProblem(start: string, lastDay: string, { min, max, maxDays }: RangeLimits, day: (iso: string) => string) {
   const days = start && lastDay ? inclusiveDays(start, lastDay) : NaN;
   if (start && lastDay && start > lastDay) return 'End date must be on or after the start date.';
-  if (min && start && start < min) return `Start on or after ${min}.`;
-  if (max && lastDay && lastDay > max) return `End on or before ${max}.`;
+  if (min && start && start < min) return `Start on or after ${day(min)}.`;
+  if (max && lastDay && lastDay > max) return `End on or before ${day(max)}.`;
   if (maxDays !== undefined && Number.isFinite(days) && days > maxDays) return `Choose at most ${maxDays} ${maxDays === 1 ? 'day' : 'days'}; this range has ${days}.`;
   return null;
 }
 /** ISO date-only values; no timezone conversion or invented presets. Every edit is reported, even an invalid range: the
- * field then shows why it is invalid and marks the inputs, and the app decides whether to accept it. */
+ * field then shows why it is invalid and marks the inputs, and the app decides whether to accept it. Entry stays the
+ * native date input, so the browser decides how a date is typed and nothing is parsed as text. The limit messages
+ * ("Start on or after …") show `min` and `max` as ISO, or as calendar days in the app's date format when a
+ * DisplayFormatProvider sets `dateStyle` or `dateLocale`: "Start on or after 1-Jan-26." */
 export function DateRangeField({ label, start, end, onChange, disabled, min, max, maxDays, endExclusive = false, error }: DateRangeFieldProps) {
   const id = useId();
   const limits = { min, max, maxDays };
+  const display = useDisplayFormat();
+  const { dateStyle, dateLocale } = useContext(DisplayFormatOptionsContext);
+  // A date-only string is always formatted as its calendar day, so a limit never shifts by time zone.
+  const day = dateStyle !== undefined || dateLocale !== undefined ? display.date : (iso: string) => iso;
   // The visible end is always the last included day.
   const lastDayOf = (value: string) => endExclusive && value ? addDays(value, -1) : value;
   const shownEnd = lastDayOf(end);
-  const problem = error ?? rangeProblem(start, shownEnd, limits);
-  function report(range: DateRange) { onChange(range, rangeProblem(range.start, lastDayOf(range.end), limits)); }
+  const problem = error ?? rangeProblem(start, shownEnd, limits, day);
+  function report(range: DateRange) { onChange(range, rangeProblem(range.start, lastDayOf(range.end), limits, day)); }
   const errorId = `${id}-error`;
   const invalid = problem != null || undefined;
   return <fieldset className="t98-date-range" aria-describedby={problem != null ? errorId : undefined}><legend>{label}</legend><div className="t98-date-range-fields">
