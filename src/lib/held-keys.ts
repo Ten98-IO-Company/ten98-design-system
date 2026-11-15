@@ -3,6 +3,12 @@
 /** The keys that activate a focused button or submit a form from a field. */
 export const isActivationKey = (key: string) => key === 'Enter' || key === ' ';
 
+const textInputTypes = new Set(['text', 'search', 'email', 'url', 'tel', 'password']);
+/** A field that takes typed text, where Space only types and never activates anything. */
+export const isTextEntry = (target: EventTarget | null) => target instanceof HTMLTextAreaElement
+  || (target instanceof HTMLInputElement && textInputTypes.has(target.type))
+  || (target instanceof HTMLElement && target.isContentEditable);
+
 /** Each held activation key with the number of the press holding it, so a later press of the same key is told apart. */
 const held = new Map<string, number>();
 let presses = 0;

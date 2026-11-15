@@ -101,6 +101,20 @@ test('a held Enter does not submit a dialog form from its field; a fresh Enter t
   expect(await log(page)).toEqual(['note Ready']);
 });
 
+test('holding Space in a dialog text field types repeated spaces and neither confirms nor submits', async ({ page }) => {
+  await page.goto('/tests/dialog-held-enter.html');
+  const dialog = page.getByRole('dialog', { name: 'Add a note' });
+  await page.getByRole('button', { name: 'Add note', exact: true }).click();
+  const note = dialog.getByRole('textbox', { name: 'Note' });
+  await expect(note).toBeFocused();
+  await page.keyboard.press('End');
+  await page.keyboard.down(' ');
+  await hold(page, ' ');
+  await expect(note).toHaveValue(/^Ready {2,}$/);
+  await expect(dialog).toBeVisible();
+  expect(await log(page)).toEqual([]);
+});
+
 test('confirmations start on Cancel, or on the field they wait for; opened by mouse, a deliberate Enter answers at once', async ({ page }) => {
   await page.goto('/tests/dialog-held-enter.html');
   const dialog = page.getByRole('dialog');

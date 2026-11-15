@@ -6,7 +6,7 @@ import {
   type OptgroupHTMLAttributes, type OptionHTMLAttributes, type ReactElement, type ReactNode, type SelectHTMLAttributes,
   type RefObject, type SVGProps, type SyntheticEvent, type TextareaHTMLAttributes,
 } from 'react';
-import { heldPresses, isActivationKey, stillHeld, trackHeldKeys } from './held-keys.js';
+import { heldPresses, isActivationKey, isTextEntry, stillHeld, trackHeldKeys } from './held-keys.js';
 
 export function cx(...values: (string | false | null | undefined)[]) {
   return values.filter(Boolean).join(' ');
@@ -298,7 +298,7 @@ export interface DialogProps { open: boolean; onOpenChange: (open: boolean) => v
    * (or danger) button, so Enter accepts. close: the close button. A ref focuses that element. Disabled or missing
    * targets fall back to the browser's choice, the first focusable element (the close button), which is also the default.
    * Whatever is focused, one keypress never both opens and answers the dialog: an Enter or Space still held from before it
-   * opened, and every auto-repeat, is ignored until the key is released.
+   * opened, and every auto-repeat, is ignored until the key is released. Space typed in a text field is left alone.
    */
   initialFocus?: DialogInitialFocus }
 export type DialogInitialFocus = 'first-field' | 'primary' | 'close' | RefObject<HTMLElement | null>;
@@ -353,7 +353,8 @@ export function Dialog({ open, onOpenChange, title, description, children, foote
   // One keypress must never both open the dialog and answer it. An Enter or Space still held from before the dialog opened
   // (usually the keypress that opened it) and every auto-repeat are cancelled, so they neither activate the focused button
   // nor submit the form from a field; a fresh press after release works. Space activates a button on keyup, so a Space
-  // keyup without an accepted keydown in this dialog, and the keyboard click it would produce, are cancelled too.
+  // keyup without an accepted keydown in this dialog, and the keyboard click it would produce, are cancelled too. Space in
+  // a text-entry field only types, so it is left alone there; Enter in a field submits, so it is guarded everywhere.
   useEffect(() => {
     const dialog = ref.current;
     if (!open || !dialog) return;
@@ -361,7 +362,7 @@ export function Dialog({ open, onOpenChange, title, description, children, foote
     let spaceAccepted = false;
     let blockClick = false;
     const keydown = (event: KeyboardEvent) => {
-      if (!isActivationKey(event.key)) return;
+      if (!isActivationKey(event.key) || (event.key === ' ' && isTextEntry(event.target))) return;
       if (event.repeat || stillHeld(atOpen, event.key)) event.preventDefault();
       else if (event.key === ' ') spaceAccepted = true;
     };
