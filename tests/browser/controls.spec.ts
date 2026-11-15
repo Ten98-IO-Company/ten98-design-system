@@ -31,10 +31,11 @@ for (const width of [1440, 320, 360]) {
       const theme = info.project.name === 'narrow-dark' ? 'dark' : 'light';
       const errors: string[] = [];
       const externalRequests: string[] = [];
+      const fonts: string[] = [];
       let requests = 0;
       page.on('pageerror', error => errors.push(error.message));
       page.on('request', request => {
-        requests++;
+        if (request.resourceType() === 'font') fonts.push(request.url()); else requests++;
         if (new URL(request.url()).origin !== new URL(info.project.use.baseURL!).origin) externalRequests.push(request.url());
       });
       await page.goto(`/tests/controls.html?theme=${theme}`);
@@ -101,6 +102,9 @@ for (const width of [1440, 320, 360]) {
       expect(externalRequests).toEqual([]);
       // The built fixture loads one HTML document, eleven JS chunks and two stylesheets.
       expect(requests).toBeLessThanOrEqual(14);
+      // Plus at most the latin Inter and JetBrains Mono files (code and key caps): same-origin woff2, never data: or remote.
+      expect(fonts.length).toBeLessThanOrEqual(2);
+      for (const url of fonts) expect(url).toMatch(new RegExp(`^${new URL(info.project.use.baseURL!).origin}/.*(inter|jetbrains-mono)-latin-wght-normal[\\w-]*\\.woff2$`));
       await info.attach('request-count', { body: String(requests), contentType: 'text/plain' });
     });
   });

@@ -30,9 +30,15 @@
 }
 .t98-entry-grid__cell { cursor: text; }
 .t98-entry-grid__cell[aria-readonly='true'] { cursor: default; color: var(--t98-muted); }
-.t98-entry-grid__cell--active { background: var(--t98-accent-soft); }
+/* The ink bar marks the active cell; the tint alone is too close to the surface. Focused, the bar steps inside the ring. */
+.t98-entry-grid__cell--active { background: var(--t98-accent-soft); box-shadow: inset 3px 0 0 var(--t98-accent); }
+.t98-entry-grid__cell--active:dir(rtl) { box-shadow: inset -3px 0 0 var(--t98-accent); }
+.t98-entry-grid__cell--active:focus-visible { box-shadow: inset 5px 0 0 var(--t98-accent-soft), inset 8px 0 0 var(--t98-accent); }
+.t98-entry-grid__cell--active:dir(rtl):focus-visible { box-shadow: inset -5px 0 0 var(--t98-accent-soft), inset -8px 0 0 var(--t98-accent); }
 .t98-entry-grid__cell:focus-visible { outline: var(--t98-focus-width) solid var(--t98-focus); outline-offset: calc(-1 * var(--t98-focus-width)); }
 .t98-entry-grid__cell[aria-invalid='true'] { box-shadow: inset 0 -2px 0 var(--t98-danger); }
+.t98-entry-grid__cell--active[aria-invalid='true'] { box-shadow: inset 3px 0 0 var(--t98-accent), inset 0 -2px 0 var(--t98-danger); }
+.t98-entry-grid__cell--active[aria-invalid='true']:dir(rtl) { box-shadow: inset -3px 0 0 var(--t98-accent), inset 0 -2px 0 var(--t98-danger); }
 .t98-entry-grid__value { display: block; min-block-size: var(--t98-control-height); line-height: var(--t98-control-height); overflow-wrap: anywhere; }
 .t98-entry-grid__total { border-block-end: 0; font-weight: var(--t98-weight-semibold); line-height: var(--t98-control-height); }
 .t98-entry-grid__error { display: block; padding-block-end: var(--t98-space-1); color: var(--t98-danger); font-size: var(--t98-text-xs); white-space: normal; }
@@ -63,6 +69,8 @@
 .t98-entry-grid--quantity .t98-entry-grid__value,
 .t98-entry-grid--amount .t98-entry-grid__editor,
 .t98-entry-grid--quantity .t98-entry-grid__editor { direction: ltr; text-align: end; unicode-bidi: plaintext; }
+/* Figures take the mono; their headers keep the text face. */
+td.t98-entry-grid--amount, td.t98-entry-grid--quantity { font-family: var(--t98-mono); }
 /* Footer figures read left to right on right-to-left pages too, so "debit / credit" keeps its order. */
 .t98-entry-grid__total.t98-entry-grid--amount,
 .t98-entry-grid__total.t98-entry-grid--quantity { direction: ltr; unicode-bidi: isolate; }

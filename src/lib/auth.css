@@ -7,7 +7,7 @@
 .t98-auth-layout .brand{text-decoration:none}
 .t98-auth-layout .eyebrow{font-weight:500}
 .t98-auth-layout :is(.auth-story,.auth-form){min-width:0}
-.t98-auth-layout :is(.auth-story-title,.t98-auth-title){font-family:var(--t98-heading);font-weight:600}
+.t98-auth-layout :is(.auth-story-title,.t98-auth-title){font-family:var(--t98-display);font-style:italic;font-weight:400}
 .t98-auth-layout .t98-auth-title{line-height:normal}
 .t98-auth-layout .t98-auth-title+.t98-auth-fields{margin-top:32px}
 .t98-auth-layout .t98-auth-brand{margin-bottom:24px}
@@ -23,8 +23,9 @@
 .auth-story>.brand{padding:0}
 .auth-story>div:not(.auth-orbit){padding:60px 0}
 .auth-story .eyebrow{color:var(--color-text-muted,var(--t98-muted));font-size:13px;letter-spacing:0;margin-bottom:25px}
-.auth-story :is(h1,.auth-story-title){overflow-wrap:anywhere;font-size:clamp(40px,5vw,76px);line-height:1.1;letter-spacing:-.03em;font-weight:600;color:var(--color-text,var(--t98-text))}
-.auth-story :is(h1,.auth-story-title) em{color:var(--color-accent,var(--t98-accent));font-style:normal}
+.auth-story :is(h1,.auth-story-title){overflow-wrap:anywhere;font-size:clamp(40px,5vw,76px);line-height:1.1;letter-spacing:-.03em;font-weight:400;color:var(--color-text,var(--t98-text))}
+/* Ink is the accent, so the emphasis changes face rather than colour. */
+.auth-story :is(h1,.auth-story-title) em{color:var(--color-accent,var(--t98-accent));font-family:var(--t98-heading);font-style:normal;font-weight:600}
 .auth-story p:not(.auth-story-title){font-size:13px;color:var(--color-text-muted,var(--t98-muted));margin-top:24px;line-height:1.6}
 .auth-channels{display:flex;gap:22px;margin-top:38px;color:var(--color-text-muted,var(--t98-muted));font-size:12px}
 .auth-channels span{display:flex;align-items:center;gap:8px}
@@ -117,7 +118,7 @@
 .t98-auth-layout--card.auth-split .auth-form{align-self:center;justify-self:center;inline-size:calc(100% - 48px)}
 /* The brand is in the aside, so the title opens the card. */
 .t98-auth-layout--card.auth-split .t98-auth-title{margin-top:0}
-.t98-auth-layout--card .auth-form{display:block;inline-size:100%;max-inline-size:460px;margin:24px;padding:32px;border:1px solid var(--color-border,var(--t98-border));border-radius:8px;background:var(--color-surface,var(--t98-surface))}
+.t98-auth-layout--card .auth-form{display:block;inline-size:100%;max-inline-size:460px;margin:24px;padding:32px;border:1px solid var(--color-border,var(--t98-border));border-radius:var(--t98-radius-lg);background:var(--color-surface,var(--t98-surface))}
 .t98-auth-layout--card .auth-form-inner{max-inline-size:none}
 .t98-auth-layout--card .brand{padding:0}
 .t98-auth-layout--card .t98-auth-title{font-size:24px;letter-spacing:-.02em;margin-top:28px}

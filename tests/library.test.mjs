@@ -298,6 +298,11 @@ test('packaged light and dark semantic colors retain required text and control c
     ...['accent', 'accent-hover'].map(background => ['on-accent', background, 4.5]),
     ...['success', 'warning', 'danger', 'info'].map(tone => [tone, `${tone}-soft`, 4.5]),
     ['control-border', 'surface', 3],
+    // Ink is the accent: a control edge must hold on the page ground, and focus, accent and every chart series on the surface.
+    ['control-border', 'bg', 3],
+    ['placeholder', 'surface', 4.5],
+    ['on-accent', 'accent-active', 4.5],
+    ...['focus', 'accent', 'chart-1', 'chart-2', 'chart-3', 'chart-4', 'chart-5'].map(foreground => [foreground, 'surface', 3]),
   ];
   for (const theme of ['light', 'dark']) {
     const palette = rules.find(rule => selectors(rule).includes(`[data-theme=${theme}]`))?.declarations;
@@ -307,6 +312,11 @@ test('packaged light and dark semantic colors retain required text and control c
       assert.ok(ratio >= minimum, `${theme} ${foreground} on ${background}: ${ratio.toFixed(3)}:1, requires ${minimum}:1`);
     }
   }
+  // The system theme's dark copy must not drift from the explicit dark theme.
+  const css = readFileSync(file('dist/tokens.css'), 'utf8');
+  const dark = rules.find(rule => selectors(rule).includes('[data-theme=dark]')).declarations;
+  const system = cssRules(/@media \(prefers-color-scheme: dark\) \{([\s\S]*?\})\s*\}/.exec(css)[1]).find(rule => selectors(rule).includes('[data-theme=system]')).declarations;
+  assert.deepEqual(system, dark);
 });
 
 test('scoped system themes and comfortable density explicitly reset inherited settings', () => {
@@ -458,27 +468,45 @@ test('colours come from tokens, apart from named exemptions', () => {
   assert.deepEqual(literal, []);
 });
 
-test('the self-hosted Inter faces resolve inside the package and lead both font tokens', () => {
+const fontFiles = [
+  'fonts/inter-latin-ext-wght-normal.woff2', 'fonts/inter-latin-wght-normal.woff2',
+  'fonts/jetbrains-mono-latin-ext-wght-normal.woff2', 'fonts/jetbrains-mono-latin-wght-normal.woff2',
+  'fonts/libre-caslon-text-latin-400-italic.woff2', 'fonts/libre-caslon-text-latin-ext-400-italic.woff2',
+];
+const fontLicences = ['fonts/OFL.txt', 'fonts/JetBrainsMono-OFL.txt', 'fonts/LibreCaslonText-OFL.txt'];
+
+test('the self-hosted Inter, JetBrains Mono and Libre Caslon faces resolve inside the package and lead their tokens', () => {
   const tokenCss = readFileSync(file('dist/tokens.css'), 'utf8');
   const sources = [...tokenCss.matchAll(/@font-face\s*\{[^}]*url\("\.\/([^"]+)"\)/g)].map(([, path]) => path);
-  assert.deepEqual(sources.sort(), ['fonts/inter-latin-ext-wght-normal.woff2', 'fonts/inter-latin-wght-normal.woff2']);
-  for (const path of [...sources, 'fonts/OFL.txt']) accessSync(file(`dist/${path}`));
+  assert.deepEqual(sources.sort(), fontFiles);
+  for (const path of [...sources, ...fontLicences]) accessSync(file(`dist/${path}`));
+  // Real woff2 files, so a font-src 'self' policy loads them: never inlined data: URIs or remote fonts.
+  for (const path of sources) assert.equal(readFileSync(file(`dist/${path}`)).subarray(0, 4).toString('latin1'), 'wOF2', `${path} is a woff2 file`);
+  for (const sheet of readdirSync(file('dist')).filter(name => name.endsWith('.css'))) {
+    for (const [, target] of readFileSync(file(`dist/${sheet}`), 'utf8').matchAll(/url\(\s*["']?([^"')]+)/g)) assert.match(target, /^\.\/fonts\/[\w-]+\.woff2$/, `${sheet} references ${target}`);
+  }
   assert.ok([...tokenCss.matchAll(/font-display:\s*swap/g)].length === sources.length, 'Every face swaps in, so text never waits for the font');
   for (const token of ['--t98-font', '--t98-heading']) assert.match(tokenCss, new RegExp(`${token}: "Inter Variable", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui`));
-  assert.match(readFileSync(file('THIRD_PARTY_NOTICES.md'), 'utf8'), /## Inter typeface[\s\S]*SIL OPEN FONT LICENSE Version 1\.1/);
+  // Neither brand face has Arabic: both stacks reach the system Arabic faces before the generic family.
+  assert.match(tokenCss, /--t98-mono: "JetBrains Mono", ui-monospace, [^;]*"Segoe UI", Tahoma, "Noto Sans Arabic", monospace;/);
+  assert.match(tokenCss, /--t98-display: "Libre Caslon Text", Georgia, [^;]*"Segoe UI", Tahoma, "Noto Naskh Arabic", serif;/);
+  const notices = readFileSync(file('THIRD_PARTY_NOTICES.md'), 'utf8');
+  for (const face of ['Inter', 'JetBrains Mono', 'Libre Caslon Text']) assert.match(notices, new RegExp(`## ${face} typeface[\\s\\S]*?SIL OPEN FONT LICENSE Version 1\\.1`));
 });
 
-test('the packed archive ships the Inter files, their licence and the notice', () => {
+test('the packed archive ships the font files, their licences and the notice', () => {
   // --ignore-scripts packs the dist that npm test runs against; prepack would rebuild it.
   const output = execSync('npm pack --dry-run --json --ignore-scripts', { cwd: fileURLToPath(file('')), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
   const [archive] = JSON.parse(output.slice(output.indexOf('[')));
   const shipped = new Set(archive.files.map(entry => entry.path.replaceAll('\\', '/')));
-  for (const path of ['dist/fonts/inter-latin-wght-normal.woff2', 'dist/fonts/inter-latin-ext-wght-normal.woff2', 'dist/fonts/OFL.txt', 'dist/tokens.css', 'dist/styles.css', 'THIRD_PARTY_NOTICES.md']) {
+  for (const path of [...[...fontFiles, ...fontLicences].map(path => `dist/${path}`), 'dist/tokens.css', 'dist/styles.css', 'THIRD_PARTY_NOTICES.md']) {
     assert.ok(shipped.has(path), `${path} is in the packed archive`);
   }
   const notice = readFileSync(file('THIRD_PARTY_NOTICES.md'), 'utf8');
   assert.match(notice, /Inter 4\.001, https:\/\/github\.com\/rsms\/inter at commit 66647c0bb/);
   assert.match(notice, /Copyright 2016 The Inter Project Authors/);
+  assert.match(notice, /Copyright 2020 The JetBrains Mono Project Authors/);
+  assert.match(notice, /Copyright 2012 The Libre Caslon Text Project Authors/);
 });
 
 test('touch screens give every small target class a 44px floor, not only md controls (#153 review)', () => {

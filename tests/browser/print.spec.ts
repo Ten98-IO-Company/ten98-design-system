@@ -31,7 +31,7 @@ test('a print shows the page content as a document: no app chrome or controls, b
   await expect(bodyRows(page, 'Statement')).toHaveCount(3000);
   // No row tints, except the current-row bar.
   const current = table(page, 'Accounts').locator('tbody tr[aria-current="true"]');
-  expect(await current.evaluate(node => [getComputedStyle(node).backgroundColor, getComputedStyle(node).boxShadow])).toEqual(['rgba(0, 0, 0, 0)', 'rgb(89, 67, 206) 3px 0px 0px 0px inset']);
+  expect(await current.evaluate(node => [getComputedStyle(node).backgroundColor, getComputedStyle(node).boxShadow])).toEqual(['rgba(0, 0, 0, 0)', 'rgb(12, 12, 13) 3px 0px 0px 0px inset']);
 
   // Full width, black text on white in the dark theme.
   const width = await page.evaluate(() => document.documentElement.clientWidth);

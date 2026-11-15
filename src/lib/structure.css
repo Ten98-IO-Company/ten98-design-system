@@ -34,20 +34,22 @@
 .t98-text-tone-warning { color: var(--t98-warning); } .t98-text-tone-danger { color: var(--t98-danger); }
 .t98-weight-regular { font-weight: var(--t98-weight-normal); } .t98-weight-medium { font-weight: var(--t98-weight-medium); } .t98-weight-semibold { font-weight: var(--t98-weight-semibold); }
 .t98-text-align-start { text-align: start; } .t98-text-align-center { text-align: center; } .t98-text-align-end { text-align: end; }
-.t98-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+.t98-mono { font-family: var(--t98-mono); }
 .t98-numeric { font-variant-numeric: tabular-nums; }
 .t98-text--pre { white-space: pre-wrap; overflow-wrap: anywhere; }
 .t98-truncate { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; overflow-wrap: normal; }
 span.t98-truncate, strong.t98-truncate, em.t98-truncate, small.t98-truncate, code.t98-truncate, time.t98-truncate { display: inline-block; max-width: 100%; vertical-align: bottom; }
 
-.t98-heading { margin: 0; color: var(--t98-text); font-family: var(--t98-font); font-weight: var(--t98-weight-semibold); line-height: var(--t98-leading-tight); overflow-wrap: anywhere; text-wrap: balance; }
+.t98-heading { margin: 0; color: var(--t98-text); font-family: var(--t98-font); font-weight: var(--t98-weight-semibold); line-height: var(--t98-leading-tight); letter-spacing: -.02em; overflow-wrap: anywhere; text-wrap: balance; }
 .t98-heading--sm { font-size: var(--t98-text-md); } .t98-heading--md { font-size: var(--t98-text-lg); } .t98-heading--lg { font-size: var(--t98-text-xl); }
 .t98-heading--xl { font-size: var(--t98-text-2xl); } .t98-heading--2xl { font-size: var(--t98-text-3xl); }
 
+/* Links underline by default: ink links cannot be told from body text by colour alone (WCAG 1.4.1). */
 .t98-link { color: var(--t98-accent); text-underline-offset: 3px; border-radius: var(--t98-radius-sm); }
+:where(.t98-text, .t98-field-description, .t98-alert-description, .t98-card-description, .t98-dialog-description, .t98-empty-state, .t98-page-description) a:not([class]) { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
 .t98-link--inline { text-decoration: underline; }
-.t98-link--standalone { text-decoration: none; font-weight: var(--t98-weight-semibold); }
-.t98-link--standalone:hover { text-decoration: underline; }
+.t98-link--standalone { text-decoration: underline; font-weight: var(--t98-weight-semibold); }
+.t98-link--standalone:hover { text-decoration-thickness: 2px; }
 /* Touch screens: a standalone link is a control, so it gets the 44px target; inline links in a sentence are exempt. */
 @media (pointer: coarse) { .t98-link--standalone { display: inline-flex; align-items: center; min-block-size: var(--t98-control-touch); } }
 .t98-link--quiet { color: inherit; text-decoration: none; }
