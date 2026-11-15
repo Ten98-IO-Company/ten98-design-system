@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Button, AccountMenu, AppShell, AppTopbar, Banner, Card, Grid, Heading, Link, SearchField, SectionNav, SidebarFooter, SidebarNav, SidebarStatus, Stack, Text, WorkspaceProjectSwitcher, type NavLinkComponent, type SidebarNavGroup } from '@ten98/ui';
 import '@ten98/ui/app-tokens.css';
@@ -142,10 +142,18 @@ function Switchers() {
 /* Books' case: a company is a workspace with no projects. */
 function CompanySwitchers() {
   const [company, setCompany] = useState('north');
-  const companies = [{ id: 'north', name: 'Northwind Trading', roleLabel: 'Owner' }, { id: 'south', name: 'Southwind Partners', roleLabel: 'Accountant · not set up yet' }];
-  const labels = { workspace: 'Company', noWorkspaces: 'No companies yet', loadingWorkspaces: 'Loading companies…' };
+  const [companies, setCompanies] = useState([{ id: 'north', name: 'Northwind Trading', roleLabel: 'Owner' }, { id: 'south', name: 'Southwind Partners', roleLabel: 'Accountant · not set up yet' }]);
+  const [counts, setCounts] = useState({ refreshed: 0, changed: 0 });
+  // Books replaces the list on every page change and window focus: new objects, same ids.
+  useEffect(() => {
+    const refresh = () => { setCompanies(list => list.map(item => ({ ...item }))); setCounts(value => ({ ...value, refreshed: value.refreshed + 1 })); };
+    window.addEventListener('focus', refresh);
+    return () => window.removeEventListener('focus', refresh);
+  }, []);
+  const labels = { workspace: 'Company', chooseWorkspace: 'Choose a company', noWorkspaces: 'No companies yet', loadingWorkspaces: 'Loading companies…' };
   return <Stack gap={4}>
-    <WorkspaceProjectSwitcher workspaces={companies} workspaceId={company} onWorkspaceChange={setCompany} create={{ label: 'Create company', href: 'companies/new' }} labels={labels} linkComponent={RouterLink} />
+    <WorkspaceProjectSwitcher workspaces={companies} workspaceId={company} onWorkspaceChange={id => { setCounts(value => ({ ...value, changed: value.changed + 1 })); setCompany(id); }} create={{ label: 'Create company', href: 'companies/new' }} labels={labels} linkComponent={RouterLink} />
+    <Text as="p" role="status" aria-label="Company list refreshes">refreshed {counts.refreshed}, changed {counts.changed}</Text>
     <WorkspaceProjectSwitcher workspaces={null} workspaceId={null} onWorkspaceChange={noop} create={{ label: 'Create company', href: 'companies/new' }} labels={labels} linkComponent={RouterLink} />
     <WorkspaceProjectSwitcher workspaces={[]} workspaceId={null} onWorkspaceChange={noop} create={{ label: 'Create company', onSelect: noop }} labels={labels} />
   </Stack>;

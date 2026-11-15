@@ -169,7 +169,7 @@ export function SectionNav({ label, items, linkComponent: LinkComponent, onSelec
 export interface WorkspaceOption { id: string; name: string; roleLabel?: string; /** One or two characters shown in a decorative avatar beside the select. */ initials?: string }
 export interface ProjectOption { id: string; name: string }
 export type WorkspaceCreateAction = { label?: string } & ({ href: string; onSelect?: never } | { onSelect: () => void; href?: never });
-export interface WorkspaceProjectSwitcherLabels { workspace: string; project: string; noWorkspaces: string; loadingWorkspaces: string; loading: string; choose: string; noProjects: string }
+export interface WorkspaceProjectSwitcherLabels { workspace: string; project: string; noWorkspaces: string; loadingWorkspaces: string; /** Placeholder option while no workspace is selected; defaults to `workspace`. */ chooseWorkspace?: string; loading: string; choose: string; noProjects: string }
 /** With `projects`, both fields render; omit `projects` for workspace-only mode, where `create` adds a workspace. */
 export type WorkspaceProjectSwitcherProps = WorkspaceSwitcherBaseProps & ({
   /** `null` while the project list loads. */
@@ -221,7 +221,7 @@ export function WorkspaceProjectSwitcher({ workspaces, projects, workspaceId, pr
       <div className="t98-switcher__workspace">
       {workspace?.initials && <Avatar name={Array.from(workspace.initials).slice(0, 2).join(' ')} size="sm" role={undefined} aria-label={undefined} aria-hidden="true" className="t98-switcher__avatar" />}
       <Select id={`${id}-workspace`} value={workspace?.id ?? ''} disabled={disabled || workspacesLoading} aria-busy={workspacesLoading || undefined} aria-describedby={workspace?.roleLabel ? `${id}-role` : undefined} onChange={event => onWorkspaceChange(event.target.value)}>
-        {workspacesLoading ? <Option value="">{text.loadingWorkspaces}</Option> : !workspace && <Option value="" disabled>{text.workspace}</Option>}
+        {workspacesLoading ? <Option value="">{text.loadingWorkspaces}</Option> : !workspace && <Option value="" disabled>{text.chooseWorkspace ?? text.workspace}</Option>}
         {workspaces?.map(item => <Option key={item.id} value={item.id}>{item.name}</Option>)}
       </Select>
       </div>

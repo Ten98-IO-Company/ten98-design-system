@@ -251,6 +251,27 @@ test('workspace-only switcher: company field with role caption, loading, empty a
   await expect(switchers.nth(2).getByRole('button', { name: 'Create company', exact: true })).toBeEnabled();
 });
 
+test('workspace-only switcher keeps value and focus, changes no options and calls no onWorkspaceChange when the list is replaced with the same ids', async ({ page }) => {
+  const company = page.locator('.t98-card').filter({ has: page.getByRole('heading', { name: 'Company (workspace only)' }) }).locator('.t98-switcher').first().getByLabel('Company');
+  const counts = page.getByRole('status', { name: 'Company list refreshes' });
+  await company.selectOption('south');
+  await expect(counts).toHaveText('refreshed 0, changed 1');
+  await company.focus();
+  // Record any option, text or attribute change in the select while the list is replaced.
+  await company.evaluate(select => {
+    const record = window as Window & { selectMutations?: number };
+    record.selectMutations = 0;
+    new MutationObserver(changes => { record.selectMutations! += changes.length; }).observe(select, { childList: true, subtree: true, characterData: true, attributes: true });
+  });
+  for (let refresh = 0; refresh < 3; refresh++) await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+  await expect(counts).toHaveText('refreshed 3, changed 1');
+  await expect(company).toHaveValue('south');
+  await expect(company).toBeFocused();
+  await expect(company.locator('option')).toHaveText(['Northwind Trading', 'Southwind Partners']);
+  await expect(company).toHaveAccessibleDescription('Accountant · not set up yet');
+  expect(await page.evaluate(() => (window as Window & { selectMutations?: number }).selectMutations)).toBe(0);
+});
+
 test('right-to-left mirrors the layout without overflow', async ({ page }, info) => {
   const icon = () => page.getByRole('navigation', { name: 'Discover' }).getByRole('link', { name: 'Overview' }).evaluate(link => {
     const box = link.getBoundingClientRect(), svg = link.querySelector('svg')!.getBoundingClientRect(), text = link.querySelector('span')!.getBoundingClientRect();

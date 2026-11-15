@@ -100,6 +100,31 @@ test('WorkspaceProjectSwitcher with projects keeps hiding create without workspa
   assert.ok(!loading.includes('No projects yet'));
 });
 
+test('WorkspaceProjectSwitcher placeholder uses chooseWorkspace and falls back to the workspace label', () => {
+  assert.match(only({ workspaceId: null }), /<option value="" disabled=""[^>]*>Workspace<\/option>/);
+  assert.match(sw({ workspaceId: null, labels: { workspace: 'Company' } }), /<option value="" disabled=""[^>]*>Company<\/option>/);
+  const chosen = only({ workspaceId: null, labels: { workspace: 'Company', chooseWorkspace: 'Choose a company' } });
+  assert.match(chosen, /<option value="" disabled=""[^>]*>Choose a company<\/option>/);
+  assert.match(chosen, />Company<\/label>/);
+  assert.ok(!only().includes('Choose a company'));
+});
+
+test('WorkspaceProjectSwitcher shows no role caption or aria-describedby when the workspace is null or not in the list', () => {
+  for (const render of [only, sw]) for (const workspaceId of [null, 'gone']) {
+    const html = render({ workspaceId });
+    assert.ok(!html.includes('aria-describedby'), `${workspaceId}`);
+    assert.ok(!html.includes('t98-switcher__role'), `${workspaceId}`);
+    assert.ok(!html.includes('>Admin<'), `${workspaceId}`);
+  }
+  assert.match(only(), /aria-describedby=/);
+});
+
+test('WorkspaceProjectSwitcher renders the same markup for a new workspaces array with the same ids', () => {
+  const copy = people.map(item => ({ ...item }));
+  assert.equal(only({ workspaces: copy }), only());
+  assert.equal(sw({ workspaces: copy }), sw());
+});
+
 test('WorkspaceProjectSwitcher shows decorative workspace initials beside the select', () => {
   const html = sw();
   assert.match(html, /<span class="t98-avatar t98-avatar--sm t98-switcher__avatar" aria-hidden="true">AC<\/span>/);

@@ -30,7 +30,7 @@ const workspaceOnlyCode = tsx(['WorkspaceProjectSwitcher'], `<WorkspaceProjectSw
   workspaceId={companyId}
   onWorkspaceChange={id => openCompany(id)}
   create={{ label: 'Create company', href: '/companies/new' }}
-  labels={{ workspace: 'Company', noWorkspaces: 'No companies yet', loadingWorkspaces: 'Loading companies…' }}
+  labels={{ workspace: 'Company', chooseWorkspace: 'Choose a company', noWorkspaces: 'No companies yet', loadingWorkspaces: 'Loading companies…' }}
 />`, "const companies = [{ id: 'north', name: 'Northwind Trading', roleLabel: 'Owner' }];\nconst companyId = 'north';\nconst openCompany = (id: string) => undefined;");
 const searchCode = tsx(['SearchField'], `<SearchField
   label="Search pages"
@@ -147,7 +147,7 @@ export const shellEntries: ComponentEntry[] = [
       { name: 'onWorkspaceChange', type: '(id: string) => void', required: true, description: 'Called with the chosen id.' },
       { name: 'onProjectChange', type: '(id: string) => void', description: 'Called with the chosen id. Required with projects; not allowed without them.' },
       { name: 'create', type: '{ label? } & ({ href } | { onSelect })', description: 'Absent means the user cannot create. Creates a project ("New project in <workspace>"), or a workspace in workspace-only mode ("New workspace").' },
-      { name: 'labels', type: '{ workspace; project; noWorkspaces; loadingWorkspaces; loading; choose; noProjects }', description: 'Localised copy.' },
+      { name: 'labels', type: '{ workspace; project; noWorkspaces; loadingWorkspaces; chooseWorkspace?; loading; choose; noProjects }', description: 'Localised copy. chooseWorkspace is the placeholder while no workspace is selected; it defaults to workspace.' },
       { name: 'disabled', type: 'boolean', description: 'Disables every control.' },
       { name: 'linkComponent', type: 'NavLinkComponent', description: 'Router link used for create.href.' },
     ],
