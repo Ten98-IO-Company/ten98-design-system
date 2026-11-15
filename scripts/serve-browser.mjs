@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import { readdirSync } from 'node:fs';
 import { resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -7,6 +8,8 @@ import { build, preview } from 'vite';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const outDir = resolve(root, '.qa/browser-site');
 if (!outDir.startsWith(resolve(root) + sep)) throw new Error('Browser build must remain inside this workspace');
+// The fixtures import the built package (dist), so build it first: a stale dist would test older code.
+execFileSync(process.execPath, [resolve(root, 'scripts/build.mjs')], { cwd: root, stdio: 'inherit' });
 const fixtures = readdirSync(resolve(root, 'tests')).filter(file => file.endsWith('.html')).map(file => resolve(root, 'tests', file));
 await build({ configFile: false, root, logLevel: 'error', build: {
   // Exercise native light-dark()/color-scheme inheritance as shipped in the library CSS.

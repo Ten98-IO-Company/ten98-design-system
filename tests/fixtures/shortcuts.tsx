@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
   Button, Combobox, Dialog, Field, Heading, Inline, Input, KeyHint, SegmentedControl, ShortcutProvider, ShortcutScope, Stack, Text,
-  findReservedChords, useCommand, useCommandKeys, useShortcutCommands, type Keymap,
+  findReservedChords, useCommand, useCommandKeys, useShortcutCommands, type Keymap, type KeymapEntry,
 } from '@ten98/ui';
 import '@ten98/ui/styles.css';
 
@@ -12,16 +12,16 @@ document.documentElement.dataset.theme = params.get('theme') || 'light';
 if (params.get('dir') === 'rtl') document.documentElement.dir = 'rtl';
 
 const keymaps: Record<string, Keymap> = {
-  classic: { 'app.help': 'F1', 'voucher.payment': 'F5', 'voucher.receipt': 'F6', 'voucher.save': 'Ctrl+A', 'voucher.close': 'Escape', 'entry.next': 'Enter', 'entry.find': '/', 'dialog.confirm': 'Ctrl+Enter', 'voucher.copy': 'Alt+C', 'voucher.new': 'Ctrl+N' },
-  'web-safe': { 'app.help': 'Shift+F1', 'voucher.payment': 'Alt+F5', 'voucher.receipt': 'Alt+F6', 'voucher.save': 'Ctrl+Enter', 'voucher.close': 'Escape', 'entry.next': 'Enter', 'entry.find': '/', 'dialog.confirm': 'Ctrl+Enter', 'voucher.copy': 'Alt+C', 'voucher.new': 'Alt+N' },
+  classic: { 'app.help': 'F1', 'voucher.payment': 'F5', 'voucher.receipt': 'F6', 'voucher.save': 'Ctrl+A', 'voucher.close': 'Escape', 'entry.next': 'Enter', 'entry.find': '/', 'dialog.confirm': 'Ctrl+Enter', 'voucher.copy': 'Alt+C', 'voucher.new': 'Ctrl+N', 'menu.new': 'N', 'voucher.print': { default: 'Alt+P', apple: 'Ctrl+Shift+P' } },
+  'web-safe': { 'app.help': 'Shift+F1', 'voucher.payment': 'Alt+F5', 'voucher.receipt': 'Alt+F6', 'voucher.save': 'Ctrl+Enter', 'voucher.close': 'Escape', 'entry.next': 'Enter', 'entry.find': '/', 'dialog.confirm': 'Ctrl+Enter', 'voucher.copy': 'Alt+C', 'voucher.new': 'Alt+N', 'menu.new': 'N' },
 };
 
 declare global { interface Window { ran: string[] } }
 window.ran = [];
 const log = (id: string) => () => { window.ran.push(id); };
 
-function Command({ id, label, enabled, allowInTextInput }: { id: string; label: string; enabled?: boolean; allowInTextInput?: boolean }) {
-  useCommand({ id, label, group: 'Voucher', run: log(id), enabled, allowInTextInput });
+function Command({ id, label, enabled, allowInTextInput, matchPhysicalKey, keys }: { id: string; label: string; enabled?: boolean; allowInTextInput?: boolean; matchPhysicalKey?: boolean; keys?: KeymapEntry }) {
+  useCommand({ id, label, group: 'Voucher', run: log(id), enabled, allowInTextInput, matchPhysicalKey, keys });
   return null;
 }
 function SaveButton() {
@@ -60,7 +60,9 @@ function Screen() {
         <Command id="voucher.save" label="Save voucher" enabled={saveEnabled} />
         <Command id="voucher.close" label="Close voucher" />
         <Command id="voucher.copy" label="Copy voucher" />
-        <Inline gap={2}><SaveButton /><Text id="payment-hint">Payment <KeyHint command="voucher.payment" /></Text></Inline>
+        {/* Option+letter types characters on Apple platforms, so print uses another chord there; web-safe falls back to these defaults. */}
+        <Command id="voucher.print" label="Print voucher" keys={{ default: 'F8', apple: 'F9' }} />
+        <Inline gap={2}><SaveButton /><Text id="payment-hint">Payment <KeyHint command="voucher.payment" /></Text><Text id="print-hint">Print <KeyHint command="voucher.print" /></Text></Inline>
         <ShortcutScope name="Entry" activation="focus">
           <Command id="entry.next" label="Next field" />
           <Command id="entry.find" label="Find account" />
@@ -68,6 +70,11 @@ function Screen() {
           <Field label="Narration"><Input name="narration" /></Field>
           <Combobox label="City" options={['Dubai', 'Doha', 'Riyadh']} value={city} onValueChange={setCity} />
           <Button variant="secondary" onClick={log('entry.button')}>Entry button</Button>
+        </ShortcutScope>
+        {/* A menu's hot letter names a key position, so it also works on layouts that type another script there. */}
+        <ShortcutScope name="Actions" activation="focus">
+          <Command id="menu.new" label="New entry" matchPhysicalKey />
+          <Button variant="secondary" onClick={log('menu.button')}>New entry <KeyHint command="menu.new" /></Button>
         </ShortcutScope>
       </ShortcutScope>
       <Field label="Outside"><Input name="outside" /></Field>

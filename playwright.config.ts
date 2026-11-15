@@ -7,7 +7,8 @@ export default defineConfig({
   retries: 0,
   workers: 2,
   timeout: 60_000,
-  globalTimeout: 15 * 60_000,
+  // The whole suite runs on one CI worker in about 12 to 15 minutes; this leaves room for a slower runner.
+  globalTimeout: 25 * 60_000,
   expect: { timeout: 5_000 },
   reporter: [['list'], ['html', { open: 'never' }]],
   use: {
@@ -18,9 +19,9 @@ export default defineConfig({
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 1000 } } },
     { name: 'narrow-dark', use: { ...devices['Desktop Chrome'], viewport: { width: 320, height: 850 }, colorScheme: 'dark' } },
-    // Key reachability is engine-specific; the rest of the suite runs on Chromium.
+    // Key handling is engine-specific (key reachability, and focus hand-off in the entry grid); the rest runs on Chromium.
     { name: 'firefox', testMatch: /key-reachability\.spec\.ts/, use: { ...devices['Desktop Firefox'] } },
-    { name: 'webkit', testMatch: /key-reachability\.spec\.ts/, use: { ...devices['Desktop Safari'] } },
+    { name: 'webkit', testMatch: /(key-reachability|virtual-table|entry-grid(-rules|-voucher)?|shortcut-decline)\.spec\.ts/, use: { ...devices['Desktop Safari'] } },
   ],
   webServer: {
     command: 'node scripts/serve-browser.mjs',

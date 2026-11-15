@@ -34,11 +34,14 @@ function Screen() {
   const [submitted, setSubmitted] = useState('');
   const [limited, setLimited] = useState<ComboboxOption[]>([]);
   const [query, setQuery] = useState('');
+  const [hub, setHub] = useState('');
   const [rejected, setRejected] = useState('');
   return <Stack as="main" gap={6} id="combobox">
     <Heading level={1}>Combobox</Heading>
     <Combobox label="Airport" options={single.results} filter={false} loading={single.loading} loadError={single.loadError} onInputChange={single.search}
       value={airport} onValueChange={setAirport} valueLabel={airports.find(option => option.value === airport)?.label} allowCustom={false} name="airport" />
+    <Combobox label="Hub" options={airports} value={hub} onValueChange={setHub} autoHighlight />
+    <Text id="hub">{hub}</Text>
     <Stack as="form" gap={3} onSubmit={event => { event.preventDefault(); setSubmitted(new FormData(event.currentTarget as HTMLFormElement).getAll('to').join(',')); }}>
       <MultiCombobox label="Destinations" options={airports} values={values} onValuesChange={setValues} name="to" required />
       <Button type="submit">Save destinations</Button>
