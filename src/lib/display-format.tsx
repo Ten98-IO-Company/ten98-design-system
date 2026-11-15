@@ -3,7 +3,7 @@
 /* Shared display formatting (#158): one formatter per viewer locale and time zone for numbers, percentages, counts,
  * exact money and dates, with one marker for a missing value. Missing (null, undefined, NaN) is never shown as 0. */
 import { createContext, useContext, useMemo, type ReactNode } from 'react';
-import { createDateFormatter, type DateFormatter, type DateFormatterOptions } from './date-format.js';
+import { createDateFormatter, type DateFormatter, type DateFormatterOptions, type DateStyle } from './date-format.js';
 import { formatFileSize } from './format.js';
 
 type Num = number | null | undefined;
@@ -28,16 +28,23 @@ export interface DisplayFormatter {
   /** A size in bytes, 1024 per step: 1536 gives "1.5 KB". Units are B, KB, MB, GB and TB in every locale; a negative
    * size is missing. */
   fileSize: (bytes: Num) => string;
+  /** The day in the `dateStyle`, for example "Jan 4, 2026" or "04 Jan 26"; see {@link DateFormatter.date}. */
   date: (value: DateInput) => string;
+  /** The day and time; see {@link DateFormatter.dateTime} for the ", " and 24-hour convention. */
   dateTime: (value: DateInput) => string;
   relative: (value: DateInput, now?: Date) => string;
+  /** Two dates joined by `rangeConnector`, for example "1-Jan-26 to 31-Dec-26". A missing side shows the missing word;
+   * both missing shows it once. */
+  dateRange: (start: DateInput, end: DateInput) => string;
 }
 
 const decimal = /^-?\d+(\.\d+)?$/;
 const absent = (value: unknown): value is null | undefined => value === null || value === undefined || (typeof value === 'number' && Number.isNaN(value));
 
-export function createDisplayFormatter({ locale, timeZone, missing = 'Unavailable' }: DisplayFormatOptions = {}): DisplayFormatter {
-  const dates: DateFormatter = createDateFormatter({ locale, timeZone });
+/** Formatters for one viewer. `dateLocale`, `dateStyle` and `rangeConnector` change only dates; numbers, money, percentages,
+ * counts and file sizes always follow `locale`. */
+export function createDisplayFormatter({ locale, timeZone, dateLocale, dateStyle, rangeConnector = '–', missing = 'Unavailable' }: DisplayFormatOptions = {}): DisplayFormatter {
+  const dates: DateFormatter = createDateFormatter({ locale, timeZone, dateLocale, dateStyle, rangeConnector });
   const grouped = new Map<number | undefined, Intl.NumberFormat>();
   const numberFormat = (digits?: number) => {
     if (!grouped.has(digits)) grouped.set(digits, new Intl.NumberFormat(locale, digits === undefined ? undefined : { maximumFractionDigits: digits }));
@@ -75,15 +82,33 @@ export function createDisplayFormatter({ locale, timeZone, missing = 'Unavailabl
     date: orMissing(dates.date),
     dateTime: orMissing(dates.dateTime),
     relative: (value, now) => absent(value) ? missing : dates.relative(value, now),
+    dateRange: (start, end) => absent(start) && absent(end) ? missing
+      : `${absent(start) ? missing : dates.date(start)} ${rangeConnector} ${absent(end) ? missing : dates.date(end)}`,
   };
 }
 
 // Without a provider: English and UTC, the same deterministic output on the server and in every browser.
 const fallback = createDisplayFormatter({ locale: 'en', timeZone: 'UTC' });
 const DisplayFormatContext = createContext<DisplayFormatter>(fallback);
-/** Supplies the viewer's locale, time zone and missing-value marker to every flow's default dates and to useDisplayFormat. */
-export function DisplayFormatProvider({ locale, timeZone, missing, children }: DisplayFormatOptions & { children: ReactNode }) {
-  const formatter = useMemo(() => createDisplayFormatter({ locale, timeZone, missing }), [locale, timeZone, missing]);
-  return <DisplayFormatContext.Provider value={formatter}>{children}</DisplayFormatContext.Provider>;
+// The nearest provider's options, so a nested provider overrides only what it sets. Outside any provider nothing is set,
+// so a root provider keeps the browser defaults for whatever it leaves out, as before.
+const DisplayFormatOptionsContext = createContext<DisplayFormatOptions>({});
+const styleKey = (style: DateStyle | undefined) => typeof style === 'object' ? [style.order, style.day, style.month, style.year, style.separator].join('|') : style;
+/** Supplies the viewer's locale, time zone, date style and missing-value marker to every flow's default dates and to
+ * useDisplayFormat. A nested provider inherits each option it leaves out from the nearest provider above it. Options may
+ * change at run time (per company or per user); an object `dateStyle` is compared by value, so it need not be memoised. */
+export function DisplayFormatProvider({ locale, timeZone, dateLocale, dateStyle, rangeConnector, missing, children }: DisplayFormatOptions & { children: ReactNode }) {
+  const parent = useContext(DisplayFormatOptionsContext);
+  const merged: DisplayFormatOptions = {
+    locale: locale ?? parent.locale, timeZone: timeZone ?? parent.timeZone, dateLocale: dateLocale ?? parent.dateLocale,
+    dateStyle: dateStyle ?? parent.dateStyle, rangeConnector: rangeConnector ?? parent.rangeConnector, missing: missing ?? parent.missing,
+  };
+  // Every option by value, so an equal but new dateStyle object does not rebuild the formatter, and any change does.
+  const key = JSON.stringify([merged.locale, merged.timeZone, merged.dateLocale, styleKey(merged.dateStyle), merged.rangeConnector, merged.missing]);
+  const options = useMemo(() => merged, [key]);
+  const formatter = useMemo(() => createDisplayFormatter(options), [options]);
+  return <DisplayFormatOptionsContext.Provider value={options}>
+    <DisplayFormatContext.Provider value={formatter}>{children}</DisplayFormatContext.Provider>
+  </DisplayFormatOptionsContext.Provider>;
 }
 export const useDisplayFormat = () => useContext(DisplayFormatContext);
