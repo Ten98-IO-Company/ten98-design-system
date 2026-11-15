@@ -87,6 +87,18 @@ test('commands resolve by scope, keymap and override, and leave typing and widge
   expect(errors).toEqual([]);
 });
 
+test('a focused native select keeps its type-to-select letters; a hot letter still runs elsewhere in its scope', async ({ page }) => {
+  await page.goto('/tests/shortcuts.html');
+  const status = page.getByRole('combobox', { name: 'Status' });
+  await status.focus();
+  await page.keyboard.press('e');
+  await expect(status).toHaveValue('escalated');
+  expect(await ran(page)).toEqual([]);
+  await page.getByRole('button', { name: 'Entry button' }).focus();
+  await page.keyboard.press('e');
+  expect(await ran(page)).toEqual(['entry.resolve']);
+});
+
 test('key hints use Apple symbols, read left to right in RTL and stay inside narrow screens', async ({ page }) => {
   await page.goto('/tests/shortcuts.html?dir=rtl&platform=apple');
   const hint = page.getByRole('button', { name: /^Save/ }).locator('.t98-key-hint');

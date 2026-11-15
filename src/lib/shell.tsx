@@ -169,16 +169,20 @@ export function SectionNav({ label, items, linkComponent: LinkComponent, onSelec
 export interface WorkspaceOption { id: string; name: string; roleLabel?: string; /** One or two characters shown in a decorative avatar beside the select. */ initials?: string }
 export interface ProjectOption { id: string; name: string }
 export type WorkspaceCreateAction = { label?: string } & ({ href: string; onSelect?: never } | { onSelect: () => void; href?: never });
-export interface WorkspaceProjectSwitcherLabels { workspace: string; project: string; noWorkspaces: string; loading: string; choose: string; noProjects: string }
-export interface WorkspaceProjectSwitcherProps {
-  workspaces: WorkspaceOption[];
+export interface WorkspaceProjectSwitcherLabels { workspace: string; project: string; noWorkspaces: string; loadingWorkspaces: string; /** Placeholder option while no workspace is selected; defaults to `workspace`. */ chooseWorkspace?: string; loading: string; choose: string; noProjects: string }
+/** With `projects`, both fields render; omit `projects` for workspace-only mode, where `create` adds a workspace. */
+export type WorkspaceProjectSwitcherProps = WorkspaceSwitcherBaseProps & ({
   /** `null` while the project list loads. */
   projects: ProjectOption[] | null;
-  workspaceId: string | null;
   projectId: string | null;
-  onWorkspaceChange: (id: string) => void;
   onProjectChange: (id: string) => void;
-  /** Present only when the user may create projects; the application decides. */
+} | { projects?: undefined; projectId?: never; onProjectChange?: never });
+interface WorkspaceSwitcherBaseProps {
+  /** `null` while the workspace list loads. */
+  workspaces: WorkspaceOption[] | null;
+  workspaceId: string | null;
+  onWorkspaceChange: (id: string) => void;
+  /** Present only when the user may create projects (or workspaces, in workspace-only mode); the application decides. */
   create?: WorkspaceCreateAction;
   labels?: Partial<WorkspaceProjectSwitcherLabels>;
   disabled?: boolean;
@@ -186,46 +190,53 @@ export interface WorkspaceProjectSwitcherProps {
   linkComponent?: NavLinkComponent;
 }
 
-const defaultLabels: WorkspaceProjectSwitcherLabels = { workspace: 'Workspace', project: 'Project', noWorkspaces: 'No workspaces available', loading: 'Loading projects…', choose: 'Choose a project', noProjects: 'No projects yet' };
+const defaultLabels: WorkspaceProjectSwitcherLabels = { workspace: 'Workspace', project: 'Project', noWorkspaces: 'No workspaces available', loadingWorkspaces: 'Loading workspaces…', loading: 'Loading projects…', choose: 'Choose a project', noProjects: 'No projects yet' };
 
-/** Workspace and project selection for the signed-in user (User > Workspace > Project). */
-export function WorkspaceProjectSwitcher({ workspaces, projects, workspaceId, projectId, onWorkspaceChange, onProjectChange, create, labels, disabled = false, linkComponent: LinkComponent }: WorkspaceProjectSwitcherProps) {
+/** Workspace and project selection for the signed-in user (User > Workspace > Project), or workspace only when `projects` is omitted. */
+export function WorkspaceProjectSwitcher({ workspaces, projects, workspaceId, projectId = null, onWorkspaceChange, onProjectChange, create, labels, disabled = false, linkComponent: LinkComponent }: WorkspaceProjectSwitcherProps) {
   const id = useId();
   const text = { ...defaultLabels, ...labels };
-  if (workspaces.length === 0) return <p className="t98-switcher t98-switcher__empty">{text.noWorkspaces}</p>;
-  const workspace = workspaces.find(item => item.id === workspaceId);
-  const loading = projects === null;
-  const empty = projects?.length === 0;
+  const workspaceOnly = projects === undefined;
+  const workspacesLoading = workspaces === null;
+  const workspace = workspaces?.find(item => item.id === workspaceId);
+  const loading = projects === null || workspacesLoading;
+  const empty = !loading && projects?.length === 0;
   const known = projects?.some(item => item.id === projectId) ?? false;
-  const createLabel = create?.label ?? 'New project';
-  const createName = `${createLabel} in ${workspace?.name ?? text.workspace}`;
+  const createLabel = create?.label ?? (workspaceOnly ? 'New workspace' : 'New project');
+  const createName = workspaceOnly ? undefined : `${createLabel} in ${workspace?.name ?? text.workspace}`;
   const createContent = <><Icon name="plus" size={17} aria-hidden="true" /><span>{createLabel}</span></>;
+  const createControl = create && (create.href != null
+    ? (LinkComponent
+      ? <LinkComponent href={create.href} className="t98-switcher__create" aria-label={createName}>{createContent}</LinkComponent>
+      : <a href={create.href} className="t98-switcher__create" aria-label={createName}>{createContent}</a>)
+    : <button type="button" className="t98-switcher__create" aria-label={createName} disabled={disabled} onClick={create.onSelect}>{createContent}</button>);
+  if (workspaces?.length === 0) {
+    // A workspace can be created without one, so workspace-only mode keeps its create action; a project needs a workspace.
+    if (!workspaceOnly || !createControl) return <p className="t98-switcher t98-switcher__empty">{text.noWorkspaces}</p>;
+    return <div className="t98-switcher"><p className="t98-switcher__empty">{text.noWorkspaces}</p>{createControl}</div>;
+  }
   return <div className="t98-switcher">
     <div className="t98-switcher__field">
       <label className="t98-switcher__label" htmlFor={`${id}-workspace`}>{text.workspace}</label>
       <div className="t98-switcher__workspace">
       {workspace?.initials && <Avatar name={Array.from(workspace.initials).slice(0, 2).join(' ')} size="sm" role={undefined} aria-label={undefined} aria-hidden="true" className="t98-switcher__avatar" />}
-      <Select id={`${id}-workspace`} value={workspace?.id ?? ''} disabled={disabled} aria-describedby={workspace?.roleLabel ? `${id}-role` : undefined} onChange={event => onWorkspaceChange(event.target.value)}>
-        {!workspace && <Option value="" disabled>{text.workspace}</Option>}
-        {workspaces.map(item => <Option key={item.id} value={item.id}>{item.name}</Option>)}
+      <Select id={`${id}-workspace`} value={workspace?.id ?? ''} disabled={disabled || workspacesLoading} aria-busy={workspacesLoading || undefined} aria-describedby={workspace?.roleLabel ? `${id}-role` : undefined} onChange={event => onWorkspaceChange(event.target.value)}>
+        {workspacesLoading ? <Option value="">{text.loadingWorkspaces}</Option> : !workspace && <Option value="" disabled>{text.chooseWorkspace ?? text.workspace}</Option>}
+        {workspaces?.map(item => <Option key={item.id} value={item.id}>{item.name}</Option>)}
       </Select>
       </div>
       {workspace?.roleLabel && <p id={`${id}-role`} className="t98-switcher__role">{workspace.roleLabel}</p>}
     </div>
-    <div className="t98-switcher__field">
+    {!workspaceOnly && <div className="t98-switcher__field">
       <label className="t98-switcher__label" htmlFor={`${id}-project`}>{text.project}</label>
-      <Select id={`${id}-project`} value={known ? projectId ?? '' : ''} disabled={disabled || loading || empty} aria-busy={loading || undefined} onChange={event => onProjectChange(event.target.value)}>
+      <Select id={`${id}-project`} value={known ? projectId ?? '' : ''} disabled={disabled || loading || empty} aria-busy={loading || undefined} onChange={event => onProjectChange?.(event.target.value)}>
         {loading && <Option value="">{text.loading}</Option>}
         {empty && <Option value="">{text.noProjects}</Option>}
         {!loading && !empty && !known && <Option value="" disabled>{text.choose}</Option>}
         {projects?.map(item => <Option key={item.id} value={item.id}>{item.name}</Option>)}
       </Select>
-    </div>
-    {create && (create.href != null
-      ? (LinkComponent
-        ? <LinkComponent href={create.href} className="t98-switcher__create" aria-label={createName}>{createContent}</LinkComponent>
-        : <a href={create.href} className="t98-switcher__create" aria-label={createName}>{createContent}</a>)
-      : <button type="button" className="t98-switcher__create" aria-label={createName} disabled={disabled} onClick={create.onSelect}>{createContent}</button>)}
+    </div>}
+    {createControl}
   </div>;
 }
 

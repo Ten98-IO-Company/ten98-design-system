@@ -25,6 +25,13 @@ const switcherCode = tsx(['WorkspaceProjectSwitcher'], `<WorkspaceProjectSwitche
   onProjectChange={id => setProject(id)}
   create={{ onSelect: () => openCreateProject() }}
 />`, 'const setWorkspace = (id: string) => undefined;\nconst setProject = (id: string) => undefined;\nconst openCreateProject = () => undefined;');
+const workspaceOnlyCode = tsx(['WorkspaceProjectSwitcher'], `<WorkspaceProjectSwitcher
+  workspaces={companies}
+  workspaceId={companyId}
+  onWorkspaceChange={id => openCompany(id)}
+  create={{ label: 'Create company', href: '/companies/new' }}
+  labels={{ workspace: 'Company', chooseWorkspace: 'Choose a company', noWorkspaces: 'No companies yet', loadingWorkspaces: 'Loading companies…' }}
+/>`, "const companies = [{ id: 'north', name: 'Northwind Trading', roleLabel: 'Owner' }];\nconst companyId = 'north';\nconst openCompany = (id: string) => undefined;");
 const searchCode = tsx(['SearchField'], `<SearchField
   label="Search pages"
   hideLabel
@@ -130,20 +137,22 @@ export const shellEntries: ComponentEntry[] = [
   },
   {
     name: 'WorkspaceProjectSwitcher', category: 'Navigation',
-    description: 'Workspace and project selectors with loading, empty and create states.',
-    usage: `Shows the signed-in user's current workspace and project (User > Workspace > Project). Pass create only when the user may create projects. ${linkContract} ${presentation}`,
+    description: 'Workspace and project selectors, or a workspace selector alone, with loading, empty and create states.',
+    usage: `Shows the signed-in user's current workspace and project (User > Workspace > Project). Omit projects for workspace-only mode, where a workspace has no projects (for example a company in Books): only the workspace field renders and create adds a workspace. Pass create only when the user may create; the application decides. ${linkContract} ${presentation}`,
     props: [
-      { name: 'workspaces', type: '{ id; name; roleLabel?; initials? }[]', required: true, description: 'Empty renders text instead of a disabled select. initials (one or two characters) shows a decorative avatar beside the select.' },
-      { name: 'projects', type: '{ id; name }[] | null', required: true, description: 'null means loading.' },
-      { name: 'workspaceId / projectId', type: 'string | null', required: true, description: 'Selected ids.' },
-      { name: 'onWorkspaceChange / onProjectChange', type: '(id: string) => void', required: true, description: 'Called with the chosen id.' },
-      { name: 'create', type: '{ label? } & ({ href } | { onSelect })', description: 'Absent means the user cannot create projects.' },
-      { name: 'labels', type: '{ workspace; project; noWorkspaces; loading; choose; noProjects }', description: 'Localised copy.' },
+      { name: 'workspaces', type: '{ id; name; roleLabel?; initials? }[] | null', required: true, description: 'null means loading. Empty renders text instead of a disabled select (plus create in workspace-only mode). roleLabel is the caption under the field. initials (one or two characters) shows a decorative avatar beside the select.' },
+      { name: 'projects', type: '{ id; name }[] | null', description: 'null means loading. Omit for workspace-only mode.' },
+      { name: 'workspaceId', type: 'string | null', required: true, description: 'Selected workspace id.' },
+      { name: 'projectId', type: 'string | null', description: 'Selected project id. Required with projects; not allowed without them.' },
+      { name: 'onWorkspaceChange', type: '(id: string) => void', required: true, description: 'Called with the chosen id.' },
+      { name: 'onProjectChange', type: '(id: string) => void', description: 'Called with the chosen id. Required with projects; not allowed without them.' },
+      { name: 'create', type: '{ label? } & ({ href } | { onSelect })', description: 'Absent means the user cannot create. Creates a project ("New project in <workspace>"), or a workspace in workspace-only mode ("New workspace").' },
+      { name: 'labels', type: '{ workspace; project; noWorkspaces; loadingWorkspaces; chooseWorkspace?; loading; choose; noProjects }', description: 'Localised copy. chooseWorkspace is the placeholder while no workspace is selected; it defaults to workspace.' },
       { name: 'disabled', type: 'boolean', description: 'Disables every control.' },
       { name: 'linkComponent', type: 'NavLinkComponent', description: 'Router link used for create.href.' },
     ],
     tokens: ['--t98-control-touch', '--t98-muted', '--t98-control-border', '--t98-focus'],
-    accessibility: ['The role caption is connected to the workspace select with aria-describedby.', 'Loading sets aria-busy on the project select.', 'The create control’s accessible name includes the workspace name.'],
+    accessibility: ['The role caption is connected to the workspace select with aria-describedby.', 'Loading sets aria-busy on the select that is waiting for its list.', 'With projects, the create control’s accessible name includes the workspace name.'],
     related: ['SidebarNav', 'Select'],
     example: switcherCode,
     states: [{
@@ -157,6 +166,17 @@ export const shellEntries: ComponentEntry[] = [
       name: 'No projects', description: 'The project list is empty.',
       code: switcher(`<WorkspaceProjectSwitcher workspaces={[{ id: 'acme', name: 'Acme' }]} projects={[]} workspaceId="acme" projectId={null} onWorkspaceChange={noop} onProjectChange={noop} />`),
       preview: <WorkspaceProjectSwitcher workspaces={[{ id: 'acme', name: 'Acme' }]} projects={[]} workspaceId="acme" projectId={null} onWorkspaceChange={noop} onProjectChange={noop} />,
+    }, {
+      name: 'Workspace only', description: 'No projects: one company field with its role caption and a create action.', code: workspaceOnlyCode,
+      preview: <WorkspaceProjectSwitcher workspaces={[{ id: 'north', name: 'Northwind Trading', roleLabel: 'Owner' }, { id: 'south', name: 'Southwind Partners', roleLabel: 'Accountant' }]} workspaceId="north" onWorkspaceChange={noop} create={{ label: 'Create company', onSelect: noop }} labels={{ workspace: 'Company' }} />,
+    }, {
+      name: 'Workspace only, loading', description: 'The workspace list is loading.',
+      code: switcher(`<WorkspaceProjectSwitcher workspaces={null} workspaceId={null} onWorkspaceChange={noop} labels={{ workspace: 'Company', loadingWorkspaces: 'Loading companies…' }} />`),
+      preview: <WorkspaceProjectSwitcher workspaces={null} workspaceId={null} onWorkspaceChange={noop} labels={{ workspace: 'Company', loadingWorkspaces: 'Loading companies…' }} />,
+    }, {
+      name: 'Workspace only, empty', description: 'No workspaces yet; the create action stays.',
+      code: switcher(`<WorkspaceProjectSwitcher workspaces={[]} workspaceId={null} onWorkspaceChange={noop} create={{ label: 'Create company', onSelect: noop }} labels={{ noWorkspaces: 'No companies yet' }} />`),
+      preview: <WorkspaceProjectSwitcher workspaces={[]} workspaceId={null} onWorkspaceChange={noop} create={{ label: 'Create company', onSelect: noop }} labels={{ noWorkspaces: 'No companies yet' }} />,
     }],
   },
   {
