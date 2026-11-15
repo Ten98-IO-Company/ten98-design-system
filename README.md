@@ -15,7 +15,7 @@ One consistent, accessible interface for every Ten98 app.
 
 ## Get started
 
-- Install a release archive from [GitHub Releases](https://github.com/Ten98-IO-Company/ten98-design-system/releases) after checking its `.sha256` file: `npm install ./vendor/ten98-ui-<version>.tgz`.
+- Install a release archive from [GitHub Releases](https://github.com/Ten98-IO-Company/ten98-design-system/releases) after checking its `.sha256` file: `pnpm add ./vendor/ten98-ui-<version>.tgz`.
 - Import `@ten98/ui/styles.css` once and components from `@ten98/ui`. Existing Campaign and Discover screens use `@ten98/ui/app` with `app-tokens.css`, `app.css` and `product.css`.
 - Set `data-theme` (`light`, `dark` or `system`) and `data-density` (`comfortable` or `compact`) on the app root.
 - Peer dependencies: React and React DOM `^18.3.0 || ^19.0.0`. Props are documented in the TypeScript declarations in `dist/`.

@@ -26,19 +26,22 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Set up pnpm from packageManager
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+
       - name: Set up Node 24
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '24.22.1'
-          cache: npm
-          cache-dependency-path: package-lock.json
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
 
       - name: Install locked dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
         timeout-minutes: 5
 
       - name: Check architecture, types, examples and native tests
-        run: npm run check
+        run: pnpm run check
         timeout-minutes: 8
 
       - name: Typecheck browser regressions
@@ -49,11 +52,11 @@ jobs:
           tests/browser/charts.spec.ts tests/browser/metric-tabs.spec.ts tests/browser/legacy-theme.spec.ts tests/browser/suggestion-queue.spec.ts tests/browser/sheet.spec.ts
         timeout-minutes: 2
       - name: Install Chromium, Firefox, WebKit and Linux dependencies
-        run: npx --no-install playwright install --with-deps chromium firefox webkit
+        run: pnpm exec playwright install --with-deps chromium firefox webkit
         timeout-minutes: 10
 
       - name: Run the full browser suite
-        run: npm run test:browser -- --workers=1 --retries=0 --max-failures=2
+        run: pnpm run test:browser --workers=1 --retries=0 --max-failures=2
         timeout-minutes: 28
 
       - name: Retain browser diagnostics
