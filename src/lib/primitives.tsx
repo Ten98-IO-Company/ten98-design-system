@@ -299,7 +299,9 @@ export interface DialogProps { open: boolean; onOpenChange: (open: boolean) => v
    * targets fall back to the browser's choice, the first focusable element (the close button), which is also the default.
    * Whatever is focused, one keypress never both opens and answers the dialog: an Enter or Space still held from before it
    * opened, and every auto-repeat, is ignored until the key is released, even when an app's own keydown handler opened it
-   * without cancelling the key. Space typed in a text field and Enter typed in a multi-line field are left alone.
+   * without cancelling the key. Space typed in a text field and Enter typed in a multi-line field are left alone. A keyup
+   * can go missing, so a held key whose next keydown comes more than 1 s later without the repeat flag counts as a new
+   * press and is accepted; keydowns flagged as repeats stay blocked however late they come.
    */
   initialFocus?: DialogInitialFocus }
 export type DialogInitialFocus = 'first-field' | 'primary' | 'close' | RefObject<HTMLElement | null>;
@@ -364,34 +366,41 @@ export function Dialog({ open, onOpenChange, title, description, children, foote
     const atOpen = heldPresses();
     let spaceAccepted = false;
     let enterAccepted = false;
-    let blockClick = false;
+    // The element whose keyboard click the last cancelled keypress or keyup would produce. The browser dispatches that
+    // click while handling the cancelled event, so it lasts only until the next key event: never a timer, which a busy
+    // page can delay past the next, deliberate press.
+    let blockedClick: EventTarget | null = null;
     const blockKeyboardClick = (event: KeyboardEvent) => {
       event.preventDefault();
-      blockClick = true;
-      setTimeout(() => { blockClick = false; });
+      blockedClick = event.target;
     };
     const typed = (event: KeyboardEvent) => event.key === ' ' ? isTextEntry(event.target) : isMultilineEntry(event.target);
     const keydown = (event: KeyboardEvent) => {
+      blockedClick = null;
       if (!isActivationKey(event.key) || typed(event)) return;
       const accepted = !event.repeat && !stillHeld(atOpen, event.key);
-      if (!accepted) event.preventDefault();
+      // A rejected key stops here, in the capture phase, so no handler inside the dialog acts on it even if it ignores
+      // defaultPrevented. Only the held or repeated press is rejected; every other key reaches the dialog's content.
+      if (!accepted) { event.preventDefault(); event.stopPropagation(); }
       if (event.key === 'Enter') enterAccepted = accepted;
       else if (accepted) spaceAccepted = true;
     };
     const keypress = (event: KeyboardEvent) => {
+      blockedClick = null;
       if (event.key !== 'Enter' || typed(event)) return;
       if (!enterAccepted) blockKeyboardClick(event);
       enterAccepted = false;
     };
     const keyup = (event: KeyboardEvent) => {
+      blockedClick = null;
       if (event.key !== ' ') return;
       if (!spaceAccepted) blockKeyboardClick(event);
       spaceAccepted = false;
     };
     const click = (event: globalThis.MouseEvent) => {
-      // A keyboard click has detail 0; a pointer click is never blocked.
-      if (!blockClick || event.detail !== 0) return;
-      blockClick = false;
+      // A keyboard click has detail 0; a pointer click, or a click on another element, is never blocked.
+      if (blockedClick === null || event.detail !== 0 || event.target !== blockedClick) return;
+      blockedClick = null;
       event.preventDefault();
       event.stopPropagation();
     };

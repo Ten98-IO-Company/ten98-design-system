@@ -13,8 +13,8 @@ document.documentElement.dataset.theme = new URLSearchParams(location.search).ge
 const calls: string[] = [];
 (window as unknown as { __calls: string[] }).__calls = calls;
 const log = (name: string, values: unknown) => { calls.push(`${name}:${JSON.stringify(values)}`); };
-// Test switches: ?slowRole holds a role change pending; ?unconfirmed=blank reports '' (nothing unconfirmed) after a resend;
-// ?revokeUnconfirmed revokes i1 but reports the outcome as unconfirmed.
+// Test switches: ?slowInvite holds an invitation pending; ?rejectRole rejects every role change; ?promote also offers Owner;
+// ?unconfirmed=blank reports '' (nothing unconfirmed) after a resend; ?revokeUnconfirmed revokes i1 but reports the outcome as unconfirmed.
 const params = new URLSearchParams(location.search);
 
 const longName = 'production-deployment-pipeline-credentials-for-the-regional-data-platform-team';
@@ -23,7 +23,7 @@ const keys: ApiKey[] = [
   { id: 'k2', name: 'Retired key', prefix: 't98_zz99yy', scopes: ['read'], createdAt: '2026-01-05', revoked: true },
 ];
 const roles = [{ value: 'owner', label: 'Owner' }, { value: 'admin', label: 'Admin' }, { value: 'member', label: 'Member' }];
-const members: TeamMember[] = [
+const initialMembers: TeamMember[] = [
   { id: 'u1', name: 'Amal Haddad', email: 'amal.haddad@example.com', role: 'owner', twoFactor: true },
   { id: 'u2', name: 'Sam Lee', email: 'sam.lee.with.a.deliberately.long.address@subdomain.example.com', role: 'member', twoFactor: false },
   { id: 'u3', name: 'Priya Nair', email: 'priya@example.com', role: 'admin' },
@@ -42,6 +42,8 @@ function Screen() {
   const [link, setLink] = useState<{ id: string; url: string }>();
   const [unconfirmed, setUnconfirmed] = useState<string>();
   const [firstStatus, setFirstStatus] = useState('pending');
+  const [members, setMembers] = useState(initialMembers);
+  const changeRole = ({ id, role }: { id: string; role: string }) => setMembers(list => list.map(member => member.id === id ? { ...member, role } : member));
   return <SettingsLayout title="Settings" scope="Acme workspace" items={items} current="team">
     <Stack gap={8}>
       <ApiKeysFlow keys={keys} scopes={[{ value: 'read', label: 'Read' }, { value: 'write', label: 'Write', description: 'Create and change records.' }]}
@@ -49,10 +51,14 @@ function Screen() {
         revealedSecret={secret} onDismissSecret={() => setSecret(undefined)}
         onCreate={values => { log('create', values); setSecret({ id: 'k9', token: 't98_live_0123456789abcdef0123456789abcdef' }); }}
         onRevoke={values => log('revoke', values)} />
-      <TeamFlow currentUserId="u1" members={members} roles={roles} assignableRoles={member => member.id === 'u1' ? [] : ['admin', 'member']}
-        onRoleChange={values => { log('role', values); return params.has('slowRole') ? new Promise<void>(resolve => setTimeout(resolve, 3000)) : undefined; }} onRemove={values => log('remove', values)}
+      <TeamFlow currentUserId="u1" members={members} roles={roles} assignableRoles={member => member.id === 'u1' ? [] : params.has('promote') ? ['owner', 'admin', 'member'] : ['admin', 'member']}
+        onRoleChange={values => {
+          log('role', values);
+          if (params.has('rejectRole')) return Promise.reject(new Error('Only owners can make admins.'));
+          changeRole(values);
+        }} onRemove={values => log('remove', values)}
         invitations={[{ id: 'i1', email: 'new.person@example.com', role: 'member', expiresAt: '2026-11-01', status: firstStatus }, { id: 'i4', email: 'second@example.com', role: 'member', expiresAt: '2026-11-03', status: 'pending' }, { id: 'i2', email: 'old@example.com', role: 'admin', expiresAt: '2026-08-01', status: 'expired' }]}
-        onInvite={values => { log('invite', values); setLink({ id: 'i3', url: 'https://app.example.com/invitations/accept?token=0123456789abcdef0123456789abcdef' }); }}
+        onInvite={values => { log('invite', values); if (params.has('slowInvite')) return new Promise<void>(resolve => setTimeout(resolve, 3000)); setLink({ id: 'i3', url: 'https://app.example.com/invitations/accept?token=0123456789abcdef0123456789abcdef' }); }}
         onRevokeInvitation={values => { log('revokeInvitation', values); if (params.has('revokeUnconfirmed')) { setFirstStatus('revoked'); setUnconfirmed('Result not confirmed.'); } }} unconfirmed={unconfirmed} formatRelative={createDateFormatter({ locale: 'en', timeZone: 'UTC' }).relative}
         // The first resend has an unknown outcome, so the flow must offer only its exact retry; the retry then succeeds.
         onResendInvitation={values => { log('resend', values); setUnconfirmed(params.get('unconfirmed') === 'blank' ? '' : unconfirmed ? undefined : 'Result not confirmed. Retry to make sure it went through.'); }}

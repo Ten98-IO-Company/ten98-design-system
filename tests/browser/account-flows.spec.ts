@@ -232,6 +232,29 @@ test('turning off two-factor can require an authenticator or recovery code as we
   await expect(log).toHaveText('disable:synthetic-password:123456');
 });
 
+test('issuing new recovery codes asks for an authenticator or recovery code as well as the password by default', async ({ page }, info) => {
+  await open(page, '2fa-on', 'light', widthOf(info.project.name));
+  const log = page.locator('#log');
+  await page.getByLabel('Current password').fill('synthetic-password');
+  await page.getByRole('button', { name: 'Regenerate recovery codes' }).click();
+  await expect(page.getByText('Enter a code from your authenticator app or a recovery code.')).toBeVisible();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await page.getByLabel('Authenticator or recovery code').fill(' 654321 ');
+  await page.getByRole('button', { name: 'Regenerate recovery codes' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Regenerate recovery codes' }).click();
+  await expect(log).toHaveText('regenerate:synthetic-password:654321');
+});
+
+test('an app whose server cannot check a code can opt out of the regenerate code', async ({ page }, info) => {
+  await open(page, '2fa-on-no-regenerate-code', 'light', widthOf(info.project.name));
+  const log = page.locator('#log');
+  await expect(page.getByLabel('Authenticator or recovery code')).toHaveCount(0);
+  await page.getByLabel('Current password').fill('synthetic-password');
+  await page.getByRole('button', { name: 'Regenerate recovery codes' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Regenerate recovery codes' }).click();
+  await expect(log).toHaveText('regenerate:synthetic-password');
+});
+
 test('the profile flow reports its draft for a preview, stages restored defaults as unsaved, and reloads saved values (#86)', async ({ page }, info) => {
   await open(page, 'profile-preview', 'light', widthOf(info.project.name));
   const preview = page.locator('#format-preview');
