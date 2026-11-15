@@ -38,3 +38,5 @@ export * from './date-format.js';
 export * from './display-format.js';
 export * from './save-file.js';
 export * from './shortcuts.js';
+export * from './theme-script.js';
+export * from './theme.js';

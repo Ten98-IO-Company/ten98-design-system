@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Theme</title>
+    <!-- tests/browser/theme.spec.ts injects createThemeScript() at the start of head, as an app server does. -->
+    <script>
+      // Every data-theme value from the first parsed script on, and the body background at the first frame.
+      window.themeLog = [document.documentElement.dataset.theme || '(none)'];
+      new MutationObserver(() => window.themeLog.push(document.documentElement.dataset.theme || '(none)')).observe(document.documentElement, { attributeFilter: ['data-theme'] });
+      requestAnimationFrame(() => { window.firstFrameBackground = getComputedStyle(document.body).backgroundColor; });
+    </script>
+    <style>body { margin: 0; background: var(--t98-bg); color: var(--t98-text); }</style>
+  </head>
+  <body>
+    <div id="theme-fixture"></div>
+    <script type="module" src="./fixtures/theme.tsx"></script>
+  </body>
+</html>
