@@ -27,6 +27,7 @@ test('the package imports no router and renders on the server without a prompt',
   const { html, guard, shouldBlock } = guarded(true);
   assert.equal(html, '<div></div>');
   assert.equal(guard.dialog, null);
+  assert.equal(guard.pending, false);
   assert.equal(shouldBlock, guard.shouldBlock, 'the adapter receives the guard’s own shouldBlock');
 });
 
@@ -57,6 +58,31 @@ test('a dirty screen blocks until the user leaves, with the Dialog discard wordi
   assert.equal(go.asked[0].title, 'Leave without saving?');
   assert.equal(go.asked[1].confirmLabel, 'Discard and switch', 'a per-exit prompt overrides the screen’s wording');
   assert.equal(go.asked[1].cancelLabel, 'Keep editing');
+});
+
+test('overlapping asks share one question and one answer; prompt passes every ConfirmRequest field', async () => {
+  const asked: ConfirmRequest[] = [];
+  let answer: (leave: boolean) => void = () => {};
+  const confirm = (request: ConfirmRequest) => { asked.push(request); return new Promise<boolean>(resolve => { answer = resolve; }); };
+  const { guard } = guarded(true, { confirm, prompt: { danger: false, initialFocus: 'confirm', acknowledgement: 'I understand' } });
+  assert.equal(guard.pending, false);
+  let left = 0;
+  const leaving = guard.leave(() => left++);
+  const navigation = guard.shouldBlock();
+  const settledEarly = await Promise.race([navigation.then(() => true), new Promise(resolve => setTimeout(resolve, 20, false))]);
+  assert.equal(settledEarly, false, 'the first ask is not resolved by the second');
+  assert.equal(asked.length, 1, 'one question, not two');
+  assert.deepEqual(asked[0], { title: 'Discard unsaved changes?', description: 'Your changes have not been saved.', confirmLabel: 'Discard changes', cancelLabel: 'Keep editing', danger: false, initialFocus: 'confirm', acknowledgement: 'I understand' });
+  guard.cancel(); // a dialog the guard does not own is not its to close
+  answer(true);
+  assert.equal(await leaving, true);
+  assert.equal(await navigation, false);
+  assert.equal(left, 1);
+  // Once answered, leave's own navigation passes and the one after it asks a new question.
+  assert.equal(await guard.shouldBlock(), false);
+  void guard.shouldBlock();
+  await Promise.resolve();
+  assert.equal(asked.length, 2);
 });
 
 test('a settled exit passes once without asking, then navigation is asked about again', async () => {
