@@ -81,7 +81,7 @@ export const shortcutEntries: ComponentEntry[] = [
     ],
     tokens: hintTokens,
     accessibility: [
-      'Keys a focused field or control uses itself stay with it: typing, caret and list keys and Escape in text fields, Enter in a textarea, Enter, Space and arrows on buttons, links, checkboxes and selects, and Escape on a select or a control whose list or menu is open. A command opts in with allowInTextInput (never on controls or open popups).',
+      'Keys a focused field or control uses itself stay with it: typing, caret and list keys and Escape in text fields, Enter in a textarea, Enter, Space and arrows on buttons, links, checkboxes and selects, typed letters on a select (its type-to-select), and Escape on a select or a control whose list or menu is open. A command opts in with allowInTextInput (never on controls or open popups).',
       'Chords that only type characters run only inside a focus-activated ShortcutScope that holds focus (WCAG 2.1.4), and every chord can be remapped.',
       'The registry never moves or traps focus and announces nothing; show bindings with KeyHint and the app’s help list.',
     ],

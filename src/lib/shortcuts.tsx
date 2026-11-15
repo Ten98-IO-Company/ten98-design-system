@@ -246,6 +246,8 @@ export interface ShortcutResolveInput {
   target: ShortcutTarget;
   /** The focused control is a select or owns an open popup (an expanded list or menu): Escape stays with it. */
   popupOpen?: boolean;
+  /** The focused control selects an option from typed letters natively (a select): printable chords stay with it. */
+  typeahead?: boolean;
   /** The chord for the key's position, from physicalChordFromEvent, matched by commands with matchPhysicalKey. */
   physicalChord?: KeyChord;
   repeat?: boolean;
@@ -260,11 +262,11 @@ export interface ShortcutMatch {
  * The command a chord runs, or undefined. The innermost scope that binds the chord wins and prefers an enabled command;
  * when every command there is disabled the scope still claims the chord, so an outer command never runs in its place. Keys the focused element uses itself (typing,
  * caret and list movement, Escape, Enter in a textarea, Enter and Space on buttons) stay with it unless the command
- * opts in with allowInTextInput (never on buttons and other controls), Escape stays with a select or an open popup, and
+ * opts in with allowInTextInput (never on buttons and other controls), a select keeps its type-to-select letters, Escape stays with a select or an open popup, and
  * chords that only type characters run only in a focus-activated scope that contains focus (WCAG 2.1.4). Commands with
  * matchPhysicalKey also match the physical chord of an unmodified letter or digit; a scope prefers the typed chord.
  */
-export function resolveShortcut({ chord, scopes, commands, target, popupOpen = false, physicalChord, repeat = false }: ShortcutResolveInput): ShortcutMatch | undefined {
+export function resolveShortcut({ chord, scopes, commands, target, popupOpen = false, typeahead = false, physicalChord, repeat = false }: ShortcutResolveInput): ShortcutMatch | undefined {
   const [mods, key] = splitChord(chord);
   const unmodified = mods.every(mod => mod === 'Shift');
   // Tab and Shift+Tab always move focus, so no keymap can trap the keyboard.
@@ -283,6 +285,8 @@ export function resolveShortcut({ chord, scopes, commands, target, popupOpen = f
     if (native) {
       // Buttons, links, checkboxes and selects keep Enter, Space and arrows; text fields keep typing, caret keys and Escape, single-line ones not Enter.
       if (target === 'control' && NAVIGATION_KEYS.has(key)) return undefined;
+      // A select's letters pick an option; no command takes them, as none takes a button's Enter.
+      if (printable && typeahead) return undefined;
       if (key === 'Escape' && popupOpen) return undefined;
       if (!command.allowInTextInput && (target === 'multiline' || (target === 'text' && key !== 'Enter'))) return undefined;
     }
@@ -498,7 +502,7 @@ class ShortcutStore {
     // The innermost element, also inside shadow roots, decides what the key does natively.
     const origin = event.composedPath()[0];
     const target = origin instanceof Element ? origin : event.target instanceof Element ? event.target : document.activeElement;
-    const match = resolveShortcut({ chord, scopes: this.activeScopes(target), commands, target: targetKind(target), popupOpen: ownsOpenPopup(target), physicalChord, repeat: event.repeat });
+    const match = resolveShortcut({ chord, scopes: this.activeScopes(target), commands, target: targetKind(target), popupOpen: ownsOpenPopup(target), typeahead: target instanceof HTMLSelectElement, physicalChord, repeat: event.repeat });
     const record = match && this.commands.get(match.command.id);
     if (!record) return;
     if (!match.run) {

@@ -120,6 +120,19 @@ test('typing and native keys stay with the focused field unless the command opts
   assert.equal(isPrintableChord('F2'), false);
 });
 
+test('a native select keeps its type-to-select letters, but not its other keys', () => {
+  const entry = { id: 'entry', focus: true };
+  const commands = [command('entry.resolve', 'entry', ['E']), command('entry.note', 'entry', ['Shift+N'], { allowInTextInput: true }), command('entry.save', 'entry', ['Ctrl+S']), command('entry.help', 'entry', ['F1'])];
+  const run = (chord: string, typeahead?: boolean) => resolveShortcut({ chord, scopes: [entry, app], commands, target: 'control', typeahead })?.command.id;
+  assert.equal(run('E', true), undefined);
+  // The select's letters are its own even for a command that may run from text fields.
+  assert.equal(run('Shift+N', true), undefined);
+  assert.equal(run('Ctrl+S', true), 'entry.save');
+  assert.equal(run('F1', true), 'entry.help');
+  // A button or other control without type-to-select still runs a hot letter in its focused scope.
+  assert.equal(run('E'), 'entry.resolve');
+});
+
 test('Escape stays with text fields and open popups unless the command opts in', () => {
   const commands = [command('screen.back', 'screen', ['Escape']), command('note.close', 'note', ['Escape'], { allowInTextInput: true })];
   const screen = [{ id: 'screen', focus: false }, app];

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
-  Button, Combobox, Dialog, Field, Heading, Inline, Input, KeyHint, SegmentedControl, ShortcutProvider, ShortcutScope, Stack, Text,
+  Button, Combobox, Dialog, Field, Heading, Inline, Input, KeyHint, SegmentedControl, Select, ShortcutProvider, ShortcutScope, Stack, Text,
   findReservedChords, useCommand, useCommandKeys, useShortcutCommands, type Keymap, type KeymapEntry,
 } from '@ten98/ui';
 import '@ten98/ui/styles.css';
@@ -12,8 +12,8 @@ document.documentElement.dataset.theme = params.get('theme') || 'light';
 if (params.get('dir') === 'rtl') document.documentElement.dir = 'rtl';
 
 const keymaps: Record<string, Keymap> = {
-  classic: { 'app.help': 'F1', 'voucher.payment': 'F5', 'voucher.receipt': 'F6', 'voucher.save': 'Ctrl+A', 'voucher.close': 'Escape', 'entry.next': 'Enter', 'entry.find': '/', 'dialog.confirm': 'Ctrl+Enter', 'voucher.copy': 'Alt+C', 'voucher.new': 'Ctrl+N', 'menu.new': 'N', 'voucher.print': { default: 'Alt+P', apple: 'Ctrl+Shift+P' } },
-  'web-safe': { 'app.help': 'Shift+F1', 'voucher.payment': 'Alt+F5', 'voucher.receipt': 'Alt+F6', 'voucher.save': 'Ctrl+Enter', 'voucher.close': 'Escape', 'entry.next': 'Enter', 'entry.find': '/', 'dialog.confirm': 'Ctrl+Enter', 'voucher.copy': 'Alt+C', 'voucher.new': 'Alt+N', 'menu.new': 'N' },
+  classic: { 'app.help': 'F1', 'voucher.payment': 'F5', 'voucher.receipt': 'F6', 'voucher.save': 'Ctrl+A', 'voucher.close': 'Escape', 'entry.next': 'Enter', 'entry.find': '/', 'entry.resolve': 'E', 'dialog.confirm': 'Ctrl+Enter', 'voucher.copy': 'Alt+C', 'voucher.new': 'Ctrl+N', 'menu.new': 'N', 'voucher.print': { default: 'Alt+P', apple: 'Ctrl+Shift+P' } },
+  'web-safe': { 'app.help': 'Shift+F1', 'voucher.payment': 'Alt+F5', 'voucher.receipt': 'Alt+F6', 'voucher.save': 'Ctrl+Enter', 'voucher.close': 'Escape', 'entry.next': 'Enter', 'entry.find': '/', 'entry.resolve': 'E', 'dialog.confirm': 'Ctrl+Enter', 'voucher.copy': 'Alt+C', 'voucher.new': 'Alt+N', 'menu.new': 'N' },
 };
 
 declare global { interface Window { ran: string[] } }
@@ -66,9 +66,11 @@ function Screen() {
         <ShortcutScope name="Entry" activation="focus">
           <Command id="entry.next" label="Next field" />
           <Command id="entry.find" label="Find account" />
+          <Command id="entry.resolve" label="Resolve entry" />
           <Command id="voucher.save" label="Save entry" enabled={saveEnabled} />
           <Field label="Narration"><Input name="narration" /></Field>
           <Combobox label="City" options={['Dubai', 'Doha', 'Riyadh']} value={city} onValueChange={setCity} />
+          <Field label="Status"><Select options={[{ value: 'open', label: 'Open' }, { value: 'escalated', label: 'Escalated' }, { value: 'closed', label: 'Closed' }]} defaultValue="open" /></Field>
           <Button variant="secondary" onClick={log('entry.button')}>Entry button</Button>
         </ShortcutScope>
         {/* A menu's hot letter names a key position, so it also works on layouts that type another script there. */}
