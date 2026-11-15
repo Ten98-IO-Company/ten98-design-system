@@ -4,6 +4,7 @@
  * exact money and dates, with one marker for a missing value. Missing (null, undefined, NaN) is never shown as 0. */
 import { createContext, useContext, useMemo, type ReactNode } from 'react';
 import { createDateFormatter, type DateFormatter, type DateFormatterOptions } from './date-format.js';
+import { formatFileSize } from './format.js';
 
 type Num = number | null | undefined;
 type DateInput = string | number | Date | null | undefined;
@@ -24,6 +25,9 @@ export interface DisplayFormatter {
   /** Money from an exact decimal string (or a number), never through float arithmetic: "0.000123" USD gives
    * "$0.000123", not "$0.00". `wholeUnits` rounds to whole currency units. */
   currency: (value: string | Num, code: string, options?: { wholeUnits?: boolean }) => string;
+  /** A size in bytes, 1024 per step: 1536 gives "1.5 KB". Units are B, KB, MB, GB and TB in every locale; a negative
+   * size is missing. */
+  fileSize: (bytes: Num) => string;
   date: (value: DateInput) => string;
   dateTime: (value: DateInput) => string;
   relative: (value: DateInput, now?: Date) => string;
@@ -67,6 +71,7 @@ export function createDisplayFormatter({ locale, timeZone, missing = 'Unavailabl
         throw error;
       }
     },
+    fileSize: value => absent(value) ? missing : formatFileSize(value, size => numberFormat(1).format(size)) || missing,
     date: orMissing(dates.date),
     dateTime: orMissing(dates.dateTime),
     relative: (value, now) => absent(value) ? missing : dates.relative(value, now),
