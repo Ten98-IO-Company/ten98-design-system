@@ -197,11 +197,16 @@ export interface TwoFactorSetupFlowProps extends FlowState {
   onStart: Submit<{ password: string }>;
   onVerify: Submit<{ code: string }>;
   onAcknowledgeCodes: () => void | Promise<void>;
-  onRegenerate: Submit<{ password: string }>;
+  /** Receives `code` too when `regenerateRequiresCode` is set. */
+  onRegenerate: Submit<{ password: string; code?: string }>;
   /** Receives `code` too when `disableRequiresCode` is set. */
   onDisable: Submit<{ password: string; code?: string }>;
   /** Asks for an authenticator or recovery code as well as the password before turning two-factor off. */
   disableRequiresCode?: boolean;
+  /** Asks for an authenticator or recovery code as well as the password before issuing new recovery codes, so new codes
+   * can only be created by someone who holds the current factor. On by default; pass false only while the server cannot
+   * check a code, and record why. */
+  regenerateRequiresCode?: boolean;
   title?: string;
   description?: string;
   messages?: Partial<TwoFactorSetupMessages>;
@@ -209,7 +214,7 @@ export interface TwoFactorSetupFlowProps extends FlowState {
 }
 type TwoFactorAction = 'regenerate' | 'disable';
 /** Two-factor enrolment and management. The application verifies passwords and codes and generates the secrets. */
-export function TwoFactorSetupFlow({ stage, enrolment, recoveryCodes = [], codeLength = 6, downloadName = 'recovery-codes.txt', onStart, onVerify, onAcknowledgeCodes, onRegenerate, onDisable, disableRequiresCode = false, title = 'Two-factor authentication', description, messages, linkComponent, fieldErrors, ...state }: TwoFactorSetupFlowProps) {
+export function TwoFactorSetupFlow({ stage, enrolment, recoveryCodes = [], codeLength = 6, downloadName = 'recovery-codes.txt', onStart, onVerify, onAcknowledgeCodes, onRegenerate, onDisable, disableRequiresCode = false, regenerateRequiresCode = true, title = 'Two-factor authentication', description, messages, linkComponent, fieldErrors, ...state }: TwoFactorSetupFlowProps) {
   const id = useId();
   const copy = { ...twoFactorMessages, ...messages };
   const [password, setPassword] = useState('');
@@ -272,8 +277,9 @@ export function TwoFactorSetupFlow({ stage, enrolment, recoveryCodes = [], codeL
   }
 
   const target = confirming === 'disable' ? { title: copy.disableTitle, description: copy.disableDescription, label: copy.disable, run: onDisable } : { title: copy.regenerateTitle, description: copy.regenerateDescription, label: copy.regenerate, run: onRegenerate };
+  const needsCode = (action: TwoFactorAction | undefined) => action === 'disable' ? disableRequiresCode : action === 'regenerate' && regenerateRequiresCode;
   const ask = (action: TwoFactorAction) => {
-    const missingCode = action === 'disable' && disableRequiresCode && !disableCode.trim();
+    const missingCode = needsCode(action) && !disableCode.trim();
     if (!password) setPasswordError(copy.passwordRequired);
     if (missingCode) setCodeError(copy.disableCodeRequired);
     if (!password || missingCode) return;
@@ -283,7 +289,7 @@ export function TwoFactorSetupFlow({ stage, enrolment, recoveryCodes = [], codeL
     <Badge tone="success">{copy.statusOn}</Badge>
     <Text tone="muted" size="sm">{copy.manage}</Text>
     {passwordField}
-    {disableRequiresCode && <Field label={copy.disableCode} htmlFor={`${id}-disable-code`} error={codeError ?? fieldErrors?.code}>
+    {(disableRequiresCode || regenerateRequiresCode) && <Field label={copy.disableCode} htmlFor={`${id}-disable-code`} error={codeError ?? fieldErrors?.code}>
       <Input id={`${id}-disable-code`} name="code" autoComplete="one-time-code" spellCheck={false} autoCapitalize="off" value={disableCode}
         onChange={event => { setDisableCode(event.target.value); setCodeError(undefined); }} />
     </Field>}
@@ -292,7 +298,7 @@ export function TwoFactorSetupFlow({ stage, enrolment, recoveryCodes = [], codeL
       <Button type="button" variant="danger" onClick={() => ask('disable')}>{copy.disable}</Button>
     </FormActions>
     <ConfirmDialog open={confirming !== undefined} onOpenChange={open => { if (!open) setConfirming(undefined); }} title={target.title} description={target.description} confirmLabel={target.label} danger={confirming === 'disable'}
-      onConfirm={() => confirming === 'disable' && disableRequiresCode ? onDisable({ password, code: disableCode.trim() }) : target.run({ password })} />
+      onConfirm={() => needsCode(confirming) ? target.run({ password, code: disableCode.trim() }) : target.run({ password })} />
   </SettingsFlow>;
 }
 
