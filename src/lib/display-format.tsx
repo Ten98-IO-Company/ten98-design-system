@@ -35,7 +35,10 @@ export interface DisplayFormatter {
 
 const decimal = /^-?\d+(\.\d+)?$/;
 // A value that rounds to zero is shown without a minus: -0.4 JPY reads "¥0", not "-¥0". Real negatives keep their sign.
-const sign = { signDisplay: 'negative' } as const;
+// Browsers before about Chrome 106, Safari 15.4 and Firefox 116 reject 'negative'; they keep the old minus instead of failing.
+const sign: Intl.NumberFormatOptions = (() => {
+  try { new Intl.NumberFormat('en', { signDisplay: 'negative' }); return { signDisplay: 'negative' }; } catch { return {}; }
+})();
 const absent = (value: unknown): value is null | undefined => value === null || value === undefined || (typeof value === 'number' && Number.isNaN(value));
 
 export function createDisplayFormatter({ locale, timeZone, missing = 'Unavailable' }: DisplayFormatOptions = {}): DisplayFormatter {
@@ -59,7 +62,9 @@ export function createDisplayFormatter({ locale, timeZone, missing = 'Unavailabl
       const text = typeof value === 'number' ? String(value) : value.trim();
       if (typeof value === 'string' && !decimal.test(text)) return missing;
       // No currency code (a provider that did not report one): the exact amount as a grouped plain number, no symbol.
-      if (code.trim() === '') return new Intl.NumberFormat(locale, { ...sign, maximumFractionDigits: Math.min(20, text.split('.')[1]?.length ?? 0) }).format(text as unknown as number);
+      if (code.trim() === '') return typeof value === 'number'
+        ? numberFormat().format(value)
+        : new Intl.NumberFormat(locale, { ...sign, maximumFractionDigits: Math.min(20, text.split('.')[1]?.length ?? 0) }).format(text as unknown as number);
       try {
         const base = new Intl.NumberFormat(locale, { ...sign, style: 'currency', currency: code });
         const whole = { minimumFractionDigits: 0, maximumFractionDigits: 0 };

@@ -369,6 +369,10 @@ test('currency without a code shows the exact amount grouped, with no trailing s
   assert.equal(format.currency('1234.5', ''), '1,234.5');
   assert.equal(format.currency('0.000123', ' '), '0.000123');
   assert.equal(format.currency(1234.5, ''), '1,234.5');
+  // A JS number has no exact digits of its own: it uses the plain number format, not its float string.
+  assert.equal(format.currency(0.1 + 0.2, ''), '0.3');
+  assert.equal(format.currency(1e-7, ''), '0');
+  assert.equal(format.currency(-1e-7, ''), '0');
   // A malformed non-empty code keeps showing the amount and the code.
   assert.equal(format.currency('12.35', 'xyz!'), '12.35 XYZ!');
 });
