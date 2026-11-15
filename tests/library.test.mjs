@@ -300,7 +300,8 @@ test('packaged light and dark semantic colors retain required text and control c
     ['control-border', 'surface', 3],
     // Ink is the accent: a control edge must hold on the page ground, and focus, accent and every chart series on the surface.
     ['control-border', 'bg', 3],
-    ['placeholder', 'surface', 4.5],
+    // Placeholders sit on fields (surface) and on the subtle top-bar search and the page ground.
+    ...['surface', 'bg', 'subtle'].map(background => ['placeholder', background, 4.5]),
     ['on-accent', 'accent-active', 4.5],
     ...['focus', 'accent', 'chart-1', 'chart-2', 'chart-3', 'chart-4', 'chart-5'].map(foreground => [foreground, 'surface', 3]),
   ];
