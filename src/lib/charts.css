@@ -69,7 +69,7 @@
 .t98-bar-list-item[data-selected] { border-color: var(--t98-accent); background: var(--t98-accent-soft); }
 .t98-bar-list-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--t98-space-1) var(--t98-space-3); }
 .t98-bar-list-name { min-inline-size: 0; overflow-wrap: anywhere; font-weight: 600; color: var(--t98-text); text-align: start; }
-a.t98-bar-list-name { color: var(--t98-accent); }
+a.t98-bar-list-name { color: var(--t98-accent); text-decoration: underline; text-underline-offset: 3px; }
 .t98-bar-list-button { all: unset; box-sizing: border-box; display: inline-flex; align-items: center; min-block-size: var(--t98-control-touch); cursor: pointer; font: inherit; font-weight: 600; color: var(--t98-text); text-decoration: underline; text-underline-offset: 3px; }
 .t98-bar-list-value { font-variant-numeric: tabular-nums; margin-inline-start: auto; }
 .t98-bar-list-secondary { color: var(--t98-muted); }

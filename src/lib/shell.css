@@ -234,6 +234,8 @@
   touch-action: manipulation;
 }
 .t98-banner__dismiss { padding: 0; color: var(--t98-muted); }
+/* Link-style actions: ink cannot tell them from body text, so they underline at rest (WCAG 1.4.1). */
+.t98-banner__action, .t98-sidebar-status__action { text-decoration: underline; text-underline-offset: 3px; }
 .t98-banner__action:hover,
 .t98-sidebar-status__action:hover { background: var(--t98-accent-soft); }
 .t98-banner__dismiss:hover { color: var(--t98-text); background: var(--t98-subtle); }

@@ -35,7 +35,7 @@ fieldset{border:0;margin:0;padding:0;min-width:0}
 /* Ink links underline: colour alone cannot tell them from body text (WCAG 1.4.1). */
 .text-link{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:600;color:var(--color-accent);padding:0;text-decoration:underline;text-underline-offset:3px}
 .text-link:hover{color:var(--color-accent-hover);text-decoration-thickness:2px}
-:where(p,li)>a:not([class]){text-decoration:underline;text-underline-offset:3px}
+a:not([class]){text-decoration:underline;text-underline-offset:3px}
 :is(.button,.btn){display:inline-flex;justify-content:center;align-items:center;gap:8px;min-height:37px;padding:8px 14px;border:1px solid var(--color-border-strong);background:var(--color-surface);border-radius:var(--radius-pill);font-size:13px;font-weight:500;line-height:1.4;white-space:normal;overflow-wrap:anywhere;color:var(--color-text);box-shadow:none;transition:background .15s,border-color .15s,transform .15s}
 :is(.button,.btn):hover:not(:disabled){background:var(--color-surface-subtle);border-color:var(--color-border-control)}
 :is(.button,.btn).primary{background:var(--color-accent);border-color:var(--color-accent);color:var(--color-on-accent)}

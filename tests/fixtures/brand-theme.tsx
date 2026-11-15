@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Badge, Button, DataTable, EmptyState, Field, Heading, Inline, Input, KeyHint, Link, SegmentedControl, Stack, Text, type DataColumn } from '@ten98/ui';
+import { Alert, Badge, Banner, Button, DataTable, EmptyState, Field, Heading, Inline, Input, KeyHint, Link, SegmentedControl, Stack, Text, type DataColumn } from '@ten98/ui';
 import '@ten98/ui/styles.css';
 
 // A keyboard-first ledger as Books composes it: Arabic and Latin party names in one list, amounts in Latin and
@@ -41,6 +41,11 @@ function Ledger() {
     <DataTable caption="Open invoices" columns={columns} rows={entries} rowKey={row => row.id} density={density}
       searchable={false} sortable={false} pagination={false} activeKey={current} onRowActivate={(_row, key) => setCurrent(key)} />
     <Text>Amounts are formatted by the app. <Link href="#terms">Payment terms</Link> apply to every invoice.</Text>
+    {/* Link-style actions in an alert and a banner: ink links must underline (WCAG 1.4.1). */}
+    <Alert tone="warning" title="3 invoices are overdue" actions={<Link href="#overdue" variant="standalone">Review overdue</Link>}>
+      Reminders go out on Monday. <a href="#reminders">Change the schedule</a>.
+    </Alert>
+    <Banner tone="info" title="Statements are ready" action={{ label: 'Download statements', href: '#statements' }}>October closes on Friday. <Link href="#close" variant="quiet">Closing checklist</Link></Banner>
     <EmptyState title="No credit notes" description="Credit notes you raise appear here." />
   </Stack>;
 }

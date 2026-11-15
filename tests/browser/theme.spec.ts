@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { createThemeScript, themeStorageKey } from '../../src/lib/theme-script';
 
-const dark = 'rgb(18, 19, 22)', light = 'rgb(247, 247, 248)';
+const dark = 'rgb(12, 12, 13)', light = 'rgb(243, 243, 241)';
 
 // Serve the fixture with the real pre-paint script first in head, as an app's server or framework head does.
 // With csp, the response carries a nonce policy and every other script gets the nonce, as Campaign's server does.

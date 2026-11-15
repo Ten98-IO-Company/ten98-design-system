@@ -45,6 +45,10 @@ test('the brand faces load as same-origin woff2 files from the package CSS, neve
   expect(families.empty).toMatch(/^italic "Libre Caslon Text"/);
   // Names, headers and form text stay in the text face.
   for (const name of ['amountHeader', 'party', 'input', 'label'] as const) expect(families[name], name).toMatch(/^"Inter Variable"/);
+  // A metric's figure is mono; its "Unavailable" marker is words and keeps the text face.
+  await page.goto('/tests/data-table.html');
+  await expect(page.locator('.t98-metric-value--unavailable').first()).toHaveCSS('font-family', /^"Inter Variable"/);
+  await expect(page.locator('.t98-metric-value:not(.t98-metric-value--unavailable)').first()).toHaveCSS('font-family', /^"JetBrains Mono"/);
 });
 
 for (const density of ['comfortable', 'compact'] as const) test(`Arabic and Latin rows keep one height and baseline, and figures line up (${density})`, async ({ page }) => {
@@ -196,4 +200,52 @@ test('links underline, ink buttons keep a visible ring, and reduced motion zeroe
     // The ring sits 2px off the ink fill, so it is drawn against the ground the button stands on: the page or a surface.
     for (const ground of [await token(page, '--t98-bg'), await surface(page)]) expect(contrast(ring.colour, ground), `${theme} ring on ${ground}`).toBeGreaterThanOrEqual(3);
   }
+});
+
+// Ink links cannot be told from body text by colour, so every link outside navigation underlines at rest (WCAG 1.4.1).
+// Only links in the sidebar nav, section nav and breadcrumbs (identified by position, icons and separators) and the
+// visually hidden skip link are exempt; links drawn as bordered or filled controls are buttons, not text links.
+const auditLinks = (page: Page) => page.evaluate(() => {
+  const probe = document.createElement('span');
+  probe.style.color = 'var(--t98-text)';
+  document.body.append(probe);
+  const text = getComputedStyle(probe).color;
+  probe.remove();
+  const channels = (value: string) => value.match(/[\d.]+/g)!.map(Number);
+  const luminance = (value: string) => { const [r, g, b] = channels(value).slice(0, 3).map(v => { v /= 255; return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+  const ratio = (a: string, b: string) => { const [x, y] = [luminance(a), luminance(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+  const alpha = (value: string) => channels(value)[3] ?? 1;
+  const bordered = (style: CSSStyleDeclaration) => style.borderTopStyle !== 'none' && parseFloat(style.borderTopWidth) > 0 && alpha(style.borderTopColor) > 0;
+  const exemptions: string[] = [], failures: string[] = [], checked: string[] = [];
+  for (const element of document.querySelectorAll<HTMLElement>('a[href], [role=link], .t98-link, .t98-banner__action, .t98-sidebar-status__action')) {
+    const style = getComputedStyle(element);
+    if (!element.getClientRects().length || style.visibility === 'hidden') continue;
+    const nav = element.closest('nav.t98-sidebar-nav, nav.t98-section-nav, nav.t98-breadcrumb, nav.t98-app-topbar__breadcrumb');
+    if (nav) { exemptions.push(nav.className); continue; }
+    if (element.classList.contains('t98-skip-link')) { exemptions.push('t98-skip-link'); continue; }
+    if (element.classList.contains('t98-button') || bordered(style) || alpha(style.backgroundColor) > 0) continue;
+    const label = `"${element.textContent!.trim().slice(0, 40)}"`;
+    checked.push(label);
+    if (!style.textDecorationLine.includes('underline') && ratio(style.color, text) < 3) failures.push(`${label}: ${style.textDecorationLine}, ${ratio(style.color, text).toFixed(2)}:1 against text`);
+  }
+  return { exemptions: [...new Set(exemptions)], failures, checked };
+});
+
+for (const theme of ['light', 'dark'] as const) test(`links and link-style actions outside navigation underline at rest (${theme})`, async ({ page }) => {
+  for (const path of [`/tests/shell.html?view=app&theme=${theme}`, `/tests/shell.html?theme=${theme}`, `/tests/brand-theme.html?theme=${theme}`]) {
+    await page.goto(path);
+    await page.locator('a[href]').first().waitFor();
+    const audit = await auditLinks(page);
+    expect(audit.failures, path).toEqual([]);
+    // The plain shell view holds navigation only; the app view and the ledger hold the text links and actions.
+    if (!path.startsWith('/tests/shell.html?theme')) expect(audit.checked.length, path).toBeGreaterThan(0);
+    for (const exemption of audit.exemptions) expect(exemption, path).toMatch(/^(t98-sidebar-nav|t98-section-nav|t98-breadcrumb|t98-app-topbar__breadcrumb|t98-skip-link)$/);
+  }
+  // The banner, sidebar status and sidebar footer actions from the review, and the alert and banner links, are underlined.
+  await page.goto(`/tests/shell.html?view=app&theme=${theme}`);
+  // At phone width the sidebar is a closed drawer, so only the banner action is on screen.
+  const named = page.viewportSize()!.width < 768 ? ['Set up two-factor authentication'] : ['Set up two-factor authentication', 'Manage', 'Settings'];
+  for (const name of named) await expect(page.getByRole('link', { name, exact: true }).first()).toHaveCSS('text-decoration-line', 'underline');
+  await page.goto(`/tests/brand-theme.html?theme=${theme}`);
+  for (const name of ['Review overdue', 'Change the schedule', 'Download statements', 'Closing checklist']) await expect(page.getByRole('link', { name, exact: true })).toHaveCSS('text-decoration-line', 'underline');
 });

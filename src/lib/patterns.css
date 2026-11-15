@@ -88,7 +88,8 @@
 .t98-metric-value { min-width: 0; overflow-wrap: anywhere; font-size: clamp(1.5rem, 2.5vw, 2rem); line-height: 1.15; font-family: var(--t98-mono); font-weight: 600; letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
 .t98-sparkline { display: block; flex: 0 1 7rem; width: 7rem; height: 2.5rem; min-width: 3.5rem; overflow: visible; }
 .t98-metric-change { display: flex; align-items: center; gap: .375rem; margin: .75rem 0 0; font-size: .75rem; }
-.t98-metric-value--unavailable { font-size: 1rem; font-weight: 500; letter-spacing: normal; color: var(--t98-muted); }
+/* The missing marker is words, not a figure: it keeps the text face. */
+.t98-metric-value--unavailable { font-family: var(--t98-font); font-size: 1rem; font-weight: 500; letter-spacing: normal; color: var(--t98-muted); }
 .t98-metric-hint { margin: .5rem 0 0; color: var(--t98-muted); font-size: .75rem; line-height: 1.5; overflow-wrap: anywhere; }
 .t98-metric-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 14rem), 1fr)); gap: 1rem; margin: 0; padding: 0; list-style: none; }
 .t98-metric-grid--sm { grid-template-columns: repeat(auto-fill, minmax(min(100%, 10rem), 1fr)); }

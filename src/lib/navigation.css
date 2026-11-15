@@ -99,6 +99,8 @@
   cursor: pointer;
   touch-action: manipulation;
 }
+/* Footer links sit outside any nav landmark, so they underline like other ink links (WCAG 1.4.1); menu items do not. */
+.t98-sidebar-footer__actions > a { text-decoration: underline; text-underline-offset: 3px; }
 .t98-account-menu__actions :is(a, button):hover:not(:disabled, [aria-disabled='true']),
 .t98-sidebar-footer__actions > :is(a, button):hover:not(:disabled, [aria-disabled='true']) { background: var(--t98-subtle); }
 .t98-account-menu__actions :is(a, button):is(:disabled, [aria-disabled='true']),
