@@ -246,6 +246,14 @@ for (const theme of ['light', 'dark'] as const) test(`links and link-style actio
   // At phone width the sidebar is a closed drawer, so only the banner action is on screen.
   const named = page.viewportSize()!.width < 768 ? ['Set up two-factor authentication'] : ['Set up two-factor authentication', 'Manage', 'Settings'];
   for (const name of named) await expect(page.getByRole('link', { name, exact: true }).first()).toHaveCSS('text-decoration-line', 'underline');
+  // An app's own markup under app.css: a bare link in text underlines; a bare link in the app's own nav keeps the nav's
+  // styling, and an app rule still overrides the bare-link default.
+  await page.locator('main').evaluate(main => main.insertAdjacentHTML('beforeend',
+    '<p>Read the <a href="#guide">setup guide</a>.</p><nav aria-label="App sections"><ul><li><a href="#billing">Billing</a></li></ul></nav>'
+    + '<style>.app-footer a { text-decoration: none; }</style><footer class="app-footer"><a href="#legal">Legal</a></footer>'));
+  await expect(page.getByRole('link', { name: 'setup guide', exact: true })).toHaveCSS('text-decoration-line', 'underline');
+  await expect(page.getByRole('navigation', { name: 'App sections' }).getByRole('link', { name: 'Billing' })).toHaveCSS('text-decoration-line', 'none');
+  await expect(page.getByRole('link', { name: 'Legal', exact: true })).toHaveCSS('text-decoration-line', 'none');
   await page.goto(`/tests/brand-theme.html?theme=${theme}`);
   for (const name of ['Review overdue', 'Change the schedule', 'Download statements', 'Closing checklist']) await expect(page.getByRole('link', { name, exact: true })).toHaveCSS('text-decoration-line', 'underline');
 });
