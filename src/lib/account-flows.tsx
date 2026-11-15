@@ -204,7 +204,8 @@ export interface TwoFactorSetupFlowProps extends FlowState {
   /** Asks for an authenticator or recovery code as well as the password before turning two-factor off. */
   disableRequiresCode?: boolean;
   /** Asks for an authenticator or recovery code as well as the password before issuing new recovery codes, so new codes
-   * can only be created by someone who holds the current factor. */
+   * can only be created by someone who holds the current factor. On by default; pass false only while the server cannot
+   * check a code, and record why. */
   regenerateRequiresCode?: boolean;
   title?: string;
   description?: string;
@@ -213,7 +214,7 @@ export interface TwoFactorSetupFlowProps extends FlowState {
 }
 type TwoFactorAction = 'regenerate' | 'disable';
 /** Two-factor enrolment and management. The application verifies passwords and codes and generates the secrets. */
-export function TwoFactorSetupFlow({ stage, enrolment, recoveryCodes = [], codeLength = 6, downloadName = 'recovery-codes.txt', onStart, onVerify, onAcknowledgeCodes, onRegenerate, onDisable, disableRequiresCode = false, regenerateRequiresCode = false, title = 'Two-factor authentication', description, messages, linkComponent, fieldErrors, ...state }: TwoFactorSetupFlowProps) {
+export function TwoFactorSetupFlow({ stage, enrolment, recoveryCodes = [], codeLength = 6, downloadName = 'recovery-codes.txt', onStart, onVerify, onAcknowledgeCodes, onRegenerate, onDisable, disableRequiresCode = false, regenerateRequiresCode = true, title = 'Two-factor authentication', description, messages, linkComponent, fieldErrors, ...state }: TwoFactorSetupFlowProps) {
   const id = useId();
   const copy = { ...twoFactorMessages, ...messages };
   const [password, setPassword] = useState('');

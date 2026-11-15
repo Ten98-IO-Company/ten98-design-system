@@ -57,10 +57,10 @@ function LateError() {
   return <PasswordChangeFlow hasPassword error={error} onSubmit={noop} />;
 }
 
-// noQr: Discover's server returns only the otpauth URI. requireCode: its disable and regenerate need a code as well as the password.
-function TwoFactor({ initial, noQr = false, requireCode = false }: { initial: TwoFactorSetupStage; noQr?: boolean; requireCode?: boolean }) {
+// noQr: Discover's server returns only the otpauth URI. requireCode: its disable needs a code as well as the password. Regenerate asks for a code by default; regenerateCode={false} opts out.
+function TwoFactor({ initial, noQr = false, requireCode = false, regenerateCode }: { initial: TwoFactorSetupStage; noQr?: boolean; requireCode?: boolean; regenerateCode?: boolean }) {
   const [stage, setStage] = useState<TwoFactorSetupStage>(initial);
-  return <Probe render={log => <TwoFactorSetupFlow stage={stage} enrolment={noQr ? { manualKey: 'JBSWY3DPEHPK3PXP', uri: 'otpauth://totp/Discover:ada%40example.test?secret=JBSWY3DPEHPK3PXP&issuer=Discover' } : { qrDataUrl: qr, manualKey: 'JBSWY3DPEHPK3PXP-LONG-SETUP-KEY-FOR-WRAPPING' }} disableRequiresCode={requireCode} regenerateRequiresCode={requireCode} recoveryCodes={codes} downloadName="team-codes.txt"
+  return <Probe render={log => <TwoFactorSetupFlow stage={stage} enrolment={noQr ? { manualKey: 'JBSWY3DPEHPK3PXP', uri: 'otpauth://totp/Discover:ada%40example.test?secret=JBSWY3DPEHPK3PXP&issuer=Discover' } : { qrDataUrl: qr, manualKey: 'JBSWY3DPEHPK3PXP-LONG-SETUP-KEY-FOR-WRAPPING' }} disableRequiresCode={requireCode} regenerateRequiresCode={regenerateCode} recoveryCodes={codes} downloadName="team-codes.txt"
     onStart={({ password }) => { log(`start:${password}`); setStage('enrolling'); }} onVerify={({ code }) => { log(`verify:${code}`); setStage('codes'); }}
     onAcknowledgeCodes={() => { log('acknowledged'); setStage('on'); }} onRegenerate={({ password, code }) => { log(`regenerate:${password}${code === undefined ? '' : `:${code}`}`); setStage('codes'); }} onDisable={({ password, code }) => { log(`disable:${password}${code === undefined ? '' : `:${code}`}`); setStage('off'); }} />} />;
 }
@@ -95,6 +95,7 @@ const screens: Record<string, ReactNode> = {
   '2fa-on': <TwoFactor initial="on" />,
   '2fa-enrolling-noqr': <TwoFactor initial="enrolling" noQr />,
   '2fa-on-code': <TwoFactor initial="on" requireCode />,
+  '2fa-on-no-regenerate-code': <TwoFactor initial="on" regenerateCode={false} />,
   'sessions': <Probe render={log => <SessionListFlow sessions={sessions} onRevoke={({ id }) => log(`revoke:${id}`)} onRevokeOthers={() => log('revoke-others')} />} />,
   'identities': <Probe render={log => <LinkedIdentitiesFlow identities={identities} providers={[{ id: 'github', name: 'GitHub' }]} hasPassword onLink={id => log(`link:${id}`)} onUnlink={({ id, password }) => log(`unlink:${id}:${password}`)} />} />,
   'identities-last': <LinkedIdentitiesFlow identities={identities.slice(0, 1)} providers={[]} hasPassword={false} onLink={noop} onUnlink={noop} />,
