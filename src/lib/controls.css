@@ -1,7 +1,9 @@
 /* Controls: disclosure, grouped fields, choice lists, pager, code, status and scroll regions. Tokens and logical properties only. */
 :where(.t98-disclosure, .t98-fieldset, .t98-segmented, .t98-pager, .t98-code-block, .t98-media-player, .t98-status-line, .t98-scroller, .t98-choice, .t98-datetime-zone, .t98-file-zone, .t98-file-list) { font-family: var(--t98-font); }
 
-.t98-disclosure { display: flex; flex-wrap: wrap; align-items: flex-start; gap: var(--t98-space-2); min-inline-size: 0; color: var(--t98-text); }
+.t98-disclosure { display: flex; flex-wrap: wrap; align-items: flex-start; gap: var(--t98-space-2); min-inline-size: 0; color: var(--t98-text); white-space: normal; }
+/* Table cells are nowrap: cap an open disclosure there so it wraps instead of widening its column. A percentage cap is cyclic in table sizing, so the cap is fixed. */
+.t98-table .t98-disclosure { max-inline-size: 30rem; }
 .t98-disclosure--boxed { border: 1px solid var(--t98-border); border-radius: var(--t98-radius); background: var(--t98-surface); padding-inline-end: var(--t98-space-2); }
 .t98-disclosure-details { flex: 1 1 14rem; min-inline-size: 0; }
 .t98-disclosure-summary { display: flex; align-items: center; justify-content: space-between; gap: var(--t98-space-3); min-block-size: 44px; padding-inline: var(--t98-space-3); font-size: var(--t98-text-md); font-weight: 600; cursor: pointer; list-style: none; border-radius: var(--t98-radius); }

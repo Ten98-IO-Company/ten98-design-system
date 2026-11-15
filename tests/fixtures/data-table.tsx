@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Badge, Button, DataTable, Heading, MetricCard, MetricGrid, Stack, Text, type DataColumn, type TablePageChange, type TableSort } from '@ten98/ui';
+import { Badge, Button, DataTable, Disclosure, Heading, MetricCard, MetricGrid, Stack, Text, type DataColumn, type TablePageChange, type TableSort } from '@ten98/ui';
 import '@ten98/ui/app-tokens.css';
 import '@ten98/ui/app.css';
 import '@ten98/ui/product.css';
@@ -51,6 +51,13 @@ function LargeTable() {
   return <DataTable columns={largeColumns} rows={largeRows} rowKey={row => row.id} caption="Large table" searchable={false} pageSize={10} selectable selectedKeys={picked} onSelectionChange={setPicked} />;
 }
 
+// Discover's domain history: an open Disclosure in a nowrap table cell must wrap rather than widen its column.
+const historyRows = [{ id: 'h1', domain: 'example.com', history: 'Redirected from http://example.com to https://www.example.com on 3 March, then back to https://example.com after the certificate was renewed and the canonical host changed.' }];
+const historyColumns: DataColumn<(typeof historyRows)[number]>[] = [
+  { key: 'domain', header: 'Domain' },
+  { key: 'history', header: 'Actions', render: row => <Disclosure summary="Redirect history" defaultOpen><Text>{row.history}</Text></Disclosure> },
+];
+
 function Screen() {
   const [sort, setSort] = useState<TableSort>();
   const [index, setIndex] = useState(0);
@@ -88,6 +95,7 @@ function Screen() {
     <DataTable columns={wrapColumns} rows={campaigns.slice(0, 2)} rowKey={row => row.id} ariaLabel="Wrapped table" searchable={false} sortable={false} pagination={false} />
     <DataTable columns={serverColumns} rows={[]} rowKey={row => row.id} caption="Loading table" searchable={false} loading />
     <LargeTable />
+    <DataTable columns={historyColumns} rows={historyRows} rowKey={row => row.id} ariaLabel="History table" searchable={false} sortable={false} pagination={false} />
     <DataTable columns={serverColumns} rows={[]} rowKey={row => row.id} caption="Unavailable table" searchable={false}
       unavailable={<Stack gap={2}><Text>Campaigns could not be loaded.</Text><Button variant="secondary" size="sm">Retry</Button></Stack>} />
   </Stack>;

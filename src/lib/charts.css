@@ -1,6 +1,6 @@
 /* Charts: --t98-chart-1..5 (tokens.css) are at least 3:1 against the surface in both themes. Series also differ by pattern, dash and marker. */
 .t98-chart { margin: 0; padding: var(--t98-space-4); display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--t98-space-3); min-inline-size: 0; border: 1px solid var(--t98-border); border-radius: calc(var(--t98-radius) + 2px); background: var(--t98-surface); color: var(--t98-text); font: 400 var(--t98-text-sm)/1.5 var(--t98-font); font-variant-numeric: tabular-nums; }
-.t98-chart-caption { display: flex; flex-wrap: wrap; gap: var(--t98-space-1) var(--t98-space-3); align-items: baseline; }
+.t98-chart-caption { display: flex; flex-wrap: wrap; gap: var(--t98-space-1) var(--t98-space-3); align-items: baseline; overflow-wrap: anywhere; }
 .t98-chart-caption strong { font-size: var(--t98-text-lg); font-weight: 600; }
 .t98-chart-context, .t98-chart-stats, .t98-chart-note { color: var(--t98-muted); }
 .t98-chart-summary, .t98-chart-stats, .t98-chart-notice, .t98-chart-empty { margin: 0; overflow-wrap: anywhere; }
@@ -32,7 +32,7 @@
 .t98-chart-readout { margin: 0; min-block-size: 1.5em; font-weight: 600; overflow-wrap: anywhere; }
 
 .t98-chart-legend { display: flex; flex-wrap: wrap; gap: var(--t98-space-2) var(--t98-space-4); margin: 0; padding: 0; list-style: none; }
-.t98-chart-legend li { display: inline-flex; align-items: center; gap: var(--t98-space-2); min-inline-size: 0; }
+.t98-chart-legend li { display: inline-flex; align-items: center; gap: var(--t98-space-2); min-inline-size: 0; overflow-wrap: anywhere; }
 .t98-chart-key { flex: none; }
 .t98-chart-key-line { stroke-width: 2; }
 .t98-chart-swatch { flex: none; inline-size: 1rem; block-size: 1rem; border-radius: var(--t98-radius-sm); border: 1px solid var(--t98-text); }

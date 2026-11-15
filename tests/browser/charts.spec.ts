@@ -475,3 +475,20 @@ test('dense missing data distinguishes thirty-one measured zeros, missing series
   expect(requests.length).toBeLessThanOrEqual(25);
   await info.attach('request-count', { body: String(requests.length), contentType: 'text/plain' });
 });
+
+test('long series names and time zones wrap inside the chart caption and legend at 320px', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 900 });
+  await page.goto('/tests/charts.html');
+  const figure = page.locator('figure.t98-chart').filter({ has: page.locator('.t98-chart-legend li') }).first();
+  await expect(figure).toBeVisible();
+  const outside = await figure.evaluate(element => {
+    element.querySelector('.t98-chart-caption strong')!.textContent = 'Sessions in America/Argentina/ComodRivadavia';
+    element.querySelector('.t98-chart-legend li span')!.textContent = 'Organic_search_including_branded_and_unbranded_queries';
+    const edge = element.getBoundingClientRect();
+    return [...element.querySelectorAll('.t98-chart-caption > *, .t98-chart-legend li')]
+      .filter(node => { const box = node.getBoundingClientRect(); return box.left < edge.left - 0.5 || box.right > edge.right + 0.5; })
+      .map(node => node.textContent);
+  });
+  expect(outside).toEqual([]);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
+});
