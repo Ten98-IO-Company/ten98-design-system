@@ -6,6 +6,7 @@
   "license": "MIT",
   "files": [
     "dist",
+    "shared-flows.json",
     "THIRD_PARTY_NOTICES.md"
   ],
   "main": "./dist/index.js",
@@ -28,7 +29,8 @@
     "./app.css": "./dist/app.css",
     "./app-tokens.css": "./dist/app-tokens.css",
     "./product.css": "./dist/product.css",
-    "./css/*.css": "./dist/*.css"
+    "./css/*.css": "./dist/*.css",
+    "./shared-flows.json": "./shared-flows.json"
   },
   "sideEffects": [
     "**/*.css"

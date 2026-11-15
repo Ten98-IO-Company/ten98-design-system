@@ -488,3 +488,31 @@ test('touch screens give every small target class a 44px floor, not only md cont
     assert.ok(coarse.includes(selector), `${selector} has a coarse-pointer size`);
   assert.match(coarse, /\.t98-button--sm, \.t98-button--lg \{ min-height: var\(--t98-control-touch\); \}/);
 });
+
+test('shared-flows.json lists each common feature with an export that exists on its entry point', async () => {
+  const pkg = JSON.parse(readFileSync(file('package.json'), 'utf8'));
+  assert.ok(pkg.files.includes('shared-flows.json'), 'the register ships in the package');
+  assert.equal(pkg.exports['./shared-flows.json'], './shared-flows.json', 'the register is reachable as @ten98/ui/shared-flows.json');
+  const register = JSON.parse(readFileSync(file('shared-flows.json'), 'utf8'));
+  assert.equal(register.schemaVersion, 1);
+  const ids = Object.keys(register.features);
+  assert.ok(ids.length > 0);
+  const semver = /^(\d+)\.(\d+)\.(\d+)$/;
+  const order = version => version.match(semver).slice(1).map(Number);
+  const notAfter = (a, b) => { const [x, y] = [order(a), order(b)]; for (let i = 0; i < 3; i += 1) if (x[i] !== y[i]) return x[i] < y[i]; return true; };
+  const entries = { '@ten98/ui': await import('../dist/index.js'), '@ten98/ui/app': await import('../dist/app.js') };
+  const names = new Set();
+  for (const id of ids) {
+    assert.match(id, /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/, `${id} is kebab-case`);
+    const { exports } = register.features[id];
+    assert.ok(Array.isArray(exports) && exports.length > 0, `${id} names at least one export`);
+    for (const { name, entry, since } of exports) {
+      assert.ok(entries[entry], `${id}: ${entry} is a package entry point`);
+      assert.equal(typeof entries[entry][name], 'function', `${id}: ${name} is exported from ${entry}`);
+      assert.match(since, semver, `${id}: since is a version`);
+      assert.ok(notAfter(since, pkg.version), `${id}: since ${since} is not later than ${pkg.version}`);
+      assert.ok(!names.has(name), `${name} is listed once`);
+      names.add(name);
+    }
+  }
+});
