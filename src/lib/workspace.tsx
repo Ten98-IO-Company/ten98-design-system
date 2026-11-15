@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { Alert, Button, Checkbox, Dialog, Field, Icon, Input, Select, cx, type DialogProps, type Tone } from './primitives.js';
 import { addDays, inclusiveDays } from './dates.js';
+import { trackHeldKeys } from './held-keys.js';
 import type { PasswordPolicy } from './auth-flows.js';
 
 export interface ProductOption { id: string; name: string; description?: string }
@@ -185,7 +186,7 @@ export interface ConfirmRequest {
   danger?: boolean;
   /** Text the user must type to confirm, for example the resource name. */
   confirmationText?: string;
-  /** Which action takes focus when the dialog opens; see ConfirmDialog. */
+  /** Which action takes focus when the dialog opens: cancel unless the caller chooses confirm; see ConfirmDialog. */
   initialFocus?: 'confirm' | 'cancel';
   /** A required checkbox label. */
   acknowledgement?: string;
@@ -196,10 +197,13 @@ export interface ConfirmRequest {
  * `if (await confirm({ title, description })) …`. The dialog only collects the decision; callers keep their own request,
  * retry and error handling after it closes. The promise resolves `true` on confirm and `false` on cancel, on Escape, when a
  * newer request replaces it, and when the component unmounts. Focus returns to the control that was focused when the
- * dialog opened (the Dialog's own focus return). `defaults` apply to every request, for example `{ danger: true }`.
+ * dialog opened (the Dialog's own focus return). `defaults` apply to every request, for example `{ danger: true }`. Focus
+ * starts on cancel unless a request sets `initialFocus: 'confirm'`, so one keypress never both opens and confirms.
  */
 export function useConfirmDialog(defaults: Partial<ConfirmRequest> = {}): [(request: ConfirmRequest) => Promise<boolean>, ReactNode] {
   const [request, setRequest] = useState<ConfirmRequest | null>(null);
+  // The dialog mounts only while asking, so start tracking held keys now: the keypress that asks is then known to be held.
+  useEffect(trackHeldKeys, []);
   const answer = useRef<((confirmed: boolean) => void) | null>(null);
   const settle = useCallback((confirmed: boolean) => { const resolve = answer.current; answer.current = null; resolve?.(confirmed); }, []);
   // An unmounted caller must not wait forever: answer any open request with false.
@@ -223,13 +227,15 @@ export interface ConfirmDialogProps {
   cancelLabel?: string;
   restoreFocus?: DialogProps['restoreFocus'];
   /**
-   * The action focused when the dialog opens, so Enter does what the caller chose. Defaults to cancel for a danger
-   * confirmation and to confirm otherwise. With confirm, a dialog that waits for typed text or the checkbox focuses that field.
+   * The action focused when the dialog opens, so Enter does what the caller chose. Defaults to cancel, danger or not: one
+   * keypress must never both open and confirm, and an Enter that reaches a focused confirm button confirms. Choose confirm
+   * only where Enter is meant to accept, for example voucher entry. A dialog that waits for typed text or the checkbox
+   * focuses that field unless cancel is chosen explicitly; confirm stays disabled until it is satisfied.
    */
   initialFocus?: 'confirm' | 'cancel';
 }
 /** Blocks closing while a mutation is pending; rejected mutations stay open for retry. */
-export function ConfirmDialog({ open, onOpenChange, title, description, onConfirm, confirmLabel = 'Confirm', danger = false, confirmationText, children, acknowledgement, cancelLabel = 'Cancel', restoreFocus, initialFocus = danger ? 'cancel' : 'confirm' }: ConfirmDialogProps) {
+export function ConfirmDialog({ open, onOpenChange, title, description, onConfirm, confirmLabel = 'Confirm', danger = false, confirmationText, children, acknowledgement, cancelLabel = 'Cancel', restoreFocus, initialFocus }: ConfirmDialogProps) {
   const cancelButton = useRef<HTMLButtonElement>(null);
   const id = useId(); const [input, setInput] = useState(''); const [acknowledged, setAcknowledged] = useState(false); const [pending, setPending] = useState(false); const [error, setError] = useState(''); const busy = useRef(false);
   useEffect(() => { if (open) { setInput(''); setAcknowledged(false); setError(''); } }, [open]);
@@ -239,7 +245,7 @@ export function ConfirmDialog({ open, onOpenChange, title, description, onConfir
     busy.current = true; setPending(true); setError('');
     try { await onConfirm(); onOpenChange(false); } catch { setError('The action could not be completed. Try again.'); } finally { busy.current = false; setPending(false); }
   }
-  const startFocus = initialFocus === 'cancel' ? cancelButton : confirmationText || acknowledgement ? 'first-field' : 'primary';
+  const startFocus = initialFocus !== 'cancel' && (confirmationText || acknowledgement) ? 'first-field' : initialFocus === 'confirm' ? 'primary' : cancelButton;
   return <Dialog open={open} onOpenChange={next => { if (!busy.current) onOpenChange(next); }} closeDisabled={pending} restoreFocus={restoreFocus} initialFocus={startFocus} title={title} description={description} footer={<><Button ref={cancelButton} variant="secondary" disabled={pending} onClick={() => onOpenChange(false)}>{cancelLabel}</Button><Button variant={danger ? 'danger' : 'primary'} loading={pending} disabled={blocked} onClick={confirm}>{confirmLabel}</Button></>}>
     {children}
     {acknowledgement && <Checkbox label={acknowledgement} required checked={acknowledged} disabled={pending} onChange={event => setAcknowledged(event.target.checked)}/>}
