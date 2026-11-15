@@ -4,14 +4,15 @@ import { useCallback, useEffect, useRef, type ReactNode } from 'react';
 import { useConfirmDialog, type ConfirmRequest } from './workspace.js';
 
 /**
- * A router adapter: a hook that holds the app's in-app navigation while `shouldBlock()` resolves true. It is called on every
- * render of the guarded screen, so pass the same function each time. With TanStack Router:
+ * A router adapter: a hook that holds the app's in-app navigation while `shouldBlock()` resolves true. useLeaveGuard calls it
+ * as a hook on every render of the guarded screen, so it must never change between renders: define it once at module level,
+ * and never switch it on, off or to another adapter while the screen is mounted, since that changes the hook order. With TanStack Router:
  * `const useRouterBlocker: LeaveGuardBlocker = shouldBlock => { useBlocker({ shouldBlockFn: shouldBlock, enableBeforeUnload: false }); };`
  */
 export type LeaveGuardBlocker = (shouldBlock: () => Promise<boolean>) => void;
 
 export interface LeaveGuardOptions {
-  /** The router adapter. Without one, only the screen's own exits (`leave`) and the browser's unload are guarded. */
+  /** The router adapter, the same module-level hook on every render. Without one, only the screen's own exits (`leave`) and the browser's unload are guarded. */
   useBlocker?: LeaveGuardBlocker;
   /** Wording of the question, merged over the default "Discard unsaved changes?" prompt. */
   prompt?: Partial<ConfirmRequest>;
@@ -32,7 +33,11 @@ export interface LeaveGuard {
 
 /** The same question and answers as Dialog's in-dialog discard, so leaving a screen and closing an editor read alike. */
 const leavePrompt: ConfirmRequest = { title: 'Discard unsaved changes?', description: 'Your changes have not been saved.', confirmLabel: 'Discard changes', cancelLabel: 'Keep editing', danger: true };
-// A settled exit may land asynchronously (a history step, a router transition), so it passes for a moment rather than one call.
+// A settled exit may land asynchronously (a history step, a router transition), so the pass lasts a moment, not just one
+// synchronous call. It also expires: an exit that starts no router navigation (local state, an app's own navigate) would
+// otherwise leave the pass in place, and a later, unrelated navigation or unload would go through without asking. A
+// transition that reaches shouldBlock more than 2 s after pass() asks again, so in that rare case the user is asked
+// twice rather than losing work unasked.
 const passWindow = 2000;
 const noBlocker: LeaveGuardBlocker = () => {};
 
