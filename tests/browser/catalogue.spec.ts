@@ -240,7 +240,7 @@ test('navigation restores focus, hides scrollbar tracks and gives current setup 
   expect(await page.locator('.catalog-sidebar > nav').evaluate(element => getComputedStyle(element).scrollbarWidth)).toBe('none');
   await page.goto('/#getting-started');
   await expect(page.getByRole('heading', { name: 'Copy a component. Keep the system.' })).toBeVisible();
-  await expect(page.getByLabel('Build the library', { exact: true })).toHaveText('npm install\nnpx playwright install chromium\nnpm run check:all\nnpm pack');
+  await expect(page.getByLabel('Build the library', { exact: true })).toHaveText('pnpm install\npnpm exec playwright install chromium\npnpm run check:all\npnpm pack');
   await expect(page.locator('.reference-code code').filter({ hasText: 'export default function ProjectForm' })).toContainText('className="t98-control-stack"');
   await expect(page.getByLabel('Existing application stylesheet', { exact: true })).toHaveText("@import '@ten98/ui/app-tokens.css';\n@import '@ten98/ui/app.css';\n@import '@ten98/ui/product.css';\n/* App-specific overrides follow. */");
 });
