@@ -51,7 +51,8 @@ span.t98-truncate, strong.t98-truncate, em.t98-truncate, small.t98-truncate, cod
 .t98-link { color: var(--t98-accent); text-underline-offset: 3px; border-radius: var(--t98-radius-sm); }
 :where(.t98-text, .t98-field-description, .t98-alert, .t98-banner, .t98-card-description, .t98-dialog-description, .t98-empty-state, .t98-page-description) a:not([class]) { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
 .t98-link--inline { text-decoration: underline; }
-.t98-link--standalone { text-decoration: underline; font-weight: var(--t98-weight-semibold); }
+/* A standalone link is its own target, so it gets the WCAG 2.2 (2.5.8) 24px minimum on every pointer; coarse pointers get 44px below. */
+.t98-link--standalone { display: inline-flex; align-items: center; min-block-size: 24px; text-decoration: underline; font-weight: var(--t98-weight-semibold); }
 .t98-link--standalone:hover { text-decoration-thickness: 2px; }
 /* Touch screens: a standalone link is a control, so it gets the 44px target; inline links in a sentence are exempt. */
 @media (pointer: coarse) { .t98-link--standalone { display: inline-flex; align-items: center; min-block-size: var(--t98-control-touch); } }

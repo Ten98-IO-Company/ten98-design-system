@@ -349,6 +349,34 @@ test('fileSize shows bytes in 1024 steps with the locale digits; a missing or ne
   assert.equal(ar.fileSize(1536), `${new Intl.NumberFormat('ar-EG').format(1.5)} KB`);
 });
 
+test('a value that rounds to zero has no minus sign; a real negative keeps it', () => {
+  const format = ui.createDisplayFormatter({ locale: 'en-US', timeZone: 'UTC' });
+  assert.equal(format.currency(-0.4, 'JPY'), '¥0');
+  assert.equal(format.currency(-12, 'JPY'), '-¥12');
+  assert.equal(format.currency(-0.004, 'USD'), '$0.00');
+  assert.equal(format.currency('-0.004', 'USD'), '-$0.004', 'an exact string keeps every digit it carries, so it is not zero');
+  assert.equal(format.currency(-1250.5, 'AED', { wholeUnits: true }).replace(/\s/g, ' '), '-AED 1,251');
+  assert.equal(format.number(-0.04, { maximumFractionDigits: 1 }), '0');
+  assert.equal(format.number(-3.5), '-3.5');
+  assert.equal(format.percent(-0.0001), '0%');
+  assert.equal(format.percent(-0.25), '-25%');
+  assert.equal(format.compact(-0.01), '0');
+});
+
+test('currency without a code shows the exact amount grouped, with no trailing space', () => {
+  const format = ui.createDisplayFormatter({ locale: 'en-US', timeZone: 'UTC' });
+  assert.equal(format.currency('12.35', ''), '12.35');
+  assert.equal(format.currency('1234.5', ''), '1,234.5');
+  assert.equal(format.currency('0.000123', ' '), '0.000123');
+  assert.equal(format.currency(1234.5, ''), '1,234.5');
+  // A JS number has no exact digits of its own: it uses the plain number format, not its float string.
+  assert.equal(format.currency(0.1 + 0.2, ''), '0.3');
+  assert.equal(format.currency(1e-7, ''), '0');
+  assert.equal(format.currency(-1e-7, ''), '0');
+  // A malformed non-empty code keeps showing the amount and the code.
+  assert.equal(format.currency('12.35', 'xyz!'), '12.35 XYZ!');
+});
+
 test('a date-only value shows its calendar day in every time zone; an instant follows the zone (#158)', () => {
   const west = ui.createDateFormatter({ locale: 'en', timeZone: 'America/Los_Angeles' });
   assert.equal(west.date('2026-11-01'), 'Nov 1, 2026');

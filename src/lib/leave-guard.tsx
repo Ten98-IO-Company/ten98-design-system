@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { trackHeldKeys } from './held-keys.js';
 import { ConfirmDialog, type ConfirmRequest } from './workspace.js';
 
 /**
@@ -61,6 +62,8 @@ const noBlocker: LeaveGuardBlocker = () => {};
 export function useLeaveGuard(dirty: boolean, { useBlocker = noBlocker, prompt, confirm }: LeaveGuardOptions = {}): LeaveGuard {
   const latest = useRef({ dirty, prompt, confirm });
   latest.current = { dirty, prompt, confirm };
+  // The prompt mounts only while asking, so the key that asks must already be tracked as held (it also starts at load).
+  useEffect(trackHeldKeys, []);
   const passUntil = useRef(0);
   const [request, setRequest] = useState<ConfirmRequest | null>(null);
   const [pending, setPending] = useState(false);

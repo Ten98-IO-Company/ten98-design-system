@@ -41,6 +41,22 @@ test('a cached dark theme paints dark from the first frame and never flips', asy
   await expect(page.getByRole('radio', { name: 'Dark' })).toBeChecked();
 });
 
+test('a router re-inserting the head script after first paint does not rewrite the theme', async ({ page }) => {
+  await page.emulateMedia({ colorScheme: 'light' });
+  await seed(page, 'dark');
+  await open(page);
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  // As TanStack Start does on client navigation: the same inline script appended again, now with a stale cache.
+  await page.evaluate(([key, code]) => {
+    localStorage.setItem(key, 'light');
+    const script = document.createElement('script');
+    script.textContent = code;
+    document.head.append(script);
+  }, [themeStorageKey, createThemeScript()]);
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  expect(await log(page)).toEqual(['dark']);
+});
+
 test('system follows the emulated colour scheme live', async ({ page }) => {
   await page.emulateMedia({ colorScheme: 'dark' });
   await open(page);

@@ -1,11 +1,12 @@
 {
   "name": "@ten98/ui",
-  "version": "0.39.0",
+  "version": "0.39.3",
   "description": "Shared design tokens, React components and application patterns for the ten98 suite",
   "type": "module",
   "license": "MIT",
   "files": [
     "dist",
+    "shared-flows.json",
     "THIRD_PARTY_NOTICES.md"
   ],
   "main": "./dist/index.js",
@@ -28,7 +29,8 @@
     "./app.css": "./dist/app.css",
     "./app-tokens.css": "./dist/app-tokens.css",
     "./product.css": "./dist/product.css",
-    "./css/*.css": "./dist/*.css"
+    "./css/*.css": "./dist/*.css",
+    "./shared-flows.json": "./shared-flows.json"
   },
   "sideEffects": [
     "**/*.css"

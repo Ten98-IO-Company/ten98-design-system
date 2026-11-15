@@ -42,12 +42,13 @@ test('a dialog starts focus where the caller chose, keeps focus inside and retur
   await expect(page.getByRole('button', { name: 'Open ref' })).toBeFocused();
 });
 
-test('a confirmation focuses confirm, or cancel when it is destructive, so Enter takes the expected choice', async ({ page }) => {
+test('a confirmation focuses cancel, danger or not, unless the caller chooses confirm, so Enter takes the expected choice', async ({ page }) => {
   await page.goto('/tests/dialog-focus.html');
   const dialog = page.getByRole('dialog');
 
+  // One keypress must never both open and confirm, so even a harmless confirmation starts on Cancel.
   await open(page, 'Confirm post');
-  await expect(dialog.getByRole('button', { name: 'Go ahead' })).toBeFocused();
+  await expect(dialog.getByRole('button', { name: 'Cancel' })).toBeFocused();
   await page.keyboard.press('Enter');
   await expect(dialog).toBeHidden();
 
@@ -69,6 +70,6 @@ test('a confirmation focuses confirm, or cancel when it is destructive, so Enter
   await page.keyboard.press('Enter');
   await expect(dialog).toBeHidden();
 
-  expect(await log(page)).toEqual(['confirm post', 'close post', 'close delete', 'close purge', 'confirm rename', 'close rename']);
+  expect(await log(page)).toEqual(['close post', 'close delete', 'close purge', 'confirm rename', 'close rename']);
   await expect(page.getByRole('button', { name: 'Confirm rename' })).toBeFocused();
 });
