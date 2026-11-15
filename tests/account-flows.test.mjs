@@ -139,10 +139,9 @@ test('SettingsPanel posts natively with action, renders no form without a handle
 });
 
 // Runs the pre-paint script against a stand-in document and storage.
-function run(script, storage) {
-  const documentElement = { dataset: {} };
-  new Function('localStorage', 'document', script)(storage, { documentElement });
-  return documentElement.dataset.theme;
+function run(script, storage, doc = { documentElement: { dataset: {} } }) {
+  new Function('localStorage', 'document', script)(storage, doc);
+  return doc.documentElement.dataset.theme;
 }
 const store = values => ({ getItem: key => values[key] ?? null });
 
@@ -166,6 +165,18 @@ test('the pre-paint script reads its own key and cannot close its script element
   // Constant apart from the encoded key: nothing else from the app or the account reaches the inline script.
   assert.equal(createThemeScript('a').replace('"a"', 'KEY'), createThemeScript('b').replace('"b"', 'KEY'));
   assert.equal(createThemeScript(), createThemeScript(themeStorageKey));
+});
+
+test('the pre-paint script acts once per document, so a router re-running head scripts cannot overwrite the theme', () => {
+  const script = createThemeScript();
+  const doc = { documentElement: { dataset: {} } };
+  assert.equal(run(script, store({ [themeStorageKey]: 'light' }), doc), 'light');
+  // useTheme then applies the account value; a client navigation re-inserts the script with a stale or blocked cache.
+  doc.documentElement.dataset.theme = 'dark';
+  assert.equal(run(script, store({ [themeStorageKey]: 'light' }), doc), 'dark');
+  assert.equal(run(script, { getItem() { throw new Error('SecurityError'); } }, doc), 'dark');
+  // A new document runs it again.
+  assert.equal(run(script, store({ [themeStorageKey]: 'light' })), 'light');
 });
 
 test('isAccountTheme accepts exactly the three themes', () => {
