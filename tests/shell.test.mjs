@@ -69,6 +69,62 @@ test('WorkspaceProjectSwitcher covers role, no workspaces, loading, empty and cr
   assert.match(sw({ labels: { noWorkspaces: 'Nada' }, workspaces: [] }), />Nada</);
 });
 
+const only = props => renderToStaticMarkup(h(WorkspaceProjectSwitcher, { workspaces: people, workspaceId: 'acme', onWorkspaceChange: noop, ...props }));
+
+test('WorkspaceProjectSwitcher without projects renders only the workspace field, with loading, empty and create states', () => {
+  const base = only({ create: { href: 'new', label: 'Create company' }, labels: { workspace: 'Company' } });
+  assert.equal(base.match(/<select/g).length, 1);
+  assert.ok(!base.includes('Project'));
+  assert.match(base, />Company<\/label>/);
+  assert.match(base, /id="[^"]+-role"[^>]*>Admin</);
+  // The visible label names a workspace create action; it does not say "in <workspace>".
+  assert.match(base, /<a href="new" class="t98-switcher__create"><svg[^]*<span>Create company<\/span><\/a>/);
+  assert.match(only({ create: { onSelect: noop } }), /<button type="button" class="t98-switcher__create"><svg[^]*<span>New workspace<\/span>/);
+  const loading = only({ workspaces: null, workspaceId: null, create: { href: 'new' } });
+  assert.match(loading, /<select[^>]*disabled=""/);
+  assert.match(loading, /<select[^>]*aria-busy="true"/);
+  assert.match(loading, /<option value="" selected="">Loading workspaces…<\/option><\/select>/);
+  assert.match(loading, /t98-switcher__create/);
+  assert.match(only({ workspaces: null, workspaceId: null, labels: { loadingWorkspaces: 'Loading companies…' } }), />Loading companies…</);
+  const empty = only({ workspaces: [], workspaceId: null, create: { onSelect: noop, label: 'Create company' }, labels: { noWorkspaces: 'No companies yet' } });
+  assert.match(empty, /^<div class="t98-switcher"><p class="t98-switcher__empty">No companies yet<\/p><button type="button" class="t98-switcher__create">[^]*Create company/);
+  assert.match(only({ workspaces: [], workspaceId: null }), /^<p class="t98-switcher t98-switcher__empty">No workspaces available<\/p>$/);
+});
+
+test('WorkspaceProjectSwitcher with projects keeps hiding create without workspaces and shows both fields busy while workspaces load', () => {
+  assert.match(sw({ workspaces: [], create: { onSelect: noop } }), /^<p class="t98-switcher t98-switcher__empty">No workspaces available<\/p>$/);
+  const loading = sw({ workspaces: null, workspaceId: null, projects: [], projectId: null });
+  assert.equal(loading.match(/aria-busy="true"/g).length, 2);
+  assert.match(loading, /Loading workspaces…/);
+  assert.match(loading, /Loading projects…/);
+  assert.ok(!loading.includes('No projects yet'));
+});
+
+test('WorkspaceProjectSwitcher placeholder uses chooseWorkspace and falls back to the workspace label', () => {
+  assert.match(only({ workspaceId: null }), /<option value="" disabled=""[^>]*>Workspace<\/option>/);
+  assert.match(sw({ workspaceId: null, labels: { workspace: 'Company' } }), /<option value="" disabled=""[^>]*>Company<\/option>/);
+  const chosen = only({ workspaceId: null, labels: { workspace: 'Company', chooseWorkspace: 'Choose a company' } });
+  assert.match(chosen, /<option value="" disabled=""[^>]*>Choose a company<\/option>/);
+  assert.match(chosen, />Company<\/label>/);
+  assert.ok(!only().includes('Choose a company'));
+});
+
+test('WorkspaceProjectSwitcher shows no role caption or aria-describedby when the workspace is null or not in the list', () => {
+  for (const render of [only, sw]) for (const workspaceId of [null, 'gone']) {
+    const html = render({ workspaceId });
+    assert.ok(!html.includes('aria-describedby'), `${workspaceId}`);
+    assert.ok(!html.includes('t98-switcher__role'), `${workspaceId}`);
+    assert.ok(!html.includes('>Admin<'), `${workspaceId}`);
+  }
+  assert.match(only(), /aria-describedby=/);
+});
+
+test('WorkspaceProjectSwitcher renders the same markup for a new workspaces array with the same ids', () => {
+  const copy = people.map(item => ({ ...item }));
+  assert.equal(only({ workspaces: copy }), only());
+  assert.equal(sw({ workspaces: copy }), sw());
+});
+
 test('WorkspaceProjectSwitcher shows decorative workspace initials beside the select', () => {
   const html = sw();
   assert.match(html, /<span class="t98-avatar t98-avatar--sm t98-switcher__avatar" aria-hidden="true">AC<\/span>/);

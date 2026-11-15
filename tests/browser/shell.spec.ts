@@ -219,7 +219,7 @@ test('workspace switcher states and search status region', async ({ page }) => {
   await expect(workspace).toHaveAccessibleDescription('Workspace admin');
   await expect(page.getByRole('link', { name: /^New project in Acme/ })).toHaveAttribute('href', '#/projects/new');
   await expect(page.getByText('Loading projects…')).toBeAttached();
-  await expect(page.locator('select[aria-busy="true"]')).toBeDisabled();
+  await expect(page.getByLabel('Project').and(page.locator('[aria-busy="true"]'))).toBeDisabled();
   await expect(page.getByText('No projects yet')).toBeAttached();
   await expect(page.getByRole('button', { name: 'Create project in Labs' })).toBeVisible();
   await expect(page.getByText('No workspaces available')).toBeVisible();
@@ -230,6 +230,46 @@ test('workspace switcher states and search status region', async ({ page }) => {
   await page.getByRole('button', { name: 'Clear search' }).click();
   await expect(search).toHaveValue('');
   await expect(page.getByRole('button', { name: 'Clear search' })).toHaveCount(0);
+});
+
+test('workspace-only switcher: company field with role caption, loading, empty and create', async ({ page }) => {
+  const switchers = page.locator('.t98-card').filter({ has: page.getByRole('heading', { name: 'Company (workspace only)' }) }).locator('.t98-switcher');
+  await expect(switchers).toHaveCount(3);
+  await expect(switchers.getByLabel('Project')).toHaveCount(0);
+  const company = switchers.nth(0).getByLabel('Company');
+  await expect(company).toHaveAccessibleDescription('Owner');
+  await company.selectOption('south');
+  await expect(company).toHaveAccessibleDescription('Accountant · not set up yet');
+  await expect(switchers.nth(0).getByRole('link', { name: 'Create company', exact: true })).toHaveAttribute('href', '#/companies/new');
+  const loading = switchers.nth(1).getByLabel('Company');
+  await expect(loading).toBeDisabled();
+  await expect(loading).toHaveAttribute('aria-busy', 'true');
+  await expect(loading.locator('option:checked')).toHaveText('Loading companies…');
+  await expect(switchers.nth(1).getByRole('link', { name: 'Create company', exact: true })).toBeVisible();
+  await expect(switchers.nth(2).getByText('No companies yet')).toBeVisible();
+  await expect(switchers.nth(2).getByRole('combobox')).toHaveCount(0);
+  await expect(switchers.nth(2).getByRole('button', { name: 'Create company', exact: true })).toBeEnabled();
+});
+
+test('workspace-only switcher keeps value and focus, changes no options and calls no onWorkspaceChange when the list is replaced with the same ids', async ({ page }) => {
+  const company = page.locator('.t98-card').filter({ has: page.getByRole('heading', { name: 'Company (workspace only)' }) }).locator('.t98-switcher').first().getByLabel('Company');
+  const counts = page.getByRole('status', { name: 'Company list refreshes' });
+  await company.selectOption('south');
+  await expect(counts).toHaveText('refreshed 0, changed 1');
+  await company.focus();
+  // Record any option, text or attribute change in the select while the list is replaced.
+  await company.evaluate(select => {
+    const record = window as Window & { selectMutations?: number };
+    record.selectMutations = 0;
+    new MutationObserver(changes => { record.selectMutations! += changes.length; }).observe(select, { childList: true, subtree: true, characterData: true, attributes: true });
+  });
+  for (let refresh = 0; refresh < 3; refresh++) await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+  await expect(counts).toHaveText('refreshed 3, changed 1');
+  await expect(company).toHaveValue('south');
+  await expect(company).toBeFocused();
+  await expect(company.locator('option')).toHaveText(['Northwind Trading', 'Southwind Partners']);
+  await expect(company).toHaveAccessibleDescription('Accountant · not set up yet');
+  expect(await page.evaluate(() => (window as Window & { selectMutations?: number }).selectMutations)).toBe(0);
 });
 
 test('right-to-left mirrors the layout without overflow', async ({ page }, info) => {
