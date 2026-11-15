@@ -303,6 +303,7 @@ export interface AppTopbarProps {
   menuToggle?: boolean;
   menuLabel?: string;
   search?: ReactNode;
+  /** An environment or plan tag beside the search; `hideOnMobile` hides it at 760px and narrower. The bar shows none unless you pass one. Not for release-stage labels such as Beta or Preview. */
   badge?: { label: string; hideOnMobile?: boolean };
   actions?: ReactNode;
 }
