@@ -2,7 +2,7 @@
 .t98-flow-section { min-width:0; max-width:100%; display:grid; gap:var(--t98-space-4); color:var(--t98-text); font:var(--t98-text-sm)/var(--t98-leading-relaxed) var(--t98-font); overflow-wrap:anywhere; }
 .t98-flow-header { display:flex; flex-wrap:wrap; align-items:flex-start; justify-content:space-between; gap:var(--t98-space-4); min-width:0; }
 .t98-flow-heading { flex:1 1 16rem; min-width:0; }
-.t98-flow-heading > h2 { margin:0; font:var(--t98-weight-semibold) var(--t98-text-xl)/var(--t98-leading-tight) var(--t98-heading); letter-spacing:-.02em; }
+.t98-flow-heading > h2 { margin:0; font:var(--t98-weight-semibold) var(--t98-text-xl)/var(--t98-leading-tight) var(--t98-heading); letter-spacing:-.025em; }
 .t98-flow-heading > p { margin:var(--t98-space-2) 0 0; color:var(--t98-muted); max-width:var(--t98-reading-max); }
 .t98-flow-scope { color:var(--t98-muted); font-size:var(--t98-text-xs); }
 :where(.t98-flow-body,.t98-control-stack) { display:grid; gap:var(--t98-space-4); min-width:0; align-content:start; }

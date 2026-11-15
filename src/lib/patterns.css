@@ -37,6 +37,8 @@
 .t98-table-status { padding: 0 1.125rem .75rem; }
 .t98-table .t98-table-cell--start { text-align: start; }.t98-table .t98-table-cell--end { text-align: end; }.t98-table .t98-table-cell--center { text-align: center; }
 .t98-table .t98-table-cell--numeric { font-variant-numeric: tabular-nums; }
+/* Figures, not their headers, take the mono: equal-width digits, signs and separators line up down the column. */
+.t98-table td.t98-table-cell--numeric { font-family: var(--t98-mono); }
 /* break-word, not anywhere: a wrapping column keeps its longest word's width instead of collapsing to one letter per line. */
 .t98-table .t98-table-cell--wrap { white-space: normal; overflow-wrap: break-word; }
 .t98-table .t98-table-cell--sm { min-width: 8rem; }.t98-table .t98-table-cell--md { min-width: 12rem; }.t98-table .t98-table-cell--lg { min-width: 16rem; }
@@ -46,6 +48,11 @@
 .t98-table .t98-table-row--interactive { cursor: pointer; }
 .t98-table .t98-table-row--interactive:focus-visible { outline: 2px solid var(--t98-accent); outline-offset: -2px; }
 .t98-table tbody tr[aria-current='true'] { background: var(--t98-accent-soft); box-shadow: inset 3px 0 0 var(--t98-accent); }
+/* Ink is the only accent, so the bar, not the tint, tells the current row from a hovered one. Focused, the bar steps
+   inside the ring so both stay visible (tests/browser/brand-theme.spec.ts). */
+.t98-table tbody tr[aria-current='true']:focus-visible { box-shadow: inset 5px 0 0 var(--t98-accent-soft), inset 8px 0 0 var(--t98-accent); }
+.t98-table tbody tr[aria-current='true']:dir(rtl) { box-shadow: inset -3px 0 0 var(--t98-accent); }
+.t98-table tbody tr[aria-current='true']:dir(rtl):focus-visible { box-shadow: inset -5px 0 0 var(--t98-accent-soft), inset -8px 0 0 var(--t98-accent); }
 /* A virtualized table's stand-in for rows that are not rendered. */
 .t98-table tbody tr.t98-table-spacer, .t98-table tbody tr.t98-table-spacer:hover { background: none; }
 .t98-table .t98-table-spacer td { padding: 0; border: 0; }
@@ -75,13 +82,14 @@
   .t98-data-table--stack .t98-table td[data-label]::before, .t98-data-table--stack .t98-table th[data-label]::before { content: attr(data-label); display: block; color: var(--t98-muted); font-size: .75rem; font-weight: 600; }
   .t98-data-table--stack .t98-table td:empty { display: none; }
 }
-.t98-metric-card { min-width: 0; border: 1px solid var(--t98-border); border-radius: calc(var(--t98-radius) + 2px); padding: 1rem 1.25rem; background: var(--t98-surface); color: var(--t98-text); font-family: var(--t98-font); }
+.t98-metric-card { min-width: 0; border: 1px solid var(--t98-border); border-radius: var(--t98-radius-lg); padding: 1rem 1.25rem; background: var(--t98-surface); color: var(--t98-text); font-family: var(--t98-font); }
 .t98-metric-label { margin: 0; color: var(--t98-muted); font-size: .75rem; font-weight: 500; }
 .t98-metric-body { display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-width: 0; margin-top: .75rem; }
-.t98-metric-value { min-width: 0; overflow-wrap: anywhere; font-size: clamp(1.5rem, 2.5vw, 2rem); line-height: 1.15; font-weight: 600; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.t98-metric-value { min-width: 0; overflow-wrap: anywhere; font-size: clamp(1.5rem, 2.5vw, 2rem); line-height: 1.15; font-family: var(--t98-mono); font-weight: 600; letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
 .t98-sparkline { display: block; flex: 0 1 7rem; width: 7rem; height: 2.5rem; min-width: 3.5rem; overflow: visible; }
 .t98-metric-change { display: flex; align-items: center; gap: .375rem; margin: .75rem 0 0; font-size: .75rem; }
-.t98-metric-value--unavailable { font-size: 1rem; font-weight: 500; letter-spacing: normal; color: var(--t98-muted); }
+/* The missing marker is words, not a figure: it keeps the text face. */
+.t98-metric-value--unavailable { font-family: var(--t98-font); font-size: 1rem; font-weight: 500; letter-spacing: normal; color: var(--t98-muted); }
 .t98-metric-hint { margin: .5rem 0 0; color: var(--t98-muted); font-size: .75rem; line-height: 1.5; overflow-wrap: anywhere; }
 .t98-metric-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 14rem), 1fr)); gap: 1rem; margin: 0; padding: 0; list-style: none; }
 .t98-metric-grid--sm { grid-template-columns: repeat(auto-fill, minmax(min(100%, 10rem), 1fr)); }
@@ -91,13 +99,13 @@
 .t98-page-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 1.5rem; color: var(--t98-text); font-family: var(--t98-font); }
 /* Titles and descriptions often carry unbroken names or URLs: let them wrap rather than widen the page. */
 .t98-page-header > div { min-width: 0; }
-.t98-page-header h1 { margin: 0; overflow-wrap: anywhere; font-family: var(--t98-heading, var(--t98-font)); font-size: clamp(1.375rem, 2.5vw, 1.75rem); line-height: 1.25; letter-spacing: -.02em; font-weight: 600; }
+.t98-page-header h1 { margin: 0; overflow-wrap: anywhere; font-family: var(--t98-heading, var(--t98-font)); font-size: clamp(1.375rem, 2.5vw, 1.75rem); line-height: 1.25; letter-spacing: -.025em; font-weight: 600; }
 .t98-eyebrow { margin: 0 0 .5rem; color: var(--t98-muted); font: 500 .75rem/1.4 var(--t98-font); }
 .t98-page-description { overflow-wrap: anywhere; margin: .625rem 0 0; color: var(--t98-muted); font-size: .8125rem; line-height: 1.65; max-width: 44rem; }
 .t98-page-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; flex-shrink: 0; }
 .t98-empty-state { display: flex; flex-direction: column; align-items: center; padding: 2.5rem 1.5rem; text-align: center; white-space: normal; color: var(--t98-text); font-family: var(--t98-font); }
 .t98-empty-icon { display: grid; place-items: center; width: 2.5rem; height: 2.5rem; margin-bottom: .75rem; background: var(--t98-subtle); color: var(--t98-muted); border-radius: var(--t98-radius); }
-.t98-empty-state h3 { margin: 0; font-size: .875rem; font-weight: 600; }
+.t98-empty-state h3 { margin: 0; font-family: var(--t98-display); font-size: 1rem; font-style: italic; font-weight: 400; line-height: 1.4; }
 .t98-empty-state p { max-width: 24rem; margin: .25rem 0 0; color: var(--t98-muted); font-size: .8125rem; line-height: 1.5; }
 .t98-empty-action { margin-top: 1rem; }
 .t98-activity-feed { display: flex; flex-direction: column; gap: 0; list-style: none; margin: 0; padding: 0; font-family: var(--t98-font); color: var(--t98-text); }
@@ -117,7 +125,7 @@
 .t98-resource-media :where(img, .t98-image-fallback) { display: block; inline-size: 100%; border-radius: 0; }
 .t98-resource-card--media .t98-resource-topline:empty { display: none; }
 .t98-resource-tags { display: flex; flex-wrap: wrap; gap: var(--t98-space-1); margin: .5rem 0 0; padding: 0; list-style: none; }
-.t98-resource-card h3 { margin: 0; font-size: .9375rem; font-weight: 600; letter-spacing: -.01em; }
+.t98-resource-card h3 { margin: 0; font-size: .9375rem; font-weight: 600; letter-spacing: -.02em; }
 .t98-resource-description { margin: .5rem 0 0; color: var(--t98-muted); font-size: .75rem; line-height: 1.7; }
 .t98-resource-content { margin-top: 1rem; font-size: .75rem; }
 .t98-resource-actions { display: flex; flex-wrap: wrap; gap: .5rem; padding-top: 1.25rem; margin-top: auto; }

@@ -24,7 +24,7 @@ collectReferences(tokens, 'tokens');
 export function tokenGroup(name: string): string {
   const key = name.replace(/^--t98-/, '');
   if (/^(bg$|surface(?:-|$)|subtle$|text$|muted$|placeholder$|border$|control-border$|accent(?:-|$)|on-accent$|success(?:-|$)|warning(?:-|$)|danger(?:-|$)|info(?:-|$)|overlay$|disabled-|focus$|chart-)/.test(key)) return 'Colors';
-  if (/^(font$|heading$|mono$|text-|leading-|weight-)/.test(key)) return 'Typography';
+  if (/^(font$|heading$|mono$|display$|text-|leading-|weight-)/.test(key)) return 'Typography';
   if (key.startsWith('space-') || key === 'cell-padding') return 'Spacing';
   if (/^(control-|icon-)/.test(key)) return 'Sizing';
   if (/^(sidebar-|header-|content-|form-|auth-|reading-|z-)/.test(key)) return 'Layout';

@@ -1,5 +1,5 @@
 /* Charts: --t98-chart-1..5 (tokens.css) are at least 3:1 against the surface in both themes. Series also differ by pattern, dash and marker. */
-.t98-chart { margin: 0; padding: var(--t98-space-4); display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--t98-space-3); min-inline-size: 0; border: 1px solid var(--t98-border); border-radius: calc(var(--t98-radius) + 2px); background: var(--t98-surface); color: var(--t98-text); font: 400 var(--t98-text-sm)/1.5 var(--t98-font); font-variant-numeric: tabular-nums; }
+.t98-chart { margin: 0; padding: var(--t98-space-4); display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--t98-space-3); min-inline-size: 0; border: 1px solid var(--t98-border); border-radius: var(--t98-radius-lg); background: var(--t98-surface); color: var(--t98-text); font: 400 var(--t98-text-sm)/1.5 var(--t98-font); font-variant-numeric: tabular-nums; }
 .t98-chart-caption { display: flex; flex-wrap: wrap; gap: var(--t98-space-1) var(--t98-space-3); align-items: baseline; overflow-wrap: anywhere; }
 .t98-chart-caption strong { font-size: var(--t98-text-lg); font-weight: 600; }
 .t98-chart-context, .t98-chart-stats, .t98-chart-note { color: var(--t98-muted); }
@@ -69,7 +69,7 @@
 .t98-bar-list-item[data-selected] { border-color: var(--t98-accent); background: var(--t98-accent-soft); }
 .t98-bar-list-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--t98-space-1) var(--t98-space-3); }
 .t98-bar-list-name { min-inline-size: 0; overflow-wrap: anywhere; font-weight: 600; color: var(--t98-text); text-align: start; }
-a.t98-bar-list-name { color: var(--t98-accent); }
+a.t98-bar-list-name { color: var(--t98-accent); text-decoration: underline; text-underline-offset: 3px; }
 .t98-bar-list-button { all: unset; box-sizing: border-box; display: inline-flex; align-items: center; min-block-size: var(--t98-control-touch); cursor: pointer; font: inherit; font-weight: 600; color: var(--t98-text); text-decoration: underline; text-underline-offset: 3px; }
 .t98-bar-list-value { font-variant-numeric: tabular-nums; margin-inline-start: auto; }
 .t98-bar-list-secondary { color: var(--t98-muted); }
@@ -104,8 +104,8 @@ a.t98-bar-list-name { color: var(--t98-accent); }
 .t98-hour-cell { min-inline-size: 2.25rem; block-size: 2rem; padding: 0 2px; border-radius: var(--t98-radius-sm); text-align: center; color: var(--t98-text); background: var(--t98-subtle); }
 .t98-hour-cell--1 { background: color-mix(in srgb, var(--t98-chart-1) 18%, var(--t98-surface)); }
 .t98-hour-cell--2 { background: color-mix(in srgb, var(--t98-chart-1) 30%, var(--t98-surface)); }
-/* Mixes stop at 45% so default text keeps 4.5:1 in both themes; the top step switches to on-accent text. */
-.t98-hour-cell--3 { background: color-mix(in srgb, var(--t98-chart-1) 45%, var(--t98-surface)); }
+/* Mixes stop at 40% so default text keeps 4.5:1 in both themes (ink is chart-1); the top step switches to on-accent text. */
+.t98-hour-cell--3 { background: color-mix(in srgb, var(--t98-chart-1) 40%, var(--t98-surface)); }
 .t98-hour-cell--4 { background: var(--t98-chart-1); color: var(--t98-on-accent); }
 .t98-hour-cell--unavailable { color: var(--t98-muted); background: repeating-linear-gradient(45deg, var(--t98-surface) 0 3px, var(--t98-border) 3px 5px); }
 .t98-hour-grid-scale { display: inline-flex; gap: 2px; }

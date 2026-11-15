@@ -6,17 +6,17 @@ test('nested theme shadow tokens resolve at descendants across public CSS entryp
   await page.emulateMedia({ colorScheme: 'light' });
   await page.goto('/tests/legacy-theme.html?shadows=1');
   const light = {
-    base: '0 1px 2px rgb(16 17 20 / 4%)',
-    '-raised': '0 8px 24px -4px rgb(16 17 20 / 12%), 0 2px 4px rgb(16 17 20 / 4%)',
-    '-popover': '0 4px 12px -2px rgb(16 17 20 / 10%), 0 1px 3px rgb(16 17 20 / 6%)',
-    '-dialog': '0 24px 48px -12px rgb(16 17 20 / 22%)',
+    base: '0 1px 1px rgb(12 12 13 / 3%)',
+    '-raised': '0 4px 12px -4px rgb(12 12 13 / 10%), 0 1px 2px rgb(12 12 13 / 4%)',
+    '-popover': '0 2px 8px -2px rgb(12 12 13 / 8%), 0 1px 2px rgb(12 12 13 / 4%)',
+    '-dialog': '0 12px 32px -12px rgb(12 12 13 / 18%)',
     '-panel': 'none',
   };
   const dark = {
     base: 'none',
-    '-raised': '0 8px 24px -4px rgb(0 0 0 / 50%)',
-    '-popover': '0 4px 12px -2px rgb(0 0 0 / 45%), 0 0 0 1px #2B2D32',
-    '-dialog': '0 24px 48px -12px rgb(0 0 0 / 60%), 0 0 0 1px #2B2D32',
+    '-raised': '0 4px 16px -4px rgb(0 0 0 / 45%)',
+    '-popover': '0 2px 8px -2px rgb(0 0 0 / 40%), 0 0 0 1px #29292B',
+    '-dialog': '0 12px 32px -12px rgb(0 0 0 / 55%), 0 0 0 1px #29292B',
     '-panel': 'none',
   };
   for (const entry of ['tokens.css', 'styles.css']) {
@@ -148,26 +148,26 @@ for (const [theme, system, expected] of [
     await page.goto(`/tests/legacy-theme.html?theme=${theme}`);
     const rendered = await colors(page);
     // Independent palette expectations guard against two aliases agreeing on a wrong fill.
-    const surface = expected === 'dark' ? [24, 25, 28] : [255, 255, 255];
-    const disabled = expected === 'dark' ? [34, 35, 39] : [242, 243, 245];
-    const subtle = disabled, muted = expected === 'dark' ? [160, 164, 173] : [96, 100, 108], accent = expected === 'dark' ? [157, 143, 255] : [89, 67, 206];
+    const surface = expected === 'dark' ? [21, 21, 22] : [251, 251, 250];
+    const disabled = expected === 'dark' ? [31, 31, 33] : [234, 234, 231];
+    const subtle = disabled, muted = expected === 'dark' ? [166, 166, 162] : [94, 94, 91], accent = expected === 'dark' ? [243, 243, 241] : [12, 12, 13];
     // color-mix rounding can differ by one unit per channel.
     const near = (actual: Color, target: number[], label: string) => target.forEach((value, index) => expect(Math.abs(actual[index] - value), label).toBeLessThanOrEqual(1));
     expect(rendered.scheme).toBe(expected);
     expectAuthStory(rendered.auth, expected);
     const error = rendered.error;
-    expect(error.text.slice(0, 3)).toEqual(expected === 'dark' ? [255, 163, 153] : [180, 35, 24]);
-    expect(error.fill.slice(0, 3)).toEqual(expected === 'dark' ? [73, 42, 42] : [254, 237, 235]);
-    near(error.border, expected === 'dark' ? [128, 78, 75] : [232, 176, 172], 'form error border');
+    expect(error.text.slice(0, 3)).toEqual(expected === 'dark' ? [245, 160, 151] : [168, 38, 28]);
+    expect(error.fill.slice(0, 3)).toEqual(expected === 'dark' ? [62, 37, 36] : [246, 230, 227]);
+    near(error.border, expected === 'dark' ? [117, 74, 71] : [223, 172, 167], 'form error border');
     expect(contrast(error.text, error.fill), 'form error text').toBeGreaterThanOrEqual(4.5);
     expect(rendered.tag.fill.slice(0, 3)).toEqual(subtle);
-    expect(rendered.tag.border.slice(0, 3)).toEqual(expected === 'dark' ? [43, 45, 50] : [228, 229, 233]);
+    expect(rendered.tag.border.slice(0, 3)).toEqual(expected === 'dark' ? [41, 41, 43] : [220, 220, 218]);
     expect(rendered.tag.text.slice(0, 3)).toEqual(muted);
     expect(contrast(rendered.tag.text, rendered.tag.fill), 'subtle tag text').toBeGreaterThanOrEqual(4.5);
     // Counts, keys and avatars sit on the neutral subtle fill; only the active count and the integration initial carry the accent.
     for (const id of ['search-key', 'tab-count', 'active-tab-count', 'integration-initial', 'native-count', 'native-avatar']) {
       const item = rendered.compatibility[id], accented = id === 'active-tab-count' || id === 'integration-initial';
-      const accentSoft = expected === 'dark' ? [42, 37, 80] : [240, 238, 252];
+      const accentSoft = expected === 'dark' ? [42, 42, 44] : [228, 228, 225];
       expect(item.fill.slice(0, 3), `${id} fill`).toEqual(id === 'integration-initial' ? accentSoft : subtle);
       expect(item.text.slice(0, 3), `${id} text`).toEqual(accented ? accent : muted);
       expect(contrast(item.text, item.fill), `${id} text contrast`).toBeGreaterThanOrEqual(4.5);
@@ -226,7 +226,7 @@ test('restoring the old fills reproduces dark surface, action and navigation con
   await expect(page.locator('#danger')).toHaveCSS('background-color', 'rgb(255, 243, 245)');
   const old = await colors(page);
   expect(old.actions.danger.fill.slice(0, 3)).toEqual([255, 243, 245]);
-  expect(old.actions.danger.text.slice(0, 3)).toEqual([255, 163, 153]);
+  expect(old.actions.danger.text.slice(0, 3)).toEqual([245, 160, 151]);
   expect(old.header[3]).toBeCloseTo(0.851, 2);
   expect(contrast(old.headerText, composite(old.header, old.canvas))).toBeLessThan(4.5);
   expect(contrast(old.disabledText, old.disabled)).toBeLessThan(4.5);
@@ -306,7 +306,7 @@ test('disabled values use their semantic text role despite a legacy muted overri
   await page.goto('/tests/legacy-theme.html?theme=dark');
   await page.evaluate(() => document.documentElement.style.setProperty('--color-text-muted', '#695276'));
   const rendered = await colors(page);
-  expect(rendered.disabledText.slice(0, 3)).toEqual([143, 147, 156]);
+  expect(rendered.disabledText.slice(0, 3)).toEqual([142, 142, 138]);
   expect(contrast(rendered.disabledText, rendered.disabled)).toBeGreaterThanOrEqual(4.5);
   // Negative control matches the consumer's inherited legacy foreground.
   await page.locator('#disabled').evaluate(element => (element as HTMLInputElement).style.color = 'var(--color-text-muted)');

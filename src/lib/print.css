@@ -5,13 +5,13 @@
   :root, [data-theme], .t98-theme {
     color-scheme: light;
     --t98-shadow: none; --t98-shadow-raised: none; --t98-shadow-popover: none; --t98-shadow-dialog: none; --t98-shadow-panel: none;
-    --t98-bg: #FFFFFF; --t98-surface: #FFFFFF; --t98-subtle: #F2F3F5;
-    --t98-text: #000000; --t98-muted: #60646C; --t98-border: #E4E5E9; --t98-border-strong: #D3D5DA; --t98-control-border: #8B8D98;
-    --t98-accent: #5943CE; --t98-accent-hover: #4C37BE; --t98-accent-soft: #F0EEFC; --t98-on-accent: #FFFFFF;
-    --t98-success: #176B49; --t98-success-soft: #EAF5EF;
-    --t98-warning: #825208; --t98-warning-soft: #FFF5DC;
-    --t98-danger: #B42318; --t98-danger-soft: #FEEDEB;
-    --t98-info: #245AA8; --t98-info-soft: #EDF4FF; --t98-overlay: rgb(16 17 20 / 40%); --t98-surface-raised: #FFFFFF; --t98-placeholder: #6B6F78; --t98-accent-active: #3D2B9C; --t98-disabled-text: #60646C; --t98-disabled-surface: #F2F3F5; --t98-focus: #5943CE; --t98-chart-1: #5943CE; --t98-chart-2: #14796F; --t98-chart-3: #926008; --t98-chart-4: #9A417F; --t98-chart-5: #60646C; --t98-chart-grid: #EDEEF1; --t98-chart-axis: #C1C3CA; --t98-chart-accent-muted: #8C80E0;
+    --t98-bg: #FFFFFF; --t98-surface: #FBFBFA; --t98-subtle: #EAEAE7;
+    --t98-text: #000000; --t98-muted: #5E5E5B; --t98-border: #DCDCDA; --t98-border-strong: #CFCFCB; --t98-control-border: #868682;
+    --t98-accent: #0C0C0D; --t98-accent-hover: #2B2B2E; --t98-accent-soft: #E4E4E1; --t98-on-accent: #F3F3F1;
+    --t98-success: #1D6A47; --t98-success-soft: #E6EFE9;
+    --t98-warning: #7A5212; --t98-warning-soft: #F4ECDB;
+    --t98-danger: #A8261C; --t98-danger-soft: #F6E6E3;
+    --t98-info: #2D5A97; --t98-info-soft: #E5EBF3; --t98-overlay: rgb(12 12 13 / 40%); --t98-surface-raised: #FBFBFA; --t98-placeholder: #6F6F6C; --t98-accent-active: #47474B; --t98-disabled-text: #5E5E5B; --t98-disabled-surface: #EAEAE7; --t98-focus: #0C0C0D; --t98-chart-1: #0C0C0D; --t98-chart-2: #60495D; --t98-chart-3: #AC802D; --t98-chart-4: #89906F; --t98-chart-5: #2074AC; --t98-chart-grid: #E4E4E1; --t98-chart-axis: #BDBDB8; --t98-chart-accent-muted: #7A7A76;
   }
   html, body { margin: 0; background: var(--t98-bg); color: var(--t98-text); }
 
