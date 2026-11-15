@@ -3,7 +3,7 @@
 :is(ul, ol).t98-stack, :is(ul, ol).t98-inline, :is(ul, ol).t98-grid { list-style: none; }
 /* The hidden attribute wins over every library display rule: Stack, Inline and Grid set display, which would otherwise override
  * the browser's own [hidden] rule. "until-found" keeps its find-in-page behaviour. Apps need no [hidden] rule of their own. */
-:where([class^="t98-"], [class*=" t98-"])[hidden]:not([hidden="until-found"]) { display: none !important; }
+:where([class^="t98-"], [class*=" t98-"])[hidden]:not([hidden="until-found" i]) { display: none !important; }
 .t98-stack { display: flex; flex-direction: column; }
 .t98-stack > :where(.t98-button, .t98-badge, .t98-checkbox-label) { align-self: flex-start; }
 .t98-inline { display: flex; flex-wrap: wrap; align-items: center; }
