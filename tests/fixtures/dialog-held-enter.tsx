@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Button, ConfirmDialog, Dialog, Field, Input, Stack, Text, Textarea, useConfirmDialog, type ConfirmRequest } from '@ten98/ui';
 import '@ten98/ui/styles.css';
@@ -75,6 +75,19 @@ function ReplyDialog() {
     </Dialog>
   </>;
 }
+// An app's own control that acts in its onKeyDown and ignores defaultPrevented, focused when the dialog opens. It
+// cancels the key it acts on, so the keypress does not go on to the opener that regains focus when the dialog closes.
+function KeyActionDialog() {
+  const [open, setOpen] = useState(false);
+  const approve = useRef<HTMLButtonElement>(null);
+  return <>
+    <Button onClick={() => setOpen(true)}>Review request</Button>
+    <Dialog open={open} onOpenChange={setOpen} title="Approve this request?" initialFocus={approve}
+      footer={<Button ref={approve} variant="secondary" onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); record('approve'); setOpen(false); } }}>Approve with Enter</Button>}>
+      <Text>The requester is notified at once.</Text>
+    </Dialog>
+  </>;
+}
 function TypedConfirm({ danger }: { danger?: boolean }) {
   const [open, setOpen] = useState(false);
   const name = danger ? 'Delete' : 'Rename';
@@ -94,6 +107,7 @@ createRoot(document.getElementById('dialog-held-enter-fixture')!).render(<Stack 
   <TypedConfirm />
   <TypedConfirm danger />
   <KeyedConfirm />
+  <KeyActionDialog />
   <ReplyDialog />
   <Text>Dialog held Enter</Text>
 </Stack>);

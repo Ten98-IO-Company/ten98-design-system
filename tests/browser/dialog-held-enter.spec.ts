@@ -10,6 +10,13 @@ const cases = [
   { name: 'apply', kind: "Dialog with initialFocus 'primary'", opener: 'Change budget', title: 'Change budget?', confirm: 'Apply', entry: 'apply' },
 ];
 
+// Zero-delay timers in the page wait a minute, as on a page busy enough that they run only after the next keypress, so
+// nothing in the guard may rely on one having run.
+const delayZeroTimers = (page: Page) => page.addInitScript(() => {
+  const setTimeout = window.setTimeout;
+  window.setTimeout = ((handler: TimerHandler, delay?: number, ...rest: unknown[]) => setTimeout(handler, delay ? delay : 60_000, ...rest)) as typeof window.setTimeout;
+});
+
 async function hold(page: Page, key: string, repeats = 6) {
   for (let i = 0; i < repeats; i++) await page.keyboard.down(key);
   await page.keyboard.up(key);
@@ -34,6 +41,7 @@ for (const item of cases) {
   });
 
   test(`${item.kind}: a held Space neither confirms when it opens the dialog nor when the dialog appears mid-hold`, async ({ page }) => {
+    await delayZeroTimers(page);
     await page.goto('/tests/dialog-held-enter.html');
     const dialog = page.getByRole('dialog', { name: item.title });
     const opener = page.getByRole('button', { name: item.opener, exact: true });
@@ -148,6 +156,7 @@ test('confirmations start on Cancel, or on the field they wait for; opened by mo
 });
 
 test("an app's keydown handler opening a confirm-first dialog: neither the press nor its repeats confirm", async ({ page }) => {
+  await delayZeroTimers(page);
   await page.goto('/tests/dialog-held-enter.html');
   const dialog = page.getByRole('dialog', { name: 'Archive this campaign?' });
   const opener = page.getByRole('button', { name: 'Archive on Enter', exact: true });
@@ -174,6 +183,20 @@ test("an app's keydown handler opening a confirm-first dialog: neither the press
   await page.keyboard.press('Enter');
   await expect(dialog).toBeHidden();
   expect(await log(page)).toEqual(['archive', 'archive']);
+});
+
+test("held repeats never reach an app control's own keydown handler in the dialog; a fresh Enter does", async ({ page }) => {
+  await page.goto('/tests/dialog-held-enter.html');
+  const dialog = page.getByRole('dialog', { name: 'Approve this request?' });
+  await page.getByRole('button', { name: 'Review request', exact: true }).focus();
+  await page.keyboard.down('Enter');
+  await expect(dialog.getByRole('button', { name: 'Approve with Enter' })).toBeFocused();
+  await hold(page, 'Enter');
+  await expect(dialog).toBeVisible();
+  expect(await log(page)).toEqual([]);
+  await page.keyboard.press('Enter');
+  await expect(dialog).toBeHidden();
+  expect(await log(page)).toEqual(['approve']);
 });
 
 test('the first dialog on a page, mounted when it opens, ignores the held Enter that opened it without repeat flags', async ({ page, browserName }) => {
