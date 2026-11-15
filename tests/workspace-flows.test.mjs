@@ -136,6 +136,32 @@ test('TeamFlow preselects the last, least-privileged role unless defaultInviteRo
   assert.match(inviteSelect(render(h(TeamFlow, { ...teamProps, defaultInviteRole: 'admin' }))), /<option value="admin" selected/);
 });
 
+test('TeamFlow preselects the least-privileged canonical role in any order; an explicit default still wins (#221)', () => {
+  const selected = props => render(h(TeamFlow, { ...teamProps, ...props })).match(/<select[^>]*name="role"[^>]*>[\s\S]*?<\/select>/)[0].match(/<option value="([^"]+)" selected/)?.[1];
+  const role = value => ({ value, label: value });
+  // Ranked: every role is canonical, so the canonical order decides wherever the app lists it.
+  assert.equal(selected({ roles: ['viewer', 'admin', 'editor'].map(role) }), 'viewer');
+  assert.equal(selected({ roles: ['owner', 'admin', 'editor', 'viewer'].map(role) }), 'viewer');
+  assert.equal(selected({ roles: ['editor', 'admin'].map(role) }), 'editor');
+  // Unranked: an application role has no known rank, so the last entry is the least privileged.
+  assert.equal(selected({ roles: ['owner', 'admin', 'member'].map(role) }), 'member');
+  assert.equal(selected({ roles: ['viewer', 'guest', 'editor'].map(role) }), 'editor');
+  assert.equal(selected({ roles: ['viewer', 'admin', 'editor'].map(role), defaultInviteRole: 'editor' }), 'editor');
+  assert.equal(selected({ roles: ['owner', 'admin', 'member'].map(role), defaultInviteRole: 'admin' }), 'admin');
+});
+
+test('TeamFlow sections run Members, Invitations, Ownership, then the optional policy (#221)', () => {
+  const html = render(h(TeamFlow, { ...teamProps, policy: { twoFactorRequired: false, onChange: noop }, ownership: { candidates: [{ value: 'u2', label: 'Sam' }], onTransfer: noop } }));
+  const headings = [...html.matchAll(/<h3[^>]*>([^<]+)<\/h3>/g)].map(match => match[1]);
+  assert.deepEqual(headings, ['Members', 'Invitations', 'Ownership', 'Policy']);
+});
+
+test('TeamFlow role selects and the policy checkbox are not restored by the browser (#233)', () => {
+  const html = render(h(TeamFlow, { ...teamProps, policy: { twoFactorRequired: false, onChange: noop } }));
+  assert.match(html.match(/<select[^>]*aria-label="Role for Sam"[^>]*>/)[0], /autoComplete="off"|autocomplete="off"/);
+  assert.match(html.match(/<input[^>]*type="checkbox"[^>]*>/)[0], /autoComplete="off"|autocomplete="off"/);
+});
+
 test('flow-frame stays internal while CopyButton keeps its manual-copy fallback', () => {
   const entry = readFileSync(new URL('../dist/index.js', import.meta.url), 'utf8');
   assert.doesNotMatch(entry, /flow-frame/);

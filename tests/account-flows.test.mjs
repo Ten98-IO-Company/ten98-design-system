@@ -54,6 +54,12 @@ test('two-factor stages render their own content and recovery codes only in the 
   assert.ok(!on.includes('aaaa-1111') && on.includes('Regenerate recovery codes') && on.includes('Turn off two-factor authentication'));
 });
 
+test('every two-factor code field is marked required for assistive technology (#233 N6)', () => {
+  assert.match(tag(twoFactor({ stage: 'enrolling' }), 'code'), /required=""/);
+  assert.match(tag(twoFactor({ stage: 'on' }), 'code'), /required=""/);
+  assert.match(tag(twoFactor({ stage: 'on', regenerateRequiresCode: false, disableRequiresCode: true }), 'code'), /required=""/);
+});
+
 test('the current session has no revoke action', () => {
   const html = sessionList();
   assert.ok(html.includes('This device'));

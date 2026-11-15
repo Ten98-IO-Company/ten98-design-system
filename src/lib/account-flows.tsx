@@ -290,7 +290,7 @@ export function TwoFactorSetupFlow({ stage, enrolment, recoveryCodes = [], codeL
     <Text tone="muted" size="sm">{copy.manage}</Text>
     {passwordField}
     {(disableRequiresCode || regenerateRequiresCode) && <Field label={copy.disableCode} htmlFor={`${id}-disable-code`} error={codeError ?? fieldErrors?.code}>
-      <Input id={`${id}-disable-code`} name="code" autoComplete="one-time-code" spellCheck={false} autoCapitalize="off" value={disableCode}
+      <Input id={`${id}-disable-code`} name="code" autoComplete="one-time-code" required spellCheck={false} autoCapitalize="off" value={disableCode}
         onChange={event => { setDisableCode(event.target.value); setCodeError(undefined); }} />
     </Field>}
     <FormActions>
