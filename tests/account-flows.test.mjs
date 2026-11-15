@@ -163,6 +163,9 @@ test('the pre-paint script reads its own key and cannot close its script element
   const script = createThemeScript(key);
   assert.ok(!script.includes('</script'));
   assert.equal(run(script, store({ [key]: 'dark' })), 'dark');
+  // Constant apart from the encoded key: nothing else from the app or the account reaches the inline script.
+  assert.equal(createThemeScript('a').replace('"a"', 'KEY'), createThemeScript('b').replace('"b"', 'KEY'));
+  assert.equal(createThemeScript(), createThemeScript(themeStorageKey));
 });
 
 test('isAccountTheme accepts exactly the three themes', () => {
@@ -178,4 +181,6 @@ test('server rendering uses the account value, else system, without touching the
   assert.equal(state.resolvedTheme, 'dark');
   assert.equal(renderToStaticMarkup(h(Probe, { value: 'sepia' })), '<span>system</span>');
   assert.equal(typeof state.setTheme, 'function');
+  assert.equal(renderToStaticMarkup(h(Probe, { storageKey: null })), '<span>system</span>');
+  assert.equal(renderToStaticMarkup(h(Probe, { value: 'light', storageKey: null })), '<span>light</span>');
 });

@@ -4,11 +4,17 @@ import { createThemeScript, themeStorageKey } from '../../src/lib/theme-script';
 const dark = 'rgb(18, 19, 22)', light = 'rgb(247, 247, 248)';
 
 // Serve the fixture with the real pre-paint script first in head, as an app's server or framework head does.
-async function open(page: Page, search = '') {
+// With csp, the response carries a nonce policy and every other script gets the nonce, as Campaign's server does.
+type Serve = { script?: boolean; csp?: { themeNonce: boolean } };
+const nonce = 't98-test-nonce';
+async function open(page: Page, search = '', { script = true, csp }: Serve = {}) {
   await page.route('**/tests/theme.html*', async route => {
     const response = await route.fetch();
-    const body = (await response.text()).replace('<head>', `<head><script>${createThemeScript()}</script>`);
-    await route.fulfill({ response, body });
+    let body = await response.text();
+    if (csp) body = body.replaceAll('<script', `<script nonce="${nonce}"`);
+    if (script) body = body.replace('<head>', `<head><script${csp?.themeNonce ? ` nonce="${nonce}"` : ''}>${createThemeScript()}</script>`);
+    const headers = csp ? { ...response.headers(), 'content-security-policy': `script-src 'self' 'nonce-${nonce}'` } : response.headers();
+    await route.fulfill({ response, body, headers });
   });
   await page.goto(`/tests/theme.html${search}`);
   await expect(page.locator('#resolved')).toBeVisible();
@@ -89,4 +95,122 @@ test('blocked storage falls back to system and keeps a choice for the tab', asyn
   await expect(page.getByRole('status')).toHaveText('Changed for this tab only.');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   expect(await background(page)).toBe(dark);
+});
+
+test('hydrating server HTML keeps the cached dark theme without a rewrite or a hydration warning', async ({ page }) => {
+  const messages: string[] = [];
+  page.on('console', message => { if (['error', 'warning'].includes(message.type())) messages.push(message.text()); });
+  page.on('pageerror', error => messages.push(error.message));
+  await page.emulateMedia({ colorScheme: 'light' });
+  await seed(page, 'dark');
+  await open(page, '?ssr=1');
+  await expect(page.locator('#resolved')).toHaveText('dark');
+  await expect(page.getByRole('radio', { name: 'Dark' })).toBeChecked();
+  expect(await firstFrame(page)).toBe(dark);
+  expect(await log(page)).toEqual(['dark']);
+  expect(messages).toEqual([]);
+});
+
+test('the cache holds only the theme under one key, and an unknown account value never clears it', async ({ page }) => {
+  await seed(page, 'dark');
+  await open(page, '?account=light');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  await expect.poll(() => cached(page)).toBe('light');
+  await page.getByRole('button', { name: 'Sign out' }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  expect(await page.evaluate(() => Object.entries(localStorage))).toEqual([[themeStorageKey, 'light']]);
+});
+
+test('the pre-paint script runs under a nonce policy', async ({ page }) => {
+  const violations: string[] = [];
+  page.on('console', message => { if (/Content Security Policy/i.test(message.text())) violations.push(message.text()); });
+  await page.emulateMedia({ colorScheme: 'light' });
+  await seed(page, 'dark');
+  await open(page, '', { csp: { themeNonce: true } });
+  expect(await firstFrame(page)).toBe(dark);
+  expect(await log(page)).toEqual(['dark']);
+  expect(violations).toEqual([]);
+});
+
+test('negative control: without its nonce the policy blocks the script and the first frame is light', async ({ page }) => {
+  await page.emulateMedia({ colorScheme: 'light' });
+  await seed(page, 'dark');
+  await open(page, '', { csp: { themeNonce: false } });
+  expect(await firstFrame(page)).toBe(light);
+  expect((await log(page))[0]).toBe('(none)');
+});
+
+type Spy = { storageCalls: number; listeners: { storage: number; media: number } };
+// Counts the page's localStorage calls and the theme listeners still attached.
+const spy = (page: Page) => page.addInitScript(() => {
+  const record: Spy = { storageCalls: 0, listeners: { storage: 0, media: 0 } };
+  (window as unknown as { themeSpy: Spy }).themeSpy = record;
+  type Method = (this: unknown, ...args: unknown[]) => unknown;
+  const wrap = (target: object, name: string, before: (self: unknown, args: unknown[]) => void) => {
+    const original = (target as Record<string, Method>)[name];
+    (target as Record<string, Method>)[name] = function (this: unknown, ...args: unknown[]) { before(this, args); return original.apply(this, args); };
+  };
+  for (const name of ['getItem', 'setItem', 'removeItem', 'clear', 'key']) wrap(Storage.prototype, name, self => { if (self === window.localStorage) record.storageCalls++; });
+  wrap(window, 'addEventListener', (_, [type]) => { if (type === 'storage') record.listeners.storage++; });
+  wrap(window, 'removeEventListener', (_, [type]) => { if (type === 'storage') record.listeners.storage--; });
+  wrap(MediaQueryList.prototype, 'addEventListener', (_, [type]) => { if (type === 'change') record.listeners.media++; });
+  wrap(MediaQueryList.prototype, 'removeEventListener', (_, [type]) => { if (type === 'change') record.listeners.media--; });
+});
+const spied = (page: Page) => page.evaluate(() => (window as unknown as { themeSpy: Spy }).themeSpy);
+
+test('every listener is removed on unmount, and with the cache on the theme stays', async ({ page }) => {
+  await spy(page);
+  await open(page, '?account=dark');
+  expect((await spied(page)).listeners).toEqual({ storage: 1, media: 1 });
+  await page.getByRole('button', { name: 'Unmount' }).click();
+  await expect(page.locator('#resolved')).toHaveCount(0);
+  expect((await spied(page)).listeners).toEqual({ storage: 0, media: 0 });
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+});
+
+test.describe('without a browser cache (storageKey: null)', () => {
+  test('the account value applies, sign-out returns to system and nothing touches localStorage', async ({ page }) => {
+    await page.emulateMedia({ colorScheme: 'light' });
+    await seed(page, 'dark');
+    await spy(page);
+    await open(page, '?account=light&cache=off', { script: false });
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+    await page.getByRole('radio', { name: 'Dark' }).check();
+    await expect(page.getByRole('status')).toHaveText('Changed for this tab only.');
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+    await page.getByRole('button', { name: 'Sign out' }).click();
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'system');
+    await expect(page.locator('#resolved')).toHaveText('light');
+    expect(await spied(page)).toEqual({ storageCalls: 0, listeners: { storage: 0, media: 1 } });
+  });
+
+  test('an unknown value is system from the start, and an earlier value or choice never returns', async ({ page }) => {
+    await seed(page, 'dark');
+    await open(page, '?cache=off', { script: false });
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'system');
+    await page.getByRole('radio', { name: 'Light' }).check();
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+    await page.getByRole('button', { name: 'Account loads dark' }).click();
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+    await page.getByRole('button', { name: 'Sign out' }).click();
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'system');
+    await expect(page.getByRole('radio', { name: 'System' })).toBeChecked();
+  });
+
+  test('unmounting resets to system', async ({ page }) => {
+    await spy(page);
+    await open(page, '?account=dark&cache=off', { script: false });
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+    await page.getByRole('button', { name: 'Unmount' }).click();
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'system');
+    expect(await spied(page)).toEqual({ storageCalls: 0, listeners: { storage: 0, media: 0 } });
+  });
+
+  test('a failed save restores the previous theme', async ({ page }) => {
+    await open(page, '?account=light&cache=off&fail=1', { script: false });
+    await page.getByRole('radio', { name: 'Dark' }).click();
+    await expect(page.getByRole('status')).toHaveText('The account could not be saved.');
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+    await expect(page.getByRole('radio', { name: 'Light' })).toBeChecked();
+  });
 });

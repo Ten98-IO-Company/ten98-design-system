@@ -10,15 +10,15 @@ export interface ThemeOptions {
   value?: AccountTheme | null;
   /** Saves a choice made with setTheme, for example to the account. A rejection restores the previous theme. */
   onChange?: (theme: AccountTheme) => unknown;
-  /** localStorage key; pass the same key to createThemeScript. */
-  storageKey?: string;
+  /** localStorage key; pass the same key to createThemeScript. null turns the cache off: nothing is read or written. */
+  storageKey?: string | null;
 }
 export interface ThemeState {
   /** The theme applied to `<html data-theme>`. */
   theme: AccountTheme;
   /** What the page shows: 'system' follows prefers-color-scheme. */
   resolvedTheme: ResolvedTheme;
-  /** Applies and caches a theme, then awaits onChange. Resolves whether this browser remembered it. */
+  /** Applies and caches a theme, then awaits onChange. Resolves whether this browser remembered it (false without a cache). */
   setTheme: (theme: AccountTheme) => Promise<boolean>;
 }
 
@@ -55,6 +55,9 @@ function subscribeStored(listener: () => void) {
   };
 }
 
+const subscribeNothing = () => () => undefined;
+const nothingStored = () => null;
+
 const darkQuery = '(prefers-color-scheme: dark)';
 const prefersDark = () => typeof window.matchMedia === 'function' && window.matchMedia(darkQuery).matches;
 function subscribeDark(listener: () => void) {
@@ -70,35 +73,44 @@ const useClientLayoutEffect = typeof document === 'undefined' ? useEffect : useL
  * Reads, applies and caches the light/dark/system theme on `<html data-theme>`. The account's value wins once it
  * is known; until then the cached choice applies, so pair it with createThemeScript in `<head>`. Call it once, in
  * the shell. The app keeps loading and saving the account: pass the saved value, and save in onChange.
+ * With `storageKey: null` nothing is cached: an unknown value is 'system', and unmounting resets to 'system'.
  */
 export function useTheme({ value, onChange, storageKey = themeStorageKey }: ThemeOptions = {}): ThemeState {
-  const stored = useSyncExternalStore(subscribeStored, () => readStored(storageKey), () => null);
+  const cached = storageKey !== null;
+  const stored = useSyncExternalStore(cached ? subscribeStored : subscribeNothing, cached ? () => readStored(storageKey) : nothingStored, nothingStored);
   const dark = useSyncExternalStore(subscribeDark, prefersDark, () => false);
+  // False only while hydrating server HTML: that render uses the server snapshots, not the cache the pre-paint
+  // script already applied, so writing its theme would flash. React re-renders with the client snapshots next.
+  const hydrated = useSyncExternalStore(subscribeNothing, () => true, () => false);
   const saved = isAccountTheme(value) ? value : null;
   // A choice awaiting onChange shows until the saved value changes, then the saved value applies.
-  const [pending, setPending] = useState<{ theme: AccountTheme; base: AccountTheme | null }>();
-  const theme = pending && pending.base === saved ? pending.theme : saved ?? stored ?? 'system';
-  const current = useRef({ theme, saved, onChange, storageKey });
+  const [pending, setPending] = useState<AccountTheme>();
+  const [base, setBase] = useState(saved);
+  if (base !== saved) { setBase(saved); setPending(undefined); }
+  const theme = (base === saved ? pending : undefined) ?? saved ?? stored ?? 'system';
+  const current = useRef({ theme, onChange, storageKey });
   const calls = useRef(0);
   useClientLayoutEffect(() => {
-    current.current = { theme, saved, onChange, storageKey };
+    current.current = { theme, onChange, storageKey };
     const root = document.documentElement;
-    if (root.dataset.theme !== theme) root.dataset.theme = theme;
+    if (hydrated && root.dataset.theme !== theme) root.dataset.theme = theme;
   });
+  // Without a cache nothing paints the theme before the next load, so leave the page on the device setting.
+  useClientLayoutEffect(() => () => { if (current.current.storageKey === null) document.documentElement.dataset.theme = 'system'; }, []);
   // Cache the account's value so the next load paints it before the account arrives.
-  useEffect(() => { if (saved && readStored(storageKey) !== saved) writeStored(storageKey, saved); }, [saved, storageKey]);
+  useEffect(() => { if (storageKey !== null && saved && readStored(storageKey) !== saved) writeStored(storageKey, saved); }, [saved, storageKey]);
 
   const setTheme = useCallback(async (next: AccountTheme) => {
     if (!isAccountTheme(next)) throw new TypeError(`Unknown theme: ${String(next)}`);
-    const { theme: previous, saved: base, onChange: save, storageKey: key } = current.current;
+    const { theme: previous, onChange: save, storageKey: key } = current.current;
     const call = ++calls.current;
-    setPending({ theme: next, base });
-    const remembered = writeStored(key, next);
+    setPending(next);
+    const remembered = key !== null && writeStored(key, next);
     try {
       await save?.(next);
     } catch (error) {
       // Only the latest choice may restore; an older failure must not undo a newer one.
-      if (call === calls.current) { setPending(undefined); writeStored(key, previous); }
+      if (call === calls.current) { setPending(undefined); if (key !== null) writeStored(key, previous); }
       throw error;
     }
     return remembered;
